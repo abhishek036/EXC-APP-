@@ -12,14 +12,17 @@ export class AttendanceService {
   async markSession(instituteId: string, userId: string, data: MarkAttendanceInput) {
      const session = await this.repo.markAttendance(instituteId, userId, data);
      
-     // Queue the background job for alerts
-     await notificationQueue.add('ATTENDANCE_ALERT', { 
-       sessionId: session.id, 
-       instituteId 
-     });
+     // Queue the background job for alerts (only if Redis is available)
+     if (notificationQueue) {
+       await notificationQueue.add('ATTENDANCE_ALERT', { 
+         sessionId: session.id, 
+         instituteId 
+       });
+     }
 
      return { session_id: session.id, marked: data.records.length };
   }
+
 
   async getBatchMonthly(batchId: string, instituteId: string, month: number, year: number) {
       const startDate = new Date(year, month - 1, 1);
