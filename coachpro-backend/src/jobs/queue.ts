@@ -3,12 +3,16 @@ import { redis } from '../config/redis';
 import { FeeHandler } from './handlers/fee.handler';
 import { AttendanceHandler } from './handlers/attendance.handler';
 
-// Define Queues
-export const notificationQueue = new Queue('notifications', { connection: redis as any });
-export const reportQueue = new Queue('reports', { connection: redis as any });
-export const cronQueue = new Queue('cron', { connection: redis as any });
+// Only create queues if Redis is available
+export const notificationQueue = redis ? new Queue('notifications', { connection: redis as any }) : null;
+export const reportQueue = redis ? new Queue('reports', { connection: redis as any }) : null;
+export const cronQueue = redis ? new Queue('cron', { connection: redis as any }) : null;
 
 export const setupQueues = () => {
+    if (!redis) {
+        console.warn('⚠️ BullMQ disabled: no Redis connection. Background jobs will not run.');
+        return;
+    }
     console.log('✅ BullMQ Queues initialized');
 
     // 1. Notification Worker (for sending individual alerts)
@@ -48,6 +52,7 @@ export const setupQueues = () => {
 };
 
 const setupSchedules = async () => {
+    if (!cronQueue) return;
     // 1st of every month at 00:00
     await cronQueue.add('MONTHLY_FEE_GENERATION', {}, {
         repeat: { pattern: '0 0 1 * *' }

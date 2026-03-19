@@ -4,17 +4,27 @@ dotenv.config();
 
 const getRedisUrl = () => {
   if (process.env.REDIS_URL) return process.env.REDIS_URL;
-  return `redis://:${process.env.REDIS_PASS || ''}@${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`;
+  // No Redis URL configured — return null to skip Redis setup
+  return null;
 };
 
-export const redis = new Redis(getRedisUrl(), {
-  maxRetriesPerRequest: null,
-});
+const redisUrl = getRedisUrl();
 
-redis.on('connect', () => {
-  console.log('✅ Connected to Redis successfully');
-});
+export const redis: Redis | null = redisUrl
+  ? new Redis(redisUrl, {
+      maxRetriesPerRequest: null,
+      lazyConnect: true,
+    })
+  : null;
 
-redis.on('error', (err) => {
-  console.error('❌ Redis Connection Error:', err);
-});
+if (redis) {
+  redis.on('connect', () => {
+    console.log('✅ Connected to Redis successfully');
+  });
+
+  redis.on('error', (err) => {
+    console.error('❌ Redis Connection Error:', err.message);
+  });
+} else {
+  console.warn('⚠️ REDIS_URL not set — Redis and BullMQ will be disabled.');
+}
