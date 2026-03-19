@@ -17,6 +17,25 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy Node.js app to Azure Web App - abc-appxyz
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Set up Node.js version
         uses: actions/setup-node@v3
@@ -25,7 +44,9 @@ jobs:
 
       - name: npm install, build, and test
         run: |
+          cd coachpro-backend
           npm install
+          npx prisma generate
           npm run build --if-present
           npm run test --if-present
 
@@ -33,7 +54,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          path: coachpro-backend/
 
   deploy:
     runs-on: ubuntu-latest

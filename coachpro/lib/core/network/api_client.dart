@@ -12,7 +12,7 @@ class ApiClient {
     _dio = Dio(BaseOptions(
       // Pointing to the Node.js backend. Override via --dart-define=API_URL.
       // Example: --dart-define=API_URL=https://api.coachpro.app/api/
-      baseUrl: const String.fromEnvironment('API_URL', defaultValue: 'http://localhost:3000/api/'),
+      baseUrl: const String.fromEnvironment('API_URL', defaultValue: 'https://abc-appxyz-hvfchqhagycbfcbp.centralindia-01.azurewebsites.net/api/'),
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       sendTimeout: const Duration(seconds: 15),
