@@ -17,25 +17,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy Node.js app to Azure Web App - abc-appxyz
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read #This is required for actions/checkout
-
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Set up Node.js version
         uses: actions/setup-node@v3
@@ -83,4 +64,3 @@ jobs:
           app-name: 'abc-appxyz'
           slot-name: 'Production'
           package: .
-          
