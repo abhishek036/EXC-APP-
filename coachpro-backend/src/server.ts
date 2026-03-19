@@ -1,6 +1,6 @@
 import app from './app';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './generated/client';
 import http from 'http';
 import { initSocket } from './config/socket';
 
