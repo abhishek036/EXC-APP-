@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "100598842137",
+    "project_id": "excellence-academy-9154a",
+    "storage_bucket": "excellence-academy-9154a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:100598842137:android:d272a5520592264c6a7b88",
+        "android_client_info": {
+          "package_name": "excellence.academy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZxE4wPdAG8EMBV3NtC-6J52VVs_k7VpU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

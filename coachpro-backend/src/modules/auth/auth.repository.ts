@@ -1,0 +1,82 @@
+import { prisma } from '../../server';
+
+export class AuthRepository {
+  async findUserByPhone(phone: string) {
+    const phonesToSearch = [phone];
+    if (phone.startsWith('+91')) phonesToSearch.push(phone.substring(3));
+    if (phone.length === 10) phonesToSearch.push(`+91${phone}`);
+
+    return prisma.user.findFirst({
+        where: { phone: { in: phonesToSearch }, is_active: true },
+        include: { institute: true }
+    });
+  }
+
+  async saveOtp(phone: string, otp: string, purpose: string, expiresAt: Date) {
+      // Invalidate existing OTPs for this phone + purpose
+      await prisma.otpCode.updateMany({
+         where: { phone, purpose, used_at: null, expires_at: { gt: new Date() } },
+         data: { used_at: new Date() } // Mark unused as "used" to invalidate
+      });
+
+      return prisma.otpCode.create({
+          data: {
+              phone,
+              code: otp,
+              purpose,
+              expires_at: expiresAt
+          }
+      });
+  }
+
+  async verifyOtp(phone: string, otp: string, purpose: string) {
+      const validOtp = await prisma.otpCode.findFirst({
+          where: {
+              phone,
+              code: otp,
+              purpose,
+              used_at: null,
+              expires_at: {
+                  gt: new Date()
+              }
+          }
+      });
+
+      if (validOtp) {
+          // Mark as used
+          await prisma.otpCode.update({
+              where: { id: validOtp.id },
+              data: { used_at: new Date() }
+          });
+      }
+
+      return validOtp;
+  }
+
+  async storeRefreshToken(userId: string, tokenHash: string, expiresAt: Date) {
+      return prisma.refreshToken.create({
+          data: {
+              user_id: userId,
+              token_hash: tokenHash,
+              expires_at: expiresAt
+          }
+      });
+  }
+
+  async revokeRefreshToken(tokenHash: string) {
+      return prisma.refreshToken.deleteMany({
+          where: { token_hash: tokenHash }
+      });
+  }
+  
+  async findRefreshToken(tokenHash: string) {
+      return prisma.refreshToken.findFirst({
+         where: { 
+            token_hash: tokenHash,
+            revoked_at: null,
+            expires_at: { gt: new Date() }
+         },
+         include: { user: true }
+      });
+  }
+}

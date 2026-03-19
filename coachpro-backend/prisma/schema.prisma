@@ -1,0 +1,698 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Institute {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String    @db.VarChar(200)
+  slug          String    @unique @db.VarChar(100)
+  join_code     String?   @unique @db.VarChar(20)
+  logo_url      String?
+  address       String?
+  phone         String?   @db.VarChar(15)
+  email         String?   @db.VarChar(200)
+  website       String?   @db.VarChar(200)
+  primary_color String?   @default("#3F72AF") @db.VarChar(7)
+  settings      Json?     @default("{}")
+  is_active     Boolean?  @default(true)
+  created_at    DateTime? @default(now()) @db.Timestamptz
+
+  users                     User[]
+  teachers                  Teacher[]
+  students                  Student[]
+  parents                   Parent[]
+  batches                   Batch[]
+  student_batches           StudentBatch[]
+  fee_structures            FeeStructure[]
+  fee_records               FeeRecord[]
+  fee_payments              FeePayment[]
+  fee_discounts             FeeDiscount[]
+  attendance_sessions       AttendanceSession[]
+  attendance_records        AttendanceRecord[]
+  holidays                  Holiday[]
+  exams                     Exam[]
+  exam_results              ExamResult[]
+  quizzes                   Quiz[]
+  quiz_attempts             QuizAttempt[]
+  notes                     Note[]
+  assignments               Assignment[]
+  doubts                    Doubt[]
+  chat_messages             ChatMessage[]
+  lectures                  Lecture[]
+  announcements             Announcement[]
+  leads                     Lead[]
+  staff_members             Staff[]
+  payroll_records           PayrollRecord[]
+  syllabus_topics           SyllabusTopic[]
+  student_syllabus_progress StudentSyllabusProgress[]
+  audit_logs                AuditLog[]
+  certificates              Certificate[]
+
+  @@map("institutes")
+}
+
+model User {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  institute_id  String    @db.Uuid
+  institute     Institute @relation(fields: [institute_id], references: [id], onDelete: Cascade)
+  phone         String    @db.VarChar(15)
+  email         String?   @db.VarChar(200)
+  password_hash String?   @db.VarChar(255)
+  role          String    @db.VarChar(20) // admin, teacher, student, parent
+  status        String    @default("PENDING") @db.VarChar(20) // ACTIVE, INACTIVE, BLOCKED, PENDING
+  is_active     Boolean?  @default(true)
+  last_login_at DateTime? @db.Timestamptz
+  created_at    DateTime? @default(now()) @db.Timestamptz
+
+  refresh_tokens        RefreshToken[]
+  teachers              Teacher[]
+  students              Student[]
+  parents               Parent[]
+  fee_payments          FeePayment[]
+  corrected_attendance  AttendanceRecord[]
+  exams_created         Exam[]
+  chat_messages         ChatMessage[]
+  announcements_created Announcement[]
+  audit_logs            AuditLog[]
+
+  @@unique([institute_id, phone])
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  token_hash String    @unique @db.VarChar(255)
+  expires_at DateTime  @db.Timestamptz
+  revoked_at DateTime? @db.Timestamptz
+  created_at DateTime? @default(now()) @db.Timestamptz
+
+  @@map("refresh_tokens")
+}
+
+model OtpCode {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone      String    @db.VarChar(15)
+  code       String    @db.VarChar(6)
+  purpose    String    @db.VarChar(50)
+  expires_at DateTime  @db.Timestamptz
+  used_at    DateTime? @db.Timestamptz
+  attempts   Int?      @default(0)
+  created_at DateTime? @default(now()) @db.Timestamptz
+
+  @@map("otp_codes")
+}
+
+model Teacher {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String?   @db.Uuid
+  user          User?     @relation(fields: [user_id], references: [id])
+  institute_id  String    @db.Uuid
+  institute     Institute @relation(fields: [institute_id], references: [id])
+  name          String    @db.VarChar(200)
+  phone         String?   @db.VarChar(15)
+  email         String?   @db.VarChar(200)
+  subjects      String[]
+  qualification String?   @db.VarChar(200)
+  photo_url     String?   @db.Text
+  joining_date  DateTime? @db.Date
+  is_active     Boolean?  @default(true)
+  created_at    DateTime? @default(now()) @db.Timestamptz
+
+  batches             Batch[]
+  attendance_sessions AttendanceSession[]
+  quizzes             Quiz[]
+  notes               Note[]
+  assignments         Assignment[]
+  assigned_doubts     Doubt[]
+  lectures            Lecture[]
+
+  @@map("teachers")
+}
+
+model Student {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String?   @db.Uuid
+  user            User?     @relation(fields: [user_id], references: [id])
+  institute_id    String    @db.Uuid
+  institute       Institute @relation(fields: [institute_id], references: [id])
+  name            String    @db.VarChar(200)
+  phone           String?   @db.VarChar(15)
+  dob             DateTime? @db.Date
+  gender          String?   @db.VarChar(10)
+  address         String?   @db.Text
+  photo_url       String?   @db.Text
+  blood_group     String?   @db.VarChar(5)
+  enrollment_date DateTime? @default(dbgenerated("CURRENT_DATE")) @db.Date // mapped properly to PG default
+  student_code    String?   @db.VarChar(20)
+  prev_institute  String?   @db.VarChar(200)
+  is_active       Boolean?  @default(true)
+  created_at      DateTime? @default(now()) @db.Timestamptz
+
+  parent_students   ParentStudent[]
+  student_batches   StudentBatch[]
+  fee_records       FeeRecord[]
+  fee_discounts     FeeDiscount[]
+  attendance        AttendanceRecord[]
+  exam_results      ExamResult[]
+  quiz_attempts     QuizAttempt[]
+  doubts            Doubt[]
+  certificates      Certificate[]
+  syllabus_progress StudentSyllabusProgress[]
+
+  @@map("students")
+}
+
+model Parent {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String?   @db.Uuid
+  user         User?     @relation(fields: [user_id], references: [id])
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  name         String    @db.VarChar(200)
+  phone        String    @db.VarChar(15)
+  occupation   String?   @db.VarChar(100)
+
+  parent_students ParentStudent[]
+
+  @@map("parents")
+}
+
+model ParentStudent {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  parent_id  String   @db.Uuid
+  parent     Parent   @relation(fields: [parent_id], references: [id], onDelete: Cascade)
+  student_id String   @db.Uuid
+  student    Student  @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  relation   String?  @db.VarChar(20)
+  is_primary Boolean? @default(true)
+
+  @@unique([parent_id, student_id])
+  @@map("parent_students")
+}
+
+model Batch {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  name         String    @db.VarChar(200)
+  subject      String?   @db.VarChar(100)
+  teacher_id   String?   @db.Uuid
+  teacher      Teacher?  @relation(fields: [teacher_id], references: [id])
+  days_of_week Int[]
+  start_time   DateTime? @db.Time
+  end_time     DateTime? @db.Time
+  room         String?   @db.VarChar(50)
+  start_date   DateTime? @db.Date
+  end_date     DateTime? @db.Date
+  capacity     Int?
+  batch_type   String?   @default("regular") @db.VarChar(20)
+  is_active    Boolean?  @default(true)
+  created_at   DateTime? @default(now()) @db.Timestamptz
+
+  student_batches     StudentBatch[]
+  fee_structures      FeeStructure[]
+  fee_records         FeeRecord[]
+  attendance_sessions AttendanceSession[]
+  exams               ExamBatch[]
+  quizzes             Quiz[]
+  notes               Note[]
+  assignments         Assignment[]
+  doubts              Doubt[]
+  chat_messages       ChatMessage[]
+  lectures            Lecture[]
+  announcements       Announcement[]
+  syllabus_topics     SyllabusTopic[]
+
+  @@map("batches")
+}
+
+model StudentBatch {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student_id   String    @db.Uuid
+  student      Student   @relation(fields: [student_id], references: [id])
+  batch_id     String    @db.Uuid
+  batch        Batch     @relation(fields: [batch_id], references: [id])
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  joined_date  DateTime? @default(dbgenerated("CURRENT_DATE")) @db.Date
+  left_date    DateTime? @db.Date
+  is_active    Boolean?  @default(true)
+
+  @@unique([student_id, batch_id])
+  @@map("student_batches")
+}
+
+model FeeStructure {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batch_id        String    @db.Uuid
+  batch           Batch     @relation(fields: [batch_id], references: [id])
+  institute_id    String    @db.Uuid
+  institute       Institute @relation(fields: [institute_id], references: [id])
+  monthly_fee     Decimal   @db.Decimal(10, 2)
+  admission_fee   Decimal?  @default(0) @db.Decimal(10, 2)
+  exam_fee        Decimal?  @default(0) @db.Decimal(10, 2)
+  late_fee_amount Decimal?  @default(0) @db.Decimal(10, 2)
+  late_after_day  Int?      @default(10)
+  grace_days      Int?      @default(0)
+
+  @@map("fee_structures")
+}
+
+model FeeRecord {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student_id      String    @db.Uuid
+  student         Student   @relation(fields: [student_id], references: [id])
+  batch_id        String    @db.Uuid
+  batch           Batch     @relation(fields: [batch_id], references: [id])
+  institute_id    String    @db.Uuid
+  institute       Institute @relation(fields: [institute_id], references: [id])
+  month           Int
+  year            Int
+  total_amount    Decimal   @db.Decimal(10, 2)
+  discount_amount Decimal?  @default(0) @db.Decimal(10, 2)
+  late_fee        Decimal?  @default(0) @db.Decimal(10, 2)
+  final_amount    Decimal   @db.Decimal(10, 2)
+  due_date        DateTime  @db.Date
+  status          String?   @default("pending") @db.VarChar(20)
+  created_at      DateTime? @default(now()) @db.Timestamptz
+
+  payments FeePayment[]
+
+  @@unique([student_id, batch_id, month, year])
+  @@map("fee_records")
+}
+
+model FeePayment {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fee_record_id   String    @db.Uuid
+  fee_record      FeeRecord @relation(fields: [fee_record_id], references: [id])
+  institute_id    String    @db.Uuid
+  institute       Institute @relation(fields: [institute_id], references: [id])
+  amount_paid     Decimal   @db.Decimal(10, 2)
+  payment_mode    String?   @db.VarChar(20)
+  transaction_id  String?   @db.VarChar(200)
+  note            String?   @db.Text
+  receipt_number  String?   @unique @db.VarChar(50)
+  receipt_url     String?   @db.Text
+  paid_at         DateTime? @default(now()) @db.Timestamptz
+  collected_by_id String?   @map("collected_by") @db.Uuid
+  collected_by    User?     @relation(fields: [collected_by_id], references: [id])
+
+  @@map("fee_payments")
+}
+
+model FeeDiscount {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student_id    String    @db.Uuid
+  student       Student   @relation(fields: [student_id], references: [id])
+  institute_id  String    @db.Uuid
+  institute     Institute @relation(fields: [institute_id], references: [id])
+  discount_type String?   @db.VarChar(10)
+  amount        Decimal   @db.Decimal(10, 2)
+  reason        String?   @db.Text
+  valid_from    DateTime? @db.Date
+  valid_to      DateTime? @db.Date
+
+  @@map("fee_discounts")
+}
+
+model AttendanceSession {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batch_id     String    @db.Uuid
+  batch        Batch     @relation(fields: [batch_id], references: [id])
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  teacher_id   String?   @db.Uuid
+  teacher      Teacher?  @relation(fields: [teacher_id], references: [id])
+  session_date DateTime  @db.Date
+  submitted_at DateTime? @db.Timestamptz
+  is_corrected Boolean?  @default(false)
+
+  records AttendanceRecord[]
+
+  @@unique([batch_id, session_date])
+  @@map("attendance_sessions")
+}
+
+model AttendanceRecord {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id      String            @db.Uuid
+  session         AttendanceSession @relation(fields: [session_id], references: [id])
+  student_id      String            @db.Uuid
+  student         Student           @relation(fields: [student_id], references: [id])
+  institute_id    String            @db.Uuid
+  institute       Institute         @relation(fields: [institute_id], references: [id])
+  status          String?           @db.VarChar(10)
+  corrected_by_id String?           @map("corrected_by") @db.Uuid
+  corrected_by    User?             @relation(fields: [corrected_by_id], references: [id])
+  correction_note String?           @db.Text
+
+  @@unique([session_id, student_id])
+  @@map("attendance_records")
+}
+
+model Holiday {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  holiday_date DateTime  @db.Date
+  description  String?   @db.VarChar(200)
+
+  @@unique([institute_id, holiday_date])
+  @@map("holidays")
+}
+
+model Exam {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  institute_id  String    @db.Uuid
+  institute     Institute @relation(fields: [institute_id], references: [id])
+  title         String    @db.VarChar(200)
+  subject       String?   @db.VarChar(100)
+  exam_date     DateTime  @db.Date
+  total_marks   Int
+  passing_marks Int?
+  duration_min  Int?
+  created_by_id String?   @map("created_by") @db.Uuid
+  created_by    User?     @relation(fields: [created_by_id], references: [id])
+  created_at    DateTime? @default(now()) @db.Timestamptz
+
+  batches ExamBatch[]
+  results ExamResult[]
+
+  @@map("exams")
+}
+
+model ExamBatch {
+  exam_id  String @db.Uuid
+  exam     Exam   @relation(fields: [exam_id], references: [id])
+  batch_id String @db.Uuid
+  batch    Batch  @relation(fields: [batch_id], references: [id])
+
+  @@id([exam_id, batch_id])
+  @@map("exam_batches")
+}
+
+model ExamResult {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  exam_id        String    @db.Uuid
+  exam           Exam      @relation(fields: [exam_id], references: [id])
+  student_id     String    @db.Uuid
+  student        Student   @relation(fields: [student_id], references: [id])
+  institute_id   String    @db.Uuid
+  institute      Institute @relation(fields: [institute_id], references: [id])
+  marks_obtained Decimal?  @db.Decimal(6, 2)
+  is_absent      Boolean?  @default(false)
+  grade          String?   @db.VarChar(5)
+  rank_in_batch  Int?
+
+  @@unique([exam_id, student_id])
+  @@map("exam_results")
+}
+
+model Quiz {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batch_id       String    @db.Uuid
+  batch          Batch     @relation(fields: [batch_id], references: [id])
+  institute_id   String    @db.Uuid
+  institute      Institute @relation(fields: [institute_id], references: [id])
+  teacher_id     String?   @db.Uuid
+  teacher        Teacher?  @relation(fields: [teacher_id], references: [id])
+  title          String    @db.VarChar(200)
+  subject        String?   @db.VarChar(100)
+  time_limit_min Int?
+  is_published   Boolean?  @default(false)
+  created_at     DateTime? @default(now()) @db.Timestamptz
+
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id             String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quiz_id        String  @db.Uuid
+  quiz           Quiz    @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+  question_text  String  @db.Text
+  image_url      String? @db.Text
+  option_a       String  @db.Text
+  option_b       String  @db.Text
+  option_c       String  @db.Text
+  option_d       String  @db.Text
+  correct_option String? @db.Char(1)
+  marks          Int?    @default(1)
+  order_index    Int?    @default(0)
+
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quiz_id        String    @db.Uuid
+  quiz           Quiz      @relation(fields: [quiz_id], references: [id])
+  student_id     String    @db.Uuid
+  student        Student   @relation(fields: [student_id], references: [id])
+  institute_id   String    @db.Uuid
+  institute      Institute @relation(fields: [institute_id], references: [id])
+  started_at     DateTime? @default(now()) @db.Timestamptz
+  submitted_at   DateTime? @db.Timestamptz
+  total_marks    Int?
+  obtained_marks Int?
+  rank           Int?
+  answers        Json?
+
+  @@unique([quiz_id, student_id])
+  @@map("quiz_attempts")
+}
+
+model Note {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batch_id     String    @db.Uuid
+  batch        Batch     @relation(fields: [batch_id], references: [id])
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  teacher_id   String?   @db.Uuid
+  teacher      Teacher?  @relation(fields: [teacher_id], references: [id])
+  title        String    @db.VarChar(200)
+  subject      String?   @db.VarChar(100)
+  file_url     String    @db.Text
+  file_type    String?   @db.VarChar(20)
+  file_size_kb Int?
+  created_at   DateTime? @default(now()) @db.Timestamptz
+
+  @@map("notes")
+}
+
+model Assignment {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batch_id     String    @db.Uuid
+  batch        Batch     @relation(fields: [batch_id], references: [id])
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  teacher_id   String?   @db.Uuid
+  teacher      Teacher?  @relation(fields: [teacher_id], references: [id])
+  title        String    @db.VarChar(200)
+  description  String?   @db.Text
+  due_date     DateTime? @db.Date
+  file_url     String?   @db.Text
+  created_at   DateTime? @default(now()) @db.Timestamptz
+
+  @@map("assignments")
+}
+
+model Doubt {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batch_id       String    @db.Uuid
+  batch          Batch     @relation(fields: [batch_id], references: [id])
+  student_id     String    @db.Uuid
+  student        Student   @relation(fields: [student_id], references: [id])
+  institute_id   String    @db.Uuid
+  institute      Institute @relation(fields: [institute_id], references: [id])
+  assigned_to_id String?   @map("assigned_to") @db.Uuid
+  assigned_to    Teacher?  @relation(fields: [assigned_to_id], references: [id])
+  question_text  String    @db.Text
+  question_img   String?   @db.Text
+  answer_text    String?   @db.Text
+  answer_img     String?   @db.Text
+  status         String?   @default("pending") @db.VarChar(20)
+  created_at     DateTime? @default(now()) @db.Timestamptz
+  resolved_at    DateTime? @db.Timestamptz
+
+  @@map("doubts")
+}
+
+model ChatMessage {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batch_id     String    @db.Uuid
+  batch        Batch     @relation(fields: [batch_id], references: [id])
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  sender_id    String    @db.Uuid
+  sender       User      @relation(fields: [sender_id], references: [id])
+  sender_name  String    @db.VarChar(200)
+  sender_role  String    @db.VarChar(20)
+  message      String?   @db.Text
+  image_url    String?   @db.Text
+  created_at   DateTime? @default(now()) @db.Timestamptz
+
+  @@map("chat_messages")
+}
+
+model Lecture {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batch_id     String    @db.Uuid
+  batch        Batch     @relation(fields: [batch_id], references: [id])
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  teacher_id   String?   @db.Uuid
+  teacher      Teacher?  @relation(fields: [teacher_id], references: [id])
+  title            String    @db.VarChar(200)
+  subject          String?   @db.VarChar(100)
+  description      String?   @db.Text
+  link             String?   @db.Text
+  lecture_type     String?   @db.VarChar(20)
+  class_room       String?   @db.VarChar(100)
+  scheduled_at     DateTime? @db.Timestamptz
+  duration_minutes Int?      @default(60)
+  is_active        Boolean?  @default(true)
+  created_at       DateTime? @default(now()) @db.Timestamptz
+
+  @@map("lectures")
+}
+
+model Announcement {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  institute_id    String    @db.Uuid
+  institute       Institute @relation(fields: [institute_id], references: [id])
+  title           String    @db.VarChar(200)
+  body            String    @db.Text
+  attachment_url  String?   @db.Text
+  target_role     String?   @db.VarChar(20)
+  target_batch_id String?   @db.Uuid
+  target_batch    Batch?    @relation(fields: [target_batch_id], references: [id])
+  send_whatsapp   Boolean?  @default(false)
+  scheduled_at    DateTime? @db.Timestamptz
+  sent_at         DateTime? @db.Timestamptz
+  created_by_id   String?   @map("created_by") @db.Uuid
+  created_by      User?     @relation(fields: [created_by_id], references: [id])
+  created_at      DateTime? @default(now()) @db.Timestamptz
+
+  @@map("announcements")
+}
+
+model Certificate {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cert_number  String    @unique // e.g., CP-2026-0001
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  student_id   String    @db.Uuid
+  student      Student   @relation(fields: [student_id], references: [id])
+  type         String    @db.VarChar(50) // COMPLETION | EXCELLENCE
+  course_name  String    @db.VarChar(200)
+  issue_date   DateTime  @default(now()) @db.Timestamptz
+  metadata     Json?     // Any extra details
+  created_at   DateTime  @default(now()) @db.Timestamptz
+
+  @@index([institute_id])
+  @@index([student_id])
+  @@map("certificates")
+}
+
+model Lead {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  name         String    @db.VarChar(200)
+  phone        String    @db.VarChar(15)
+  status       String    @default("New") @db.VarChar(30)
+  created_at   DateTime? @default(now()) @db.Timestamptz
+
+  @@map("leads")
+}
+
+model Staff {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  name         String    @db.VarChar(200)
+  role         String?   @db.VarChar(100)
+  phone        String?   @db.VarChar(15)
+  salary       Decimal?  @db.Decimal(10, 2)
+  status       String?   @default("active") @db.VarChar(30)
+  created_at   DateTime? @default(now()) @db.Timestamptz
+
+  payroll_records PayrollRecord[]
+
+  @@map("staff")
+}
+
+model PayrollRecord {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  staff_id     String    @db.Uuid
+  staff        Staff     @relation(fields: [staff_id], references: [id], onDelete: Cascade)
+  amount       Decimal   @db.Decimal(10, 2)
+  type         String    @db.VarChar(30)
+  month        String?   @db.VarChar(30)
+  date         DateTime? @default(now()) @db.Timestamptz
+  created_at   DateTime? @default(now()) @db.Timestamptz
+
+  @@map("payroll")
+}
+
+model SyllabusTopic {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batch_id     String    @db.Uuid
+  batch        Batch     @relation(fields: [batch_id], references: [id])
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id])
+  subject      String?   @db.VarChar(100)
+  chapter_name String?   @db.VarChar(200)
+  topic_name   String    @db.VarChar(200)
+  order_index  Int?      @default(0)
+
+  student_progress StudentSyllabusProgress[]
+
+  @@map("syllabus_topics")
+}
+
+model StudentSyllabusProgress {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student_id   String        @db.Uuid
+  student      Student       @relation(fields: [student_id], references: [id])
+  topic_id     String        @db.Uuid
+  topic        SyllabusTopic @relation(fields: [topic_id], references: [id])
+  institute_id String        @db.Uuid
+  institute    Institute     @relation(fields: [institute_id], references: [id])
+  is_completed Boolean?      @default(false)
+  completed_at DateTime?     @db.Timestamptz
+
+  @@unique([student_id, topic_id])
+  @@map("student_syllabus_progress")
+}
+
+model AuditLog {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actor_id     String?    @db.Uuid
+  actor        User?      @relation(fields: [actor_id], references: [id])
+  institute_id String?    @db.Uuid
+  institute    Institute? @relation(fields: [institute_id], references: [id])
+  action       String     @db.VarChar(100)
+  entity_type  String?    @db.VarChar(50)
+  entity_id    String?    @db.Uuid
+  old_value    Json?
+  new_value    Json?
+  // Prisma doesn't support inet perfectly out of the box so map to VarChar(45)
+  ip_address   String?    @db.VarChar(45)
+  created_at   DateTime?  @default(now()) @db.Timestamptz
+
+  @@map("audit_logs")
+}

@@ -1,0 +1,83 @@
+name: coachpro
+description: "Excellence Academy — Coaching Institute Management App"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ── State Management ─────────────────────────────────────
+  flutter_bloc: ^9.1.1
+  equatable: ^2.0.8
+
+    # ── Firebase ───────────────────────────────────────────
+    # Firebase dependencies removed
+  
+  # ── Navigation ───────────────────────────────────────────
+  go_router: ^17.1.0
+
+  # ── Dependency Injection ─────────────────────────────────
+  get_it: ^9.2.1
+
+  # ── Network ──────────────────────────────────────────────
+  dio: ^5.9.2
+  connectivity_plus: ^7.0.0
+  
+    # ── Local Storage ────────────────────────────────────────
+
+  # ── Local Storage ────────────────────────────────────────
+  flutter_secure_storage: ^10.0.0
+  shared_preferences: ^2.5.4
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.5
+
+  # ── UI & Design ──────────────────────────────────────────
+  google_fonts: ^8.0.2
+  flutter_animate: ^4.5.2
+  shimmer: ^3.0.0
+  cached_network_image: ^3.4.1
+  flutter_svg: ^2.2.3
+  gap: ^3.0.1
+  fl_chart: ^1.1.1
+
+  # ── Media & Files ────────────────────────────────────────
+  image_picker: ^1.2.1
+  file_picker: ^10.3.10
+  flutter_image_compress: ^2.3.0
+
+  # ── PDF & Printing ──────────────────────────────────────
+  pdf: ^3.11.3
+  printing: ^5.14.2
+
+  # ── Sharing & Utils ─────────────────────────────────────
+  share_plus: ^12.0.1
+  url_launcher: ^6.3.2
+  package_info_plus: ^9.0.0
+  intl: ^0.20.2
+  timeago: ^3.7.1
+  uuid: ^4.5.3
+  dartz: ^0.10.1
+
+  # ── Excel Import ────────────────────────────────────────
+  excel: ^4.0.6
+
+  # ── Socket for Chat ─────────────────────────────────────
+  socket_io_client: ^3.1.4
+
+  # ── Provider (for simple state) ─────────────────────────
+  provider: ^6.1.5+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

@@ -1,0 +1,8 @@
+--- USERS IN DATABASE ---
+ID: bf4a6c89-b9ac-4a54-a562-39a3decb26e1, Phone: [9876543210], Role: admin, Status: ACTIVE, IsActive: true, Inst: CoachPro Academy
+ID: 0f6bfb8a-127e-4f7e-b3fa-7ce922b601ea, Phone: [9876543211], Role: teacher, Status: ACTIVE, IsActive: true, Inst: CoachPro Academy
+ID: ec5788bd-4730-4e32-8a79-605911b698bb, Phone: [9876543212], Role: student, Status: ACTIVE, IsActive: true, Inst: CoachPro Academy
+ID: 4dff7f37-4264-4b7e-9bde-a8df51eb6167, Phone: [+919876543210], Role: admin, Status: ACTIVE, IsActive: true, Inst: CoachPro Academy
+ID: 71aed34e-a86d-4dcc-abe8-f9ffa6b640bf, Phone: [+919876543211], Role: teacher, Status: ACTIVE, IsActive: true, Inst: CoachPro Academy
+ID: 7de9cd75-1721-4fee-b40d-dacd70ff96d4, Phone: [+919876543212], Role: student, Status: ACTIVE, IsActive: true, Inst: CoachPro Academy
+-------------------------

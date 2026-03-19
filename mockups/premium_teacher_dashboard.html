@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>High-End Coaching Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d33f2",
+                        "background-light": "#f5f6f8",
+                        "background-dark": "#0a0a0f",
+                        "card-dark": "rgba(255, 255, 255, 0.03)",
+                        "card-border": "rgba(255, 255, 255, 0.08)"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px", "2xl": "1rem", "3xl": "1.5rem" },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                        'gradient-primary': 'linear-gradient(135deg, #0d33f2 0%, #a855f7 100%)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen pb-20">
+<!-- Header -->
+<div class="flex items-center p-6 pb-4 justify-between sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md z-10 border-b border-card-border">
+<div class="flex items-center gap-3 flex-1">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border border-card-border" data-alt="User profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCeuAr8gjGWzTTF7HQZenYjdG14cl7dpBFiqQHHw89bXwNUmIGOIS83RYcsUCmiztzJfmHANHxG1gnueQgrWIKW9W6rWHeFStRurCYXqTCD9ewB-0sGjYLFvEDqg2O9n3UdpvQtuU3QhkAdc8Shl_k8u_5xsuuITrj2j-lM75A0GAZioyipGkDV_e1RDOzCppqOlgh4UAwCaqMFLs9Owj099V71SD11cCIXoAbMsxDan0S6ffYx2Pm_jP6xrUF6BI3nDR9ZOH7ztw");'></div>
+<div>
+<p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Good Morning</p>
+<h2 class="text-lg font-bold leading-tight tracking-tight">Alex Jensen</h2>
+</div>
+</div>
+<div class="flex items-center justify-end">
+<button class="relative flex items-center justify-center size-10 rounded-full glass-card hover:bg-card-dark transition-colors">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-300">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-primary rounded-full ring-2 ring-background-dark"></span>
+</button>
+</div>
+</div>
+<!-- Main Content -->
+<main class="px-6 space-y-8 mt-6">
+<!-- Quick Stats Overview -->
+<section>
+<h3 class="text-lg font-bold leading-tight tracking-tight mb-4">Overview</h3>
+<div class="flex flex-wrap gap-4">
+<!-- Stat Card 1 -->
+<div class="flex min-w-[140px] flex-1 flex-col gap-3 rounded-2xl p-5 glass-card relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-symbols-outlined text-4xl text-primary">group</span>
+</div>
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Active Students</p>
+<div class="flex items-baseline gap-2">
+<p class="text-2xl font-bold tracking-tight">142</p>
+<span class="flex items-center text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[10px]">arrow_upward</span> 12%
+                        </span>
+</div>
+</div>
+<!-- Stat Card 2 (Revenue with gradient) -->
+<div class="flex min-w-[140px] flex-1 flex-col gap-3 rounded-2xl p-5 relative overflow-hidden bg-gradient-to-br from-[#13162b] to-[#1a153a] border border-primary/20">
+<div class="absolute -right-6 -top-6 size-24 bg-primary/20 rounded-full blur-xl"></div>
+<div class="absolute -left-6 -bottom-6 size-24 bg-purple-500/20 rounded-full blur-xl"></div>
+<p class="text-sm font-medium text-slate-400 relative z-10">Total Revenue</p>
+<div class="flex items-baseline gap-2 relative z-10">
+<p class="text-2xl font-bold tracking-tight text-white">$12.4k</p>
+<span class="flex items-center text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-[10px]">arrow_upward</span> 5%
+                        </span>
+</div>
+<!-- Fake sparkline -->
+<div class="w-full h-8 mt-2 relative z-10 flex items-end justify-between">
+<div class="w-1/6 h-2 bg-primary/40 rounded-t-sm"></div>
+<div class="w-1/6 h-4 bg-primary/50 rounded-t-sm"></div>
+<div class="w-1/6 h-3 bg-primary/60 rounded-t-sm"></div>
+<div class="w-1/6 h-6 bg-purple-500/70 rounded-t-sm"></div>
+<div class="w-1/6 h-5 bg-purple-500/80 rounded-t-sm"></div>
+<div class="w-1/6 h-8 bg-gradient-primary rounded-t-sm shadow-[0_0_10px_rgba(168,85,247,0.5)]"></div>
+</div>
+</div>
+<!-- Stat Card 3 -->
+<div class="flex min-w-[100%] flex-1 flex-col gap-3 rounded-2xl p-5 glass-card relative overflow-hidden">
+<div class="flex justify-between items-center mb-1">
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Avg. Student Progress</p>
+<p class="text-lg font-bold text-primary">78%</p>
+</div>
+<div class="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-gradient-primary w-[78%] rounded-full shadow-[0_0_10px_rgba(13,51,242,0.4)]"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Upcoming Classes -->
+<section>
+<div class="flex justify-between items-end mb-4">
+<h3 class="text-lg font-bold leading-tight tracking-tight">Upcoming Classes</h3>
+<button class="text-sm font-medium text-primary hover:text-primary/80 transition-colors">See all</button>
+</div>
+<div class="space-y-3">
+<!-- Class Item 1 -->
+<div class="flex items-center gap-4 p-4 rounded-2xl glass-card hover:bg-card-dark transition-colors cursor-pointer group">
+<div class="flex flex-col items-center justify-center min-w-[50px] bg-slate-100 dark:bg-slate-800 rounded-xl p-2 text-center group-hover:bg-primary/10 transition-colors">
+<span class="text-xs font-semibold text-slate-500 dark:text-slate-400">TUE</span>
+<span class="text-lg font-bold text-slate-900 dark:text-white">14</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-semibold text-base truncate mb-1">Advanced UI/UX Masterclass</h4>
+<div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">schedule</span> 10:00 AM</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">videocam</span> Zoom</span>
+</div>
+</div>
+<div class="flex -space-x-2">
+<div class="size-8 rounded-full border-2 border-background-light dark:border-background-dark bg-cover bg-center" data-alt="Student avatar 1" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBbqUnRsjzJ8RLhIABRxq5DJqz-tIaBXHpJvLAJu97OvPW7CO5BmHoDwjbPf5G6hB4aQSGC63nwDMPK44awinO73-B2SRXIa2NgYBbp3DwFo7mWs1zBURaTiBMkfBk11vUObdSgV28iINfXyR8IRN2dve7DtxdtPrMR8ltL2KG6XyXAVXdK0f5lazcV4_Q1QpsoFrdndnyYTGYynH9DYrZnf3oxvF1u4B-j7wE0NVasec3I0zcViaMWRadkKUfgeB6Vug-31EWWMw')"></div>
+<div class="size-8 rounded-full border-2 border-background-light dark:border-background-dark bg-cover bg-center" data-alt="Student avatar 2" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAGZmtXMq4t9m-qLos95btEFdPpdRVJ2ibLo5B6hZKKzIrflCdrulw2IhybzwHRVZIMr5mKNjUANXcgIWdOd3Y1UMT4OCXej73OxkjcimykR35GN3iAz8qKRQPPCJy0_-5JlVabhSRR63LE5JSXnMKRtB0OPz-MPSgW6m42SdaaNu6HZ5YIoAOecN60N4nD2QyLgQt_Bzq7sc5PyA3zdYh1PCMZF1xXC6OGWsm60Ws49_Ncr4b2wLFe9xEb8k6IfnfK0LgZybvGRw')"></div>
+<div class="size-8 rounded-full border-2 border-background-light dark:border-background-dark bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold z-10">+5</div>
+</div>
+</div>
+<!-- Class Item 2 -->
+<div class="flex items-center gap-4 p-4 rounded-2xl glass-card hover:bg-card-dark transition-colors cursor-pointer group">
+<div class="flex flex-col items-center justify-center min-w-[50px] bg-slate-100 dark:bg-slate-800 rounded-xl p-2 text-center group-hover:bg-primary/10 transition-colors">
+<span class="text-xs font-semibold text-slate-500 dark:text-slate-400">WED</span>
+<span class="text-lg font-bold text-slate-900 dark:text-white">15</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-semibold text-base truncate mb-1">Framer Motion Deep Dive</h4>
+<div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">schedule</span> 02:30 PM</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">videocam</span> Meet</span>
+</div>
+</div>
+<div class="flex -space-x-2">
+<div class="size-8 rounded-full border-2 border-background-light dark:border-background-dark bg-cover bg-center" data-alt="Student avatar 3" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCn7MCmljkxS346hq0uR9y9QqbfPGFJ297cFOtfe2Sf4ycI5vNzqU7SyHQpT72l_sPqzidAIPN-CJiG73xHCaOyGm0JvW-LdCHUUSYgH-lQoIoTN7RJI0RMSm4WnOTcJEJQqp5xngISmuPuh4rpi1auc44x-xV0JXX937FvahBrM8qi44Aka6_mERU_SmVipstqxPAdVZ_Lzlh71VdnPnBcjxwFJelDpRRQUOO8iIf50lGKZOgDzZcNZx-nHUA8UZmryacToknPWQ')"></div>
+<div class="size-8 rounded-full border-2 border-background-light dark:border-background-dark bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold z-10">+2</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Pending Doubts -->
+<section>
+<div class="flex items-center gap-2 mb-4">
+<h3 class="text-lg font-bold leading-tight tracking-tight">Pending Doubts</h3>
+<span class="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">3 New</span>
+</div>
+<div class="flex overflow-x-auto pb-4 -mx-6 px-6 gap-4 snap-x hide-scrollbar" style="scrollbar-width: none;">
+<!-- Doubt Card 1 -->
+<div class="snap-center shrink-0 w-[260px] p-4 rounded-2xl glass-card flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cover bg-center" data-alt="Student avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjOxhwv7WoxjMzNk-E8xvYFzgJF5n-ndRG7mb3017ucSJPVE_BEJOiZLgMA-oI2RuaX1F35C_brmKVpOXJFcZTNwJHyDqWWvREHJ6ZNB6djChOiAxzZvRdFBu7Afk91N3wg0JkI0IsEl-n2eB6w-MgowskSwrxchdxkZblPU5YHrC_3BGOfsSliOFSV5tl8gJwtYtn1C0qsIfxC945OxxYfvizunWtCPNjkryUnfbr7rYOQTuZReZE1aoPzi-_ADdGO7T3yjG4ag')"></div>
+<span class="text-xs font-medium">Sarah W.</span>
+</div>
+<span class="text-[10px] text-slate-500">2h ago</span>
+</div>
+<p class="text-sm text-slate-300 line-clamp-2">I'm struggling to understand the flexbox grid system in section 4. Can we review it?</p>
+<button class="mt-auto py-2 w-full text-xs font-semibold text-primary bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors">Reply Now</button>
+</div>
+<!-- Doubt Card 2 -->
+<div class="snap-center shrink-0 w-[260px] p-4 rounded-2xl glass-card flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cover bg-center" data-alt="Student avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC2AjajVoiE5czc3DpBUBkdY1khjUQTDcauW-jp-sGvo4eFDwozvnirJpY_ml7tX4gQa5C8ssj_atmhEXL_H20cDa9pqbHSEHol7A8hjntU6lvwDkDRViO2AyIIrQ-wvfPS7-g_Vx_6KJpvnubioqRtR1Tx0wGWJPDns_LwsQ-N2OT9VF7hMmJJSq1NHtCXNJJMfmWKOTb0pnF_RfMgDxLQW7djHZE8qozcdntIHq0L5GoToyGkq7av85VwQklLN4J6O6UY39lytQ')"></div>
+<span class="text-xs font-medium">Mike T.</span>
+</div>
+<span class="text-[10px] text-slate-500">5h ago</span>
+</div>
+<p class="text-sm text-slate-300 line-clamp-2">Could you provide more examples of the glassmorphism CSS properties we discussed?</p>
+<button class="mt-auto py-2 w-full text-xs font-semibold text-slate-300 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors">Mark as Read</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation -->
+<div class="fixed bottom-0 left-0 right-0 glass-card border-t border-card-border pb-safe pt-2 px-6 flex justify-between items-center z-50">
+<a class="flex flex-col items-center gap-1 p-2 text-primary" href="#">
+<span class="material-symbols-outlined text-2xl font-filled">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">school</span>
+<span class="text-[10px] font-medium">Classes</span>
+</a>
+<!-- FAB Center -->
+<div class="relative -top-6">
+<button class="flex items-center justify-center size-14 rounded-full bg-gradient-primary text-white shadow-[0_4px_20px_rgba(13,51,242,0.4)] hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+</div>
+<a class="flex flex-col items-center gap-1 p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">chat_bubble</span>
+<span class="text-[10px] font-medium">Messages</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</div>
+</body></html>
