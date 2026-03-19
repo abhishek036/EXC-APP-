@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:excel/excel.dart' as xl;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,12 @@ class _StudentImportPageState extends State<StudentImportPage> {
   final AdminRepository _adminRepo = sl<AdminRepository>();
 
   Uint8List? _fileBytes;
+  String? _selectedFileName;
+  bool _isPicking = false;
+  bool _isUploading = false;
+  List<Map<String, dynamic>> _studentRows = [];
+  List<Map<String, dynamic>> _userRows = [];
+  List<String> _errors = [];
 
   Future<void> _pickExcel() async {
     setState(() {

@@ -432,13 +432,14 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to create staff');
   }
 
-  Future<List<Map<String, dynamic>>> getPayrollRecords() async {
+  Future<List<Map<String, dynamic>>> getStaffPayrollRecords() async {
     final response = await _api.dio.get('staff/payroll');
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch payroll records');
   }
+
 
   Future<Map<String, dynamic>> createPayrollRecord({
     required String staffId,

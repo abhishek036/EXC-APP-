@@ -41,7 +41,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     try {
       final results = await Future.wait([
         _adminRepo.getStaff(),
-        _adminRepo.getPayrollRecords(),
+        _adminRepo.getStaffPayrollRecords(),
       ]);
       if (!mounted) return;
       setState(() {
