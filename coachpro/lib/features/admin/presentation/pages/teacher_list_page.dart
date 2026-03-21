@@ -155,46 +155,83 @@ class _TeacherListPageState extends State<TeacherListPage> {
 
   Widget _buildTeacherCard(Map<String, dynamic> teacher, int index, bool isDark) {
     final user = teacher['user'] is Map<String, dynamic> ? teacher['user'] as Map<String, dynamic> : <String, dynamic>{};
+    final teacherId = teacher['id']?.toString() ?? '';
     final displayName = (teacher['name'] ?? user['name'] ?? 'Faculty Member').toString();
     final displayPhone = (teacher['phone'] ?? user['phone'] ?? '--').toString();
     final subject = (teacher['subject'] ?? 'Unspecified Subject').toString();
 
-    return CPGlassCard(
-      isDark: isDark, padding: const EdgeInsets.all(16), borderRadius: 24,
-      child: Row(
-        children: [
-          Container(
-            width: 56, height: 56,
-            decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2)),
-            alignment: Alignment.center,
-            child: Text(displayName.isNotEmpty ? displayName[0].toUpperCase() : 'F', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(displayName, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282), letterSpacing: -0.4)),
-                const SizedBox(height: 4),
-                Text(subject, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF0D1282), fontWeight: FontWeight.w700, letterSpacing: 0.2)),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(Icons.phone_iphone_rounded, size: 12, color: const Color(0xFF0D1282).withValues(alpha: 0.5)),
-                    const SizedBox(width: 6),
-                    Text(displayPhone, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF0D1282), fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ],
+    return CPPressable(
+      onLongPress: () {
+        HapticFeedback.heavyImpact();
+        _showDeleteConfirm(teacherId, displayName);
+      },
+      onTap: () {
+        HapticFeedback.lightImpact();
+        context.go('/admin/teachers/$teacherId');
+      },
+      child: CPGlassCard(
+        isDark: isDark, padding: const EdgeInsets.all(16), borderRadius: 24,
+        child: Row(
+          children: [
+            Container(
+              width: 56, height: 56,
+              decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2)),
+              alignment: Alignment.center,
+              child: Text(displayName.isNotEmpty ? displayName[0].toUpperCase() : 'F', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))),
             ),
-          ),
-          CPPressable(
-            onTap: () { HapticFeedback.lightImpact(); /* context.go('/admin/teachers/${teacher['id']}'); */ },
-            child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]), child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: const Color(0xFF0D1282))),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(displayName, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282), letterSpacing: -0.4)),
+                  const SizedBox(height: 4),
+                  Text(subject, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF0D1282), fontWeight: FontWeight.w700, letterSpacing: 0.2)),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.phone_iphone_rounded, size: 12, color: const Color(0xFF0D1282).withValues(alpha: 0.5)),
+                      const SizedBox(width: 6),
+                      Text(displayPhone, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF0D1282), fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]), child: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF0D1282))),
+          ],
+        ),
+      ),
+    ).animate(delay: (20 * index).ms).fadeIn(duration: 500.ms).slideX(begin: 0.05);
+  }
+
+  void _showDeleteConfirm(String id, String name) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Delete Faculty?', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: AppColors.deepNavy)),
+        content: Text('Are you sure you want to remove $name? This action cannot be undone.', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.black54)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('CANCEL', style: GoogleFonts.plusJakartaSans(color: Colors.grey, fontWeight: FontWeight.w800))),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await _adminRepo.deleteTeacher(id);
+                _loadTeachers();
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Faculty removed successfully')));
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD71313), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            child: Text('DELETE', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
-    ).animate(delay: (20 * index).ms).fadeIn(duration: 500.ms).slideX(begin: 0.05);
+    );
   }
 
   Widget _badge(String text, Color color, bool isDark) {

@@ -34,16 +34,18 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
         'name': _nameCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
-        'subjects': _subjectsCtrl.text.trim().split(',').map((s) => s.trim()).toList(),
+        'subject': _subjectsCtrl.text.trim(),
+        'salary': _salaryCtrl.text.trim(),
+        'revenue_share': _revenueShareCtrl.text.trim(),
       };
 
-      payload.removeWhere((key, value) => (value is String && value.isEmpty) || (value is List && value.isEmpty));
+      payload.removeWhere((key, value) => (value is String && value.isEmpty));
 
       await _adminRepo.createTeacher(payload);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Teacher added successfully!'), backgroundColor: CT.accent(context)),
+          SnackBar(content: const Text('Teacher onboarding initiated!'), backgroundColor: CT.accent(context)),
         );
         context.pop();
       }
@@ -64,6 +66,17 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
     }
   }
 
+  // New controllers
+  final _salaryCtrl = TextEditingController();
+  final _revenueShareCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose(); _phoneCtrl.dispose(); _emailCtrl.dispose(); 
+    _subjectsCtrl.dispose(); _salaryCtrl.dispose(); _revenueShareCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,45 +89,56 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Add Teacher by Phone', style: GoogleFonts.sora(fontWeight: FontWeight.w700, fontSize: 16, color: CT.textH(context))),
-            Text('Teacher can login using this number', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context))),
+            Text('Faculty Onboarding', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 18, color: CT.textH(context))),
+            Text('Set up profile & permissions', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textM(context))),
           ],
         ),
         backgroundColor: CT.bg(context),
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+        padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Teacher Information', style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w600, color: CT.textH(context))),
-              const SizedBox(height: AppDimensions.md),
+              Text('PROFESSIONAL DETAILS', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 1.2)),
+              const SizedBox(height: 20),
               
-              _buildField('Full Name', _nameCtrl, 'e.g. John Doe'),
-              const SizedBox(height: AppDimensions.sm),
-              _buildField('Phone Number', _phoneCtrl, 'e.g. 9876543210', keyboardType: TextInputType.phone),
-              const SizedBox(height: AppDimensions.sm),
-              _buildField('Email Address', _emailCtrl, 'e.g. teacher@coachpro.com', keyboardType: TextInputType.emailAddress, isRequired: false),
-              const SizedBox(height: AppDimensions.sm),
-              _buildField('Subjects (comma separated)', _subjectsCtrl, 'e.g. Physics, Chemistry'),
-              const SizedBox(height: AppDimensions.xl),
+              _buildField('Full Legal Name', _nameCtrl, 'e.g. Dr. Jane Smith', Icons.person_rounded),
+              const SizedBox(height: 16),
+              _buildField('Phone Number', _phoneCtrl, 'e.g. 9876543210', Icons.phone_android_rounded, keyboardType: TextInputType.phone),
+              const SizedBox(height: 16),
+              _buildField('Subject Expertise', _subjectsCtrl, 'e.g. Advanced Physics', Icons.auto_stories_rounded),
+              
+              const SizedBox(height: 32),
+              Text('FINANCIAL AGREEMENT', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 1.2)),
+              const SizedBox(height: 20),
 
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _saveTeacher,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: CT.accent(context),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              Row(
+                children: [
+                  Expanded(child: _buildField('Base Salary', _salaryCtrl, '0.00', Icons.payments_rounded, keyboardType: TextInputType.number)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildField('Rev Share %', _revenueShareCtrl, 'e.g. 10', Icons.percent_rounded, keyboardType: TextInputType.number)),
+                ],
+              ),
+              
+              const SizedBox(height: 40),
+
+              CPPressable(
+                onTap: _isSaving ? null : _saveTeacher,
+                child: Container(
+                  width: double.infinity,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D1282),
+                    borderRadius: BorderRadius.circular(16),
                   ),
+                  alignment: Alignment.center,
                   child: _isSaving 
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text('Send Invite / Add Teacher', style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600)),
+                      : Text('START ONBOARDING', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
                 ),
               ),
             ],
@@ -124,28 +148,29 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
     );
   }
 
-  Widget _buildField(String label, TextEditingController ctrl, String hint, {TextInputType? keyboardType, bool isRequired = true}) {
+  Widget _buildField(String label, TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType, bool isRequired = true}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: CT.textH(context))),
+        Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.grey)),
         const SizedBox(height: 8),
         TextFormField(
           controller: ctrl,
           keyboardType: keyboardType,
-          style: GoogleFonts.dmSans(color: CT.textH(context)),
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: CT.textH(context)),
           validator: (v) {
-            if (isRequired && (v == null || v.trim().isEmpty)) return 'This field is required';
+            if (isRequired && (v == null || v.trim().isEmpty)) return 'Required';
             return null;
           },
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.dmSans(color: CT.textM(context)),
+            hintStyle: GoogleFonts.plusJakartaSans(color: Colors.grey.withValues(alpha: 0.5), fontWeight: FontWeight.w600),
+            prefixIcon: Icon(icon, size: 20, color: const Color(0xFF0D1282)),
             filled: true,
-            fillColor: CT.card(context),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: CT.border(context))),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: CT.border(context))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: CT.accent(context))),
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFEEEDED), width: 2)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFEEEDED), width: 2)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF0D1282), width: 2)),
           ),
         ),
       ],

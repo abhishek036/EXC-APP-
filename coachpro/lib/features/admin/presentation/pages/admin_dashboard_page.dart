@@ -641,18 +641,23 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Widget _buildManagementHub(bool isDark) {
     final modules = [
-      {'label': 'Courses & Doubts', 'icon': Icons.auto_stories_rounded, 'color': const Color(0xFF4C6EF5), 'route': '/admin/academics', 'desc': 'Manage academic materials', 'stat': '8 active'}, // Blue
-      {'label': 'Human Capital', 'icon': Icons.badge_rounded, 'color': const Color(0xFFF5D90A), 'route': '/admin/staff', 'desc': 'Staff & Payroll Management', 'stat': '3 departments'}, // Yellow
-      {'label': 'Certificate Studio', 'icon': Icons.workspace_premium_rounded, 'color': const Color(0xFF4C6EF5), 'route': '/admin/certificates', 'desc': 'Mint Prestige Documents', 'stat': '110 minted'}, // Blue
-      {'label': 'Security IAM', 'icon': Icons.shield_rounded, 'color': const Color(0xFFD71313), 'route': '/admin/users', 'desc': 'Access & Role Control', 'stat': '2 layers'}, // Red
-      {'label': 'Opportunity Pipeline', 'icon': Icons.radar_rounded, 'color': const Color(0xFF8A2BE2), 'route': '/admin/leads', 'desc': 'Lead & Conversion Tracking', 'stat': '23 open'}, // Purple
-      {'label': 'Global Broadcast', 'icon': Icons.sensors_rounded, 'color': const Color(0xFF4C6EF5), 'route': '/admin/announcements', 'desc': 'System-wide Notifications', 'stat': '4 past'}, // Blue
+      {'label': 'Teachers', 'icon': Icons.psychology_rounded, 'color': const Color(0xFF0D1282), 'route': '/admin/teachers', 'desc': 'Faculty Management', 'stat': '${_stats['teachers']} Active'}, 
+      {'label': 'Courses & Doubts', 'icon': Icons.auto_stories_rounded, 'color': const Color(0xFF4C6EF5), 'route': '/admin/academics', 'desc': 'Manage materials', 'stat': '8 active'}, 
+      {'label': 'Human Capital', 'icon': Icons.badge_rounded, 'color': const Color(0xFFF5D90A), 'route': '/admin/staff', 'desc': 'Staff & Payroll', 'stat': '3 departments'}, 
+      {'label': 'Certificate Studio', 'icon': Icons.workspace_premium_rounded, 'color': const Color(0xFF4C6EF5), 'route': '/admin/certificates', 'desc': 'Mint Documents', 'stat': '110 minted'}, 
+      {'label': 'Security IAM', 'icon': Icons.shield_rounded, 'color': const Color(0xFFD71313), 'route': '/admin/users', 'desc': 'Role Control', 'stat': '2 layers'}, 
+      {'label': 'Opportunity Pipeline', 'icon': Icons.radar_rounded, 'color': const Color(0xFF8A2BE2), 'route': '/admin/leads', 'desc': 'Lead Tracking', 'stat': '23 open'}, 
     ];
 
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 1.05),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2, 
+        crossAxisSpacing: 12, 
+        mainAxisSpacing: 12, 
+        childAspectRatio: 1.15, // Adjusted to be shorter
+      ),
       itemCount: modules.length,
       itemBuilder: (ctx, i) {
         final m = modules[i];
@@ -660,7 +665,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         return CPPressable(
           onTap: () => context.go(m['route'] as String),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14), // Reduced from 16
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -668,24 +673,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center, // Vertically centered
               children: [
                 Row(
                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                    children: [
                       Container(
-                         width: 40, height: 40,
+                         width: 36, height: 36, // Sightly smaller
                          decoration: BoxDecoration(color: col.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), 
-                         child: Icon(m['icon'] as IconData, color: col, size: 20)
+                         child: Icon(m['icon'] as IconData, color: col, size: 18)
                       ),
-                      const Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFF8F97B8)),
+                      const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF8F97B8)),
                    ]
                 ),
-                const SizedBox(height: 16),
-                Text(m['label'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E))),
-                const SizedBox(height: 6),
-                Text(m['desc'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF6B7280)), maxLines: 2, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 12),
-                Text(m['stat'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w800, color: col)),
+                Text(m['label'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E))),
+                const SizedBox(height: 4),
+                Text(m['desc'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w500, color: const Color(0xFF6B7280)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 8),
+                Text(m['stat'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: col)),
               ],
             ),
           ),

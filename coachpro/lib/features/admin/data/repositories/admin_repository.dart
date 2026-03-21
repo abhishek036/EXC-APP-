@@ -296,6 +296,13 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to toggle teacher status');
   }
 
+  Future<void> deleteTeacher(String teacherId) async {
+    final response = await _api.dio.delete('teachers/$teacherId');
+    if (response.statusCode != 200) {
+      throw Exception(response.data['message'] ?? 'Failed to delete teacher');
+    }
+  }
+
   Future<Map<String, dynamic>> getInstituteConfig() async {
     final response = await _api.dio.get('institutes/config');
     if (response.statusCode == 200) {

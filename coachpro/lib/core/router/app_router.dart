@@ -60,6 +60,7 @@ import '../../features/admin/presentation/pages/bulk_result_entry_page.dart';
 import '../../features/student/presentation/pages/my_doubts_history_page.dart';
 import '../../features/admin/presentation/pages/automated_notifications_page.dart';
 import '../../features/admin/presentation/pages/teacher_list_page.dart';
+import '../../features/admin/presentation/pages/teacher_profile_page.dart';
 import '../../features/admin/presentation/pages/add_teacher_page.dart';
 import '../../features/admin/presentation/pages/leads_page.dart';
 import '../../features/admin/presentation/pages/timetable_management_page.dart';
@@ -327,6 +328,7 @@ class AppRouter {
                     GoRoute(path: 'language', name: 'admin-language', pageBuilder: (c, s) => _page(s, const LanguageSelectionPage())),
                     GoRoute(path: 'teachers', name: 'admin-teachers', pageBuilder: (c, s) => _page(s, const TeacherListPage()), routes: [
                       GoRoute(path: 'add', name: 'admin-add-teacher', pageBuilder: (c, s) => _page(s, const AddTeacherPage())),
+                      GoRoute(path: ':id', name: 'admin-teacher-profile', pageBuilder: (c, s) => _page(s, TeacherProfilePage(teacherId: s.pathParameters['id'] ?? ''))),
                       GoRoute(path: ':id/edit', name: 'admin-edit-teacher', pageBuilder: (c, s) => _page(s, EditTeacherPage(teacherId: s.pathParameters['id'] ?? ''))),
                     ]),
                     GoRoute(path: 'leads', name: 'admin-leads', pageBuilder: (c, s) => _page(s, const LeadsPage())),
