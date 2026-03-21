@@ -27,24 +27,27 @@ import parentRoutes from './modules/parent/parent.routes';
 import payrollRoutes from './modules/payroll/payroll.routes';
 import certificateRoutes from './modules/certificate/certificate.routes';
 import timetableRoutes from './modules/timetable/timetable.routes';
+import auditLogRoutes from './modules/audit-log/audit-log.routes';
+import whatsappRoutes from './modules/whatsapp/whatsapp.routes';
 
 const app: Express = express();
+app.set('trust proxy', 1); // Trust first proxy (Azure App Service)
 
 // Security Middleware
-const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:8080';
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   // Enable a conservative CSP in production; disable in development
   contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
 }));
+// Allow all origins — mobile apps (Flutter/React Native) don't send an Origin header,
+// and there is no browser-based UI to protect. All auth is JWT-based.
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow server-to-server or same-origin requests when origin is undefined (e.g., Postman, mobile clients)
-    if (!origin) return callback(null, true);
-    if (origin === allowedOrigin) return callback(null, true);
-    return callback(new Error('CORS not allowed by policy'));
+  origin: function(origin, callback) {
+    callback(null, true);
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
 }));
 
 // Rate limiter for sensitive endpoints (OTP / login) — 10 requests per minute per IP
@@ -91,6 +94,9 @@ app.use('/api/users', usersRoutes);
 app.use('/api/parents', parentRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/certificates', certificateRoutes);
+app.use('/api/timetable', timetableRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 // 404 Catcher
 app.all('*', (req: Request, res: Response, next: NextFunction) => {
