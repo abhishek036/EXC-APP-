@@ -40,12 +40,8 @@ export class WhatsAppService {
   }
 
   static async sendOTP(phone: string, otp: string): Promise<void> {
-    await this.sendMessage(phone, 'otp_verification', 'en', [
-      {
-        type: 'body',
-        parameters: [{ type: 'text', text: otp }]
-      }
-    ]);
+    // POC: Using hello_world until otp_verification template is approved
+    await this.sendMessage(phone, 'hello_world', 'en_US', []);
   }
 
   static async sendFeeReminder(phone: string, parentName: string, studentName: string, amount: number, dueDate: string, paymentLink: string, institutePhone: string): Promise<void> {
