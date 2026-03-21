@@ -28,9 +28,13 @@ export class ContentRepository {
       });
   }
 
-  async listAssignments(instituteId: string, batchId?: string) {
+  async listAssignments(instituteId: string, filter: { batchId?: string, teacherId?: string }) {
       return prisma.assignment.findMany({
-          where: { institute_id: instituteId, ...(batchId && { batch_id: batchId }) },
+          where: { 
+            institute_id: instituteId, 
+            ...(filter.batchId && { batch_id: filter.batchId }),
+            ...(filter.teacherId && { teacher_id: filter.teacherId })
+          },
           orderBy: { created_at: 'desc' }
       });
   }

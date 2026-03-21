@@ -37,7 +37,7 @@ class ChatRepository {
       'chat/batch/$batchId/history',
       queryParameters: {
         'limit': limit,
-        'before': ?before,
+        if (before != null && before.isNotEmpty) 'before': before,
       },
     );
     if (response.statusCode == 200) {
@@ -54,7 +54,7 @@ class ChatRepository {
   }) async {
     final response = await _api.dio.post('chat/batch/$batchId/messages', data: {
       'text': text,
-      'imageUrl': ?imageUrl,
+      if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
     });
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map);

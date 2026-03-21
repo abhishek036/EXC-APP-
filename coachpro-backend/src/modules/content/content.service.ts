@@ -22,8 +22,8 @@ export class ContentService {
       return this.repo.createAssignment(instituteId, teacherId, data);
   }
 
-  async listAssignments(instituteId: string, batchId?: string) {
-      return this.repo.listAssignments(instituteId, batchId);
+  async listAssignments(instituteId: string, filter: { batchId?: string, teacherId?: string }) {
+      return this.repo.listAssignments(instituteId, filter);
   }
 
   // DOUBTS

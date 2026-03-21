@@ -15,8 +15,10 @@ class ApiEndpoints {
   static const String authMe          = 'auth/me';
 
   // Users
-  static const String profile         = 'users/me'; // This might be used for something else later
-  static const String updateProfile   = 'users/me';
+  static const String profile         = 'auth/me';
+  static const String updateProfile   = 'auth/me';
+  // Some deployments expose name update at a dedicated route
+  static const String updateProfileName = 'auth/me/name';
   static const String changePassword  = 'auth/password/change';
 
   // Students

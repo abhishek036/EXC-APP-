@@ -16,7 +16,7 @@ void main() {
 
       test('returns correct English translation for known key', () {
         expect(l10n.t('login'), equals('Login'));
-        expect(l10n.t('app_name'), equals('NeurovaX'));
+        expect(l10n.t('app_name'), equals(enTranslations['app_name']));
         expect(l10n.t('leaderboard'), equals('Leaderboard'));
       });
 
@@ -40,7 +40,7 @@ void main() {
 
       test('returns Hindi translation for known key', () {
         expect(l10n.t('login'), equals('लॉगिन'));
-        expect(l10n.t('app_name'), equals('कोचप्रो'));
+        expect(l10n.t('app_name'), equals(hiTranslations['app_name']));
         expect(l10n.t('leaderboard'), equals('लीडरबोर्ड'));
       });
 

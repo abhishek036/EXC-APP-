@@ -16,7 +16,7 @@ class AppColors {
   // ═══════════════════════════════════════════════════════
   // 🌕 LIGHT MODE PALETTE (4 shades — White/Blue family)
   // ═══════════════════════════════════════════════════════
-  static const Color offWhite      = Color(0xFFF9F7F7); // lightest — page background
+  static const Color offWhite      = Color(0xFFEEEDED); // lightest — page background
   static const Color frostBlue     = Color(0xFFDBE2EF); // light blue-grey — card surface, inputs
   static const Color steelBlue     = Color(0xFF3F72AF); // primary blue — CTAs, active states
   static const Color deepNavy      = Color(0xFF112D4E); // darkest — headings, key text

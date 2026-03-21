@@ -1,7 +1,7 @@
 /// Hindi translations — हिन्दी
 const Map<String, String> hiTranslations = {
   // ── Common ──────────────────────────────────────────────
-  'app_name': 'न्यूरोवाएक्स',
+  'app_name': 'Excellence Academy',
   'ok': 'ठीक है',
   'cancel': 'रद्द करें',
   'save': 'सहेजें',

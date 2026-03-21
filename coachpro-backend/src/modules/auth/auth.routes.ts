@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { AuthController } from './auth.controller';
 import { validate } from '../../middleware/validate.middleware';
-import { sendOtpSchema, verifyOtpSchema, loginSchema, passwordChangeSchema, passwordResetSchema } from './auth.validator';
+import { sendOtpSchema, verifyOtpSchema, loginSchema, passwordChangeSchema, passwordResetSchema, updateMeSchema } from './auth.validator';
 import { authenticateJWT } from '../../middleware/auth.middleware';
 
 const router = Router();
@@ -19,6 +19,7 @@ router.post('/refresh', authController.refreshToken);
 // Protected Routes
 router.post('/logout', authenticateJWT, authController.logout);
 router.get('/me', authenticateJWT, authController.getMe);
+router.patch('/me', authenticateJWT, validate(updateMeSchema), authController.updateMe);
 router.post('/password/change', authenticateJWT, validate(passwordChangeSchema), authController.changePassword);
 router.patch('/me/name', authenticateJWT, authController.updateName);
 

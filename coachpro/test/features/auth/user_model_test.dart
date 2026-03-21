@@ -129,7 +129,7 @@ void main() {
           expect(user.id, contains(role.name));
           expect(user.name, contains('Demo'));
           expect(user.phone, isNotEmpty);
-          expect(user.email, contains('@neurovax.app'));
+          expect(user.email, contains('@excellenceacademy.app'));
           expect(user.createdAt, isNotNull);
         }
       });

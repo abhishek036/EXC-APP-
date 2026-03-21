@@ -113,4 +113,16 @@ export class AuthController {
       next(error);
     }
   };
+
+  updateMe = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user!.userId;
+      const role = req.user!.role;
+      const { name, email, phone } = req.body;
+      const data = await this.authService.updateMe(userId, role, { name, email, phone });
+      return sendResponse({ res, data, message: 'Profile updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

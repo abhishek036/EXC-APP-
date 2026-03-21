@@ -40,8 +40,20 @@ export const passwordResetSchema = z.object({
   })
 });
 
+export const updateMeSchema = z.object({
+  body: z.object({
+    name: z.string().min(2).max(200).optional(),
+    email: z.string().email().optional(),
+    // Phone changes are intentionally not supported yet (to avoid breaking login + uniqueness)
+    phone: z.string().min(10).max(15).optional(),
+  }).refine((v) => v.name != null || v.email != null || v.phone != null, {
+    message: 'At least one field must be provided',
+  }),
+});
+
 export type SendOtpInput = z.infer<typeof sendOtpSchema>['body'];
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>['body'];
 export type LoginInput = z.infer<typeof loginSchema>['body'];
 export type PasswordChangeInput = z.infer<typeof passwordChangeSchema>['body'];
 export type PasswordResetInput = z.infer<typeof passwordResetSchema>['body'];
+export type UpdateMeInput = z.infer<typeof updateMeSchema>['body'];

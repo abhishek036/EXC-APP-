@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/api_auth_service.dart';
 import '../../../../core/widgets/cp_toast.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../bloc/auth_bloc.dart';
@@ -42,14 +44,15 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     setState(() => _isSaving = true);
 
     try {
+      final apiAuth = sl<ApiAuthService>();
       final api = sl<ApiClient>();
 
-      // 1. Update name via student/teacher profile endpoint
-      await api.dio.patch('/auth/me/name', data: {'name': _nameCtrl.text.trim()});
+      // 1. Update name
+      await apiAuth.updateProfile(name: _nameCtrl.text.trim());
 
       // 2. Optionally set a password (so they can use password login next time)
       if (_setPassword && _passCtrl.text.trim().isNotEmpty) {
-        await api.dio.post('/auth/password/change', data: {
+        await api.dio.post(ApiEndpoints.changePassword, data: {
           'oldPassword': '', // empty — first time setting
           'newPassword': _passCtrl.text.trim(),
         });

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:dio/dio.dart';
 
 import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/services/api_auth_service.dart';
@@ -40,6 +41,34 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthRefreshRequested>(_onRefreshRequested);
   }
 
+  bool _isPlaceholderName(String? name) {
+    final v = (name ?? '').trim();
+    if (v.isEmpty) return true;
+    const placeholders = {
+      'User',
+      'Admin',
+      'Administrator',
+      'Admin User',
+      'Dashboard',
+      'Student',
+      'Faculty',
+    };
+    return placeholders.contains(v);
+  }
+
+  Future<UserModel?> _readCachedUser() async {
+    try {
+      final raw = await _storage.getUserJson();
+      if (raw == null || raw.isEmpty) return null;
+      final obj = jsonDecode(raw);
+      if (obj is Map<String, dynamic>) return UserModel.fromJson(obj);
+      if (obj is Map) return UserModel.fromJson(obj.cast<String, dynamic>());
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
 
   String _friendlyAuthError(Object error, {required String fallback}) {
     final message = error.toString();
@@ -70,8 +99,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
 
       await _fetchProfileAndEmit(emit);
-    } catch (_) {
-      try { await _storage.clearAll(); } catch (_) {}
+    } catch (e) {
+      // Don't force-logout on transient failures (offline, server hiccup).
+      // Only clear the session on real unauthorized/expired tokens.
+      final cached = await _readCachedUser();
+      if (cached != null) {
+        emit(AuthAuthenticated(cached));
+        return;
+      }
+
+      // Best-effort: if we can tell this is unauthorized, clear session.
+      if (e is DioException && e.response?.statusCode == 401) {
+        try { await _storage.clearAll(); } catch (_) {}
+      }
+
       emit(const AuthUnauthenticated());
     }
   }
@@ -95,11 +136,34 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _fetchProfileAndEmit(Emitter<AuthState> emit) async {
     // Check with backend for valid session
     final userData = await _apiAuth.getProfile();
+    final cached = await _readCachedUser();
+
+    final serverName = userData['name']?.toString();
+    final effectiveName = _isPlaceholderName(serverName)
+      ? (cached?.name ?? 'User')
+      : serverName!.trim();
+
+    final serverPhone = userData['phone']?.toString();
+    final effectivePhone = (serverPhone == null || serverPhone.trim().isEmpty)
+      ? (cached?.phone ?? '')
+      : serverPhone.trim();
+
+    final serverEmail = userData['email']?.toString();
+    final effectiveEmail = (serverEmail == null || serverEmail.trim().isEmpty)
+      ? cached?.email
+      : serverEmail.trim();
+
+    final serverRole = userData['role']?.toString();
+    final effectiveRole = (serverRole == null || serverRole.isEmpty)
+      ? (cached?.role.name ?? 'student')
+      : serverRole;
+
     final user = UserModel.fromJson({
       'id': userData['id'],
-      'name': userData['name'] ?? 'User',
-      'phone': userData['phone'],
-      'role': userData['role'] ?? 'student',
+      'name': effectiveName,
+      'phone': effectivePhone,
+      'email': effectiveEmail,
+      'role': effectiveRole,
       'createdAt': userData['created_at'],
     });
 
@@ -169,7 +233,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (isNewUser) {
         emit(AuthNewUser(user));
       } else {
-        emit(AuthAuthenticated(user));
+        // Prefer canonical server profile so name/role stay consistent everywhere.
+        try {
+          await _fetchProfileAndEmit(emit);
+        } catch (_) {
+          emit(AuthAuthenticated(user));
+        }
       }
     } catch (e) {
       emit(AuthError(_friendlyAuthError(e, fallback: 'Invalid OTP or server unreachable. $e')));
@@ -219,7 +288,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (refreshToken != null) await _storage.saveRefreshToken(refreshToken as String);
       await _storage.saveUserJson(jsonEncode(user.toJson()));
 
-      emit(AuthAuthenticated(user));
+      // Prefer canonical server profile so display name is correct across the app.
+      try {
+        await _fetchProfileAndEmit(emit);
+      } catch (_) {
+        emit(AuthAuthenticated(user));
+      }
     } catch (e) {
       emit(AuthError(_friendlyAuthError(e, fallback: 'Login failed. Please check credentials and try again.')));
     }
@@ -247,7 +321,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
-    try { await _apiAuth.signOut(''); } catch (_) {}
+    try {
+      final refresh = await _storage.getRefreshToken();
+      if (refresh != null && refresh.isNotEmpty) {
+        await _apiAuth.signOut(refresh);
+      }
+    } catch (_) {}
     await _storage.clearAll();
     _pendingPhone = null;
     emit(const AuthUnauthenticated());
@@ -257,7 +336,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthSessionExpired event,
     Emitter<AuthState> emit,
   ) async {
-    try { await _apiAuth.signOut(''); } catch (_) {}
+    try {
+      final refresh = await _storage.getRefreshToken();
+      if (refresh != null && refresh.isNotEmpty) {
+        await _apiAuth.signOut(refresh);
+      }
+    } catch (_) {}
     await _storage.clearAll();
     emit(const AuthUnauthenticated());
   }

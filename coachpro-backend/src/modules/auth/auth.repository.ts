@@ -54,6 +54,12 @@ export class AuthRepository {
   }
 
   async storeRefreshToken(userId: string, tokenHash: string, expiresAt: Date) {
+      // CLEAR ALL PREVIOUS SESSIONS FOR THIS USER
+      // (This enforces single device login as requested by the user)
+      await prisma.refreshToken.deleteMany({
+          where: { user_id: userId }
+      });
+
       return prisma.refreshToken.create({
           data: {
               user_id: userId,

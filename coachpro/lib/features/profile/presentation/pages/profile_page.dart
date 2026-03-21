@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -8,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/secure_storage_service.dart';
+import '../../../../core/services/api_auth_service.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/domain/entities/user_entity.dart';
@@ -66,18 +68,25 @@ class _ProfilePageState extends State<ProfilePage> {
         final oldUser = authState.user as UserModel;
         
         // 1. Sync to backend
-        await sl<ApiAuthService>().updateProfile(
+        final profileData = await sl<ApiAuthService>().updateProfile(
           name: _nameCtrl.text.trim(),
-          phone: _phoneCtrl.text.trim(),
+          phone: null,
           email: _emailCtrl.text.trim().isNotEmpty ? _emailCtrl.text.trim() : null,
         );
 
+        final effectiveName = (profileData['name']?.toString().trim().isNotEmpty == true)
+            ? profileData['name'].toString().trim()
+            : _nameCtrl.text.trim();
+        final effectiveEmail = (profileData['email']?.toString().trim().isNotEmpty == true)
+            ? profileData['email'].toString().trim()
+            : (_emailCtrl.text.trim().isNotEmpty ? _emailCtrl.text.trim() : oldUser.email);
+
         final updated = UserModel(
           id: oldUser.id,
-          name: _nameCtrl.text.trim(),
-          phone: _phoneCtrl.text.trim().isNotEmpty ? _phoneCtrl.text.trim() : oldUser.phone,
+          name: effectiveName,
+          phone: oldUser.phone,
           role: oldUser.role,
-          email: _emailCtrl.text.trim().isNotEmpty ? _emailCtrl.text.trim() : oldUser.email,
+          email: effectiveEmail,
         );
         
         // 2. Persist locally
@@ -86,7 +95,12 @@ class _ProfilePageState extends State<ProfilePage> {
         if (mounted) {
           // 3. Update Global State
           context.read<AuthBloc>().add(AuthProfileCompleted(updated));
-          setState(() { _editMode = false; _saving = false; _user = updated; });
+          setState(() {
+            _editMode = false;
+            _saving = false;
+            _user = updated;
+            _nameCtrl.text = updated.name;
+          });
           
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Profile updated successfully!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: Colors.white)),
@@ -112,7 +126,7 @@ class _ProfilePageState extends State<ProfilePage> {
         final role = user?.role ?? AppRole.admin;
         final isAdmin = role == AppRole.admin;
         final isTeacher = role == AppRole.teacher;
-        final displayName = _editMode ? _nameCtrl.text : (user?.name ?? 'Admin User');
+        final displayName = user?.name ?? _user?.name ?? 'Admin User';
         final initials = displayName.trim().isEmpty ? 'A'
             : displayName.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase();
 
@@ -149,7 +163,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     )
                   else
                     CPPressable(
-                      onTap: () => setState(() { _editMode = false; _nameCtrl.text = user?.name ?? ''; }),
+                      onTap: () => setState(() {
+                        _editMode = false;
+                        _nameCtrl.text = (user?.name ?? _user?.name ?? '');
+                      }),
                       child: const Padding(
                         padding: EdgeInsets.only(right: 16),
                         child: Icon(Icons.close_rounded, color: Colors.white70, size: 22),
@@ -243,7 +260,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 // ── Personal Information ──────────────────────
                 _section('Personal Information', [
                   _editableField(label: 'Full Name', icon: Icons.person_rounded, controller: _nameCtrl, editing: _editMode),
-                  _editableField(label: 'Phone', icon: Icons.phone_android_rounded, controller: _phoneCtrl, editing: _editMode, type: TextInputType.phone),
+                  _editableField(label: 'Phone', icon: Icons.phone_android_rounded, controller: _phoneCtrl, editing: _editMode, editable: false, type: TextInputType.phone),
                   _editableField(label: 'Email', icon: Icons.email_rounded, controller: _emailCtrl, editing: _editMode, type: TextInputType.emailAddress),
                   _editableField(label: 'Date of Birth', icon: Icons.cake_rounded, controller: _dobCtrl, editing: _editMode),
                   _editableField(label: 'Address', icon: Icons.home_rounded, controller: _addressCtrl, editing: _editMode),
@@ -340,6 +357,7 @@ class _ProfilePageState extends State<ProfilePage> {
     required IconData icon,
     required TextEditingController controller,
     required bool editing,
+    bool editable = true,
     TextInputType? type,
   }) {
     return Padding(
@@ -350,7 +368,7 @@ class _ProfilePageState extends State<ProfilePage> {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF8F97B8), fontWeight: FontWeight.w600)),
           const SizedBox(height: 2),
-          editing
+          (editing && editable)
             ? TextField(
                 controller: controller,
                 keyboardType: type,

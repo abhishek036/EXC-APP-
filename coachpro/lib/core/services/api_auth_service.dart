@@ -1,6 +1,7 @@
 import '../network/api_client.dart';
 import '../network/api_endpoints.dart';
 import '../di/injection_container.dart';
+import 'package:dio/dio.dart';
 
 class ApiAuthService {
   final ApiClient _api = sl<ApiClient>();
@@ -104,19 +105,53 @@ class ApiAuthService {
     String? email,
     String? phone,
   }) async {
-    final response = await _api.dio.patch(
-      ApiEndpoints.updateProfile,
-      data: {
-        if (name != null) 'name': name,
-        if (email != null) 'email': email,
-        if (phone != null) 'phone': phone,
-      },
-    );
+    final payload = <String, dynamic>{
+      if (name != null) 'name': name,
+      if (email != null) 'email': email,
+      if (phone != null) 'phone': phone,
+    };
 
-    if (response.statusCode != 200) {
-      throw Exception(response.data['message'] ?? 'Failed to update profile');
+    if (payload.isEmpty) {
+      return getProfile();
     }
 
-    return response.data['data'] as Map<String, dynamic>;
+    Future<Map<String, dynamic>> patchNameOnly(String displayName) async {
+      final response = await _api.dio.patch(
+        ApiEndpoints.updateProfileName,
+        data: {'name': displayName},
+      );
+      if (response.statusCode != 200) {
+        throw Exception(response.data['message'] ?? 'Failed to update name');
+      }
+      return response.data['data'] as Map<String, dynamic>;
+    }
+
+    // If we're only changing name, prefer the dedicated endpoint for compatibility.
+    if (payload.length == 1 && payload.containsKey('name')) {
+      return patchNameOnly(payload['name'] as String);
+    }
+
+    try {
+      final response = await _api.dio.patch(
+        ApiEndpoints.updateProfile,
+        data: payload,
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(response.data['message'] ?? 'Failed to update profile');
+      }
+
+      return response.data['data'] as Map<String, dynamic>;
+    } on DioException catch (e) {
+      // Backward-compatible fallback: some servers don't have PATCH /auth/me.
+      final status = e.response?.statusCode;
+      final isMissingRoute = status == 404 || status == 405;
+      if (isMissingRoute && name != null && name.trim().isNotEmpty) {
+        await patchNameOnly(name.trim());
+        // Return the canonical user after update.
+        return getProfile();
+      }
+      rethrow;
+    }
   }
 }

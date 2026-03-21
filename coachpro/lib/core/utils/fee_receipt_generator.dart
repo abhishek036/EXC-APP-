@@ -101,7 +101,7 @@ class FeeReceiptGenerator {
                 },
                 headers: ['Description', 'Payment Mode', 'Amount (INR)'],
                 data: [
-                  ['Tuition Fee Installment', (record['payment_mode'] ?? 'Online').toString().toUpperCase(), '₹${amount.toStringAsFixed(2)}'],
+                  ['Tuition Fee Installment', (record['payment_mode'] ?? 'Online').toString().toUpperCase(), 'INR ${amount.toStringAsFixed(2)}'],
                 ],
               ),
               
@@ -117,7 +117,7 @@ class FeeReceiptGenerator {
                       mainAxisSize: pw.MainAxisSize.min,
                       children: [
                         pw.Text('Total Paid: ', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                        pw.Text('₹${amount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.green700)),
+                        pw.Text('INR ${amount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.green700)),
                       ],
                     ),
                   ],

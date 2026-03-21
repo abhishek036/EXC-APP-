@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../di/injection_container.dart';
 import '../services/secure_storage_service.dart';
+import 'api_endpoints.dart';
 
 /// Central API client using Dio.
 /// Includes auth token injection, automatic token refresh on 401,
@@ -64,7 +65,7 @@ class ApiClient {
       if (refreshToken == null || refreshToken.isEmpty) return null;
 
       final response = await _refreshDio.post(
-        'auth/refresh-token',
+        ApiEndpoints.refreshToken,
         data: {'refreshToken': refreshToken},
       );
 
@@ -102,7 +103,7 @@ class _AuthInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
     // Don't add auth header to refresh-token endpoint itself
-    if (!options.path.contains('refresh-token')) {
+    if (!options.path.contains(ApiEndpoints.refreshToken)) {
       final token = await _storage.getToken();
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
@@ -127,7 +128,7 @@ class _AuthInterceptor extends Interceptor {
 
     // Handle 401 — try to refresh the token once
     if (err.response?.statusCode == 401 &&
-        !err.requestOptions.path.contains('refresh-token') &&
+        !err.requestOptions.path.contains(ApiEndpoints.refreshToken) &&
         !err.requestOptions.path.contains('auth/login') &&
         !err.requestOptions.path.contains('auth/verify-otp')) {
       final newToken = await _client.tryRefreshToken();

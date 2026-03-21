@@ -392,9 +392,18 @@ class _LoginPageState extends State<LoginPage> {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: GoogleFonts.plusJakartaSans(fontSize: 15, color: const Color(0xFF9CA3AF), fontWeight: FontWeight.w400),
-              prefixIcon: Icon(icon, size: 20, color: const Color(0xFF6B7280)),
-              prefix: prefixText != null ? Text(prefixText,
-                style: GoogleFonts.plusJakartaSans(color: const Color(0xFF0D1282), fontWeight: FontWeight.w700, fontSize: 15)) : null,
+              prefixIcon: prefixText != null 
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(width: 16),
+                      Icon(icon, size: 20, color: const Color(0xFF6B7280)),
+                      const SizedBox(width: 8),
+                      Text(prefixText, style: GoogleFonts.plusJakartaSans(color: const Color(0xFF0D1282), fontWeight: FontWeight.w700, fontSize: 15)),
+                      const SizedBox(width: 4),
+                    ],
+                  )
+                : Icon(icon, size: 20, color: const Color(0xFF6B7280)),
               suffixIcon: suffixIcon,
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

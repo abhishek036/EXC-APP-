@@ -3,11 +3,12 @@ import { CreateStudentInput, UpdateStudentInput } from './student.validator';
 import { Prisma } from '@prisma/client';
 
 export class StudentRepository {
-  async listStudents(instituteId: string, filters: { name?: string, phone?: string, batchId?: string }, pagination: { skip: number, take: number }) {
+  async listStudents(instituteId: string, filters: { name?: string, phone?: string, batchId?: string, isActive?: boolean }, pagination: { skip: number, take: number }) {
     const whereClause: Prisma.StudentWhereInput = { institute_id: instituteId };
     
     if (filters.name) whereClause.name = { contains: filters.name, mode: 'insensitive' };
     if (filters.phone) whereClause.phone = { contains: filters.phone };
+    if (filters.isActive !== undefined) whereClause.is_active = filters.isActive;
     if (filters.batchId) {
       whereClause.student_batches = {
         some: {

@@ -9,14 +9,14 @@ export class StudentService {
     this.studentRepository = new StudentRepository();
   }
 
-  async listStudents(instituteId: string, query: { name?: string, phone?: string, batchId?: string, page?: number, perPage?: number }) {
+  async listStudents(instituteId: string, query: { name?: string, phone?: string, batchId?: string, isActive?: boolean, page?: number, perPage?: number }) {
     const page = parseInt(query.page as any) || 1;
     const perPage = parseInt(query.perPage as any) || 20;
     const skip = (page - 1) * perPage;
 
     const { students, total } = await this.studentRepository.listStudents(
         instituteId, 
-        { name: query.name, phone: query.phone, batchId: query.batchId }, 
+        { name: query.name, phone: query.phone, batchId: query.batchId, isActive: query.isActive }, 
         { skip, take: perPage }
     );
     

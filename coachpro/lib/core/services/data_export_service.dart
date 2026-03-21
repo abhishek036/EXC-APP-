@@ -10,7 +10,8 @@ class DataExportService {
   static final instance = DataExportService._();
 
   final _dateFormat = DateFormat('dd MMM yyyy');
-  final _currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+  // NOTE: dart_pdf default fonts have limited Unicode coverage; keep PDF output ASCII-safe.
+  final _currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: 'INR ', decimalDigits: 0);
 
   // ── CSV Generation ──────────────────────────────────────
 
@@ -129,7 +130,7 @@ class DataExportService {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
-        pw.Text('Excellence Academy — Coaching Management System',
+        pw.Text('Excellence Academy - Coaching Management System',
             style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500)),
         pw.Text('Page ${context.pageNumber} of ${context.pagesCount}',
             style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500)),
@@ -201,7 +202,7 @@ class DataExportService {
         _currencyFormat.format(f['amount'] ?? 0),
         f['status'] as String? ?? '',
         f['dueDate'] as String? ?? '',
-        f['paidDate'] as String? ?? '—',
+        f['paidDate'] as String? ?? 'N/A',
       ]).toList(),
     );
   }

@@ -150,7 +150,7 @@ void main() {
           rows: [
             ['Alice', '5000'],
           ],
-          summary: {'Total': '₹5000', 'Collected': '₹3000'},
+          summary: {'Total': 'INR 5000', 'Collected': 'INR 3000'},
         );
         expect(bytes, isNotEmpty);
       });

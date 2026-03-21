@@ -83,7 +83,7 @@ class UserModel extends UserEntity {
       id: 'mock_${role.name}_001',
       name: 'Demo $label',
       phone: '9876543210',
-      email: '${role.name}@Excellence Academy.app',
+      email: '${role.name}@excellenceacademy.app',
       role: role,
       createdAt: DateTime.now(),
     );

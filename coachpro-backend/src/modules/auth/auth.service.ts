@@ -12,6 +12,32 @@ export class AuthService {
     this.authRepository = new AuthRepository();
   }
 
+    private _durationToMs(input: string, defaultMs: number): number {
+        const raw = (input || '').trim();
+        if (!raw) return defaultMs;
+
+        // Supports values like: 900, 15m, 1h, 30d
+        const m = raw.match(/^([0-9]+)\s*([smhd])?$/i);
+        if (!m) return defaultMs;
+        const value = parseInt(m[1], 10);
+        if (!Number.isFinite(value) || value <= 0) return defaultMs;
+        const unit = (m[2] || 's').toLowerCase();
+        switch (unit) {
+            case 's': return value * 1000;
+            case 'm': return value * 60 * 1000;
+            case 'h': return value * 60 * 60 * 1000;
+            case 'd': return value * 24 * 60 * 60 * 1000;
+            default: return defaultMs;
+        }
+    }
+
+    private _refreshExpiryMs(): number {
+        // Keep DB expiry in sync with JWT_REFRESH_EXPIRES_IN.
+        // Default: 30d.
+        const env = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
+        return this._durationToMs(env, 30 * 24 * 60 * 60 * 1000);
+    }
+
   async sendOtp(phone: string, purpose: string, joinCode?: string) {
     console.log(`[AUTH] sendOtp requested for phone: "${phone}", purpose: ${purpose}`);
     
@@ -156,8 +182,7 @@ export class AuthService {
     });
 
     const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-    const refreshExpiresInMs = 30 * 24 * 60 * 60 * 1000; // 30 days
-    
+    const refreshExpiresInMs = this._refreshExpiryMs();
     await this.authRepository.storeRefreshToken(user.id, refreshHash, new Date(Date.now() + refreshExpiresInMs));
 
     return {
@@ -198,9 +223,8 @@ export class AuthService {
       });
 
       const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-      const refreshExpiresInMs = 30 * 24 * 60 * 60 * 1000; // 30 days
-      
-      await this.authRepository.storeRefreshToken(user.id, refreshHash, new Date(Date.now() + refreshExpiresInMs));
+    const refreshExpiresInMs = this._refreshExpiryMs();
+    await this.authRepository.storeRefreshToken(user.id, refreshHash, new Date(Date.now() + refreshExpiresInMs));
 
       return {
           user: { id: user.id, role: user.role, instituteId: user.institute_id },
@@ -238,7 +262,7 @@ export class AuthService {
          // Invalidate old hash and store new one
          await this.authRepository.revokeRefreshToken(hash);
          const newHash = crypto.createHash('sha256').update(newRefreshTokenString).digest('hex');
-         await this.authRepository.storeRefreshToken(user.id, newHash, new Date(Date.now() + 30*24*60*60*1000));
+         await this.authRepository.storeRefreshToken(user.id, newHash, new Date(Date.now() + this._refreshExpiryMs()));
 
          return {
              accessToken,
@@ -257,6 +281,67 @@ export class AuthService {
       }
       return true;
   }
+
+    async updateMe(
+        userId: string,
+        role: string,
+        payload: { name?: string; email?: string; phone?: string },
+    ) {
+        const { prisma } = require('../../server');
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new ApiError('User not found', 404, 'NOT_FOUND');
+
+        // Phone updates are risky because phone is the login identifier and has variant formats (+91...)
+        // To avoid creating duplicate/ambiguous login records, disallow changing it for now.
+        if (payload.phone != null && payload.phone !== user.phone) {
+            throw new ApiError('Phone number change is not supported yet. Contact administrator.', 400, 'PHONE_UPDATE_NOT_SUPPORTED');
+        }
+
+        const name = payload.name?.trim();
+        const email = payload.email?.trim();
+
+        if (name != null && name.length < 2) {
+            throw new ApiError('Name must be at least 2 characters', 400, 'INVALID_NAME');
+        }
+
+        // Update user row (email lives on users table)
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                ...(email != null ? { email } : {}),
+            },
+        });
+
+        // Update role profile name + email where applicable
+        if (name != null) {
+            if (role === 'student') {
+                await prisma.student.updateMany({ where: { user_id: userId }, data: { name } });
+            } else if (role === 'teacher') {
+                await prisma.teacher.updateMany({ where: { user_id: userId }, data: { name } });
+            } else if (role === 'parent') {
+                await prisma.parent.updateMany({ where: { user_id: userId }, data: { name } });
+            } else if (role === 'admin') {
+                // Admins are represented as Staff in this schema (role=admin), if present.
+                await prisma.staff.updateMany({ where: { user_id: userId }, data: { name } });
+            }
+        }
+
+        if (email != null) {
+            if (role === 'teacher') {
+                await prisma.teacher.updateMany({ where: { user_id: userId }, data: { email } });
+            }
+            // Student/Parent/Staff models may not have email consistently; keep users.email as source of truth.
+        }
+
+        return {
+            id: updatedUser.id,
+            phone: updatedUser.phone,
+            email: updatedUser.email,
+            role: updatedUser.role,
+            name: name ?? undefined,
+        };
+    }
 
   async getUserProfile(userId: string) {
       const { prisma } = require('../../server'); 

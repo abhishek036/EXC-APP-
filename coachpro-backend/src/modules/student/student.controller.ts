@@ -13,11 +13,12 @@ export class StudentController {
 
   list = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { name, phone, batchId, page, perPage } = req.query;
+      const { name, phone, batchId, isActive, page, perPage } = req.query;
       const result = await this.studentService.listStudents(req.instituteId!, { 
           name: name as string, 
           phone: phone as string,
           batchId: batchId as string,
+          isActive: isActive !== undefined ? isActive === 'true' : undefined,
           page: Number(page),
           perPage: Number(perPage)
       });

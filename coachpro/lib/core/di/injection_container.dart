@@ -81,7 +81,7 @@ Future<void> initDependencies() async {
   );
 
   // ── BLoCs ──────────────────────────────────────────────
-  sl.registerLazySingleton<AuthBloc>(
+  sl.registerFactory<AuthBloc>(
     () => AuthBloc(
       storage: sl<SecureStorageService>(),
       apiAuth: sl<ApiAuthService>(),

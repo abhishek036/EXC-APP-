@@ -346,41 +346,58 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
 
   Widget _buildAppBar(BuildContext context, bool isDark) {
-    return Row(
-      children: [
-        CPPressable(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            _scaffoldKey.currentState?.openDrawer(); // ← Fixed: use GlobalKey
-          },
-          child: const Padding(
-            padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
-            child: Icon(Icons.menu_rounded, color: Color(0xFF0A0C1E), size: 28),
-          ),
-        ),
-        CPPressable(
-          onTap: () => context.go('/admin/profile'),
-          child: Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF0D1282), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))]),
-            child: Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('$_greeting, 👋', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black38)),
-              Text(userName, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
-            ],
-          ),
-        ),
-        _appBarAction(Icons.search_rounded, () { HapticFeedback.mediumImpact(); GlobalSearchOverlay.show(context); }, isDark),
-        const SizedBox(width: 8),
-        _appBarAction(Icons.notifications_none_rounded, () { HapticFeedback.mediumImpact(); context.go('/admin/notifications'); }, isDark, badge: _unreadNotifications > 0),
-      ],
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        String initials = 'A';
+        String userName = 'Admin';
+        
+        if (state is AuthAuthenticated) {
+          userName = state.user.name;
+          if (userName.isNotEmpty) {
+            final parts = userName.split(' ');
+            initials = parts.length > 1 
+                ? (parts[0][0] + parts[1][0]).toUpperCase() 
+                : parts[0][0].toUpperCase();
+          }
+        }
+
+        return Row(
+          children: [
+            CPPressable(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _scaffoldKey.currentState?.openDrawer(); // ← Fixed: use GlobalKey
+              },
+              child: const Padding(
+                padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
+                child: Icon(Icons.menu_rounded, color: Color(0xFF0A0C1E), size: 28),
+              ),
+            ),
+            CPPressable(
+              onTap: () => context.go('/admin/profile'),
+              child: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF0D1282), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))]),
+                child: Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$_greeting, 👋', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black38)),
+                  Text(userName, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
+                ],
+              ),
+            ),
+            _appBarAction(Icons.search_rounded, () { HapticFeedback.mediumImpact(); GlobalSearchOverlay.show(context); }, isDark),
+            const SizedBox(width: 8),
+            _appBarAction(Icons.notifications_none_rounded, () { HapticFeedback.mediumImpact(); context.go('/admin/notifications'); }, isDark, badge: _unreadNotifications > 0),
+          ],
+        ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);
+      },
+    );
   }
 
   Widget _appBarAction(IconData icon, VoidCallback onTap, bool isDark, {bool badge = false}) {

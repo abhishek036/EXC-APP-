@@ -34,7 +34,11 @@ export class ContentController {
 
   listAssignments = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.service.listAssignments(req.instituteId!, req.query.batchId as string);
+      const filter = {
+        batchId: req.query.batchId as string,
+        teacherId: req.query.teacherId as string
+      };
+      const data = await this.service.listAssignments(req.instituteId!, filter);
       return sendResponse({ res, data, message: 'Assignments fetched successfully' });
     } catch (e) { next(e); }
   }
