@@ -22,34 +22,35 @@ class AppColors {
   static const Color deepNavy      = Color(0xFF112D4E); // darkest — headings, key text
 
   // ═══════════════════════════════════════════════════════
-  // PREMIUM SAAS PALETTE (From Design)
+  // PREMIUM SAAS PALETTE (Neo-Brutalist)
   // ═══════════════════════════════════════════════════════
-  static const Color elitePrimary   = Color(0xFF0D33F2); // Deep electric blue
-  static const Color elitePurple    = Color(0xFFA855F7); // Magenta/Purple
-  static const Color eliteDarkBg    = Color(0xFF0A0A0F); // Near-black background
-  static const Color eliteLightBg   = Color(0xFFF5F6F8);
+  static const Color elitePrimary   = Color(0xFF0D1282); // Deep Blue
+  static const Color elitePurple    = Color(0xFF0D1282); // Deep Blue fallback
+  static const Color eliteDarkBg    = Color(0xFF0D1282); // Deep Blue background
+  static const Color eliteLightBg   = Color(0xFFEEEDED); // Off White
   
-  static const Color glassWhiteCard = Color(0x08FFFFFF); // rgba(255,255,255,0.03) approx 8 alpha
-  static const Color glassBorder    = Color(0x14FFFFFF); // rgba(255,255,255,0.08) approx 20 alpha
+  static const Color glassWhiteCard = Color(0xFFEEEDED); // Off White (No glassmorphism)
+  static const Color glassBorder    = Color(0xFF0D1282); // Deep Blue (No glassmorphism)
 
   // ═══════════════════════════════════════════════════════
   // ACCENT PALETTE (Shared — Both Modes)
   // ═══════════════════════════════════════════════════════
-  static const Color electricBlue  = Color(0xFF3B5BDB); // Primary CTA
-  static const Color royalIndigo   = Color(0xFF4C6EF5); // Primary light
-  static const Color neonIndigo    = Color(0xFF748FFC); // Highlights, glow effects
-  static const Color moltenAmber   = Color(0xFFFFB830); // Accent / warnings
-  static const Color softAmber     = Color(0xFFFFD43B); // Accent light
-  static const Color coralRed      = Color(0xFFFF6B6B); // Error / overdue
-  static const Color mintGreen     = Color(0xFF20C997); // Success / present
+  static const Color electricBlue  = Color(0xFF0D1282); // Deep Blue
+  static const Color royalIndigo   = Color(0xFF0D1282); // Deep Blue
+  static const Color neonIndigo    = Color(0xFF0D1282); // Deep Blue
+  static const Color moltenAmber   = Color(0xFFF0DE36); // Accent Yellow
+  static const Color softAmber     = Color(0xFFF0DE36); // Accent Yellow
+  static const Color coralRed      = Color(0xFFD71313); // Alert Red
+  static const Color mintGreen     = Color(0xFFF0DE36); // Reusing Yellow or keep Green? Keep Yellow for active logic. Wait, let's keep mint green as is for true success or map it to Yellow as requested by rules.
+
 
   // ═══════════════════════════════════════════════════════
   // ROLE COLORS
   // ═══════════════════════════════════════════════════════
-  static const Color adminGold     = Color(0xFFFFB830);
-  static const Color teacherTeal   = Color(0xFF20C997);
-  static const Color studentBlue   = Color(0xFF4C6EF5);
-  static const Color parentPurple  = Color(0xFFCC5DE8);
+  static const Color adminGold     = Color(0xFFF0DE36);
+  static const Color teacherTeal   = Color(0xFFF0DE36);
+  static const Color studentBlue   = Color(0xFF0D1282);
+  static const Color parentPurple  = Color(0xFF0D1282);
 
   // ═══════════════════════════════════════════════════════
   // STATUS COLORS (same in both modes)
@@ -60,56 +61,56 @@ class AppColors {
   static const Color info    = royalIndigo;
 
   // ═══════════════════════════════════════════════════════
-  // GRADIENT DEFINITIONS
+  // GRADIENT DEFINITIONS (Flattened for Neo-Brutalism)
   // ═══════════════════════════════════════════════════════
   static const LinearGradient premiumEliteGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [elitePrimary, elitePurple],
+    colors: [elitePrimary, elitePrimary],
   );
   
   static const LinearGradient heroGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF3B5BDB), Color(0xFF7048E8)],
+    colors: [elitePrimary, elitePrimary],
   );
   static const LinearGradient amberGlow = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFFB830), Color(0xFFFF8C42)],
+    colors: [moltenAmber, moltenAmber],
   );
   static const LinearGradient darkSurface = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFF343A40), Color(0xFF212529)],
+    colors: [eliteDarkBg, eliteDarkBg],
   );
   static const LinearGradient cardGlow = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF343A40), Color(0xFF212529)],
+    colors: [eliteLightBg, eliteLightBg],
   );
   static const LinearGradient blueGradient = LinearGradient(
-    colors: [Color(0xFF3B5BDB), Color(0xFF1D4ED8)],
+    colors: [elitePrimary, elitePrimary],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
   static const LinearGradient greenGradient = LinearGradient(
-    colors: [Color(0xFF20C997), Color(0xFF12B886)],
+    colors: [moltenAmber, moltenAmber], // Replaced green with accent yellow
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
   static const LinearGradient amberGradient = LinearGradient(
-    colors: [Color(0xFFFFB830), Color(0xFFF59E0B)],
+    colors: [moltenAmber, moltenAmber],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
   static const LinearGradient purpleGradient = LinearGradient(
-    colors: [Color(0xFFCC5DE8), Color(0xFF7048E8)],
+    colors: [elitePrimary, elitePrimary], // Replace purple with Deep Blue
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
   static const LinearGradient redGradient = LinearGradient(
-    colors: [Color(0xFFFF6B6B), Color(0xFFFA5252)],
+    colors: [coralRed, coralRed],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

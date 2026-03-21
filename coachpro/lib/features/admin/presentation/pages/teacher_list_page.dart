@@ -58,10 +58,6 @@ class _TeacherListPageState extends State<TeacherListPage> {
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       body: Stack(
         children: [
-          if (isDark) ...[
-            Positioned(top: -100, right: -50, child: _glow(300, AppColors.elitePrimary.withValues(alpha: 0.1))),
-            Positioned(bottom: 100, left: -100, child: _glow(350, AppColors.elitePurple.withValues(alpha: 0.05))),
-          ],
           SafeArea(
             child: Column(
               children: [
@@ -101,8 +97,6 @@ class _TeacherListPageState extends State<TeacherListPage> {
     );
   }
 
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
-
   Widget _buildAppBar(BuildContext context, bool isDark) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
@@ -122,8 +116,8 @@ class _TeacherListPageState extends State<TeacherListPage> {
       onTap: onTap,
       child: Container(
         width: 44, height: 44,
-        decoration: BoxDecoration(gradient: primary ? AppColors.premiumEliteGradient : null, color: !primary ? (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03)) : null, borderRadius: BorderRadius.circular(16), boxShadow: primary ? [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))] : null),
-        child: Icon(icon, size: 22, color: primary ? Colors.white : (isDark ? Colors.white : AppColors.deepNavy)),
+        decoration: BoxDecoration(color: primary ? const Color(0xFF0D1282) : const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
+        child: Icon(icon, size: 22, color: primary ? Colors.white : const Color(0xFF0D1282)),
       ),
     );
   }
@@ -171,24 +165,24 @@ class _TeacherListPageState extends State<TeacherListPage> {
         children: [
           Container(
             width: 56, height: 56,
-            decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.elitePrimary.withValues(alpha: 0.1), AppColors.elitePurple.withValues(alpha: 0.1)]), borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.elitePrimary.withValues(alpha: 0.15))),
+            decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2)),
             alignment: Alignment.center,
-            child: Text(displayName.isNotEmpty ? displayName[0].toUpperCase() : 'F', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.elitePrimary)),
+            child: Text(displayName.isNotEmpty ? displayName[0].toUpperCase() : 'F', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(displayName, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.4)),
+                Text(displayName, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282), letterSpacing: -0.4)),
                 const SizedBox(height: 4),
-                Text(subject, style: GoogleFonts.inter(fontSize: 12, color: AppColors.elitePrimary.withValues(alpha: 0.8), fontWeight: FontWeight.w700, letterSpacing: 0.2)),
+                Text(subject, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF0D1282), fontWeight: FontWeight.w700, letterSpacing: 0.2)),
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.phone_iphone_rounded, size: 12, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26)),
+                    Icon(Icons.phone_iphone_rounded, size: 12, color: const Color(0xFF0D1282).withValues(alpha: 0.5)),
                     const SizedBox(width: 6),
-                    Text(displayPhone, style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600)),
+                    Text(displayPhone, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF0D1282), fontWeight: FontWeight.w600)),
                   ],
                 ),
               ],
@@ -196,7 +190,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
           ),
           CPPressable(
             onTap: () { HapticFeedback.lightImpact(); /* context.go('/admin/teachers/${teacher['id']}'); */ },
-            child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26))),
+            child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]), child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: const Color(0xFF0D1282))),
           ),
         ],
       ),
@@ -206,8 +200,8 @@ class _TeacherListPageState extends State<TeacherListPage> {
   Widget _badge(String text, Color color, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withValues(alpha: 0.2))),
-      child: Text(text, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
+      decoration: BoxDecoration(color: color, border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
+      child: Text(text, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5)),
     );
   }
 }

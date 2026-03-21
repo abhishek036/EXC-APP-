@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
@@ -77,10 +78,6 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       body: Stack(
         children: [
-          if (isDark) ...[
-            Positioned(top: -150, left: -100, child: _glow(400, AppColors.electricBlue.withValues(alpha: 0.15))),
-            Positioned(bottom: 50, right: -150, child: _glow(500, AppColors.elitePurple.withValues(alpha: 0.1))),
-          ],
           SafeArea(
             child: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) => [
@@ -98,8 +95,8 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
                       child: Container(
                         margin: const EdgeInsets.only(right: 20),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(gradient: AppColors.premiumEliteGradient, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))]),
-                        child: Row(children: [const Icon(Icons.add_rounded, color: Colors.white, size: 18), const SizedBox(width: 6), Text('NEW EXAM', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 11, letterSpacing: 0.5))]),
+                        decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
+                        child: Row(children: [const Icon(Icons.add_rounded, color: Color(0xFF0D1282), size: 18), const SizedBox(width: 6), Text('NEW EXAM', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), fontSize: 11, letterSpacing: 0.5))]),
                       ),
                     ),
                   ],
@@ -108,18 +105,18 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       child: Container(
-                        height: 44, padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05))),
+                        height: 48, padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
                         child: TabBar(
                           controller: _tabController,
                           dividerColor: Colors.transparent,
                           indicatorSize: TabBarIndicatorSize.tab,
-                          indicator: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))]),
-                          labelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.2),
-                          unselectedLabelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
-                          labelColor: isDark ? Colors.white : AppColors.deepNavy,
-                          unselectedLabelColor: isDark ? Colors.white38 : Colors.black38,
-                          tabs: const [Tab(text: 'Upcoming'), Tab(text: 'Completed'), Tab(text: 'Results')],
+                          indicator: BoxDecoration(color: const Color(0xFF0D1282), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
+                          labelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.2),
+                          unselectedLabelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700),
+                          labelColor: Colors.white,
+                          unselectedLabelColor: const Color(0xFF0D1282),
+                          tabs: const [Tab(text: 'UPCOMING'), Tab(text: 'COMPLETED'), Tab(text: 'RESULTS')],
                         ),
                       ),
                     ),
@@ -147,8 +144,6 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
     );
   }
 
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
-
   Widget _buildExamList(List<Map<String, dynamic>> exams, String status, bool isDark) {
     if (exams.isEmpty) {
       return ListView(
@@ -159,9 +154,9 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(padding: const EdgeInsets.all(28), decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03), shape: BoxShape.circle), child: Icon(status == 'upcoming' ? Icons.event_rounded : Icons.fact_check_rounded, size: 48, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.1))),
+                Container(padding: const EdgeInsets.all(28), decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4))]), child: Icon(status == 'upcoming' ? Icons.event_rounded : Icons.fact_check_rounded, size: 48, color: const Color(0xFF0D1282))),
                 const SizedBox(height: 24),
-                Text(status == 'upcoming' ? 'No upcoming assessments' : 'No evaluations completed', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26))),
+                Text(status == 'upcoming' ? 'No upcoming assessments' : 'No evaluations completed', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))),
               ],
             ),
           ),
@@ -198,12 +193,12 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
         }
       },
       child: CPGlassCard(
-        isDark: isDark, padding: const EdgeInsets.all(20), borderRadius: 28,
-        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05)),
+        isDark: isDark, padding: const EdgeInsets.all(20), borderRadius: 0,
+        border: Border.all(color: const Color(0xFF0D1282), width: 3),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(width: 50, height: 70, decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(status == 'upcoming' ? Icons.event_rounded : Icons.check_circle_rounded, size: 22, color: statusColor), const SizedBox(height: 4), Text(date != null ? DateFormat('MMM').format(date).toUpperCase() : '', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor)), Text(date != null ? DateFormat('dd').format(date) : '', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w900, color: statusColor, letterSpacing: -1))])),
+            Container(width: 50, height: 70, decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(status == 'upcoming' ? Icons.event_rounded : Icons.check_circle_rounded, size: 22, color: const Color(0xFF0D1282)), const SizedBox(height: 4), Text(date != null ? DateFormat('MMM').format(date).toUpperCase() : '', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))), Text(date != null ? DateFormat('dd').format(date) : '', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: -1))])),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -214,7 +209,7 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
                     if (status == 'upcoming') Icon(Icons.more_horiz_rounded, size: 20, color: isDark ? Colors.white38 : Colors.black38),
                   ]),
                   const SizedBox(height: 4),
-                  Text('${batchName.toUpperCase()} • ${subject.toUpperCase()}', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: isDark ? Colors.white38 : Colors.black45, letterSpacing: 0.5)),
+                  Text('${batchName.toUpperCase()} • ${subject.toUpperCase()}', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5)),
                   const SizedBox(height: 12),
                   Row(children: [
                     if (duration.isNotEmpty) _infoChip(Icons.timer_rounded, '$duration MIN', isDark),
@@ -234,12 +229,13 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
     showModalBottomSheet(
       context: context, backgroundColor: Colors.transparent,
       builder: (ctx) => CPGlassCard(
-        isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 40,
+        isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 0,
+        border: Border.all(color: const Color(0xFF0D1282), width: 4),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)))),
+          Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: const Color(0xFF0D1282), border: Border.all(color: const Color(0xFF0D1282))))),
           const SizedBox(height: 32),
-          Text('Assessment Protocol', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1)),
-          Text('Manage "${exam['name']}"', style: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.w600)),
+          Text('Protocol Options', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1)),
+          Text('Manage "${exam['name']}"', style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF0D1282), fontWeight: FontWeight.w900)),
           const SizedBox(height: 32),
           CustomButton(text: 'Finalize & Conclude', icon: Icons.check_circle_rounded, onPressed: () { Navigator.pop(ctx); _markExamComplete(id); }),
           const SizedBox(height: 12),
@@ -251,13 +247,13 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
 
   Widget _infoChip(IconData icon, String text, bool isDark) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 12, color: isDark ? Colors.white54 : Colors.black54),
+            Icon(icon, size: 12, color: const Color(0xFF0D1282)),
             const SizedBox(width: 4),
-            Text(text, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: isDark ? Colors.white54 : Colors.black54, letterSpacing: 0.5)),
+            Text(text, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5)),
           ],
         ),
       );
@@ -272,9 +268,9 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(padding: const EdgeInsets.all(28), decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03), shape: BoxShape.circle), child: Icon(Icons.leaderboard_rounded, size: 48, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.1))),
+                Container(padding: const EdgeInsets.all(28), decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4))]), child: Icon(Icons.leaderboard_rounded, size: 48, color: const Color(0xFF0D1282))),
                 const SizedBox(height: 24),
-                Text('No evaluations recorded', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26))),
+                Text('No evaluations recorded', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))),
               ],
             ),
           ),
@@ -298,10 +294,10 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
         final gradeColor = pct >= 80 ? AppColors.success : pct >= 60 ? AppColors.electricBlue : pct >= 40 ? AppColors.warning : AppColors.error;
 
         return CPGlassCard(
-          isDark: isDark, padding: const EdgeInsets.all(16), borderRadius: 20,
-          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
+          isDark: isDark, padding: const EdgeInsets.all(16), borderRadius: 0,
+          border: Border.all(color: const Color(0xFF0D1282), width: 3),
           child: Row(children: [
-            Container(width: 44, height: 44, decoration: BoxDecoration(color: gradeColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)), child: Center(child: Text(studentName.split(' ').where((e) => e.isNotEmpty).map((e) => e[0]).take(2).join().toUpperCase(), style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w900, color: gradeColor)))),
+            Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]), child: Center(child: Text(studentName.split(' ').where((e) => e.isNotEmpty).map((e) => e[0]).take(2).join().toUpperCase(), style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))))),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -309,7 +305,7 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
                 children: [
                   Text(studentName, style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
                   const SizedBox(height: 4),
-                  Text(examName, style: GoogleFonts.inter(fontSize: 11, color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                  Text(examName, style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF0D1282), fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                 ],
               ),
             ),
@@ -317,7 +313,7 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
               Text('${score.toInt()}/${total.toInt()}', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
               if (grade.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: gradeColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: Text(grade, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: gradeColor, letterSpacing: 0.5))),
+                Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: gradeColor, border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]), child: Text(grade, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5))),
               ],
             ]),
           ]),
@@ -338,13 +334,13 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.eliteDarkBg : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isDark ? AppColors.eliteDarkBg : const Color(0xFFEEEDED),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero, side: BorderSide(color: Color(0xFF0D1282), width: 3)),
         title: Text('Terminate Record?', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
-        content: Text('Delete "${exam['name']}" permanently from the database.', style: GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87)),
+        content: Text('Delete "${exam['name']}" permanently from the database.', style: GoogleFonts.inter(color: isDark ? Colors.white70 : const Color(0xFF0D1282), fontWeight: FontWeight.w700)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('CANCEL', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: isDark ? Colors.white54 : Colors.black54))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('TERMINATE', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: AppColors.error))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), style: TextButton.styleFrom(side: const BorderSide(color: Color(0xFF0D1282), width: 2), shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero)), child: Text('CANCEL', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFF0D1282)))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), style: TextButton.styleFrom(backgroundColor: AppColors.error, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero), side: const BorderSide(color: Color(0xFF0D1282), width: 2)), child: Text('TERMINATE', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: Colors.white))),
         ],
       ),
     );
@@ -365,13 +361,14 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
     showModalBottomSheet(
       context: context, backgroundColor: Colors.transparent,
       builder: (ctx) => CPGlassCard(
-        isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 40,
+        isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 0,
+        border: Border.all(color: const Color(0xFF0D1282), width: 4),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)))),
+          Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: const Color(0xFF0D1282), border: Border.all(color: const Color(0xFF0D1282))))),
           const SizedBox(height: 32),
           Text((exam['name'] ?? 'Exam').toString(), style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1)),
           const SizedBox(height: 6),
-          Text('${(exam['batchName'] ?? '').toString().toUpperCase()} • ${(exam['subject'] ?? '').toString().toUpperCase()}', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: isDark ? Colors.white38 : Colors.black45, letterSpacing: 0.5)),
+          Text('${(exam['batchName'] ?? '').toString().toUpperCase()} • ${(exam['subject'] ?? '').toString().toUpperCase()}', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282).withValues(alpha: 0.5), letterSpacing: 0.5)),
           const SizedBox(height: 40),
           Row(children: [
             _resultStat('SCHEDULED', dateStr, isDark),
@@ -379,7 +376,22 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
             _resultStat('CAPACITY', '${exam['totalMarks'] ?? '—'} PTS', isDark),
           ]),
           const SizedBox(height: 40),
-          CustomButton(text: 'Access Results Engine', icon: Icons.leaderboard_rounded, onPressed: () { Navigator.pop(ctx); _tabController.animateTo(2); }),
+          CustomButton(
+            text: 'Bulk Input Results',
+            icon: Icons.edit_note_rounded,
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.go('/admin/exams/bulk-results', extra: exam);
+            },
+          ),
+          const SizedBox(height: 12),
+          CustomButton(
+            text: 'Access Results Engine', 
+            icon: Icons.leaderboard_rounded, 
+            backgroundColor: isDark ? Colors.white12 : Colors.black12,
+            foregroundColor: isDark ? Colors.white : AppColors.deepNavy,
+            onPressed: () { Navigator.pop(ctx); _tabController.animateTo(2); }
+          ),
           const SizedBox(height: 12),
         ]),
       )
@@ -411,16 +423,17 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
         builder: (ctx, setSS) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: CPGlassCard(
-            isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 40,
+            isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 0,
+            border: Border.all(color: const Color(0xFF0D1282), width: 4),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min,
                 children: [
-                  Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)))),
+                  Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: const Color(0xFF0D1282), border: Border.all(color: const Color(0xFF0D1282))))),
                   const SizedBox(height: 32),
                   Text('Deployment Protocol', style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1)),
                   const SizedBox(height: 8),
-                  Text('Schedule a new assessment for a target batch.', style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.w600)),
+                  Text('Schedule a new assessment for a target batch.', style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF0D1282), fontWeight: FontWeight.w900)),
                   const SizedBox(height: 40),
                   CustomTextField(label: 'Evaluation Title *', hint: 'e.g. JEE Sprint Mock #5', controller: nameCtrl, prefixIcon: Icons.quiz_rounded, isRequired: true),
                   const SizedBox(height: 20),
@@ -445,11 +458,11 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
                     Expanded(child: CustomTextField(label: 'Total Capacity', hint: '100', controller: totalMarksCtrl, prefixIcon: Icons.stars_rounded, keyboardType: TextInputType.number)),
                   ]),
                   const SizedBox(height: 24),
-                  Padding(padding: const EdgeInsets.only(left: 4), child: Text('TARGET BATCH DEPLOYMENT', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 0.5))),
+                  Padding(padding: const EdgeInsets.only(left: 4), child: Text('TARGET BATCH DEPLOYMENT', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5))),
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                    decoration: BoxDecoration(color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))),
+                    decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: selectedBatchId,

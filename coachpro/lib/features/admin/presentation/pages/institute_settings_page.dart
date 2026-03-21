@@ -96,8 +96,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
     }
   }
 
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
-
+  // Removed _glow method
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
@@ -106,9 +105,6 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       body: Stack(
         children: [
-          Positioned(top: -100, right: -100, child: _glow(300, AppColors.primary.withValues(alpha: 0.15))),
-          Positioned(bottom: -100, left: -100, child: _glow(300, AppColors.accent.withValues(alpha: 0.1))),
-          
           SafeArea(
             child: Column(
               children: [
@@ -121,16 +117,16 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                         onTap: () => context.pop(),
                         child: Container(
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05), shape: BoxShape.circle),
-                          child: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: isDark ? Colors.white : AppColors.deepNavy),
+                          decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
+                          child: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Color(0xFF0D1282)),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Institute Configuration', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1.0)),
-                          Text('Core system parameters', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white54 : Colors.black54)),
+                          Text('Institute Configuration', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: -1.0)),
+                          Text('Core system parameters', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF0D1282))),
                         ],
                       ),
                     ],
@@ -202,15 +198,15 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))]),
+                  decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))]),
                   child: _isSaving
                     ? const Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)))
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.shield_rounded, color: Colors.white, size: 20),
+                          const Icon(Icons.shield_rounded, color: Color(0xFF0D1282), size: 20),
                           const SizedBox(width: 8),
-                          Text('Commit System Configuration', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
+                          Text('Commit System Configuration', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: -0.5)),
                         ],
                       ),
                 ),
@@ -242,17 +238,17 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: value ? accentColor.withValues(alpha: 0.1) : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)), borderRadius: BorderRadius.circular(14)),
-            child: Icon(icon, color: value ? accentColor : (isDark ? Colors.white54 : Colors.black54), size: 24),
+            decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: accentColor, width: 2), boxShadow: [BoxShadow(color: accentColor, offset: const Offset(2, 2))]),
+            child: Icon(icon, color: accentColor, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
+                Text(title, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282), letterSpacing: -0.5)),
                 const SizedBox(height: 4),
-                Text(subtitle, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? Colors.white54 : Colors.black54, height: 1.3)),
+                Text(subtitle, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF0D1282), height: 1.3)),
               ],
             ),
           ),

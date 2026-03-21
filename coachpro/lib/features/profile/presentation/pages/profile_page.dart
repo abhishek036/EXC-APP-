@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/widgets/cp_pressable.dart';
-import '../../../../core/theme/theme_aware.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/domain/entities/user_entity.dart';
-
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
+import '../../../auth/data/models/user_model.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -21,288 +21,370 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  File? _profileImage;
-  File? _coverImage;
-  final _picker = ImagePicker();
+  bool _editMode = false;
+  bool _saving = false;
 
-  Future<void> _pickImage(bool isProfile) async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        if (isProfile) {
-          _profileImage = File(pickedFile.path);
-        } else {
-          _coverImage = File(pickedFile.path);
+  // Editable controllers
+  late TextEditingController _nameCtrl;
+  late TextEditingController _phoneCtrl;
+  late TextEditingController _emailCtrl;
+  late TextEditingController _dobCtrl;
+  late TextEditingController _addressCtrl;
+
+  UserModel? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      _user = authState.user as UserModel?;
+    }
+    _nameCtrl    = TextEditingController(text: _user?.name ?? '');
+    _phoneCtrl   = TextEditingController(text: _user?.phone ?? '');
+    _emailCtrl   = TextEditingController(text: '');
+    _dobCtrl     = TextEditingController(text: '');
+    _addressCtrl = TextEditingController(text: '');
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose(); _phoneCtrl.dispose();
+    _emailCtrl.dispose(); _dobCtrl.dispose(); _addressCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveProfile() async {
+    if (_nameCtrl.text.trim().isEmpty) return;
+    setState(() => _saving = true);
+    HapticFeedback.mediumImpact();
+
+    // Persist updated user into secure storage and refresh bloc
+    try {
+      final authState = context.read<AuthBloc>().state;
+      if (authState is AuthAuthenticated) {
+        final oldUser = authState.user as UserModel;
+        final updated = UserModel(
+          id: oldUser.id,
+          name: _nameCtrl.text.trim(),
+          phone: _phoneCtrl.text.trim().isNotEmpty ? _phoneCtrl.text.trim() : oldUser.phone,
+          role: oldUser.role,
+        );
+        await sl<SecureStorageService>().saveUserJson(
+          '{"id":"${updated.id}","name":"${updated.name}","phone":"${updated.phone}","role":"${updated.role.name}"}',
+        );
+        if (mounted) {
+          context.read<AuthBloc>().add(AuthProfileCompleted(updated));
+          setState(() { _editMode = false; _saving = false; _user = updated; });
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Profile updated successfully!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: Colors.white)),
+            backgroundColor: const Color(0xFF16A34A),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ));
         }
-      });
+      }
+    } catch (_) {
+      setState(() => _saving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = context.watch<AuthBloc>().state;
-    final role = authState is AuthAuthenticated ? authState.user.role : AppRole.student;
-    final isStudent = role == AppRole.student;
-    final isTeacher = role == AppRole.teacher;
-    final isAdmin = role == AppRole.admin;
-    final isParent = role == AppRole.parent;
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        final user = authState is AuthAuthenticated ? authState.user : null;
+        final role = user?.role ?? AppRole.admin;
+        final isAdmin = role == AppRole.admin;
+        final isTeacher = role == AppRole.teacher;
+        final displayName = _editMode ? _nameCtrl.text : (user?.name ?? 'Admin User');
+        final initials = displayName.trim().isEmpty ? 'A'
+            : displayName.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase();
 
-    final roleName = role.name[0].toUpperCase() + role.name.substring(1);
-    final roleSubtitle = isStudent ? 'Student · JEE Batch A'
-        : isTeacher ? 'Faculty · Physics Department'
-        : isAdmin ? 'Administrator'
-        : 'Parent · Guardian';
-    final userName = isStudent ? 'Priya Singh' : isTeacher ? 'Mr. Sharma' : isAdmin ? 'Admin User' : 'Mr. Singh';
-
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(children: [
-          // Header with gradient
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 60, AppDimensions.pagePaddingH, 32),
-            decoration: BoxDecoration(
-              gradient: _coverImage == null ? AppColors.primaryGradient : null,
-              image: _coverImage != null ? DecorationImage(
-                image: FileImage(_coverImage!),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.3), BlendMode.darken),
-              ) : null,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(AppDimensions.radiusXL),
-                bottomRight: Radius.circular(AppDimensions.radiusXL),
-              ),
-            ),
-            child: Column(children: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                CPPressable(
+        return Scaffold(
+          backgroundColor: const Color(0xFFF4F5FA),
+          body: CustomScrollView(
+            slivers: [
+              // ── Sliver App Bar / Hero Header ───────────────
+              SliverAppBar(
+                expandedHeight: 260,
+                pinned: true,
+                backgroundColor: const Color(0xFF0D1282),
+                leading: CPPressable(
                   onTap: () => context.pop(),
-                  child: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+                  child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
                 ),
-                Text('My Profile', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
-                Row(children: [
-                   CPPressable(
-                    onTap: () => _pickImage(false),
-                    child: const Icon(Icons.add_a_photo_outlined, color: Colors.white, size: 20),
-                  ),
-                  const SizedBox(width: AppDimensions.md),
-                  CPPressable(
-                    onTap: () => context.go('/${role.name}/settings'),
-                    child: const Icon(Icons.settings_outlined, color: Colors.white, size: 20),
-                  ),
-                ]),
-              ]),
-              const SizedBox(height: AppDimensions.lg),
-              Stack(
-                children: [
-                  Container(
-                    width: 100, height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(AppDimensions.radiusLG),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-                      image: _profileImage != null ? DecorationImage(
-                        image: FileImage(_profileImage!),
-                        fit: BoxFit.cover,
-                      ) : null,
-                    ),
-                    child: _profileImage == null 
-                      ? Center(child: Text(roleName[0], style: GoogleFonts.sora(fontSize: 34, fontWeight: FontWeight.w700, color: Colors.white)))
-                      : null,
-                  ),
-                  Positioned(
-                    right: -4, bottom: -4,
-                    child: CPPressable(
-                      onTap: () => _pickImage(true),
+                actions: [
+                  if (!_editMode)
+                    CPPressable(
+                      onTap: () => setState(() => _editMode = true),
                       child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 4)]),
-                        child: Icon(Icons.edit, size: 14, color: AppColors.primary),
+                        margin: const EdgeInsets.only(right: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0DE36),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.edit_rounded, size: 14, color: Color(0xFF0D1282)),
+                          const SizedBox(width: 6),
+                          Text('Edit', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))),
+                        ]),
+                      ),
+                    )
+                  else
+                    CPPressable(
+                      onTap: () => setState(() { _editMode = false; _nameCtrl.text = user?.name ?? ''; }),
+                      child: const Padding(
+                        padding: EdgeInsets.only(right: 16),
+                        child: Icon(Icons.close_rounded, color: Colors.white70, size: 22),
+                      ),
+                    ),
+                ],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    color: const Color(0xFF0D1282),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 60),
+                        Stack(alignment: Alignment.bottomRight, children: [
+                          Container(
+                            width: 96, height: 96,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withValues(alpha: 0.15),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2.5),
+                            ),
+                            child: Center(child: Text(initials,
+                              style: GoogleFonts.plusJakartaSans(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.white))),
+                          ),
+                          if (_editMode)
+                            CPPressable(
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                  content: Text('Photo upload coming soon!', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+                                  backgroundColor: const Color(0xFF0D1282),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ));
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(color: Color(0xFFF0DE36), shape: BoxShape.circle),
+                                child: const Icon(Icons.camera_alt_rounded, size: 14, color: Color(0xFF0D1282)),
+                              ),
+                            ),
+                        ]),
+                        const SizedBox(height: 12),
+                        Text(displayName,
+                          style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+                        const SizedBox(height: 4),
+                        Text(isAdmin ? 'Administrator' : isTeacher ? 'Faculty' : 'Student',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.white.withValues(alpha: 0.7))),
+                        const SizedBox(height: 4),
+                        Text(isAdmin ? 'ADM-001' : 'USR-001',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white.withValues(alpha: 0.45), fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              SliverToBoxAdapter(child: Column(children: [
+                // ── Stats Bar ────────────────────────────────
+                Transform.translate(
+                  offset: const Offset(0, -1),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+                    ),
+                    child: Row(children: isAdmin ? [
+                      _stat('450', 'Students', const Color(0xFF0D1282)),
+                      _statDivider(),
+                      _stat('12', 'Teachers', const Color(0xFFF5D90A)),
+                      _statDivider(),
+                      _stat('8', 'Batches', const Color(0xFF4C6EF5)),
+                      _statDivider(),
+                      _stat('₹12L', 'Revenue', const Color(0xFF16A34A)),
+                    ] : [
+                      _stat('88%', 'Attendance', const Color(0xFF0D1282)),
+                      _statDivider(),
+                      _stat('12', 'Tests', const Color(0xFFF5D90A)),
+                      _statDivider(),
+                      _stat('#5', 'Rank', const Color(0xFF4C6EF5)),
+                      _statDivider(),
+                      _stat('15d', 'Streak', const Color(0xFFD71313)),
+                    ]),
+                  ),
+                ).animate(delay: 100.ms).fadeIn().slideY(begin: 0.05),
+
+                const SizedBox(height: 24),
+
+                // ── Personal Information ──────────────────────
+                _section('Personal Information', [
+                  _editableField(label: 'Full Name', icon: Icons.person_rounded, controller: _nameCtrl, editing: _editMode),
+                  _editableField(label: 'Phone', icon: Icons.phone_android_rounded, controller: _phoneCtrl, editing: _editMode, type: TextInputType.phone),
+                  _editableField(label: 'Email', icon: Icons.email_rounded, controller: _emailCtrl, editing: _editMode, type: TextInputType.emailAddress),
+                  _editableField(label: 'Date of Birth', icon: Icons.cake_rounded, controller: _dobCtrl, editing: _editMode),
+                  _editableField(label: 'Address', icon: Icons.home_rounded, controller: _addressCtrl, editing: _editMode),
+                ]).animate(delay: 150.ms).fadeIn().slideY(begin: 0.05),
+
+                const SizedBox(height: 20),
+
+                // ── Admin Details ─────────────────────────────
+                if (isAdmin) _section('Administrative Details', [
+                  _staticRow(Icons.business_rounded, 'Institute', 'Excellence Academy'),
+                  _staticRow(Icons.calendar_today_rounded, 'Since', 'March 2018'),
+                  _staticRow(Icons.admin_panel_settings_rounded, 'Access Level', 'Full Admin'),
+                  _staticRow(Icons.location_on_rounded, 'Branch', 'Main Campus'),
+                ]).animate(delay: 200.ms).fadeIn().slideY(begin: 0.05),
+
+                if (isAdmin) const SizedBox(height: 20),
+
+                // ── Quick Actions ────────────────────────────
+                _section('Quick Links', [
+                  _quickRow(context, Icons.people_rounded, 'Manage Students', '/admin/students'),
+                  _quickRow(context, Icons.class_rounded, 'Manage Batches', '/admin/batches'),
+                  _quickRow(context, Icons.bar_chart_rounded, 'Admin Reports', '/admin/reports'),
+                  _quickRow(context, Icons.settings_rounded, 'App Settings', '/admin/settings'),
+                ]).animate(delay: 250.ms).fadeIn().slideY(begin: 0.05),
+
+                // ── Save Button ──────────────────────────────
+                if (_editMode) ...[
+                  const SizedBox(height: 28),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: CPPressable(
+                      onTap: _saving ? null : _saveProfile,
+                      child: Container(
+                        height: 54,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0D1282),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [BoxShadow(color: const Color(0xFF0D1282).withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 6))],
+                        ),
+                        child: Center(
+                          child: _saving
+                            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                            : Row(mainAxisSize: MainAxisSize.min, children: [
+                                const Icon(Icons.check_rounded, color: Colors.white, size: 20),
+                                const SizedBox(width: 10),
+                                Text('Save Changes', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                              ]),
+                        ),
                       ),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: AppDimensions.md),
-              Text(userName, style: GoogleFonts.sora(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
-              const SizedBox(height: 4),
-              Text(roleSubtitle, style: GoogleFonts.dmSans(fontSize: 14, color: Colors.white70)),
-              const SizedBox(height: 4),
-              Text(isStudent ? 'STU-005' : isTeacher ? 'TCH-002' : isAdmin ? 'ADM-001' : 'PAR-003',
-                style: GoogleFonts.jetBrainsMono(fontSize: 12, color: Colors.white54)),
-            ]),
-          ).animate().fadeIn(duration: 500.ms),
 
-          // Stats
-          Transform.translate(
-            offset: const Offset(0, -20),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
-              child: Container(
-                padding: const EdgeInsets.all(AppDimensions.md),
-                decoration: CT.elevatedCardDecor(context),
-                child: Row(children: isStudent ? [
-                  _profileStat(context, 'Attendance', '88%', AppColors.success),
-                  _divider(context),
-                  _profileStat(context, 'Tests', '12', AppColors.primary),
-                  _divider(context),
-                  _profileStat(context, 'Rank', '#5', AppColors.accent),
-                  _divider(context),
-                  _profileStat(context, 'Streak', '15d', AppColors.error),
-                ] : isTeacher ? [
-                  _profileStat(context, 'Classes', '48', AppColors.primary),
-                  _divider(context),
-                  _profileStat(context, 'Students', '120', AppColors.success),
-                  _divider(context),
-                  _profileStat(context, 'Rating', '4.8', AppColors.moltenAmber),
-                  _divider(context),
-                  _profileStat(context, 'Exp', '8yr', AppColors.accent),
-                ] : isAdmin ? [
-                  _profileStat(context, 'Students', '450', AppColors.primary),
-                  _divider(context),
-                  _profileStat(context, 'Teachers', '12', AppColors.success),
-                  _divider(context),
-                  _profileStat(context, 'Batches', '8', AppColors.accent),
-                  _divider(context),
-                  _profileStat(context, 'Revenue', '₹12L', AppColors.moltenAmber),
-                ] : [
-                  _profileStat(context, 'Child', '1', AppColors.primary),
-                  _divider(context),
-                  _profileStat(context, 'Attend.', '88%', AppColors.success),
-                  _divider(context),
-                  _profileStat(context, 'Fees', 'Paid', AppColors.accent),
-                  _divider(context),
-                  _profileStat(context, 'Reports', '4', AppColors.moltenAmber),
-                ]),
-              ),
-            ),
-          ).animate(delay: 200.ms).fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _sectionTitle(context, 'Personal Information'),
-              _infoCard(context, [
-                _infoRow(context, Icons.phone_outlined, 'Phone', '+91 98765 43210'),
-                _infoRow(context, Icons.email_outlined, 'Email', 'test@Excellence Academy.app'),
-                _infoRow(context, Icons.cake_outlined, 'DOB', '15 Aug 1990'),
-                if (isStudent) _infoRow(context, Icons.family_restroom_outlined, 'Parent', 'Mr. Singh'),
-                if (isTeacher) _infoRow(context, Icons.school_outlined, 'Subject', 'Physics'),
-                if (isParent) _infoRow(context, Icons.child_care_outlined, 'Child', 'Priya Singh'),
-                _infoRow(context, Icons.home_outlined, 'Address', 'Sector 21, Noida, UP'),
-              ]),
-              const SizedBox(height: AppDimensions.lg),
-
-              _sectionTitle(context, isStudent ? 'Academic Details' : isTeacher ? 'Professional Details' : isAdmin ? 'Administrative Details' : 'Child\'s Details'),
-              _infoCard(context, isStudent ? [
-                _infoRow(context, Icons.class_outlined, 'Batch', 'JEE Batch A'),
-                _infoRow(context, Icons.calendar_today_outlined, 'Joined', 'August 2025'),
-                _infoRow(context, Icons.school_outlined, 'Class', '12th Science'),
-                _infoRow(context, Icons.emoji_events_outlined, 'Target', 'JEE Advanced 2027'),
-              ] : isTeacher ? [
-                _infoRow(context, Icons.work_outlined, 'Dept.', 'Physics'),
-                _infoRow(context, Icons.calendar_today_outlined, 'Joined', 'January 2020'),
-                _infoRow(context, Icons.class_outlined, 'Batches', 'JEE Batch A, B'),
-                _infoRow(context, Icons.star_outlined, 'Qual.', 'M.Sc Physics, B.Ed'),
-              ] : isAdmin ? [
-                _infoRow(context, Icons.business_outlined, 'Institute', 'Excellence Academy'),
-                _infoRow(context, Icons.calendar_today_outlined, 'Since', 'March 2018'),
-                _infoRow(context, Icons.admin_panel_settings_outlined, 'Access', 'Full Admin'),
-                _infoRow(context, Icons.location_on_outlined, 'Branch', 'Main Campus'),
-              ] : [
-                _infoRow(context, Icons.child_care_outlined, 'Student', 'Priya Singh'),
-                _infoRow(context, Icons.class_outlined, 'Batch', 'JEE Batch A'),
-                _infoRow(context, Icons.school_outlined, 'Class', '12th Science'),
-                _infoRow(context, Icons.calendar_today_outlined, 'Enrolled', 'August 2025'),
-              ]),
-              const SizedBox(height: AppDimensions.lg),
-
-              _sectionTitle(context, 'Quick links'),
-              Row(children: isStudent ? [
-                _quickLink(context, Icons.assessment_outlined, 'Results', AppColors.primary, '/student/results'),
-                const SizedBox(width: AppDimensions.sm),
-                _quickLink(context, Icons.receipt_long_outlined, 'Fee History', AppColors.success, '/student/fee-history'),
-                const SizedBox(width: AppDimensions.sm),
-                _quickLink(context, Icons.fact_check_outlined, 'Attendance', AppColors.accent, '/student/performance'),
-                const SizedBox(width: AppDimensions.sm),
-                _quickLink(context, Icons.settings_outlined, 'Settings', AppColors.info, '/student/settings'),
-              ] : isTeacher ? [
-                _quickLink(context, Icons.people_outlined, 'Students', AppColors.primary, '/teacher/doubts'),
-                const SizedBox(width: AppDimensions.sm),
-                _quickLink(context, Icons.quiz_outlined, 'Quizzes', AppColors.success, '/teacher/quiz-results'),
-                const SizedBox(width: AppDimensions.sm),
-                _quickLink(context, Icons.upload_outlined, 'Materials', AppColors.accent, '/teacher/upload-material'),
-                const SizedBox(width: AppDimensions.sm),
-                _quickLink(context, Icons.settings_outlined, 'Settings', AppColors.info, '/teacher/settings'),
-              ] : isAdmin ? [
-                _quickLink(context, Icons.people_outlined, 'Students', AppColors.primary, '/admin/students'),
-                const SizedBox(width: AppDimensions.sm),
-                _quickLink(context, Icons.class_outlined, 'Batches', AppColors.success, '/admin/batches'),
-                const SizedBox(width: AppDimensions.sm),
-                _quickLink(context, Icons.assessment_outlined, 'Reports', AppColors.accent, '/admin/reports'),
-                const SizedBox(width: AppDimensions.sm),
-                _quickLink(context, Icons.settings_outlined, 'Settings', AppColors.info, '/admin/settings'),
-              ] : [
-                _quickLink(context, Icons.assessment_outlined, 'Reports', AppColors.primary, '/parent'),
-                const SizedBox(width: AppDimensions.sm),
-                _quickLink(context, Icons.receipt_long_outlined, 'Fees', AppColors.success, '/parent/fee-payment'),
-                const SizedBox(width: AppDimensions.sm),
-                _quickLink(context, Icons.chat_outlined, 'Chat', AppColors.accent, '/parent/chat-list'),
-                const SizedBox(width: AppDimensions.sm),
-                _quickLink(context, Icons.settings_outlined, 'Settings', AppColors.info, '/parent/settings'),
-              ]),
-
-              const SizedBox(height: 40),
-            ]),
+                const SizedBox(height: 40),
+              ])),
+            ],
           ),
-        ]),
-      ),
+        );
+      },
     );
   }
 
-  Widget _profileStat(BuildContext context, String label, String value, Color color) => Expanded(
+  // ── Helpers ─────────────────────────────────────────────────
+
+  Widget _stat(String value, String label, Color color) => Expanded(
     child: Column(children: [
-      Text(value, style: GoogleFonts.sora(fontSize: 20, fontWeight: FontWeight.w700, color: color)),
+      Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 19, fontWeight: FontWeight.w800, color: color)),
       const SizedBox(height: 2),
-      Text(label, style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: CT.textS(context))),
+      Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF8F97B8), fontWeight: FontWeight.w500)),
     ]),
   );
 
-  Widget _divider(BuildContext context) => Container(width: 1, height: 36, color: CT.border(context));
+  Widget _statDivider() => Container(width: 1, height: 32, color: const Color(0xFFE3E4EE));
 
-  Widget _sectionTitle(BuildContext context, String t) => Padding(
-    padding: const EdgeInsets.only(bottom: AppDimensions.step),
-    child: Text(t, style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
-  );
-
-  Widget _infoCard(BuildContext context, List<Widget> children) => Container(
-    padding: const EdgeInsets.all(AppDimensions.md),
-    decoration: CT.cardDecor(context),
-    child: Column(children: children.map((c) => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: c)).toList()),
-  );
-
-  Widget _infoRow(BuildContext context, IconData icon, String label, String value) => Row(children: [
-    Icon(icon, size: 18, color: CT.textM(context)),
-    const SizedBox(width: AppDimensions.step),
-    SizedBox(width: 70, child: Text(label, style: GoogleFonts.dmSans(fontSize: 13, color: CT.textM(context)))),
-    Expanded(child: Text(value, style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context)))),
-  ]);
-
-  Widget _quickLink(BuildContext context, IconData icon, String label, Color color, String route) => Expanded(
-    child: CPPressable(
-      onTap: () => context.go(route),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppDimensions.md),
+  Widget _section(String title, List<Widget> children) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E))),
+      const SizedBox(height: 12),
+      Container(
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 3))],
         ),
-        child: Column(children: [
-          Icon(icon, size: 24, color: color),
-          const SizedBox(height: 6),
-          Text(label, style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
-        ]),
+        child: Column(children: children),
       ),
+    ]),
+  );
+
+  Widget _editableField({
+    required String label,
+    required IconData icon,
+    required TextEditingController controller,
+    required bool editing,
+    TextInputType? type,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(children: [
+        Icon(icon, size: 20, color: const Color(0xFF8F97B8)),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF8F97B8), fontWeight: FontWeight.w600)),
+          const SizedBox(height: 2),
+          editing
+            ? TextField(
+                controller: controller,
+                keyboardType: type,
+                onChanged: (_) => setState(() {}),
+                style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E)),
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                  border: UnderlineInputBorder(borderSide: BorderSide(color: const Color(0xFF0D1282).withValues(alpha: 0.4))),
+                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF0D1282), width: 1.5)),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: const Color(0xFF0D1282).withValues(alpha: 0.25))),
+                ),
+              )
+            : Text(
+                controller.text.isEmpty ? '—' : controller.text,
+                style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E)),
+              ),
+        ])),
+      ]),
+    );
+  }
+
+  Widget _staticRow(IconData icon, String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    child: Row(children: [
+      Icon(icon, size: 20, color: const Color(0xFF8F97B8)),
+      const SizedBox(width: 14),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF8F97B8), fontWeight: FontWeight.w600)),
+        const SizedBox(height: 2),
+        Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E))),
+      ])),
+    ]),
+  );
+
+  Widget _quickRow(BuildContext context, IconData icon, String label, String route) => CPPressable(
+    onTap: () { context.pop(); context.go(route); },
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(children: [
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(color: const Color(0xFF0D1282).withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, size: 18, color: const Color(0xFF0D1282)),
+        ),
+        const SizedBox(width: 14),
+        Expanded(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E)))),
+        const Icon(Icons.chevron_right_rounded, color: Color(0xFF8F97B8), size: 20),
+      ]),
     ),
   );
 }

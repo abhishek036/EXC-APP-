@@ -54,7 +54,10 @@ import '../../features/video_lectures/presentation/pages/video_lectures_page.dar
 import '../../features/whatsapp/presentation/pages/whatsapp_broadcast_page.dart';
 import '../../features/shared/presentation/pages/notification_settings_page.dart';
 import '../../features/shared/presentation/pages/language_selection_page.dart';
+import '../../features/admin/presentation/pages/audit_logs_page.dart';
 import '../../features/admin/presentation/pages/data_export_page.dart';
+import '../../features/admin/presentation/pages/bulk_result_entry_page.dart';
+import '../../features/student/presentation/pages/my_doubts_history_page.dart';
 import '../../features/admin/presentation/pages/automated_notifications_page.dart';
 import '../../features/admin/presentation/pages/teacher_list_page.dart';
 import '../../features/admin/presentation/pages/add_teacher_page.dart';
@@ -71,6 +74,10 @@ import '../../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../../features/teacher/presentation/pages/teacher_dashboard_page.dart';
 import '../../features/student/presentation/pages/student_dashboard_page.dart';
 import '../../features/parent/presentation/pages/parent_dashboard_page.dart';
+import '../../features/admin/presentation/pages/edit_student_page.dart';
+import '../../features/admin/presentation/pages/edit_teacher_page.dart';
+import '../../features/admin/presentation/pages/batch_detail_page.dart';
+import '../../features/teacher/presentation/pages/teacher_batches_page.dart';
 import '../widgets/cp_bottom_nav.dart';
 import '../widgets/cp_role_shell.dart';
 
@@ -298,7 +305,9 @@ class AppRouter {
                   pageBuilder: (c, s) => _page(s, const AdminDashboardPage()),
                   routes: [
                     GoRoute(path: 'attendance', name: 'admin-attendance', pageBuilder: (c, s) => _page(s, const AttendanceOverviewPage())),
-                    GoRoute(path: 'exams', name: 'admin-exams', pageBuilder: (c, s) => _page(s, const ExamManagementPage())),
+                    GoRoute(path: 'exams', name: 'admin-exams', pageBuilder: (c, s) => _page(s, const ExamManagementPage()), routes: [
+                      GoRoute(path: 'bulk-results', name: 'admin-bulk-results', pageBuilder: (c, s) => _page(s, BulkResultEntryPage(exam: s.extra as Map<String, dynamic>))),
+                    ]),
                     GoRoute(path: 'reports', name: 'admin-reports', pageBuilder: (c, s) => _page(s, const AdminReportsPage())),
                     GoRoute(path: 'add-student', name: 'admin-add-student', pageBuilder: (c, s) => _page(s, const AddStudentPage())),
                     GoRoute(path: 'student-import', name: 'admin-student-import', pageBuilder: (c, s) => _page(s, const StudentImportPage())),
@@ -318,6 +327,7 @@ class AppRouter {
                     GoRoute(path: 'language', name: 'admin-language', pageBuilder: (c, s) => _page(s, const LanguageSelectionPage())),
                     GoRoute(path: 'teachers', name: 'admin-teachers', pageBuilder: (c, s) => _page(s, const TeacherListPage()), routes: [
                       GoRoute(path: 'add', name: 'admin-add-teacher', pageBuilder: (c, s) => _page(s, const AddTeacherPage())),
+                      GoRoute(path: ':id/edit', name: 'admin-edit-teacher', pageBuilder: (c, s) => _page(s, EditTeacherPage(teacherId: s.pathParameters['id'] ?? ''))),
                     ]),
                     GoRoute(path: 'leads', name: 'admin-leads', pageBuilder: (c, s) => _page(s, const LeadsPage())),
                     GoRoute(path: 'timetable', name: 'admin-timetable', pageBuilder: (c, s) => _page(s, const TimetableManagementPage())),
@@ -325,6 +335,7 @@ class AppRouter {
                     GoRoute(path: 'staff', name: 'admin-staff', pageBuilder: (c, s) => _page(s, const StaffManagementPage())),
                     GoRoute(path: 'certificates', name: 'admin-certificates', pageBuilder: (c, s) => _page(s, const CertificateGeneratorPage())),
                     GoRoute(path: 'users', name: 'admin-users', pageBuilder: (c, s) => _page(s, const UserManagementPage())),
+                    GoRoute(path: 'audit-logs', name: 'admin-audit-logs', pageBuilder: (c, s) => _page(s, const AuditLogsPage())),
                   ],
                 ),
               ]),
@@ -336,6 +347,7 @@ class AppRouter {
                   pageBuilder: (c, s) => _page(s, const StudentListPage()),
                   routes: [
                     GoRoute(path: ':id', name: 'student-profile', pageBuilder: (c, s) => _page(s, StudentProfilePage(studentId: s.pathParameters['id'] ?? ''))),
+                    GoRoute(path: ':id/edit', name: 'admin-edit-student', pageBuilder: (c, s) => _page(s, EditStudentPage(studentId: s.pathParameters['id'] ?? ''))),
                   ],
                 ),
               ]),
@@ -345,7 +357,14 @@ class AppRouter {
               ]),
               // Branch 3 — Batches
               StatefulShellBranch(navigatorKey: _adm3, routes: [
-                GoRoute(path: '/admin/batches', name: 'batch-management', pageBuilder: (c, s) => _page(s, const BatchManagementPage())),
+                GoRoute(
+                  path: '/admin/batches', 
+                  name: 'batch-management', 
+                  pageBuilder: (c, s) => _page(s, const BatchManagementPage()),
+                  routes: [
+                    GoRoute(path: ':id', name: 'admin-batch-detail', pageBuilder: (c, s) => _page(s, BatchDetailPage(batchId: s.pathParameters['id'] ?? ''))),
+                  ],
+                ),
               ]),
               // Branch 4 — More / Settings
               StatefulShellBranch(navigatorKey: _adm4, routes: [
@@ -395,6 +414,15 @@ class AppRouter {
                     GoRoute(path: 'video-lectures', name: 'teacher-video-lectures', pageBuilder: (c, s) => _page(s, const VideoLecturesPage())),
                     GoRoute(path: 'notification-settings', name: 'teacher-notification-settings', pageBuilder: (c, s) => _page(s, const NotificationSettingsPage())),
                     GoRoute(path: 'language', name: 'teacher-language', pageBuilder: (c, s) => _page(s, const LanguageSelectionPage())),
+                    GoRoute(
+                      path: 'batches',
+                      name: 'teacher-batches',
+                      pageBuilder: (c, s) => _page(s, const TeacherBatchesPage()),
+                      routes: [
+                        // Reuse admin's batch detail page for now, or just send to attendance if that's all they need
+                        GoRoute(path: ':id', name: 'teacher-batch-detail', pageBuilder: (c, s) => _page(s, BatchDetailPage(batchId: s.pathParameters['id'] ?? ''))),
+                      ],
+                    ),
                   ],
                 ),
               ]),
@@ -454,7 +482,9 @@ class AppRouter {
                     GoRoute(path: 'timetable', name: 'student-timetable', pageBuilder: (c, s) => _page(s, const TimetablePage())),
                     GoRoute(path: 'fee-history', name: 'student-fee-history', pageBuilder: (c, s) => _page(s, const FeeHistoryPage())),
                     GoRoute(path: 'exam-calendar', name: 'student-exam-calendar', pageBuilder: (c, s) => _page(s, const ExamCalendarPage())),
-                    GoRoute(path: 'ask-doubt', name: 'ask-doubt', pageBuilder: (c, s) => _page(s, const AskDoubtPage())),
+                    GoRoute(path: 'doubts', name: 'doubts-history', pageBuilder: (c, s) => _page(s, const MyDoubtsHistoryPage()), routes: [
+                      GoRoute(path: 'ask', name: 'ask-doubt', pageBuilder: (c, s) => _page(s, const AskDoubtPage())),
+                    ]),
                     GoRoute(path: 'assignment-submit', name: 'assignment-submit', pageBuilder: (c, s) => _page(s, const AssignmentSubmissionPage())),
                     GoRoute(path: 'assignment', name: 'student-assignment', pageBuilder: (c, s) => _page(s, const AssignmentSubmissionPage())),
                     GoRoute(path: 'notifications', name: 'student-notifications', pageBuilder: (c, s) => _page(s, const NotificationsPage())),

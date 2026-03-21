@@ -74,7 +74,7 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
   @override
   void dispose() { _tabCtrl.dispose(); super.dispose(); }
 
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
+  // Removed _glow method
 
   @override
   Widget build(BuildContext context) {
@@ -91,10 +91,6 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       body: Stack(
         children: [
-          if (isDark) ...[
-            Positioned(top: -100, left: -50, child: _glow(400, AppColors.electricBlue.withValues(alpha: 0.15))),
-            Positioned(bottom: -50, right: -50, child: _glow(400, AppColors.elitePrimary.withValues(alpha: 0.1))),
-          ],
           SafeArea(
             child: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) => [
@@ -112,17 +108,17 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       child: Container(
-                        height: 44, padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05))),
+                        height: 48, padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))]),
                         child: TabBar(
                           controller: _tabCtrl,
                           dividerColor: Colors.transparent,
                           indicatorSize: TabBarIndicatorSize.tab,
-                          indicator: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))]),
+                          indicator: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 2)),
                           labelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.2),
                           unselectedLabelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
-                          labelColor: isDark ? Colors.white : AppColors.deepNavy,
-                          unselectedLabelColor: isDark ? Colors.white38 : Colors.black38,
+                          labelColor: const Color(0xFF0D1282),
+                          unselectedLabelColor: const Color(0xFF0D1282).withValues(alpha: 0.5),
                           tabs: const [Tab(text: 'OVERVIEW'), Tab(text: 'FINANCIAL'), Tab(text: 'ACADEMIC')],
                         ),
                       ),
@@ -198,9 +194,9 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
   Widget _buildRevenueCard(bool isDark) => Container(
     padding: const EdgeInsets.all(28),
     decoration: BoxDecoration(
-      gradient: AppColors.premiumEliteGradient,
-      borderRadius: BorderRadius.circular(32),
-      boxShadow: [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))],
+      color: const Color(0xFF0D1282),
+      border: Border.all(color: const Color(0xFF0D1282), width: 3),
+      boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4))],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,11 +213,11 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             margin: const EdgeInsets.only(bottom: 6),
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.mintGreen, shape: BoxShape.circle)),
+              Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF0D1282), shape: BoxShape.circle)),
               const SizedBox(width: 4),
-              Text('LIVE', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
+              Text('LIVE', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 1)),
             ]),
           ),
         ]),
@@ -266,7 +262,6 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
       isDark: isDark,
       padding: const EdgeInsets.all(16),
       borderRadius: 24,
-      border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05)),
       child: Column(children: [
         Container(
           width: 40, height: 40,
@@ -284,7 +279,6 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
 
   Widget _buildMonthlyRevenue(bool isDark) => CPGlassCard(
     isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 32,
-    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -321,8 +315,8 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
                 BarChartGroupData(x: e.key, barRods: [
                   BarChartRodData(
                     toY: e.value.toDouble(), width: 14,
-                    borderRadius: BorderRadius.circular(4),
-                    gradient: const LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [AppColors.electricBlue, AppColors.neonIndigo]),
+                    borderRadius: BorderRadius.zero,
+                    color: const Color(0xFF0D1282),
                   ),
                 ]),
               ).toList(),
@@ -335,7 +329,6 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
 
   Widget _buildBatchPerformance(bool isDark) => CPGlassCard(
     isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 32,
-    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -388,9 +381,9 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
+      color: const Color(0xFFEEEDED),
+      border: Border.all(color: const Color(0xFF0D1282), width: 2),
+      boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))],
     ),
     child: Row(children: [
       Container(
@@ -407,7 +400,6 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
   // ── ENROLLMENT TREND ──
   Widget _buildEnrollmentTrend(bool isDark) => CPGlassCard(
     isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 32,
-    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Text('Enrollment Trajectory', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
@@ -441,11 +433,10 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
           lineBarsData: [
             LineChartBarData(
               spots: [FlSpot(0, 10), FlSpot(1, 15), FlSpot(2, 25), FlSpot(3, 40), FlSpot(4, 60), FlSpot(5, _studentCount.toDouble())],
-              isCurved: true, color: AppColors.electricBlue, barWidth: 3,
+              isCurved: false, color: const Color(0xFF0D1282), barWidth: 4,
               dotData: FlDotData(show: true, getDotPainter: (s, d, bar, i) =>
-                FlDotCirclePainter(radius: 4, color: isDark ? AppColors.eliteDarkBg : Colors.white, strokeWidth: 2, strokeColor: AppColors.electricBlue)),
-              belowBarData: BarAreaData(show: true,
-                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [AppColors.electricBlue.withValues(alpha: 0.3), AppColors.electricBlue.withValues(alpha: 0.0)])),
+                FlDotCirclePainter(radius: 4, color: const Color(0xFFEEEDED), strokeWidth: 2, strokeColor: const Color(0xFF0D1282))),
+              belowBarData: BarAreaData(show: false),
             ),
           ],
         )),
@@ -456,7 +447,6 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
   // ── ATTENDANCE TREND ──
   Widget _buildAttendanceTrend(bool isDark) => CPGlassCard(
     isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 32,
-    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Weekly Attendance Pulse', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
       const SizedBox(height: 24),
@@ -488,7 +478,6 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
   // ── FEE BREAKDOWN PIE ──
   Widget _buildFeeBreakdown(bool isDark) => CPGlassCard(
     isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 32,
-    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Revenue Distribution (Mock)', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
       const SizedBox(height: 32),
@@ -536,7 +525,6 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
   // ── COLLECTION RATE ──
   Widget _buildCollectionRate(bool isDark) => CPGlassCard(
     isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 32,
-    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Collection Velocity', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
       const SizedBox(height: 24),
@@ -585,7 +573,6 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
 
     return CPGlassCard(
       isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 32,
-      border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Text('Critical Pending Accounts', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
@@ -639,7 +626,6 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
   // ── SUBJECT ANALYSIS ──
   Widget _buildSubjectAnalysis(bool isDark) => CPGlassCard(
     isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 32,
-    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Subject Mastery Indices', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
       const SizedBox(height: 32),
@@ -683,7 +669,6 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
   // ── TEACHER WORKLOAD ──
   Widget _buildTeacherWorkload(bool isDark) => CPGlassCard(
     isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 32,
-    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Educator Workload Overview', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
       const SizedBox(height: 24),
@@ -718,7 +703,6 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
     final exams = _upcomingExams;
     return CPGlassCard(
       isDark: isDark, padding: const EdgeInsets.all(28), borderRadius: 32,
-      border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Assessment Logistics', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
         const SizedBox(height: 24),

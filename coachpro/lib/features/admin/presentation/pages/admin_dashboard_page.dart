@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
@@ -13,6 +14,9 @@ import '../../../../core/widgets/cp_glass_card.dart';
 import '../../../../features/shared/presentation/widgets/global_search_overlay.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../data/repositories/admin_repository.dart';
+import '../../../../core/services/secure_storage_service.dart';
+import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -23,6 +27,7 @@ class AdminDashboardPage extends StatefulWidget {
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   final _adminRepo = sl<AdminRepository>();
+  final _scaffoldKey = GlobalKey<ScaffoldState>(); // ← Fix for hamburger
   bool _loading = true;
   String _error = '';
   final int _unreadNotifications = 0;
@@ -36,6 +41,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   List<Map<String, dynamic>> _todaysClasses = const [];
   List<Map<String, dynamic>> _recentPayments = const [];
   List<Map<String, dynamic>> _absentToday = const [];
+  List<Map<String, dynamic>> _auditLogs = [];
+  List<double> _revenueTrend = [];
 
   String get _greeting {
     final h = DateTime.now().hour;
@@ -64,6 +71,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       final teachers = await _adminRepo.getTeachers();
       final batches = await _adminRepo.getBatches();
       final feeRecords = await _adminRepo.getFeeRecords();
+      final auditLogs = await _adminRepo.getAuditLogs(limit: 5).catchError((_) => <Map<String, dynamic>>[]);
 
       final activeStudents = students.where((s) {
         final status = (s['status'] ?? s['is_active'])?.toString().toLowerCase();
@@ -109,11 +117,33 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       final todayCls = _buildTodayClasses(batches);
       final absentToday = await _buildAbsentTodayList(batches);
 
+      // Calculate revenue trend (monthly)
+      final monthly = <int, double>{};
+      final now = DateTime.now();
+      for (final r in feeRecords) {
+        final pays = (r['payments'] as List?) ?? const [];
+        for (final p in pays) {
+          if (p is Map) {
+            final date = _parseDateTime(p['created_at'] ?? p['paid_at']);
+            if (date != null && date.year == now.year) {
+              monthly[date.month] = (monthly[date.month] ?? 0) + _toDouble(p['amount_paid']);
+            }
+          }
+        }
+      }
+      final trend = List.generate(6, (i) {
+        final targetMonth = now.month - (5 - i);
+        final m = targetMonth < 1 ? targetMonth + 12 : targetMonth;
+        return monthly[m] ?? 0.0;
+      });
+
       if (!mounted) return;
       setState(() {
         _stats = {'students': activeStudents, 'teachers': teachers.length, 'batches': activeBatches, 'revenue': col, 'pending': pen};
         _overdueCount = overC; _totalOverdue = overA;
         _todaysClasses = todayCls; _recentPayments = paymentRows.take(5).toList(); _absentToday = absentToday;
+        _auditLogs = auditLogs;
+        _revenueTrend = trend;
         _loading = false;
       });
     } catch (e) {
@@ -166,14 +196,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
     return Scaffold(
+      key: _scaffoldKey, // ← Required for openDrawer to work
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
+      drawer: _buildHamburgerMenu(context, isDark),
       body: Stack(
         children: [
-          if (isDark) ...[
-            Positioned(top: -100, right: -50, child: _glow(300, AppColors.elitePrimary.withValues(alpha: 0.1))),
-            Positioned(bottom: 200, left: -100, child: _glow(400, AppColors.elitePurple.withValues(alpha: 0.05))),
-            Positioned(top: 400, right: -150, child: _glow(250, AppColors.coralRed.withValues(alpha: 0.03))),
-          ],
           SafeArea(
             child: RefreshIndicator(
               color: AppColors.elitePrimary,
@@ -187,9 +214,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   children: [
                     const SizedBox(height: 16),
                     _buildAppBar(context, isDark),
-                    if (_error.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Center(child: Text(_error, style: GoogleFonts.inter(color: AppColors.error, fontSize: 11, fontWeight: FontWeight.w700)))),
+                    if (_error.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Center(child: Text(_error, style: GoogleFonts.plusJakartaSans(color: AppColors.error, fontSize: 11, fontWeight: FontWeight.w700)))),
                     const SizedBox(height: 32),
                     _buildSummaryStats(isDark),
+                    const SizedBox(height: 32),
+                    _buildRevenueChart(isDark),
                     const SizedBox(height: 32),
                     _buildQuickActions(isDark),
                     const SizedBox(height: 48),
@@ -207,7 +236,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     const SizedBox(height: 16),
                     _buildRecentPayments(isDark),
                     const SizedBox(height: 40),
-                    _buildSectionHeader("Activity Timeline", () {}, isDark),
+                    _buildSectionHeader("Activity Timeline", () => context.go('/admin/audit-logs'), isDark),
                     const SizedBox(height: 16),
                     _buildActivityTimeline(isDark),
                     const SizedBox(height: 48),
@@ -223,23 +252,125 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
+  Widget _buildHamburgerMenu(BuildContext context, bool isDark) {
+    final authState = context.read<AuthBloc>().state;
+    final userName = authState is AuthAuthenticated ? authState.user.name : 'Admin';
+    final initials = userName.isNotEmpty ? userName.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase() : 'EA';
+    return Drawer(
+      backgroundColor: isDark ? AppColors.eliteDarkBg : Colors.white,
+      child: SafeArea(
+        child: Column(
+          children: [
+            CPPressable(
+              onTap: () { Navigator.pop(context); context.go('/admin/profile'); },
+              child: Container(
+                color: Colors.transparent,
+                padding: const EdgeInsets.all(24.0),
+                child: Row(
+                  children: [
+                     Container(
+                       width: 54, height: 54,
+                       decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF0D1282)),
+                       child: Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18))),
+                     ),
+                     const SizedBox(width: 14),
+                     Expanded(
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           Text(userName, style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w800, color: const Color(0xFF0A0C1E))),
+                           Row(children: [
+                             Text('Tap to edit profile', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF8F97B8))),
+                             const SizedBox(width: 4),
+                             const Icon(Icons.edit_rounded, size: 12, color: Color(0xFF8F97B8)),
+                           ]),
+                         ],
+                       ),
+                     ),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(color: Color(0xFFE3E4EE), height: 1),
+            _drawerItem(Icons.sync_rounded, 'Global Syncing', () {
+               HapticFeedback.lightImpact(); 
+               Navigator.pop(context);
+               ScaffoldMessenger.of(context).showSnackBar(
+                 SnackBar(
+                   content: Text('Syncing all data...', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: Colors.white)),
+                   backgroundColor: const Color(0xFF0D1282),
+                   behavior: SnackBarBehavior.floating,
+                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                   duration: const Duration(seconds: 2),
+                 ),
+               );
+            }),
+            _drawerItem(Icons.settings_rounded, 'App Settings', () { Navigator.pop(context); context.go('/admin/settings'); }),
+            _drawerItem(Icons.headset_mic_rounded, 'Support & Help', () { Navigator.pop(context); context.go('/admin/support'); }),
+            _drawerItem(Icons.bolt_rounded, 'Quick Shortcuts', () { Navigator.pop(context); context.go('/admin/shortcuts'); }),
+            const Spacer(),
+            const Divider(color: Color(0xFFE3E4EE), height: 1),
+            _drawerItem(Icons.logout_rounded, 'Sign Out', () async {
+               Navigator.pop(context);
+               final storage = sl<SecureStorageService>();
+               await storage.clearAll();
+               if (context.mounted) context.go('/login');
+            }, isDestructive: true),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _drawerItem(IconData icon, String label, VoidCallback onTap, {bool isDestructive = false}) {
+    final color = isDestructive ? const Color(0xFFD71313) : const Color(0xFF0A0C1E);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(width: 16),
+            Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Removed _glow method as it is not used in Neo-Brutalism
+
 
   Widget _buildAppBar(BuildContext context, bool isDark) {
     return Row(
       children: [
-        Container(
-          width: 48, height: 48,
-          decoration: BoxDecoration(shape: BoxShape.circle, gradient: AppColors.premiumEliteGradient),
-          child: Container(decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2), image: const DecorationImage(image: NetworkImage('https://i.pravatar.cc/150?img=12'), fit: BoxFit.cover))),
+        CPPressable(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _scaffoldKey.currentState?.openDrawer(); // ← Fixed: use GlobalKey
+          },
+          child: const Padding(
+            padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
+            child: Icon(Icons.menu_rounded, color: Color(0xFF0A0C1E), size: 28),
+          ),
         ),
-        const SizedBox(width: 14),
+        CPPressable(
+          onTap: () => context.go('/admin/profile'),
+          child: Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF0D1282), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))]),
+            child: const Center(child: Text('EA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
+          ),
+        ),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('$_greeting, 👋', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black38)),
-              Text('Elite Admin', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.8)),
+              Text('$_greeting, 👋', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black38)),
+              Text('Elite Admin', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
             ],
           ),
         ),
@@ -253,21 +384,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Widget _appBarAction(IconData icon, VoidCallback onTap, bool isDark, {bool badge = false}) {
     return CPPressable(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(16), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.03))),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(icon, size: 21, color: isDark ? Colors.white : AppColors.deepNavy),
-                if (badge) Positioned(top: 10, right: 10, child: Container(width: 8, height: 8, decoration: BoxDecoration(color: AppColors.elitePrimary, shape: BoxShape.circle, border: Border.all(color: isDark ? AppColors.eliteDarkBg : Colors.white, width: 2)))),
-              ],
-            ),
-          ),
+      child: Container(
+        width: 44, height: 44,
+        decoration: const BoxDecoration(color: Color(0xFFF4F5FA), shape: BoxShape.circle),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(icon, size: 21, color: const Color(0xFF0A0C1E)),
+            if (badge) Positioned(top: 8, right: 8, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFD71313), shape: BoxShape.circle))),
+          ],
         ),
       ),
     );
@@ -277,123 +402,288 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     if (_loading) {
       return SizedBox(height: 120, child: ListView.separated(scrollDirection: Axis.horizontal, itemCount: 3, separatorBuilder: (_, _) => const SizedBox(width: 12), itemBuilder: (_, _) => CPShimmer(width: 160, height: 120, borderRadius: 28)));
     }
-    return SizedBox(
-      height: 120,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        children: [
-          _heroStat('COLLECTED REVENUE', _formatCurrency(_toDouble(_stats['revenue'])), AppColors.premiumEliteGradient),
-          const SizedBox(width: 14),
-          _glassStat('STUDENTS', '${_stats['students']}', AppColors.mintGreen, isDark, Icons.school_rounded),
-          const SizedBox(width: 14),
-          _glassStat('TOP FACULTY', '${_stats['teachers']}', AppColors.elitePurple, isDark, Icons.psychology_rounded),
-          const SizedBox(width: 14),
-          _glassStat('PENDING DUES', _formatCurrency(_toDouble(_stats['pending'])), AppColors.coralRed, isDark, Icons.account_balance_wallet_rounded),
-          const SizedBox(width: 14),
-          _glassStat('BATCHES', '${_stats['batches']}', const Color(0xFF4C6EF5), isDark, Icons.groups_2_rounded),
-        ],
+    return ShaderMask(
+      shaderCallback: (Rect bounds) {
+        return const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Colors.white, Colors.white, Colors.transparent],
+          stops: [0.0, 0.9, 1.0],
+        ).createShader(bounds);
+      },
+      blendMode: BlendMode.dstIn,
+      child: SizedBox(
+        height: 120,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          padding: const EdgeInsets.only(right: 32),
+          children: [
+            _heroStat('COLLECTED REVENUE', _formatCurrency(_toDouble(_stats['revenue'])), AppColors.premiumEliteGradient),
+            const SizedBox(width: 14),
+            _glassStat('STUDENTS', '${_stats['students']}', AppColors.mintGreen, isDark, Icons.school_rounded),
+            const SizedBox(width: 14),
+            _glassStat('TOP FACULTY', '${_stats['teachers']}', AppColors.elitePurple, isDark, Icons.psychology_rounded),
+            const SizedBox(width: 14),
+            _glassStat('PENDING DUES', _formatCurrency(_toDouble(_stats['pending'])), AppColors.coralRed, isDark, Icons.account_balance_wallet_rounded),
+            const SizedBox(width: 14),
+            _glassStat('BATCHES', '${_stats['batches']}', const Color(0xFF4C6EF5), isDark, Icons.groups_2_rounded),
+          ],
+        ),
       ),
     ).animate().fadeIn().slideX(begin: 0.05);
   }
 
   Widget _heroStat(String label, String value, Gradient gradient) {
     return Container(
-      width: 170, padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.35), blurRadius: 25, offset: const Offset(0, 12))]),
+      width: 180, padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A0C1E), 
+        borderRadius: BorderRadius.circular(16), 
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))]
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(label, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white.withValues(alpha: 0.7), letterSpacing: 1.2)),
-          const SizedBox(height: 6),
-          Text(value, style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1.2)),
+          Row(
+             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+             children: [
+                Expanded(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFFF5D90A), letterSpacing: 0.5), overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: 8),
+                const Icon(Icons.trending_up_rounded, size: 16, color: Color(0xFFF5D90A)),
+             ],
+          ),
+          const SizedBox(height: 8),
+          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1.2)),
         ],
       ),
     );
   }
 
   Widget _glassStat(String label, String value, Color color, bool isDark, IconData icon) {
-    return SizedBox(
+    return Container(
       width: 160,
-      child: CPGlassCard(
-      isDark: isDark, padding: const EdgeInsets.all(18), borderRadius: 28,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 1)),
-              Icon(icon, size: 14, color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12)),
+              Expanded(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF8F97B8), letterSpacing: 0.5), overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 8),
+              Icon(icon, size: 18, color: color),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(value, style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w900, color: color, letterSpacing: -0.5)),
+          const SizedBox(height: 10),
+          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800, color: const Color(0xFF1A1A1A), letterSpacing: -0.5)),
         ],
-      ),
       ),
     );
   }
 
   Widget _buildQuickActions(bool isDark) {
-    final actions = [
-      {'icon': Icons.fact_check_rounded, 'label': 'Attendance', 'color': AppColors.elitePrimary, 'route': '/admin/attendance'},
-      {'icon': Icons.person_add_alt_1_rounded, 'label': 'Add Pupil', 'color': AppColors.mintGreen, 'route': '/admin/add-student'},
-      {'icon': Icons.wallet_rounded, 'label': 'Payments', 'color': AppColors.moltenAmber, 'route': '/admin/fees'},
-      {'icon': Icons.campaign_rounded, 'label': 'Announce', 'color': AppColors.elitePurple, 'route': '/admin/announcements'},
-    ];
-    return Row(
-      children: actions.map((a) => Expanded(child: _quickActionItem(a['icon'] as IconData, a['label'] as String, a['color'] as Color, a['route'] as String, isDark))).toList(),
-    ).animate().fadeIn(delay: 200.ms, duration: 600.ms);
-  }
-
-  Widget _quickActionItem(IconData icon, String label, Color color, String route, bool isDark) {
-    return CPPressable(
-      onTap: () { HapticFeedback.lightImpact(); context.go(route); },
-      child: Column(
-        children: [
-          Container(
-            width: 60, height: 60,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(22), border: Border.all(color: color.withValues(alpha: 0.2), width: 1)),
-            child: Icon(icon, size: 26, color: color),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'QUICK ACTIONS',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF8F97B8),
+            letterSpacing: 1.2,
           ),
-          const SizedBox(height: 10),
-          Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: isDark ? Colors.white60 : Colors.black87)),
-        ],
-      ),
-    );
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              flex: 62,
+              child: CPPressable(
+                onTap: () => context.go('/admin/add-student'),
+                child: Container(
+                  height: 88,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D1282),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), shape: BoxShape.circle),
+                        child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Add Student', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                            const SizedBox(height: 2),
+                            Text('Enroll new student', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w400, color: Colors.white.withValues(alpha: 0.75))),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 38,
+              child: CPPressable(
+                onTap: () => context.go('/admin/fees'),
+                child: Container(
+                  height: 88,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.currency_rupee_rounded, size: 22, color: Color(0xFF0D1282)),
+                      const Spacer(),
+                      Text('Collect Fee', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E))),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              flex: 38,
+              child: CPPressable(
+                onTap: () => context.go('/admin/attendance'),
+                child: Container(
+                  height: 88,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.fact_check_rounded, size: 22, color: Color(0xFFD71313)),
+                      const Spacer(),
+                      Text('Attendance', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E))),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 62,
+              child: CPPressable(
+                onTap: () => context.go('/admin/announcements'),
+                child: Container(
+                  height: 88,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(color: Color(0xFFF4F5FA), shape: BoxShape.circle),
+                        child: const Icon(Icons.campaign_rounded, color: Color(0xFFD97706), size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Announce', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E))),
+                            const SizedBox(height: 2),
+                            Text('Broadcast message', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w400, color: const Color(0xFF0A0C1E).withValues(alpha: 0.6))),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ).animate().fadeIn(delay: 200.ms, duration: 600.ms);
   }
 
   Widget _buildManagementHub(bool isDark) {
     final modules = [
-      {'label': 'Academic Oversight', 'icon': Icons.auto_stories_rounded, 'color': AppColors.primary, 'route': '/admin/academics', 'desc': 'Doubts & Course Materials'},
-      {'label': 'Human Capital', 'icon': Icons.badge_rounded, 'color': AppColors.mintGreen, 'route': '/admin/staff', 'desc': 'Staff & Payroll Management'},
-      {'label': 'Certificate Studio', 'icon': Icons.workspace_premium_rounded, 'color': AppColors.moltenAmber, 'route': '/admin/certificates', 'desc': 'Mint Prestige Documents'},
-      {'label': 'Security IAM', 'icon': Icons.shield_rounded, 'color': AppColors.coralRed, 'route': '/admin/users', 'desc': 'Access & Role Control'},
-      {'label': 'Opportunity Pipeline', 'icon': Icons.radar_rounded, 'color': AppColors.elitePurple, 'route': '/admin/leads', 'desc': 'Lead & Conversion Tracking'},
-      {'label': 'Global Broadcast', 'icon': Icons.sensors_rounded, 'color': AppColors.electricBlue, 'route': '/admin/announcements', 'desc': 'System-wide Notifications'},
+      {'label': 'Courses & Doubts', 'icon': Icons.auto_stories_rounded, 'color': const Color(0xFF4C6EF5), 'route': '/admin/academics', 'desc': 'Manage academic materials', 'stat': '8 active'}, // Blue
+      {'label': 'Human Capital', 'icon': Icons.badge_rounded, 'color': const Color(0xFFF5D90A), 'route': '/admin/staff', 'desc': 'Staff & Payroll Management', 'stat': '3 departments'}, // Yellow
+      {'label': 'Certificate Studio', 'icon': Icons.workspace_premium_rounded, 'color': const Color(0xFF4C6EF5), 'route': '/admin/certificates', 'desc': 'Mint Prestige Documents', 'stat': '110 minted'}, // Blue
+      {'label': 'Security IAM', 'icon': Icons.shield_rounded, 'color': const Color(0xFFD71313), 'route': '/admin/users', 'desc': 'Access & Role Control', 'stat': '2 layers'}, // Red
+      {'label': 'Opportunity Pipeline', 'icon': Icons.radar_rounded, 'color': const Color(0xFF8A2BE2), 'route': '/admin/leads', 'desc': 'Lead & Conversion Tracking', 'stat': '23 open'}, // Purple
+      {'label': 'Global Broadcast', 'icon': Icons.sensors_rounded, 'color': const Color(0xFF4C6EF5), 'route': '/admin/announcements', 'desc': 'System-wide Notifications', 'stat': '4 past'}, // Blue
     ];
 
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 1.1),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 1.05),
       itemCount: modules.length,
       itemBuilder: (ctx, i) {
         final m = modules[i];
+        final col = m['color'] as Color;
         return CPPressable(
           onTap: () => context.go(m['route'] as String),
-          child: CPGlassCard(
-            isDark: isDark, padding: const EdgeInsets.all(16), borderRadius: 24,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: (m['color'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)), child: Icon(m['icon'] as IconData, color: m['color'] as Color, size: 20)),
-                const Spacer(),
-                Text(m['label'] as String, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.4)),
-                const SizedBox(height: 4),
-                Text(m['desc'] as String, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w600, color: isDark ? Colors.white24 : Colors.black26), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Row(
+                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                   children: [
+                      Container(
+                         width: 40, height: 40,
+                         decoration: BoxDecoration(color: col.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), 
+                         child: Icon(m['icon'] as IconData, color: col, size: 20)
+                      ),
+                      const Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFF8F97B8)),
+                   ]
+                ),
+                const SizedBox(height: 16),
+                Text(m['label'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E))),
+                const SizedBox(height: 6),
+                Text(m['desc'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF6B7280)), maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 12),
+                Text(m['stat'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w800, color: col)),
               ],
             ),
           ),
@@ -403,48 +693,67 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildActivityTimeline(bool isDark) {
-    final activities = [
-      {'title': 'New Admission Form', 'time': '2 mins ago', 'user': 'Priya Singh', 'type': 'admission'},
-      {'title': 'Fee Payment Received', 'time': '15 mins ago', 'user': 'Rahul Verma', 'type': 'fee'},
-      {'title': 'Attendance Synced', 'time': '1 hour ago', 'user': 'System', 'type': 'academic'},
-    ];
+    if (_loading) return Column(children: List.generate(2, (_) => const Padding(padding: EdgeInsets.only(bottom: 12), child: CPShimmer(width: double.infinity, height: 100, borderRadius: 24))));
+    if (_auditLogs.isEmpty) return _emptyCard("No recent activities recorded", isDark);
 
     return Column(
-      children: activities.map((a) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: IntrinsicHeight(
-          child: Row(
-            children: [
-              Column(
-                children: [
-                  Container(width: 12, height: 12, decoration: BoxDecoration(color: AppColors.primary, shape: BoxShape.circle, border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 3))),
-                  Expanded(child: Container(width: 2, color: AppColors.primary.withValues(alpha: 0.1))),
-                ],
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(a['title'] as String, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy)),
-                          Text(a['time'] as String, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: isDark ? Colors.white24 : Colors.black26)),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text('By ${a['user']}', style: GoogleFonts.inter(fontSize: 11, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w500)),
-                    ],
+      children: _auditLogs.map((log) {
+        final title = log['action'] ?? 'Sys Action';
+        final user = log['user']?['name'] ?? 'System';
+        final routeObj = log['target_type'];
+        final details = log['details'] is Map ? (log['details']['comment'] ?? '') : '';
+        
+        final dt = DateTime.tryParse(log['created_at']?.toString() ?? '');
+        final timeStr = dt != null ? DateFormat('MMM d, h:mm a').format(dt) : 'Mins ago';
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                Column(
+                  children: [
+                    Container(width: 14, height: 14, decoration: BoxDecoration(color: const Color(0xFFFEF08A), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFF0DE36), width: 3))),
+                    Expanded(child: Container(width: 2, color: const Color(0xFFF0DE36).withValues(alpha: 0.3))),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(title.toString().replaceAll('_', ' ').toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy)),
+                            Text(timeStr, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: isDark ? Colors.white24 : Colors.black26)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text('By $user', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w500)),
+                            if (routeObj != null) ...[
+                              const SizedBox(width: 6),
+                              Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black12, borderRadius: BorderRadius.circular(4)), child: Text(routeObj.toString(), style: GoogleFonts.plusJakartaSans(fontSize: 9, color: isDark ? Colors.white60 : Colors.black54))),
+                            ]
+                          ],
+                        ),
+                        if (details.toString().isNotEmpty) ...[
+                           const SizedBox(height: 4),
+                           Text(details.toString(), style: GoogleFonts.plusJakartaSans(fontSize: 11, color: isDark ? Colors.white54 : Colors.black87), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        ]
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      )).toList(),
+        );
+      }).toList(),
     );
   }
 
@@ -457,10 +766,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), shape: BoxShape.circle), child: const Icon(Icons.priority_high_rounded, color: AppColors.error, size: 24)),
           const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('$_overdueCount Overdue Alerts', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.error, letterSpacing: -0.2)),
-            Text('${_formatCurrency(_totalOverdue)} total overdue amount', style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600)),
+            Text('$_overdueCount Overdue Alerts', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.error, letterSpacing: -0.2)),
+            Text('${_formatCurrency(_totalOverdue)} total overdue amount', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600)),
           ])),
-          CPPressable(onTap: () => context.go('/admin/fees'), child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), decoration: BoxDecoration(gradient: LinearGradient(colors: [AppColors.error, AppColors.error.withValues(alpha: 0.8)]), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: AppColors.error.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))]), child: Text('RESOLVE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)))),
+          CPPressable(onTap: () => context.go('/admin/fees'), child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), decoration: BoxDecoration(gradient: LinearGradient(colors: [AppColors.error, AppColors.error.withValues(alpha: 0.8)]), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: AppColors.error.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))]), child: Text('RESOLVE', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)))),
         ],
       ),
     ).animate().shake(delay: 1.seconds);
@@ -470,13 +779,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.6)),
-        CPPressable(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: AppColors.elitePrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: Row(children: [Text('Explore all', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.elitePrimary)), const SizedBox(width: 4), const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: AppColors.elitePrimary)]))),
+        Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.6)),
+        CPPressable(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]), child: Row(children: [Text('Explore all', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))), const SizedBox(width: 4), const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Color(0xFF0D1282))])))
       ],
     );
   }
 
   Widget _buildTodaysClasses(bool isDark) {
+    if (_loading) return Column(children: List.generate(2, (_) => const Padding(padding: EdgeInsets.only(bottom: 14), child: CPShimmer(width: double.infinity, height: 90, borderRadius: 24))));
     if (_todaysClasses.isEmpty) return _emptyCard("Academic schedule is clear today", isDark);
     return Column(children: _todaysClasses.take(3).map((c) => _classItem(c, isDark)).toList());
   }
@@ -491,13 +801,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Container(width: 52, height: 52, decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(16)), child: Center(child: Icon(Icons.timer_outlined, size: 20, color: isDark ? Colors.white38 : Colors.black38))),
             const SizedBox(width: 16),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(c['batchName'], style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy)),
+              Text(c['batchName'], style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy)),
               const SizedBox(height: 2),
-              Text('${c['teacherName']} • ${c['subject']}', style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600)),
+              Text('${c['teacherName']} • ${c['subject']}', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600)),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text((c['startTime']?.toString() ?? '').split(' ')[0], style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.elitePrimary)),
-              if (c['room']?.toString().isNotEmpty == true) Text('Room ${c['room']}', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26))),
+              Text((c['startTime']?.toString() ?? '').split(' ')[0], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.elitePrimary)),
+              if (c['room']?.toString().isNotEmpty == true) Text('Room ${c['room']}', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26))),
             ]),
           ],
         ),
@@ -506,6 +816,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildRecentPayments(bool isDark) {
+    if (_loading) return SizedBox(height: 80, child: ListView.separated(scrollDirection: Axis.horizontal, clipBehavior: Clip.none, itemCount: 3, separatorBuilder: (_, __) => const SizedBox(width: 14), itemBuilder: (_, __) => const CPShimmer(width: 240, height: 80, borderRadius: 24)));
     if (_recentPayments.isEmpty) return _emptyCard("Revenue logs are waiting...", isDark);
     return SizedBox(height: 80, child: ListView.separated(scrollDirection: Axis.horizontal, clipBehavior: Clip.none, itemCount: _recentPayments.length, separatorBuilder: (_, _) => const SizedBox(width: 14), itemBuilder: (_, i) {
       final p = _recentPayments[i];
@@ -513,10 +824,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         Container(width: 40, height: 40, decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(Icons.credit_card_rounded, size: 18, color: AppColors.success)),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-          Text(p['name'], style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy), maxLines: 1, overflow: TextOverflow.ellipsis),
-          Text(p['batch'], style: GoogleFonts.inter(fontSize: 10, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(p['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(p['batch'], style: GoogleFonts.plusJakartaSans(fontSize: 10, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
         ])),
-        Text(_formatCurrency(_toDouble(p['amount'])), style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.success)),
+        Text(_formatCurrency(_toDouble(p['amount'])), style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.success)),
       ])),
     );
     }));
@@ -528,13 +839,96 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       _buildSectionHeader("Critical Absences", () {}, isDark),
       const SizedBox(height: 16),
       ..._absentToday.take(3).map((a) => Padding(padding: const EdgeInsets.only(bottom: 10), child: CPGlassCard(isDark: isDark, padding: const EdgeInsets.all(14), borderRadius: 20, child: Row(children: [
-        Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), shape: BoxShape.circle), child: Center(child: Text(a['name']?[0] ?? 'S', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.error)))),
+        Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), shape: BoxShape.circle), child: Center(child: Text((a['name'] != null && a['name'].toString().isNotEmpty) ? a['name'].toString()[0].toUpperCase() : 'S', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.error)))),
         const SizedBox(width: 14),
-        Expanded(child: Text(a['name'], style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy))),
-        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(10)), child: Text(a['batch'], style: GoogleFonts.inter(fontSize: 10, color: isDark ? Colors.white38 : Colors.black54, fontWeight: FontWeight.w800))),
+        Expanded(child: Text(a['name']?.toString().isEmpty == true ? 'Unknown Student' : a['name'], style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy))),
+        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(10)), child: Text(a['batch'], style: GoogleFonts.plusJakartaSans(fontSize: 10, color: isDark ? Colors.white38 : Colors.black54, fontWeight: FontWeight.w800))),
       ])))),
     ]);
   }
 
-  Widget _emptyCard(String text, bool isDark) => CPGlassCard(isDark: isDark, padding: const EdgeInsets.all(32), borderRadius: 28, child: Center(child: Column(children: [Icon(Icons.inventory_2_outlined, size: 24, color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1)), const SizedBox(height: 12), Text(text, style: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white.withValues(alpha: 0.24) : Colors.black.withValues(alpha: 0.26), fontWeight: FontWeight.w600))])));
+  Widget _buildRevenueChart(bool isDark) {
+    if (_loading || _revenueTrend.isEmpty || _revenueTrend.every((e) => e == 0)) return const SizedBox.shrink();
+
+    final maxVal = _revenueTrend.reduce((a, b) => a > b ? a : b);
+    final interval = maxVal > 0 ? (maxVal / 4).ceilToDouble() : 1000.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader("Financial Pulse", () => context.go('/admin/fees'), isDark),
+        const SizedBox(height: 16),
+        CPGlassCard(
+          isDark: isDark,
+          padding: const EdgeInsets.fromLTRB(10, 24, 24, 10),
+          borderRadius: 32,
+          child: SizedBox(
+            height: 200,
+            child: BarChart(
+              BarChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: interval,
+                  getDrawingHorizontalLine: (value) => FlLine(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), strokeWidth: 1, dashArray: [4, 4]),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index < 0 || index >= 6) return const SizedBox.shrink();
+                        final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        final now = DateTime.now();
+                        final targetMonth = now.month - (5 - index);
+                        final m = targetMonth < 1 ? targetMonth + 12 : targetMonth;
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(months[m-1], style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: isDark ? Colors.white24 : Colors.black26)),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: interval,
+                      reservedSize: 42,
+                      getTitlesWidget: (value, meta) {
+                        return Text(_formatCurrency(value), style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w700, color: isDark ? Colors.white24 : Colors.black26));
+                      },
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                maxY: maxVal * 1.2,
+                barGroups: List.generate(6, (i) {
+                  final isCurrent = i == 5;
+                  return BarChartGroupData(
+                    x: i,
+                    barRods: [
+                      BarChartRodData(
+                        toY: _revenueTrend[i],
+                        width: 14,
+                        color: isCurrent ? const Color(0xFFF0DE36) : const Color(0xFF0D1282).withValues(alpha: 0.7),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                      )
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ).animate().fadeIn(delay: 400.ms);
+  }
+
+  Widget _emptyCard(String text, bool isDark) => CPGlassCard(isDark: isDark, padding: const EdgeInsets.all(32), borderRadius: 28, child: Center(child: Column(children: [Icon(Icons.inventory_2_outlined, size: 24, color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1)), const SizedBox(height: 12), Text(text, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: isDark ? Colors.white.withValues(alpha: 0.24) : Colors.black.withValues(alpha: 0.26), fontWeight: FontWeight.w600))])));
 }

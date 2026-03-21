@@ -39,6 +39,15 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to import students');
   }
 
+  // ── Audit Logs ──────────────────────────────────────────
+  Future<List<Map<String, dynamic>>> getAuditLogs({int page = 1, int limit = 5}) async {
+    final response = await _api.dio.get('audit-logs', queryParameters: {'page': page, 'limit': limit});
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch audit logs');
+  }
+
   // ── Users Management (Admin Only) ─────────────────────
   Future<List<Map<String, dynamic>>> getUsers({
     String? role,
@@ -82,12 +91,13 @@ class AdminRepository {
   }
 
   // ── Students ──────────────────────────────────────────
-  Future<List<Map<String, dynamic>>> getStudents({String? query, String? batchId}) async {
+  Future<List<Map<String, dynamic>>> getStudents({String? query, String? batchId, bool isActive = true}) async {
     final queryParams = <String, dynamic>{
       'search': query,
       'batchId': batchId,
+      'isActive': isActive.toString(),
     };
-    queryParams.removeWhere((key, value) => value == null);
+    queryParams.removeWhere((key, value) => value == null || value == 'null');
 
     final response = await _api.dio.get('students', queryParameters: {
       ...queryParams,
@@ -161,6 +171,22 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch student details');
   }
 
+  Future<Map<String, dynamic>> updateStudent(String studentId, Map<String, dynamic> data) async {
+    final response = await _api.dio.put('students/$studentId', data: data);
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update student');
+  }
+
+  Future<Map<String, dynamic>> toggleStudentStatus(String studentId, bool isActive) async {
+    final response = await _api.dio.patch('students/$studentId/status', data: {'is_active': isActive});
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to toggle student status');
+  }
+
   Future<Map<String, dynamic>> getStudentAttendance({
     required String studentId,
     String? batchId,
@@ -184,6 +210,14 @@ class AdminRepository {
       return _extractList(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch batches');
+  }
+
+  Future<Map<String, dynamic>> getBatchById(String batchId) async {
+    final response = await _api.dio.get('batches/$batchId');
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch batch details');
   }
 
   Future<Map<String, dynamic>> createBatch(Map<String, dynamic> data) async {
@@ -236,6 +270,30 @@ class AdminRepository {
       return Map<String, dynamic>.from(response.data['data'] as Map);
     }
     throw Exception(response.data['message'] ?? 'Failed to create teacher');
+  }
+
+  Future<Map<String, dynamic>> getTeacherById(String teacherId) async {
+    final response = await _api.dio.get('teachers/$teacherId');
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch teacher details');
+  }
+
+  Future<Map<String, dynamic>> updateTeacher(String teacherId, Map<String, dynamic> data) async {
+    final response = await _api.dio.put('teachers/$teacherId', data: data);
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update teacher');
+  }
+
+  Future<Map<String, dynamic>> toggleTeacherStatus(String teacherId, bool isActive) async {
+    final response = await _api.dio.patch('teachers/$teacherId/status', data: {'is_active': isActive});
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to toggle teacher status');
   }
 
   Future<Map<String, dynamic>> getInstituteConfig() async {
@@ -360,6 +418,26 @@ class AdminRepository {
     final response = await _api.dio.delete('exams/$examId');
     if (response.statusCode == 200) return;
     throw Exception(response.data['message'] ?? 'Failed to delete exam');
+  }
+
+  Future<Map<String, dynamic>> saveExamResult({
+    required String examId,
+    required String studentId,
+    required num score,
+    num? maxMarks,
+    String? remarks,
+  }) async {
+    final response = await _api.dio.post('exams/results', data: {
+      'examId': examId,
+      'studentId': studentId,
+      'score': score,
+      if (maxMarks != null) 'maxMarks': maxMarks,
+      if (remarks != null) 'remarks': remarks,
+    });
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to save exam result');
   }
 
   // ── Leads ──────────────────────────────────────────────
@@ -641,4 +719,41 @@ class AdminRepository {
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch attendance stats');
   }
+
+  // ── Batch ↔ Student Assignment ──────────────────────────
+  Future<Map<String, dynamic>> assignStudentToBatch({
+    required String batchId,
+    required String studentId,
+  }) async {
+    final response = await _api.dio.post(
+      'batches/$batchId/students',
+      data: {'studentId': studentId},
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to assign student to batch');
+  }
+
+  Future<void> removeStudentFromBatch({
+    required String batchId,
+    required String studentId,
+  }) async {
+    final response = await _api.dio.delete('batches/$batchId/students/$studentId');
+    if (response.statusCode == 200 || response.statusCode == 204) return;
+    throw Exception(response.data['message'] ?? 'Failed to remove student from batch');
+  }
+
+  Future<void> assignMultipleStudentsToBatch({
+    required String batchId,
+    required List<String> studentIds,
+  }) async {
+    final response = await _api.dio.post(
+      'batches/$batchId/students/bulk',
+      data: {'studentIds': studentIds},
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) return;
+    throw Exception(response.data['message'] ?? 'Failed to bulk assign students');
+  }
 }
+

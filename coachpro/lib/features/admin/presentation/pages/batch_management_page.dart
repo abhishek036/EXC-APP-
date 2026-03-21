@@ -9,6 +9,7 @@ import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_glass_card.dart';
+import '../../../../core/widgets/cp_shimmer.dart';
 import '../../data/repositories/admin_repository.dart';
 
 class BatchManagementPage extends StatefulWidget {
@@ -57,17 +58,18 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       body: Stack(
         children: [
-          if (isDark) ...[
-            Positioned(top: -100, left: -50, child: _glow(300, AppColors.elitePrimary.withValues(alpha: 0.1))),
-            Positioned(bottom: 200, right: -150, child: _glow(400, AppColors.elitePurple.withValues(alpha: 0.05))),
-          ],
           SafeArea(
             child: Column(
               children: [
                 _buildAppBar(context, isDark),
                 Expanded(
                   child: _isLoading
-                      ? const Center(child: CircularProgressIndicator(color: AppColors.elitePrimary))
+                      ? ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                          itemCount: 4,
+                          separatorBuilder: (_, __) => const SizedBox(height: 16),
+                          itemBuilder: (_, __) => const CPShimmer(width: double.infinity, height: 160, borderRadius: 28),
+                        )
                       : RefreshIndicator(
                           color: AppColors.elitePrimary,
                           onRefresh: _loadData,
@@ -118,8 +120,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
     );
   }
 
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
-
+  // Removed _glow method
   Widget _buildAppBar(BuildContext context, bool isDark) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
@@ -139,8 +140,8 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
       onTap: onTap,
       child: Container(
         width: 44, height: 44,
-        decoration: BoxDecoration(gradient: primary ? AppColors.premiumEliteGradient : null, color: !primary ? (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03)) : null, borderRadius: BorderRadius.circular(16), boxShadow: primary ? [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))] : null),
-        child: Icon(icon, size: 22, color: primary ? Colors.white : (isDark ? Colors.white : AppColors.deepNavy)),
+        decoration: BoxDecoration(color: primary ? const Color(0xFFF0DE36) : const Color(0xFF0D1282), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: primary ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))] : null),
+        child: Icon(icon, size: 22, color: primary ? const Color(0xFF0D1282) : Colors.white),
       ),
     );
   }
@@ -175,7 +176,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
         children: [
           Row(
             children: [
-              Container(width: 44, height: 44, decoration: BoxDecoration(color: (isActive ? AppColors.mintGreen : Colors.grey).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)), child: Icon(Icons.layers_rounded, size: 20, color: isActive ? AppColors.mintGreen : Colors.grey)),
+              Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: isActive ? AppColors.mintGreen : Colors.grey, width: 2), boxShadow: [BoxShadow(color: isActive ? AppColors.mintGreen : Colors.grey, offset: const Offset(2, 2))]), child: Icon(Icons.layers_rounded, size: 20, color: isActive ? AppColors.mintGreen : Colors.grey)),
               const SizedBox(width: 16),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(name, style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.4)),
@@ -227,8 +228,8 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
   Widget _badge(String text, Color color, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withValues(alpha: 0.2))),
-      child: Text(text, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
+      decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: color, width: 2), boxShadow: [BoxShadow(color: color, offset: const Offset(2, 2))]),
+      child: Text(text, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5)),
     );
   }
 
@@ -317,15 +318,15 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))),
+                    decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))]),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: selectedTeacherId, dropdownColor: isDark ? AppColors.eliteDarkBg : Colors.white,
-                        hint: Text('Select Faculty', style: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26), fontWeight: FontWeight.w600)),
-                        isExpanded: true, icon: Icon(Icons.keyboard_arrow_down_rounded, color: isDark ? Colors.white38 : Colors.black38),
+                        value: selectedTeacherId, dropdownColor: const Color(0xFFEEEDED),
+                        hint: Text('Select Faculty', style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF0D1282), fontWeight: FontWeight.w600)),
+                        isExpanded: true, icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF0D1282)),
                         items: _teachers.map((t) {
                           final u = t['user'] is Map ? t['user'] as Map : {};
-                          return DropdownMenuItem(value: t['id'].toString(), child: Text(t['name'] ?? u['name'] ?? 'Faculty', style: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white : AppColors.deepNavy, fontWeight: FontWeight.w700)));
+                          return DropdownMenuItem(value: t['id'].toString(), child: Text(t['name'] ?? u['name'] ?? 'Faculty', style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF0D1282), fontWeight: FontWeight.w700)));
                         }).toList(),
                         onChanged: (v) => setSheetState(() => selectedTeacherId = v),
                       ),
@@ -372,12 +373,12 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
         Container(
           height: 54,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))),
+          decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))]),
           child: Row(
             children: [
-              Icon(icon, size: 18, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26)),
+              Icon(icon, size: 18, color: const Color(0xFF0D1282)),
               const SizedBox(width: 12),
-              Expanded(child: TextField(controller: ctrl, keyboardType: type, style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white : AppColors.deepNavy, fontWeight: FontWeight.w700), decoration: InputDecoration(hintText: hint, hintStyle: GoogleFonts.inter(color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26), fontSize: 13), border: InputBorder.none))),
+              Expanded(child: TextField(controller: ctrl, keyboardType: type, style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF0D1282), fontWeight: FontWeight.w700), decoration: InputDecoration(hintText: hint, hintStyle: GoogleFonts.inter(color: const Color(0xFF0D1282).withValues(alpha: 0.5), fontSize: 13), border: InputBorder.none))),
             ],
           ),
         ),

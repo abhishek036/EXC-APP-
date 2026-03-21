@@ -180,11 +180,14 @@ class _AddStudentPageState extends State<AddStudentPage> {
     return Scaffold(
       backgroundColor: CT.bg(context),
       appBar: AppBar(
+        backgroundColor: const Color(0xFF0D1282),
+        elevation: 0,
+        leading: CPPressable(onTap: () => Navigator.pop(context), child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20)),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Add Student by Phone', style: GoogleFonts.sora(fontWeight: FontWeight.w600, fontSize: 16)),
-            Text('Student logs in using this number', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context))),
+            Text('Add Student', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 17, color: Colors.white)),
+            Text('Quick enrollment with batch assignment', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white60)),
           ],
         ),
       ),
@@ -431,62 +434,37 @@ class _AddStudentPageState extends State<AddStudentPage> {
   }
 
   BoxDecoration _cardDecor() => BoxDecoration(
-        color: CT.card(context),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLG),
-        boxShadow: [
-          BoxShadow(
-              color: CT.textH(context).withValues(alpha: 0.04),
-              blurRadius: 10)
-        ],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
       );
 
   Widget _sectionHeader(String title, IconData icon) => Row(children: [
         Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-              color: AppColors.electricBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, size: 16, color: AppColors.electricBlue),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: const Color(0xFF0D1282).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, size: 16, color: const Color(0xFF0D1282)),
         ),
-        const SizedBox(width: 10),
-        Text(title,
-            style: GoogleFonts.sora(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: CT.textH(context))),
+        const SizedBox(width: 12),
+        Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: const Color(0xFF0A0C1E))),
       ]);
 
-  Widget _buildDropdown(String label, List<String> items, String? value,
-          ValueChanged<String?> onChanged) =>
-      Column(
+  Widget _buildDropdown(String label, List<String> items, String? value, ValueChanged<String?> onChanged) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: GoogleFonts.dmSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: CT.textS(context))),
+          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: CT.bg(context),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: CT.border(context)),
-            ),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE3E4EE), width: 1.5)),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: value,
-                hint: Text('Select',
-                    style: GoogleFonts.dmSans(
-                        fontSize: 13, color: CT.textM(context))),
+                hint: Text('Select', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF8F97B8))),
                 isExpanded: true,
-                icon: const Icon(Icons.keyboard_arrow_down, size: 20),
-                style: GoogleFonts.dmSans(
-                    fontSize: 13, color: CT.textH(context)),
-                items: items
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
+                icon: const Icon(Icons.keyboard_arrow_down, size: 20, color: Color(0xFF0D1282)),
+                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E)),
+                items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                 onChanged: onChanged,
               ),
             ),
@@ -516,31 +494,18 @@ class CPBatchChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary
-              : AppColors.primary.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(100),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : AppColors.primary.withValues(alpha: 0.3),
-          ),
+          color: isSelected ? const Color(0xFF0D1282) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSelected ? const Color(0xFF0D1282) : const Color(0xFFE3E4EE), width: 1.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isSelected) ...[
-              const Icon(Icons.check, size: 16, color: Colors.white),
+              const Icon(Icons.check_rounded, size: 14, color: Colors.white),
               const SizedBox(width: 6),
             ],
-            Text(
-              label,
-              style: GoogleFonts.dmSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : AppColors.primary,
-              ),
-            ),
+            Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: isSelected ? Colors.white : const Color(0xFF0A0C1E))),
           ],
         ),
       ),

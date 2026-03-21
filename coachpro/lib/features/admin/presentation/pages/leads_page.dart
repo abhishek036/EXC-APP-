@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_glass_card.dart';
+import '../../../../core/widgets/cp_shimmer.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/admin_repository.dart';
 
@@ -249,10 +250,14 @@ class _LeadsPageState extends State<LeadsPage> {
                   ),
                 ),
 
-                // ── LEADS FEED ──
                 Expanded(
                   child: _isLoading
-                      ? const Center(child: CircularProgressIndicator(color: AppColors.electricBlue))
+                      ? ListView.separated(
+                          padding: const EdgeInsets.all(24),
+                          itemCount: 5,
+                          separatorBuilder: (_, __) => const SizedBox(height: 16),
+                          itemBuilder: (_, __) => const CPShimmer(width: double.infinity, height: 100, borderRadius: 24),
+                        )
                       : currentLeads.isEmpty
                           ? Center(
                               child: Column(

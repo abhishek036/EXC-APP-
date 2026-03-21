@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class CPGlassCard extends StatelessWidget {
@@ -24,29 +23,22 @@ class CPGlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: margin,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: Container(
-            padding: padding,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.white.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(borderRadius),
-              border: border ??
-                  Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.white.withValues(alpha: 0.6),
-                    width: 1.5,
-                  ),
-            ),
-            child: child,
-          ),
+      margin: margin ?? const EdgeInsets.only(bottom: 8.0),
+      child: Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEEEDED), // Off White
+          border: border ?? Border.all(color: const Color(0xFF0D1282), width: 3), // 3px Deep Blue
+          boxShadow: [
+            const BoxShadow(
+              color: Color(0xFF0D1282), // Deep Blue hard shadow
+              offset: Offset(4, 4),
+              blurRadius: 0,
+              spreadRadius: 0,
+            )
+          ],
         ),
+        child: child,
       ),
     );
   }

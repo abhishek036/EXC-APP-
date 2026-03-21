@@ -67,10 +67,6 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       body: Stack(
         children: [
-          if (isDark) ...[
-            Positioned(top: -150, left: -100, child: _glow(400, AppColors.elitePrimary.withValues(alpha: 0.15))),
-            Positioned(bottom: 50, right: -150, child: _glow(500, AppColors.elitePurple.withValues(alpha: 0.1))),
-          ],
           SafeArea(
             child: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) => [
@@ -121,8 +117,8 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                decoration: BoxDecoration(gradient: AppColors.premiumEliteGradient, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.4), blurRadius: 24, offset: const Offset(0, 12))]),
-                child: Row(children: [const Icon(Icons.add_rounded, color: Colors.white, size: 24), const SizedBox(width: 8), Text('COLLECT FEE', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 13, letterSpacing: 0.5))]),
+                decoration: BoxDecoration(color: const Color(0xFF0D1282), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4), blurRadius: 0)]),
+                child: Row(children: [const Icon(Icons.add_rounded, color: Color(0xFFEEEDED), size: 24), const SizedBox(width: 8), Text('COLLECT FEE', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFFEEEDED), fontSize: 13, letterSpacing: 0.5))]),
               ),
             ),
           ).animate().slideY(begin: 1, duration: 600.ms, curve: Curves.easeOutBack),
@@ -131,15 +127,15 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     );
   }
 
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
+  // Removed glow method
 
   Widget _appBarAction(IconData icon, VoidCallback onTap, bool isDark) {
     return CPPressable(
       onTap: onTap,
       child: Container(
         width: 44, height: 44,
-        decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(16), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))),
-        child: Icon(icon, size: 20, color: isDark ? Colors.white : AppColors.deepNavy),
+        decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3), blurRadius: 0)]),
+        child: Icon(icon, size: 20, color: const Color(0xFF0D1282)),
       ),
     );
   }
@@ -174,9 +170,9 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   Widget _heroStat(String label, double val, Gradient grad, bool isDark) {
     return Container(
       width: 170, height: 110, padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(gradient: grad, borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.25), blurRadius: 20, offset: const Offset(0, 10))]),
+      decoration: BoxDecoration(color: const Color(0xFF0D1282), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4), blurRadius: 0)]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-        Text(label.toUpperCase(), style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white.withValues(alpha: 0.8), letterSpacing: 0.5)),
+        Text(label.toUpperCase(), style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFFF0DE36), letterSpacing: 0.5)),
         const SizedBox(height: 6),
         FittedBox(child: Text(_fmtCur(val), style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1.5))),
       ]),
@@ -208,12 +204,11 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
           child: AnimatedContainer(
             duration: 250.ms, padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-              color: _selectedStatus == i ? AppColors.elitePrimary : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03)),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _selectedStatus == i ? Colors.transparent : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))),
-              boxShadow: _selectedStatus == i ? [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))] : [],
+              color: _selectedStatus == i ? const Color(0xFFF0DE36) : const Color(0xFFEEEDED),
+              border: Border.all(color: const Color(0xFF0D1282), width: 2),
+              boxShadow: _selectedStatus == i ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))] : [],
             ),
-            child: Center(child: Text(_statuses[i].toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: _selectedStatus == i ? Colors.white : (isDark ? Colors.white54 : AppColors.deepNavy), letterSpacing: 0.5))),
+            child: Center(child: Text(_statuses[i].toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5))),
           ),
         ),
       ),
@@ -223,7 +218,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   Widget _buildSearchBar(bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))),
+      decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))]),
       child: TextField(
         controller: _searchCtrl,
         style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColors.deepNavy),
@@ -274,17 +269,17 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
       child: CPGlassCard(
         isDark: isDark, padding: const EdgeInsets.all(20), borderRadius: 28,
         child: Row(children: [
-          Container(width: 52, height: 52, decoration: BoxDecoration(color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(18), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))), child: Center(child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy)))),
+          Container(width: 52, height: 52, decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 2)), child: Center(child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))))),
           const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(name, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
+            Text(name, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: -0.5)),
             const SizedBox(height: 4),
-            Text('${batch.toUpperCase()} • ${month.toUpperCase()}', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: isDark ? Colors.white38 : Colors.black45, letterSpacing: 0.5)),
+            Text('${batch.toUpperCase()} • ${month.toUpperCase()}', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282), letterSpacing: 0.5)),
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('₹${total.toInt()}', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.8)),
+            Text('₹${total.toInt()}', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: -0.8)),
             const SizedBox(height: 6),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: sColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: sColor.withValues(alpha: 0.2))), child: Text(status, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: sColor, letterSpacing: 0.5))),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: sColor, width: 2), boxShadow: [BoxShadow(color: sColor, offset: const Offset(2, 2))]), child: Text(status, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5))),
           ]),
         ]),
       ),
@@ -340,8 +335,8 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
             onTap: () { Navigator.pop(ctx); PdfGenerator.generateFeeReceipt(fee); }, 
             child: Container(
               width: double.infinity, height: 56, 
-              decoration: BoxDecoration(color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))), 
-              child: Center(child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.print_rounded, size: 20, color: isDark ? Colors.white70 : AppColors.deepNavy), const SizedBox(width: 10), Text('Generate Receipt', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: isDark ? Colors.white70 : AppColors.deepNavy, fontSize: 13, letterSpacing: 0.5))]))
+              decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))]), 
+              child: Center(child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.print_rounded, size: 20, color: const Color(0xFF0D1282)), const SizedBox(width: 10), Text('Generate Receipt', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), fontSize: 13, letterSpacing: 0.5))]))
             )
           ),
           const SizedBox(height: 20),

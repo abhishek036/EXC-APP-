@@ -111,10 +111,6 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       body: Stack(
         children: [
-          if (isDark) ...[
-            Positioned(top: -100, right: -100, child: _glow(300, AppColors.elitePrimary.withValues(alpha: 0.1))),
-            Positioned(bottom: 200, left: -150, child: _glow(400, AppColors.elitePurple.withValues(alpha: 0.05))),
-          ],
           SafeArea(
             child: Column(
               children: [
@@ -159,7 +155,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
     );
   }
 
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
+  // Removed _glow method
 
   Widget _buildAppBar(BuildContext context, bool isDark) {
     return Padding(
@@ -180,8 +176,8 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
       onTap: onTap,
       child: Container(
         width: 44, height: 44,
-        decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(16)),
-        child: Icon(icon, size: 20, color: isDark ? Colors.white : AppColors.deepNavy),
+        decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3), blurRadius: 0)]),
+        child: Icon(icon, size: 20, color: const Color(0xFF0D1282)),
       ),
     );
   }
@@ -211,11 +207,11 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(gradient: grad, borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10))]),
+        decoration: BoxDecoration(color: const Color(0xFF0D1282), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4), blurRadius: 0)]),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white.withValues(alpha: 0.6), letterSpacing: 1)),
+          Text(label, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFFF0DE36), letterSpacing: 1)),
           const SizedBox(height: 6),
-          Text(value, style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1)),
+          Text(value, style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w900, color: const Color(0xFFEEEDED), letterSpacing: -1)),
         ]),
       ),
     );
@@ -226,7 +222,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
       child: CPGlassCard(
         isDark: isDark, padding: const EdgeInsets.all(20), borderRadius: 28,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26), letterSpacing: 1)),
+          Text(label, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 1)),
           const SizedBox(height: 6),
           Text(value, style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w900, color: color, letterSpacing: -1)),
         ]),
@@ -247,12 +243,11 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
           child: AnimatedContainer(
             duration: 250.ms, padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-              gradient: _selectedBatch == i ? AppColors.premiumEliteGradient : null,
-              color: _selectedBatch == i ? null : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03)),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _selectedBatch == i ? Colors.transparent : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))),
+              color: _selectedBatch == i ? const Color(0xFFF0DE36) : const Color(0xFFEEEDED),
+              border: Border.all(color: const Color(0xFF0D1282), width: 2),
+              boxShadow: _selectedBatch == i ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))] : [],
             ),
-            child: Center(child: Text(_batchOptions[i].name, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, color: _selectedBatch == i ? Colors.white : (isDark ? Colors.white60 : AppColors.deepNavy)))),
+            child: Center(child: Text(_batchOptions[i].name, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282)))),
           ),
         ),
       ),
@@ -287,7 +282,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
               gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 50, getDrawingHorizontalLine: (v) => FlLine(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05), strokeWidth: 1)),
               borderData: FlBorderData(show: false),
               barGroups: _weeklyPercentages.asMap().entries.map((e) => BarChartGroupData(x: e.key, barRods: [
-                BarChartRodData(toY: e.value, width: 14, borderRadius: BorderRadius.circular(4), color: AppColors.elitePrimary, backDrawRodData: BackgroundBarChartRodData(show: true, toY: 100, color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03))),
+                BarChartRodData(toY: e.value, width: 14, borderRadius: BorderRadius.zero, color: const Color(0xFF0D1282), backDrawRodData: BackgroundBarChartRodData(show: true, toY: 100, color: const Color(0xFFEEEDED))),
               ])).toList(),
             ),
           ),
@@ -319,13 +314,13 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
       child: CPGlassCard(
         isDark: isDark, padding: const EdgeInsets.all(16), borderRadius: 24,
         child: Row(children: [
-          Container(width: 48, height: 48, decoration: BoxDecoration(color: AppColors.coralRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)), child: Center(child: Text(r['studentName']?[0] ?? 'S', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.coralRed)))),
+          Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: AppColors.coralRed, width: 2), boxShadow: const [BoxShadow(color: AppColors.coralRed, offset: Offset(2, 2))]), child: Center(child: Text(r['studentName']?[0] ?? 'S', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.coralRed)))),
           const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(r['studentName'], style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.3)),
-            Text('${r['batchName']} • ID: ${r['studentId']}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black45)),
+            Text(r['studentName'], style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282), letterSpacing: -0.3)),
+            Text('${r['batchName']} • ID: ${r['studentId']}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF0D1282))),
           ])),
-          CPPressable(onTap: () { HapticFeedback.heavyImpact(); CPToast.success(context, 'Alert Dispatched'); }, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.notification_important_rounded, size: 20, color: AppColors.moltenAmber))),
+          CPPressable(onTap: () { HapticFeedback.heavyImpact(); CPToast.success(context, 'Alert Dispatched'); }, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]), child: const Icon(Icons.notification_important_rounded, size: 20, color: AppColors.moltenAmber))),
         ]),
       ),
     ).animate(delay: Duration(milliseconds: 300 + i * 50)).fadeIn(duration: 500.ms).slideX(begin: 0.05);

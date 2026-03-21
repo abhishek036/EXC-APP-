@@ -112,12 +112,12 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
             border: Border.all(color: AppColors.glassBorder),
-            image: const DecorationImage(
-              image: NetworkImage('https://i.pravatar.cc/150?img=11'),
-              fit: BoxFit.cover,
-            ),
+          ),
+          child: Center(
+            child: Icon(Icons.person, color: AppColors.primary, size: 20),
           ),
         ),
         const SizedBox(width: AppDimensions.sm),
@@ -391,11 +391,11 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                         children: [
                           Positioned(
                             right: 24,
-                            child: CircleAvatar(radius: 16, backgroundColor: CT.bg(context), child: const CircleAvatar(radius: 14, backgroundImage: NetworkImage('https://i.pravatar.cc/100?img=5'))),
+                            child: CircleAvatar(radius: 16, backgroundColor: CT.bg(context), child: CircleAvatar(radius: 14, backgroundColor: Colors.blue.withValues(alpha: 0.2), child: Text('A', style: TextStyle(fontSize: 10, color: Colors.blue)))),
                           ),
                           Positioned(
                             right: 12,
-                            child: CircleAvatar(radius: 16, backgroundColor: CT.bg(context), child: const CircleAvatar(radius: 14, backgroundImage: NetworkImage('https://i.pravatar.cc/100?img=8'))),
+                            child: CircleAvatar(radius: 16, backgroundColor: CT.bg(context), child: CircleAvatar(radius: 14, backgroundColor: Colors.green.withValues(alpha: 0.2), child: Text('B', style: TextStyle(fontSize: 10, color: Colors.green)))),
                           ),
                           Positioned(
                             right: 0,
@@ -562,7 +562,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                               children: [
                                 Row(
                                   children: [
-                                    CircleAvatar(radius: 12, backgroundImage: NetworkImage('https://i.pravatar.cc/100?u=$studentName')),
+                                    CircleAvatar(radius: 12, backgroundColor: AppColors.primary.withValues(alpha: 0.1), child: Text(studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S', style: TextStyle(fontSize: 10, color: AppColors.primary))),
                                     const SizedBox(width: 8),
                                     Text(studentName, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: CT.textH(context))),
                                   ],

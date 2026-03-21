@@ -18,6 +18,7 @@ class CustomTextField extends StatelessWidget {
   final int? maxLines;
   final bool readOnly;
   final bool isRequired;
+  final TextAlign textAlign;
 
   const CustomTextField({
     super.key,
@@ -34,6 +35,7 @@ class CustomTextField extends StatelessWidget {
     this.maxLines = 1,
     this.readOnly = false,
     this.isRequired = false,
+    this.textAlign = TextAlign.start,
   });
 
   @override
@@ -65,6 +67,7 @@ class CustomTextField extends StatelessWidget {
           onChanged: onChanged,
           maxLines: maxLines,
           readOnly: readOnly,
+          textAlign: textAlign,
           style: GoogleFonts.dmSans(
             fontSize: 15,
             fontWeight: FontWeight.w600,

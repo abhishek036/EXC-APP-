@@ -9,6 +9,7 @@ import '../../data/repositories/admin_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_glass_card.dart';
+import '../../../../core/widgets/cp_shimmer.dart';
 
 class AcademicOversightPage extends StatefulWidget {
   const AcademicOversightPage({super.key});
@@ -65,10 +66,6 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       body: Stack(
         children: [
-          if (isDark) ...[
-            Positioned(top: -100, right: -50, child: _glow(250, AppColors.elitePrimary.withValues(alpha: 0.1))),
-            Positioned(bottom: 100, left: -100, child: _glow(300, AppColors.elitePurple.withValues(alpha: 0.05))),
-          ],
           SafeArea(
             child: Column(
               children: [
@@ -78,7 +75,12 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
                 const SizedBox(height: 20),
                 Expanded(
                   child: _loading
-                      ? const Center(child: CircularProgressIndicator(color: AppColors.elitePrimary))
+                      ? ListView.separated(
+                          padding: const EdgeInsets.all(20),
+                          itemCount: 5,
+                          separatorBuilder: (_, __) => const SizedBox(height: 16),
+                          itemBuilder: (_, __) => const CPShimmer(width: double.infinity, height: 120, borderRadius: 24),
+                        )
                       : _error.isNotEmpty
                           ? _buildErrorState(isDark)
                           : RefreshIndicator(
@@ -95,7 +97,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
     );
   }
 
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
+  // Removed _glow method
 
   Widget _buildAppBar(bool isDark) {
     return Padding(
@@ -116,7 +118,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))),
+      decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))]),
       child: Row(
         children: [
           _tabItem('Pending Doubts', 0, isDark),
@@ -138,12 +140,12 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            gradient: active ? AppColors.premiumEliteGradient : null,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: active ? [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.2), blurRadius: 12, offset: const Offset(0, 4))] : null,
+            color: active ? const Color(0xFFF0DE36) : const Color(0xFFEEEDED),
+            border: active ? Border.all(color: const Color(0xFF0D1282), width: 2) : Border.all(color: Colors.transparent, width: 2),
+            boxShadow: active ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))] : null,
           ),
           alignment: Alignment.center,
-          child: Text(title, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: active ? Colors.white : (isDark ? Colors.white38 : Colors.black38))),
+          child: Text(title, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
         ),
       ),
     );
@@ -172,15 +174,15 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                    child: Text('PENDING', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.error, letterSpacing: 0.5)),
+                    decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: AppColors.coralRed, width: 2), boxShadow: const [BoxShadow(color: AppColors.coralRed, offset: Offset(2, 2))]),
+                    child: Text('PENDING', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5)),
                   ),
                   const SizedBox(width: 10),
                   Text(subject, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? Colors.white38 : Colors.black38)),
                 ],
               ),
               const SizedBox(height: 16),
-              Text((doubt['question_text'] ?? doubt['question'] ?? 'No question text').toString(), style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColors.deepNavy, height: 1.4)),
+              Text((doubt['question_text'] ?? doubt['question'] ?? 'No question text').toString(), style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: const Color(0xFF0D1282), height: 1.4)),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -217,21 +219,21 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
             children: [
               Container(
                 width: 48, height: 48,
-                decoration: BoxDecoration(color: AppColors.elitePrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.article_rounded, color: AppColors.elitePrimary, size: 24),
+                decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
+                child: const Icon(Icons.article_rounded, color: Color(0xFF0D1282), size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(title, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)), maxLines: 1, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 4),
-                    Text('By $teacher • $batch', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: isDark ? Colors.white24 : Colors.black45)),
+                    Text('By $teacher • $batch', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF0D1282))),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.12)),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFF0D1282)),
             ],
           ),
         ).animate(delay: (i * 50).ms).fadeIn().slideX(begin: 0.05);

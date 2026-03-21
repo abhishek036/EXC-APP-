@@ -10,63 +10,64 @@ class AppTheme {
   AppTheme._();
 
   // ═══════════════════════════════════════════════════════
-  //  🌕 LIGHT THEME — Off White + Steel Blue
+  //  🌕 LIGHT THEME — Neo-Brutalist
   // ═══════════════════════════════════════════════════════
   static ThemeData get lightTheme => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    scaffoldBackgroundColor: const Color(0xFFF9F7F7),  // Off White
-    primaryColor: const Color(0xFF3F72AF),               // Steel Blue
+    scaffoldBackgroundColor: const Color(0xFFEEEDED),  // Off White
+    primaryColor: const Color(0xFF0D1282),             // Deep Blue
     colorScheme: const ColorScheme.light(
-      surface:        Color(0xFFFFFFFF),   // Pure White
-      surfaceContainerHighest: Color(0xFFDBE2EF), // Frost Blue
-      outline:        Color(0xFFDBE2EF),   // Frost Blue
-      primary:        Color(0xFF3F72AF),   // Steel Blue
-      onPrimary:      Color(0xFFF9F7F7),   // Off White
-      onSurface:      Color(0xFF112D4E),   // Deep Navy
-      onSurfaceVariant: Color(0xFF3F72AF), // Steel Blue
-      secondary:      Color(0xFFFFB830),
-      error:          Color(0xFFFF6B6B),
-      tertiary:       Color(0xFF20C997),
+      surface:        Color(0xFFEEEDED),   // Off White
+      surfaceContainerHighest: Color(0xFFEEEDED), // Off White
+      outline:        Color(0xFF0D1282),   // Deep Blue
+      primary:        Color(0xFF0D1282),   // Deep Blue
+      onPrimary:      Color(0xFFEEEDED),   // Off White
+      onSurface:      Color(0xFF0D1282),   // Deep Blue
+      onSurfaceVariant: Color(0xFF0D1282), // Deep Blue
+      secondary:      Color(0xFFF0DE36),   // Accent Yellow
+      error:          Color(0xFFD71313),   // Alert Red
+      tertiary:       Color(0xFF0D1282),   // Deep Blue
     ),
-    dividerColor: const Color(0xFFDBE2EF), // Frost Blue
+    dividerColor: const Color(0xFF0D1282), // Deep Blue
 
     // AppBar
     appBarTheme: AppBarTheme(
-      backgroundColor: const Color(0xFFF9F7F7),  // Off White
-      foregroundColor: const Color(0xFF112D4E),   // Deep Navy
+      backgroundColor: const Color(0xFF0D1282),  // Deep Blue
+      foregroundColor: const Color(0xFFEEEDED),  // Off White
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      iconTheme: const IconThemeData(color: Color(0xFF112D4E)),
+      iconTheme: const IconThemeData(color: Color(0xFFEEEDED)),
       titleTextStyle: GoogleFonts.sora(
         fontSize: 18,
-        fontWeight: FontWeight.w600,
-        color: const Color(0xFF112D4E),
+        fontWeight: FontWeight.w800,
+        color: const Color(0xFFEEEDED),
       ),
     ),
 
     // Cards
     cardTheme: CardThemeData(
-      color: const Color(0xFFFFFFFF),
+      color: const Color(0xFFEEEDED),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        side: const BorderSide(color: Color(0xFFDBE2EF)),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+        side: const BorderSide(color: Color(0xFF0D1282), width: 2), // Thick borders
+        borderRadius: BorderRadius.circular(0), // No rounded corners
       ),
     ),
 
     // Elevated buttons
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF3F72AF), // Steel Blue
-        foregroundColor: const Color(0xFFF9F7F7), // Off White
+        backgroundColor: const Color(0xFFF0DE36), // Accent Yellow
+        foregroundColor: const Color(0xFF0D1282), // Deep Blue Text
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        side: const BorderSide(color: Color(0xFF0D1282), width: 3), // Strong border
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+          borderRadius: BorderRadius.circular(0), // No rounded corners
         ),
-        textStyle: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w800),
       ),
     ),
 
@@ -86,32 +87,32 @@ class AppTheme {
     // Input fields
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFFDBE2EF), // Frost Blue
+      fillColor: const Color(0xFFEEEDED), // Off White
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+        borderRadius: BorderRadius.circular(0),
+        borderSide: const BorderSide(color: Color(0xFF0D1282), width: 2),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFDBE2EF)),
+        borderRadius: BorderRadius.circular(0),
+        borderSide: const BorderSide(color: Color(0xFF0D1282), width: 2),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF3F72AF), width: 1.5), // Steel Blue
+        borderRadius: BorderRadius.circular(0),
+        borderSide: const BorderSide(color: Color(0xFFF0DE36), width: 3), // Accent Yellow focus
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFFF6B6B)),
+        borderRadius: BorderRadius.circular(0),
+        borderSide: const BorderSide(color: Color(0xFFD71313), width: 3), // Alert Red error
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      hintStyle: GoogleFonts.dmSans(color: const Color(0xFF9AACCB), fontSize: 14),
+      hintStyle: GoogleFonts.dmSans(color: const Color(0xFF0D1282).withValues(alpha: 0.6), fontSize: 14),
     ),
 
     // Bottom nav
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: Color(0xFFF9F7F7),  // Off White
-      selectedItemColor: Color(0xFF112D4E), // Deep Navy
-      unselectedItemColor: Color(0xFF3F72AF), // Steel Blue 50% handled by opacity
+      backgroundColor: Color(0xFFEEEDED),  // Off White
+      selectedItemColor: Color(0xFF0D1282), // Deep Blue
+      unselectedItemColor: Color(0xFF0D1282), 
       type: BottomNavigationBarType.fixed,
       elevation: 0,
     ),

@@ -23,9 +23,6 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _studentRepo = sl<StudentRepository>();
 
-  int _testimonialPage = 0;
-  final _testimonialController = PageController();
-
   Map<String, dynamic>? _dashboardData;
   bool _isLoading = true;
   String? _error;
@@ -55,36 +52,6 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     }
   }
 
-  final _testimonials = [
-    {
-      'quote':
-          'The coaching methodology is amazing. Teachers explain every concept so clearly and my rank improved dramatically.',
-      'name': 'Kartik Sharma',
-      'batch': 'JEE Advanced 2026',
-      'rank': '800',
-    },
-    {
-      'quote':
-          'Best study material and doubt solving. The mentors are always available and the mock tests feel like real exams.',
-      'name': 'Ananya Gupta',
-      'batch': 'NEET UG 2026',
-      'rank': '245',
-    },
-    {
-      'quote':
-          'I improved so much in physics after joining. The concept videos and practice sets are top notch.',
-      'name': 'Rohit Verma',
-      'batch': 'JEE Mains 2026',
-      'rank': '1200',
-    },
-    {
-      'quote':
-          'Weekly tests and detailed analysis helped me identify my weak areas. Feeling much more confident now.',
-      'name': 'Priya Nair',
-      'batch': 'JEE Advanced 2026',
-      'rank': '550',
-    },
-  ];
 
   // Time-aware greeting
   String get _greeting {
@@ -124,7 +91,6 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
 
   @override
   void dispose() {
-    _testimonialController.dispose();
     super.dispose();
   }
 
@@ -201,8 +167,6 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                           _buildStatsRow(context),
                           const SizedBox(height: AppDimensions.lg),
                           _buildFeeBanner(context),
-                          const SizedBox(height: AppDimensions.lg),
-                          _buildTestimonials(context),
                           const SizedBox(height: AppDimensions.lg),
                           _buildAnnouncements(context),
                           const SizedBox(height: AppDimensions.lg),
@@ -292,7 +256,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                         const SizedBox(height: AppDimensions.xs),
                         GestureDetector(
                           onTap: () {
-                            Navigator.pop(context);
+                            context.pop();
                             context.go('/student/profile');
                           },
                           child: Text(
@@ -320,7 +284,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     'Study Material',
                     'Notes, sample papers & more',
                     () {
-                      Navigator.pop(context);
+                      context.pop();
                       context.go('/student/materials');
                     },
                   ),
@@ -330,7 +294,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     'Concept Videos',
                     'Short animated video lessons',
                     () {
-                      Navigator.pop(context);
+                      context.pop();
                       context.go('/student/video-player');
                     },
                   ),
@@ -340,7 +304,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     'My Saved Content',
                     'Saved classes, notes & PDFs',
                     () {
-                      Navigator.pop(context);
+                      context.pop();
                       context.go('/student/materials');
                     },
                   ),
@@ -350,7 +314,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     'Exam Calendar',
                     'Upcoming exams & schedule',
                     () {
-                      Navigator.pop(context);
+                      context.pop();
                       context.go('/student/exam-calendar');
                     },
                   ),
@@ -360,7 +324,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     'Fee History',
                     'Payment records & receipts',
                     () {
-                      Navigator.pop(context);
+                      context.pop();
                       context.go('/student/fee-history');
                     },
                   ),
@@ -370,7 +334,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     'Share Feedback',
                     'Help us improve your experience',
                     () {
-                      Navigator.pop(context);
+                      context.pop();
                     },
                   ),
                   Divider(
@@ -385,7 +349,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     'Settings',
                     'Dark mode, notifications & more',
                     () {
-                      Navigator.pop(context);
+                      context.pop();
                       context.go('/student/settings');
                     },
                   ),
@@ -395,7 +359,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     'Log Out',
                     'Sign out of your account',
                     () {
-                      Navigator.pop(context);
+                      context.pop();
                       context.go('/login');
                     },
                     isDestructive: true,
@@ -452,12 +416,12 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.glassBorder),
-              image: const DecorationImage(
-                image: NetworkImage('https://i.pravatar.cc/150?img=11'),
-                fit: BoxFit.cover,
-              ),
+            ),
+            child: const Center(
+              child: Icon(Icons.person, color: AppColors.primary, size: 20),
             ),
           ),
         ),
@@ -533,7 +497,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         Icons.help_outline_rounded,
         'Doubts',
         AppColors.moltenAmber,
-        '/student/ask-doubt',
+        '/student/doubts',
       ),
       const SizedBox(width: AppDimensions.sm),
       _qaItem(
@@ -928,96 +892,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     ).animate(delay: 600.ms).fadeIn(duration: 400.ms);
   }
 
-  // ═══════════════════════════════════════════════════════
-  // TESTIMONIALS — student reviews carousel
-  // ═══════════════════════════════════════════════════════
-  Widget _buildTestimonials(BuildContext context) {
-    final isDark = CT.isDark(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('What students say', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -0.5)),
-            CPPressable(
-              child: Text('+ Add', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.elitePrimary)),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppDimensions.md),
-        SizedBox(
-          height: 165,
-          child: PageView.builder(
-            controller: _testimonialController,
-            onPageChanged: (i) => setState(() => _testimonialPage = i),
-            itemCount: _testimonials.length,
-            itemBuilder: (context, index) {
-              final t = _testimonials[index];
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: _glassContainer(
-                  isDark: isDark,
-                  padding: const EdgeInsets.all(AppDimensions.md),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.format_quote_rounded, size: 24, color: AppColors.elitePrimary.withValues(alpha: 0.3)),
-                      const SizedBox(height: 6),
-                      Expanded(
-                        child: Text(t['quote']!, style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context), height: 1.5, fontStyle: FontStyle.italic), maxLines: 3, overflow: TextOverflow.ellipsis),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          CircleAvatar(radius: 14, backgroundColor: AppColors.elitePrimary.withValues(alpha: 0.1), child: Text(t['name']![0], style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.elitePrimary))),
-                          const SizedBox(width: AppDimensions.sm),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(t['name']!, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: CT.textH(context))),
-                                Text(t['batch']!, style: GoogleFonts.inter(fontSize: 10, color: CT.textM(context))),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(color: AppColors.mintGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                            child: Text('AIR ${t['rank']}', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.mintGreen)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: AppDimensions.step),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            _testimonials.length,
-            (i) => AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: _testimonialPage == i ? 20 : 6,
-              height: 5,
-              decoration: BoxDecoration(
-                color: _testimonialPage == i
-                    ? CT.accent(context)
-                    : CT.textM(context).withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-              ),
-            ),
-          ),
-        ),
-      ],
-    ).animate(delay: 700.ms).fadeIn(duration: 400.ms);
-  }
+
 
   // ═══════════════════════════════════════════════════════
   // ANNOUNCEMENTS — recent updates list

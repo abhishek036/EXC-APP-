@@ -12,6 +12,7 @@ import '../../../../core/widgets/cp_toast.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/widgets/cp_glass_card.dart';
+import '../../../../core/widgets/cp_shimmer.dart';
 import '../../data/repositories/admin_repository.dart';
 
 class StaffManagementPage extends StatefulWidget {
@@ -62,10 +63,6 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       body: Stack(
         children: [
-          if (isDark) ...[
-            Positioned(top: -100, left: -50, child: _glow(300, AppColors.elitePrimary.withValues(alpha: 0.1))),
-            Positioned(bottom: 100, right: -100, child: _glow(350, AppColors.elitePurple.withValues(alpha: 0.05))),
-          ],
           SafeArea(
             child: Column(
               children: [
@@ -77,7 +74,12 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 const SizedBox(height: 20),
                 Expanded(
                   child: _loading
-                      ? const Center(child: CircularProgressIndicator(color: AppColors.elitePrimary))
+                      ? ListView.separated(
+                          padding: const EdgeInsets.all(20),
+                          itemCount: 5,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (_, __) => const CPShimmer(width: double.infinity, height: 80, borderRadius: 16),
+                        )
                       : RefreshIndicator(
                           onRefresh: _loadData,
                           color: AppColors.elitePrimary,
@@ -96,8 +98,8 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                decoration: BoxDecoration(gradient: AppColors.premiumEliteGradient, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10))]),
-                child: Row(children: [const Icon(Icons.add_rounded, color: Colors.white, size: 24), const SizedBox(width: 8), Text(_tabIndex == 0 ? 'ONBOARD STAFF' : 'RECORD PAYOUT', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 13, letterSpacing: 0.5))]),
+                decoration: BoxDecoration(color: const Color(0xFF0D1282), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4), blurRadius: 0)]),
+                child: Row(children: [const Icon(Icons.add_rounded, color: Color(0xFFEEEDED), size: 24), const SizedBox(width: 8), Text(_tabIndex == 0 ? 'ONBOARD STAFF' : 'RECORD PAYOUT', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFFEEEDED), fontSize: 13, letterSpacing: 0.5))]),
               ),
             ),
           ).animate().slideY(begin: 1, duration: 600.ms, curve: Curves.easeOutBack),
@@ -106,7 +108,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     );
   }
 
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
+  // Removed _glow method
 
   Widget _buildAppBar(bool isDark) {
     return Padding(
@@ -128,8 +130,8 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       onTap: onTap,
       child: Container(
         width: 44, height: 44,
-        decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(16)),
-        child: Icon(icon, size: 20, color: isDark ? Colors.white : AppColors.deepNavy),
+        decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3), blurRadius: 0)]),
+        child: Icon(icon, size: 20, color: const Color(0xFF0D1282)),
       ),
     );
   }
@@ -189,9 +191,9 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(gradient: active ? AppColors.premiumEliteGradient : null, borderRadius: BorderRadius.circular(14), boxShadow: active ? [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 4))] : null),
+          decoration: BoxDecoration(color: active ? const Color(0xFFF0DE36) : const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: active ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))] : null),
           alignment: Alignment.center,
-          child: Text(title, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w800, color: active ? Colors.white : (isDark ? Colors.white38 : Colors.black38))),
+          child: Text(title, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))),
         ),
       ),
     );
@@ -228,7 +230,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 children: [
                   Text('₹${NumberFormat('#,##,###').format(salary)}', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.mintGreen, letterSpacing: -0.5)),
                   const SizedBox(height: 6),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.elitePrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.elitePrimary.withValues(alpha: 0.2))), child: Text('ACTIVE', style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: AppColors.elitePrimary, letterSpacing: 0.5))),
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: AppColors.elitePrimary, width: 2), boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2))]), child: Text('ACTIVE', style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5))),
                 ],
               ),
             ],
@@ -252,7 +254,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           isDark: isDark, padding: const EdgeInsets.all(16), borderRadius: 24,
           child: Row(
             children: [
-              Container(width: 48, height: 48, decoration: BoxDecoration(color: AppColors.mintGreen.withValues(alpha: 0.1), shape: BoxShape.circle), child: const Icon(Icons.payments_rounded, color: AppColors.mintGreen, size: 20)),
+              Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: AppColors.mintGreen, width: 2), boxShadow: const [BoxShadow(color: AppColors.mintGreen, offset: Offset(2, 2))]), child: const Icon(Icons.payments_rounded, color: AppColors.mintGreen, size: 20)),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -349,7 +351,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             const SizedBox(height: 24),
             CustomTextField(label: 'Disbursement Amount (₹)', hint: '0', controller: amtCtrl, keyboardType: TextInputType.number, prefixIcon: Icons.currency_rupee_rounded),
             const SizedBox(height: 32),
-            Row(children: ['Salary', 'Bonus', 'Advance'].map((opt) => Expanded(child: CPPressable(onTap: () { HapticFeedback.selectionClick(); setSS(() => type = opt); }, child: AnimatedContainer(duration: 250.ms, margin: const EdgeInsets.symmetric(horizontal: 4), padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(color: type == opt ? AppColors.elitePrimary : (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: type == opt ? Colors.transparent : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)))), child: Center(child: Text(opt.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: type == opt ? Colors.white : (isDark ? Colors.white38 : Colors.black38), letterSpacing: 0.5))))))).toList()),
+            Row(children: ['Salary', 'Bonus', 'Advance'].map((opt) => Expanded(child: CPPressable(onTap: () { HapticFeedback.selectionClick(); setSS(() => type = opt); }, child: AnimatedContainer(duration: 250.ms, margin: const EdgeInsets.symmetric(horizontal: 4), padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(color: type == opt ? const Color(0xFFF0DE36) : const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: type == opt ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))] : []), child: Center(child: Text(opt.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5))))))).toList()),
             const SizedBox(height: 48),
             CustomButton(text: 'Initiate Transfer', icon: Icons.bolt_rounded, onPressed: () async {
               if (sid == null || amtCtrl.text.isEmpty) return;

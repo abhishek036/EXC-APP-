@@ -20,41 +20,32 @@ class CPBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isDark 
-                ? AppColors.eliteDarkBg.withValues(alpha: 0.8) 
-                : Colors.white.withValues(alpha: 0.8),
-            border: Border(
-              top: BorderSide(
-                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: List.generate(items.length, (i) {
-                  final item = items[i];
-                  final isActive = i == currentIndex;
-                  return _NavItem(
-                    item: item,
-                    isActive: isActive,
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      onTap(i);
-                    },
-                  );
-                }),
-              ),
-            ),
+    return Container(
+      height: 64, // Base height, safe area added below
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFFFF),
+        border: Border(top: BorderSide(color: const Color(0xFFE3E4EE), width: 0.5)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(items.length, (i) {
+              final item = items[i];
+              final isActive = i == currentIndex;
+              return Expanded(
+                child: _NavItem(
+                  item: item,
+                  isActive: isActive,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    onTap(i);
+                  },
+                ),
+              );
+            }),
           ),
         ),
       ),
@@ -88,41 +79,55 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
-    final activeColor = AppColors.elitePrimary;
-    final inactiveColor = isDark ? Colors.white54 : Colors.black45;
+    final activeColor = const Color(0xFF0D1282);
+    final inactiveColor = const Color(0xFF8F97B8);
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive 
-              ? activeColor.withValues(alpha: 0.1) 
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isActive ? item.activeIcon : item.icon,
-              size: 22,
-              color: isActive ? activeColor : inactiveColor,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              item.label,
-              style: GoogleFonts.inter(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? activeColor : inactiveColor,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isActive ? activeColor.withValues(alpha: 0.1) : Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isActive ? item.activeIcon : item.icon,
+                  size: 24,
+                  color: isActive ? activeColor : inactiveColor,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                item.label,
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
+                  color: isActive ? activeColor : inactiveColor,
+                ),
+              ),
+            ],
+          ),
+          if (isActive)
+            Positioned(
+              bottom: 0,
+              child: Container(
+                width: 24,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0DE36), // Yellow Indicator
+                  borderRadius: BorderRadius.circular(1.5),
+                ),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

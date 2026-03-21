@@ -150,7 +150,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         joinCode: event.joinCode ?? _pendingJoinCode,
       );
       
-      final token = data['accessToken']; 
+      final token = data['accessToken'];
+      final refreshToken = data['refreshToken'];
       final isNewUser = data['isNewUser'] == true;
       
       final user = UserModel.fromJson({
@@ -161,6 +162,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       });
 
       await _storage.saveToken(token);
+      if (refreshToken != null) await _storage.saveRefreshToken(refreshToken as String);      
       await _storage.saveUserJson(jsonEncode(user.toJson()));
       
       // New users go to profile completion; existing go straight to dashboard
@@ -185,8 +187,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoading());
 
     try {
-      await Future.delayed(const Duration(milliseconds: 800));
-
       final identifier = event.identifier.trim();
       if (identifier.length < 3) {
         emit(const AuthError('Enter valid phone or username'));
@@ -197,7 +197,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
-      // Use new ApiAuthService login logic calling node APIs
+      // Use ApiAuthService for real API login
       final data = await _apiAuth.loginWithPassword(
         phone: identifier,
         password: event.password,
@@ -205,6 +205,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
 
       final token = data['accessToken'];
+      final refreshToken = data['refreshToken'];
       final rawUser = data['user'];
 
       final user = UserModel.fromJson({
@@ -215,6 +216,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       });
 
       await _storage.saveToken(token ?? 'manual_login_token');
+      if (refreshToken != null) await _storage.saveRefreshToken(refreshToken as String);
       await _storage.saveUserJson(jsonEncode(user.toJson()));
 
       emit(AuthAuthenticated(user));
