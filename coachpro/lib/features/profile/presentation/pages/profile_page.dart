@@ -59,23 +59,35 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => _saving = true);
     HapticFeedback.mediumImpact();
 
-    // Persist updated user into secure storage and refresh bloc
+    // Persist updated user into backend, then local storage, then refresh bloc
     try {
       final authState = context.read<AuthBloc>().state;
       if (authState is AuthAuthenticated) {
         final oldUser = authState.user as UserModel;
+        
+        // 1. Sync to backend
+        await sl<ApiAuthService>().updateProfile(
+          name: _nameCtrl.text.trim(),
+          phone: _phoneCtrl.text.trim(),
+          email: _emailCtrl.text.trim().isNotEmpty ? _emailCtrl.text.trim() : null,
+        );
+
         final updated = UserModel(
           id: oldUser.id,
           name: _nameCtrl.text.trim(),
           phone: _phoneCtrl.text.trim().isNotEmpty ? _phoneCtrl.text.trim() : oldUser.phone,
           role: oldUser.role,
+          email: _emailCtrl.text.trim().isNotEmpty ? _emailCtrl.text.trim() : oldUser.email,
         );
-        await sl<SecureStorageService>().saveUserJson(
-          '{"id":"${updated.id}","name":"${updated.name}","phone":"${updated.phone}","role":"${updated.role.name}"}',
-        );
+        
+        // 2. Persist locally
+        await sl<SecureStorageService>().saveUserJson(jsonEncode(updated.toJson()));
+        
         if (mounted) {
+          // 3. Update Global State
           context.read<AuthBloc>().add(AuthProfileCompleted(updated));
           setState(() { _editMode = false; _saving = false; _user = updated; });
+          
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Profile updated successfully!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: Colors.white)),
             backgroundColor: const Color(0xFF16A34A),
@@ -84,8 +96,11 @@ class _ProfilePageState extends State<ProfilePage> {
           ));
         }
       }
-    } catch (_) {
-      setState(() => _saving = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Update failed: $e')));
+      }
     }
   }
 

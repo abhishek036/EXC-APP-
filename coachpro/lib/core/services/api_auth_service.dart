@@ -97,4 +97,26 @@ class ApiAuthService {
       // Ignore network errors on logout
     }
   }
+
+  /// Updates User Profile
+  Future<Map<String, dynamic>> updateProfile({
+    String? name,
+    String? email,
+    String? phone,
+  }) async {
+    final response = await _api.dio.patch(
+      ApiEndpoints.updateProfile,
+      data: {
+        if (name != null) 'name': name,
+        if (email != null) 'email': email,
+        if (phone != null) 'phone': phone,
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(response.data['message'] ?? 'Failed to update profile');
+    }
+
+    return response.data['data'] as Map<String, dynamic>;
+  }
 }

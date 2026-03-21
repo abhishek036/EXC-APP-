@@ -255,7 +255,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Widget _buildHamburgerMenu(BuildContext context, bool isDark) {
     final authState = context.read<AuthBloc>().state;
     final userName = authState is AuthAuthenticated ? authState.user.name : 'Admin';
-    final initials = userName.isNotEmpty ? userName.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase() : 'EA';
+    final initials = userName.trim().isNotEmpty 
+        ? userName.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase() 
+        : 'EA';
     return Drawer(
       backgroundColor: isDark ? AppColors.eliteDarkBg : Colors.white,
       child: SafeArea(
@@ -361,7 +363,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           child: Container(
             width: 44, height: 44,
             decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF0D1282), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))]),
-            child: const Center(child: Text('EA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
+            child: Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
           ),
         ),
         const SizedBox(width: 12),
@@ -370,7 +372,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('$_greeting, 👋', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black38)),
-              Text('Elite Admin', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
+              Text(userName, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
             ],
           ),
         ),
