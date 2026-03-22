@@ -295,16 +295,16 @@ class _StudentProfilePageState extends State<StudentProfilePage>
   Future<void> _deleteStudent() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Delete Student?',
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 18)),
         content: Text('This will permanently remove "${_student?['name'] ?? 'this student'}" and all their records.',
           style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF0D1282))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false),
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
             child: Text('Cancel', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)))),
-          TextButton(onPressed: () => Navigator.pop(context, true),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
             child: Text('Delete', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: const Color(0xFFD71313)))),
         ],
       ),
@@ -333,15 +333,15 @@ class _StudentProfilePageState extends State<StudentProfilePage>
     final batchName = batch['name'].toString();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Remove from batch?', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 17)),
         content: Text('Remove this student from "$batchName"?',
           style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF0D1282))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false),
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
             child: Text('Cancel', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)))),
-          TextButton(onPressed: () => Navigator.pop(context, true),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
             child: Text('Remove', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: const Color(0xFFD71313)))),
         ],
       ),

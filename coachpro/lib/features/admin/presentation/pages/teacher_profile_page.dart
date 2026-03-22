@@ -380,7 +380,12 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
         final batch = _batches[index];
         final studentCount = _toNum(((batch['_count'] as Map?)?['student_batches'])).toInt();
         return CPPressable(
-          onTap: () => context.push('/admin/batches/${batch['id']}'),
+          onTap: () {
+            context.push('/admin/batches/${batch['id']}').then((_) {
+              if (!mounted) return;
+              _loadTeacherDashboard();
+            });
+          },
           child: CPGlassCard(
             isDark: isDark,
             padding: const EdgeInsets.all(16),

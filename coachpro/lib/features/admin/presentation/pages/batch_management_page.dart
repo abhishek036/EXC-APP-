@@ -240,7 +240,12 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
             : 'No teacher assigned');
 
     return CPPressable(
-      onTap: () => context.push('/admin/batches/${batch['id']}'),
+      onTap: () {
+        context.push('/admin/batches/${batch['id']}').then((_) {
+          if (!mounted) return;
+          _loadData();
+        });
+      },
       child: CPGlassCard(
         isDark: isDark,
         padding: const EdgeInsets.all(18),

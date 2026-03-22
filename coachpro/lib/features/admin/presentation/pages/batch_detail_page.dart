@@ -1080,7 +1080,12 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     margin: const EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFF0D1282), width: 1)),
                     child: ListTile(
-                      onTap: () => context.push('/admin/students/${student['id']}'),
+                      onTap: () {
+                        context.push('/admin/students/${student['id']}').then((_) {
+                          if (!mounted) return;
+                          _loadBatch();
+                        });
+                      },
                       leading: CircleAvatar(
                         backgroundColor: const Color(0xFFEEEDED),
                         child: Text(

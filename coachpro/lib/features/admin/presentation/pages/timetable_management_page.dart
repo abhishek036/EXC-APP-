@@ -167,7 +167,17 @@ class _TimetableManagementPageState extends State<TimetableManagementPage> {
                 Navigator.pop(ctx);
                 setState(() => _isLoading = true);
 
-                final batch = _batches.firstWhere((b) => (b['id'] ?? '') == selectedBatchId);
+                final batch = _batches.firstWhere(
+                  (b) => (b['id'] ?? '').toString() == selectedBatchId,
+                  orElse: () => <String, dynamic>{},
+                );
+                if (batch.isEmpty) {
+                  if (mounted) {
+                    setState(() => _isLoading = false);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selected batch is no longer available')));
+                  }
+                  return;
+                }
                 final days = ((batch['days_of_week'] as List?) ?? const []).map((d) => (d as num).toInt()).toSet();
                 days.add(_dayIndex(_activeDay));
 
@@ -192,16 +202,46 @@ class _TimetableManagementPageState extends State<TimetableManagementPage> {
   }
 
   Future<void> _deleteSlot(String batchId) async {
-    final batch = _batches.firstWhere((b) => (b['id'] ?? '').toString() == batchId);
+    final batch = _batches.firstWhere(
+      (b) => (b['id'] ?? '').toString() == batchId,
+      orElse: () => <String, dynamic>{},
+    );
+    if (batch.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Slot could not be removed because the batch was not found')));
+      }
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete slot?'),
+        content: const Text('This will remove the batch from the selected day.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
     final activeIndex = _dayIndex(_activeDay);
     final days = ((batch['days_of_week'] as List?) ?? const [])
         .map((d) => (d as num).toInt())
         .where((d) => d != activeIndex)
         .toList();
 
-    setState(() => _isLoading = true);
-    await _adminRepo.updateBatch(batchId: batchId, data: {'days_of_week': days});
-    _loadData();
+    try {
+      setState(() => _isLoading = true);
+      await _adminRepo.updateBatch(batchId: batchId, data: {'days_of_week': days});
+      await _loadData();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to remove slot: $e')));
+      }
+    }
   }
 
   @override

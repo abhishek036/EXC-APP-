@@ -152,7 +152,8 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
               onChanged: (v) {
                 setState(() {
                   _sid = v;
-                  _sname = students.firstWhere((s) => s['id'].toString() == v)['name']?.toString();
+                  final matches = students.where((s) => s['id'].toString() == v).toList();
+                  _sname = matches.isEmpty ? null : matches.first['name']?.toString();
                 });
               },
             ),

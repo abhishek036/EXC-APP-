@@ -63,7 +63,8 @@ class _DataExportPageState extends State<DataExportPage> {
 
     try {
       final export = DataExportService.instance;
-      final batchName = _batches.firstWhere((b) => b['id'] == _selectedBatchId)['name'] as String;
+      final matches = _batches.where((b) => (b['id'] ?? '').toString() == _selectedBatchId).toList();
+      final batchName = matches.isEmpty ? 'Selected Batch' : (matches.first['name'] ?? 'Selected Batch').toString();
 
       // 1. Fetch Real Data based on Report Type
       List<Map<String, dynamic>> reportData = [];
