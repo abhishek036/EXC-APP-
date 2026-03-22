@@ -1,5 +1,5 @@
 import { ContentRepository } from './content.repository';
-import { CreateNoteInput, CreateAssignmentInput, CreateDoubtInput, RespondDoubtInput } from './content.validator';
+import { CreateNoteInput, CreateAssignmentInput, SubmitAssignmentInput, ReviewAssignmentSubmissionInput, CreateDoubtInput, RespondDoubtInput } from './content.validator';
 
 export class ContentService {
   private repo: ContentRepository;
@@ -24,6 +24,18 @@ export class ContentService {
 
   async listAssignments(instituteId: string, filter: { batchId?: string, teacherId?: string }) {
       return this.repo.listAssignments(instituteId, filter);
+  }
+
+  async submitAssignment(instituteId: string, assignmentId: string, studentId: string, data: SubmitAssignmentInput) {
+      return this.repo.submitAssignment(instituteId, assignmentId, studentId, data);
+  }
+
+  async listAssignmentSubmissions(instituteId: string, assignmentId: string) {
+      return this.repo.listAssignmentSubmissions(instituteId, assignmentId);
+  }
+
+  async reviewAssignmentSubmission(instituteId: string, submissionId: string, reviewerUserId: string, data: ReviewAssignmentSubmissionInput) {
+      return this.repo.reviewAssignmentSubmission(instituteId, submissionId, reviewerUserId, data);
   }
 
   // DOUBTS

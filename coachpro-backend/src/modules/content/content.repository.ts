@@ -1,5 +1,5 @@
 import { prisma } from '../../server';
-import { CreateNoteInput, CreateAssignmentInput, CreateDoubtInput, RespondDoubtInput } from './content.validator';
+import { CreateNoteInput, CreateAssignmentInput, SubmitAssignmentInput, ReviewAssignmentSubmissionInput, CreateDoubtInput, RespondDoubtInput } from './content.validator';
 
 export class ContentRepository {
   // NOTES
@@ -36,6 +36,64 @@ export class ContentRepository {
             ...(filter.teacherId && { teacher_id: filter.teacherId })
           },
           orderBy: { created_at: 'desc' }
+      });
+  }
+
+  async submitAssignment(instituteId: string, assignmentId: string, studentId: string, data: SubmitAssignmentInput) {
+      return prisma.assignmentSubmission.upsert({
+          where: {
+              assignment_id_student_id: {
+                  assignment_id: assignmentId,
+                  student_id: studentId,
+              }
+          },
+          update: {
+              file_url: data.file_url,
+              submission_text: data.submission_text,
+              status: 'submitted',
+              submitted_at: new Date(),
+              reviewed_at: null,
+              reviewed_by_id: null,
+              marks_obtained: null,
+              remarks: null,
+          },
+          create: {
+              institute_id: instituteId,
+              assignment_id: assignmentId,
+              student_id: studentId,
+              file_url: data.file_url,
+              submission_text: data.submission_text,
+              status: 'submitted',
+          }
+      });
+  }
+
+  async listAssignmentSubmissions(instituteId: string, assignmentId: string) {
+      return prisma.assignmentSubmission.findMany({
+          where: { institute_id: instituteId, assignment_id: assignmentId },
+          include: {
+              student: { select: { id: true, name: true, photo_url: true } },
+              assignment: { select: { id: true, title: true, due_date: true } },
+              reviewed_by: { select: { id: true, role: true } },
+          },
+          orderBy: { submitted_at: 'desc' },
+      });
+  }
+
+  async reviewAssignmentSubmission(instituteId: string, submissionId: string, reviewerUserId: string, data: ReviewAssignmentSubmissionInput) {
+      return prisma.assignmentSubmission.update({
+          where: { id: submissionId, institute_id: instituteId },
+          data: {
+              status: data.status ?? 'reviewed',
+              marks_obtained: data.marks_obtained,
+              remarks: data.remarks,
+              reviewed_at: new Date(),
+              reviewed_by_id: reviewerUserId,
+          },
+          include: {
+              student: { select: { id: true, name: true } },
+              assignment: { select: { id: true, title: true } },
+          },
       });
   }
 

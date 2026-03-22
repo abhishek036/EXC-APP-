@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ContentController } from './content.controller';
 import { validate } from '../../middleware/validate.middleware';
-import { createNoteSchema, createAssignmentSchema, createDoubtSchema, respondDoubtSchema } from './content.validator';
+import { createNoteSchema, createAssignmentSchema, submitAssignmentSchema, reviewAssignmentSubmissionSchema, createDoubtSchema, respondDoubtSchema } from './content.validator';
 import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
 import { tenantMiddleware } from '../../middleware/tenant.middleware';
 
@@ -16,6 +16,9 @@ router.get('/notes', requireRole('admin', 'teacher', 'student'), controller.list
 
 router.post('/assignments', requireRole('admin', 'teacher'), validate(createAssignmentSchema), controller.createAssignment);
 router.get('/assignments', requireRole('admin', 'teacher', 'student'), controller.listAssignments);
+router.post('/assignments/:assignmentId/submit', requireRole('student'), validate(submitAssignmentSchema), controller.submitAssignment);
+router.get('/assignments/:assignmentId/submissions', requireRole('admin', 'teacher'), controller.listAssignmentSubmissions);
+router.patch('/assignments/submissions/:submissionId/review', requireRole('admin', 'teacher'), validate(reviewAssignmentSubmissionSchema), controller.reviewAssignmentSubmission);
 
 // Doubts (Student creation, Staff responding)
 router.post('/doubts', requireRole('student'), validate(createDoubtSchema), controller.askDoubt);

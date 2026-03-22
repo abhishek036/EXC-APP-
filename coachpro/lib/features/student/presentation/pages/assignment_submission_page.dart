@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
+import '../../../admin/data/repositories/admin_repository.dart';
 
 class AssignmentSubmissionPage extends StatefulWidget {
   const AssignmentSubmissionPage({super.key});
@@ -15,32 +18,152 @@ class AssignmentSubmissionPage extends StatefulWidget {
 }
 
 class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
+  final _adminRepo = sl<AdminRepository>();
+
+  bool _isLoading = true;
+  bool _isSubmitting = false;
   bool _isFileUploaded = false;
+  String? _error;
+
+  final _fileUrlCtrl = TextEditingController();
+  final _submissionTextCtrl = TextEditingController();
+
+  List<Map<String, dynamic>> _assignments = [];
+  Map<String, dynamic>? _selectedAssignment;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAssignments();
+  }
+
+  @override
+  void dispose() {
+    _fileUrlCtrl.dispose();
+    _submissionTextCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAssignments() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final list = await _adminRepo.getAssignments();
+      if (!mounted) return;
+      setState(() {
+        _assignments = list;
+        _selectedAssignment = list.isNotEmpty ? list.first : null;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _submitAssignment() async {
+    final assignmentId = (_selectedAssignment?['id'] ?? '').toString();
+    if (assignmentId.isEmpty) return;
+
+    if (!_isFileUploaded) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Upload a file or add text before submitting')));
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      await _adminRepo.submitAssignment(
+        assignmentId: assignmentId,
+        fileUrl: _fileUrlCtrl.text.trim().isNotEmpty ? _fileUrlCtrl.text.trim() : null,
+        submissionText: _submissionTextCtrl.text.trim().isNotEmpty ? _submissionTextCtrl.text.trim() : null,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Assignment submitted successfully')));
+      context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Submission failed: $e')));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final assignment = _selectedAssignment;
+    final title = (assignment?['title'] ?? 'No Assignment Available').toString();
+    final subject = (assignment?['subject'] ?? 'General').toString();
+    final description = (assignment?['description'] ?? 'No assignment description provided.').toString();
+    final dueDateRaw = (assignment?['due_date'] ?? '').toString();
+    final dueLabel = _formatDueLabel(dueDateRaw);
+
     return Scaffold(
       backgroundColor: CT.bg(context),
       appBar: AppBar(
         title: Text('Submit Assignment', style: GoogleFonts.sora(fontWeight: FontWeight.w600)),
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(child: Text(_error!, style: GoogleFonts.dmSans(color: CT.textM(context))))
+              : assignment == null
+                  ? Center(child: Text('No assignments found', style: GoogleFonts.dmSans(color: CT.textM(context))))
+                  : SingleChildScrollView(
         padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (_assignments.length > 1) ...[
+            Text('Select Assignment', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context))),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: CT.card(context),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: CT.border(context)),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: (assignment['id'] ?? '').toString(),
+                  isExpanded: true,
+                  items: _assignments.map((item) {
+                    final id = (item['id'] ?? '').toString();
+                    final label = (item['title'] ?? 'Assignment').toString();
+                    return DropdownMenuItem<String>(value: id, child: Text(label, overflow: TextOverflow.ellipsis));
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() {
+                      _selectedAssignment = _assignments.firstWhere(
+                        (item) => (item['id'] ?? '').toString() == value,
+                        orElse: () => _assignments.first,
+                      );
+                    });
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+
           // Basic Info
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(color: AppColors.physics.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-              child: Text('Physics', style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.physics)),
+              child: Text(subject, style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.physics)),
             ),
-            Text('Due In 2 Days', style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.error, fontWeight: FontWeight.w700)),
+            Text(dueLabel, style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.error, fontWeight: FontWeight.w700)),
           ]),
           const SizedBox(height: 16),
-          Text('Mechanics Problem Set #4', style: GoogleFonts.sora(fontSize: 20, fontWeight: FontWeight.w700)),
+          Text(title, style: GoogleFonts.sora(fontSize: 20, fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           Text(
-            'Complete all 20 problems from the worksheet. Ensure you show all steps for the free-body diagrams in questions 12 to 15.',
+            description,
             style: GoogleFonts.dmSans(fontSize: 14, color: CT.textS(context), height: 1.5),
           ),
           const SizedBox(height: 32),
@@ -53,7 +176,12 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
             CPPressable(
               onTap: () {
                 // Simulate upload
-                setState(() => _isFileUploaded = true);
+                setState(() {
+                  _isFileUploaded = true;
+                  _fileUrlCtrl.text = _fileUrlCtrl.text.trim().isEmpty
+                      ? 'https://example.com/submission-${DateTime.now().millisecondsSinceEpoch}.pdf'
+                      : _fileUrlCtrl.text.trim();
+                });
               },
               child: Container(
                 width: double.infinity,
@@ -94,7 +222,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Rohan_Sharma_PS4.pdf', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600)),
+                  Text('${title.replaceAll(' ', '_')}.pdf', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
                   Text('2.4 MB • Uploaded just now', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context))),
                 ])),
@@ -104,6 +232,18 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                 ),
               ]),
             ).animate().fadeIn(duration: 400.ms).scaleXY(begin: 0.95, end: 1.0, curve: Curves.easeOutBack),
+
+          const SizedBox(height: 12),
+          TextField(
+            controller: _submissionTextCtrl,
+            minLines: 2,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              labelText: 'Submission note (optional)',
+              hintText: 'Any remarks for teacher...',
+              border: OutlineInputBorder(),
+            ),
+          ),
           
           const SizedBox(height: 40),
           
@@ -111,7 +251,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
           Row(children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: () {},
+                onPressed: () => context.pop(),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   side: BorderSide(color: CT.textM(context)),
@@ -124,13 +264,25 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
             Expanded(
               flex: 2,
               child: CustomButton(
-                text: 'Turn In Assignment',
-                onPressed: _isFileUploaded ? () {} : null, // Disable if no file
+                text: _isSubmitting ? 'Submitting...' : 'Turn In Assignment',
+                onPressed: (_isFileUploaded && !_isSubmitting) ? _submitAssignment : null,
               ),
             ),
           ]).animate(delay: 200.ms).fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
         ]),
       ),
     );
+  }
+
+  String _formatDueLabel(String dueDateRaw) {
+    if (dueDateRaw.isEmpty) return 'No due date';
+    final due = DateTime.tryParse(dueDateRaw)?.toLocal();
+    if (due == null) return 'Due soon';
+    final now = DateTime.now();
+    final days = due.difference(now).inDays;
+    if (days < 0) return 'Overdue';
+    if (days == 0) return 'Due today';
+    if (days == 1) return 'Due tomorrow';
+    return 'Due in $days days';
   }
 }

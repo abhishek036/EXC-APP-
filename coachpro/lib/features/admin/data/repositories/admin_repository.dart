@@ -779,6 +779,58 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch assignments');
   }
 
+  Future<Map<String, dynamic>> submitAssignment({
+    required String assignmentId,
+    String? fileUrl,
+    String? submissionText,
+  }) async {
+    final payload = <String, dynamic>{
+      'file_url': fileUrl?.trim(),
+      'submission_text': submissionText?.trim(),
+    };
+    payload.removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+
+    final response = await _api.dio.post(
+      'content/assignments/$assignmentId/submit',
+      data: payload,
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to submit assignment');
+  }
+
+  Future<List<Map<String, dynamic>>> getAssignmentSubmissions(String assignmentId) async {
+    final response = await _api.dio.get('content/assignments/$assignmentId/submissions');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch assignment submissions');
+  }
+
+  Future<Map<String, dynamic>> reviewAssignmentSubmission({
+    required String submissionId,
+    required String status,
+    num? marksObtained,
+    String? remarks,
+  }) async {
+    final payload = <String, dynamic>{
+      'status': status,
+      'marks_obtained': marksObtained,
+      'remarks': remarks?.trim(),
+    };
+    payload.removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+
+    final response = await _api.dio.patch(
+      'content/assignments/submissions/$submissionId/review',
+      data: payload,
+    );
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to review assignment submission');
+  }
+
   // ── Fees ───────────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getFeeRecords({
     String? batchId,

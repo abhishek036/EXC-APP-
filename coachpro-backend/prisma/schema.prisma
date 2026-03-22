@@ -42,6 +42,7 @@ model Institute {
   quiz_attempts             QuizAttempt[]
   notes                     Note[]
   assignments               Assignment[]
+  assignment_submissions    AssignmentSubmission[]
   doubts                    Doubt[]
   chat_messages             ChatMessage[]
   lectures                  Lecture[]
@@ -80,6 +81,7 @@ model User {
   chat_messages         ChatMessage[]
   announcements_created Announcement[]
   audit_logs            AuditLog[]
+  reviewed_submissions  AssignmentSubmission[] @relation("ReviewedSubmissions")
 
   @@unique([institute_id, phone])
   @@map("users")
@@ -166,6 +168,7 @@ model Student {
   doubts            Doubt[]
   certificates      Certificate[]
   syllabus_progress StudentSyllabusProgress[]
+  assignment_submissions AssignmentSubmission[]
 
   @@map("students")
 }
@@ -505,7 +508,34 @@ model Assignment {
   file_url     String?   @db.Text
   created_at   DateTime? @default(now()) @db.Timestamptz
 
+  submissions AssignmentSubmission[]
+
   @@map("assignments")
+}
+
+model AssignmentSubmission {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assignment_id   String      @db.Uuid
+  assignment      Assignment  @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
+  student_id      String      @db.Uuid
+  student         Student     @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  institute_id    String      @db.Uuid
+  institute       Institute   @relation(fields: [institute_id], references: [id], onDelete: Cascade)
+  file_url        String?     @db.Text
+  submission_text String?     @db.Text
+  status          String?     @default("submitted") @db.VarChar(20)
+  marks_obtained  Decimal?    @db.Decimal(6, 2)
+  remarks         String?     @db.Text
+  submitted_at    DateTime?   @default(now()) @db.Timestamptz
+  reviewed_at     DateTime?   @db.Timestamptz
+  reviewed_by_id  String?     @db.Uuid
+  reviewed_by     User?       @relation("ReviewedSubmissions", fields: [reviewed_by_id], references: [id])
+
+  @@unique([assignment_id, student_id])
+  @@index([assignment_id])
+  @@index([student_id])
+  @@index([institute_id])
+  @@map("assignment_submissions")
 }
 
 model Doubt {

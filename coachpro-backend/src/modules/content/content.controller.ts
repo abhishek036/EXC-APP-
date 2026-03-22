@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ContentService } from './content.service';
 import { sendResponse } from '../../utils/response';
+import { prisma } from '../../server';
 
 export class ContentController {
   private service: ContentService;
@@ -40,6 +41,45 @@ export class ContentController {
       };
       const data = await this.service.listAssignments(req.instituteId!, filter);
       return sendResponse({ res, data, message: 'Assignments fetched successfully' });
+    } catch (e) { next(e); }
+  }
+
+  submitAssignment = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const student = await prisma.student.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! },
+        select: { id: true },
+      });
+      if (!student) {
+        throw new Error('Student profile not found');
+      }
+
+      const data = await this.service.submitAssignment(
+        req.instituteId!,
+        req.params.assignmentId,
+        student.id,
+        req.body,
+      );
+      return sendResponse({ res, data, message: 'Assignment submitted successfully', statusCode: 201 });
+    } catch (e) { next(e); }
+  }
+
+  listAssignmentSubmissions = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.service.listAssignmentSubmissions(req.instituteId!, req.params.assignmentId);
+      return sendResponse({ res, data, message: 'Assignment submissions fetched successfully' });
+    } catch (e) { next(e); }
+  }
+
+  reviewAssignmentSubmission = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.service.reviewAssignmentSubmission(
+        req.instituteId!,
+        req.params.submissionId,
+        req.user!.userId,
+        req.body,
+      );
+      return sendResponse({ res, data, message: 'Assignment submission reviewed successfully' });
     } catch (e) { next(e); }
   }
 

@@ -21,6 +21,26 @@ export const createAssignmentSchema = z.object({
   })
 });
 
+export const submitAssignmentSchema = z.object({
+  body: z.object({
+    file_url: z.string().url().optional(),
+    submission_text: z.string().max(4000).optional(),
+  }).refine((value) => {
+    return !!(value.file_url || value.submission_text?.trim());
+  }, {
+    message: 'Either file_url or submission_text is required',
+    path: ['file_url'],
+  }),
+});
+
+export const reviewAssignmentSubmissionSchema = z.object({
+  body: z.object({
+    status: z.enum(['submitted', 'reviewed']).optional(),
+    marks_obtained: z.number().min(0).max(1000).optional(),
+    remarks: z.string().max(4000).optional(),
+  }),
+});
+
 export const createDoubtSchema = z.object({
   body: z.object({
     batch_id: z.string().uuid(),
@@ -39,5 +59,7 @@ export const respondDoubtSchema = z.object({
 
 export type CreateNoteInput = z.infer<typeof createNoteSchema>['body'];
 export type CreateAssignmentInput = z.infer<typeof createAssignmentSchema>['body'];
+export type SubmitAssignmentInput = z.infer<typeof submitAssignmentSchema>['body'];
+export type ReviewAssignmentSubmissionInput = z.infer<typeof reviewAssignmentSubmissionSchema>['body'];
 export type CreateDoubtInput = z.infer<typeof createDoubtSchema>['body'];
 export type RespondDoubtInput = z.infer<typeof respondDoubtSchema>['body'];

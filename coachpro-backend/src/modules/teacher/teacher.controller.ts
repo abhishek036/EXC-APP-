@@ -128,14 +128,13 @@ export class TeacherController {
         prisma.doubt.count({
           where: { assigned_to_id: teacherId, institute_id: instituteId, status: 'pending' }
         }),
-        prisma.assignment.count({
+        prisma.assignmentSubmission.count({
           where: {
-            teacher_id: teacherId,
             institute_id: instituteId,
-            due_date: {
-              lte: new Date(),
-              gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+            assignment: {
+              teacher_id: teacherId,
             },
+            status: 'submitted',
           },
         }),
         prisma.quizAttempt.count({
@@ -260,7 +259,7 @@ export class TeacherController {
         topics,
         progressRows,
         lastLecture,
-        assignments,
+        assignmentSubmissions,
         pendingDoubts,
         quizzes,
         attempts,
@@ -285,11 +284,22 @@ export class TeacherController {
           orderBy: [{ scheduled_at: 'desc' }, { created_at: 'desc' }],
           select: { title: true, subject: true, description: true, scheduled_at: true },
         }),
-        prisma.assignment.findMany({
-          where: { institute_id: instituteId, batch_id: batchId },
-          orderBy: { created_at: 'desc' },
-          take: 20,
-          select: { id: true, title: true, due_date: true, created_at: true },
+        prisma.assignmentSubmission.findMany({
+          where: {
+            institute_id: instituteId,
+            assignment: {
+              batch_id: batchId,
+              teacher_id: teacher.id,
+            },
+          },
+          orderBy: { submitted_at: 'desc' },
+          take: 200,
+          select: {
+            id: true,
+            status: true,
+            submitted_at: true,
+            assignment: { select: { due_date: true } },
+          },
         }),
         prisma.doubt.findMany({
           where: { institute_id: instituteId, batch_id: batchId, assigned_to_id: teacher.id, status: 'pending' },
@@ -419,8 +429,13 @@ export class TeacherController {
         .sort((a, b) => a.attendance_percent - b.attendance_percent)
         .slice(0, 12);
 
-      const now = new Date();
-      const lateAssignmentsCount = assignments.filter((a) => !!a.due_date && a.due_date < now).length;
+      const pendingEvaluationCount = assignmentSubmissions.filter((s) => (s.status ?? 'submitted') == 'submitted').length;
+      const lateAssignmentsCount = assignmentSubmissions.filter((s) => {
+        if (!s.submitted_at) return false;
+        const dueDate = s.assignment?.due_date;
+        if (!dueDate) return false;
+        return s.submitted_at > dueDate;
+      }).length;
 
       return sendResponse({
         res,
@@ -445,7 +460,7 @@ export class TeacherController {
             topics: syllabusTopics,
           },
           assignments: {
-            pending_evaluation_count: 0,
+            pending_evaluation_count: pendingEvaluationCount,
             late_submissions_count: lateAssignmentsCount,
           },
           tests: {
