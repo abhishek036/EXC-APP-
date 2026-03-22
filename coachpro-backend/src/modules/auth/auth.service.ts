@@ -343,13 +343,25 @@ export class AuthService {
                     ]
                     : [];
 
-                await prisma.staff.updateMany({
+                const updateResult = await prisma.staff.updateMany({
                     where: {
                         institute_id: user.institute_id,
                         ...(phonesToSearch.length > 0 ? { phone: { in: phonesToSearch } } : {}),
                     },
                     data: { name },
                 });
+
+                if (updateResult.count === 0) {
+                    await prisma.staff.create({
+                        data: {
+                            institute_id: user.institute_id,
+                            name,
+                            phone: user.phone ?? null,
+                            role: 'admin',
+                            status: 'active',
+                        },
+                    });
+                }
             }
         }
 
