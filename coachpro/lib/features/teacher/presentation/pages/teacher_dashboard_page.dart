@@ -54,11 +54,56 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     return 'Good Evening,';
   }
 
+  String _nextClassCountdown() {
+    final batches = (_dashboardData?['batches'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+    if (batches.isEmpty) return 'No class scheduled today';
+
+    DateTime? nextTime;
+    Map<String, dynamic>? nextBatch;
+    final now = DateTime.now();
+
+    for (final batch in batches) {
+      final raw = (batch['start_time'] ?? '').toString().trim();
+      if (raw.isEmpty) continue;
+      final parsed = _parseLocalTime(raw);
+      if (parsed == null) continue;
+      if (parsed.isAfter(now) && (nextTime == null || parsed.isBefore(nextTime))) {
+        nextTime = parsed;
+        nextBatch = batch;
+      }
+    }
+
+    if (nextTime == null || nextBatch == null) return 'All classes completed for today';
+    final diff = nextTime.difference(now);
+    final hours = diff.inHours;
+    final minutes = diff.inMinutes % 60;
+    final batchName = (nextBatch['name'] ?? 'Next class').toString();
+    return '$batchName starts in ${hours}h ${minutes}m';
+  }
+
+  DateTime? _parseLocalTime(String value) {
+    final match = RegExp(r'^(\d{1,2}):(\d{2})\s*([APap][Mm])?$').firstMatch(value);
+    if (match == null) return null;
+    var hour = int.tryParse(match.group(1) ?? '0') ?? 0;
+    final minute = int.tryParse(match.group(2) ?? '0') ?? 0;
+    final meridiem = (match.group(3) ?? '').toUpperCase();
+    if (meridiem == 'PM' && hour < 12) hour += 12;
+    if (meridiem == 'AM' && hour == 12) hour = 0;
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day, hour, minute);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
     return Scaffold(
       backgroundColor: CT.bg(context),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showQuickActionMenu,
+        backgroundColor: const Color(0xFF0D1282),
+        foregroundColor: const Color(0xFFEEEDED),
+        child: const Icon(Icons.add_rounded),
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadDashboard,
@@ -90,7 +135,11 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                         const SizedBox(height: AppDimensions.lg),
                         _buildQuickStats(isDark),
                         const SizedBox(height: AppDimensions.lg),
+                        _buildNextClassCard(),
+                        const SizedBox(height: AppDimensions.lg),
                         _buildTodaySchedule(isDark),
+                        const SizedBox(height: AppDimensions.lg),
+                        _buildPendingTasks(),
                         const SizedBox(height: AppDimensions.lg),
                         _buildPendingDoubts(isDark),
                         const SizedBox(height: AppDimensions.lg),
@@ -426,49 +475,142 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     return Text(title, style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w600, color: CT.textH(context)));
   }
 
-  Widget _buildQuickActions(bool isDark) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: CPPressable(
-            onTap: () => context.go('/teacher/attendance'),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: AppDimensions.md),
-              decoration: BoxDecoration(gradient: AppColors.greenGradient, borderRadius: BorderRadius.circular(AppDimensions.radiusMD)),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.fact_check_outlined, color: Colors.white, size: 20),
-                  const SizedBox(width: AppDimensions.sm),
-                  Text('Start Attendance', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
-                ],
-              ),
+  Widget _buildNextClassCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0DE36).withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF0DE36)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.alarm_rounded, color: Color(0xFF0D1282)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _nextClassCountdown(),
+              style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)),
             ),
           ),
+        ],
+      ),
+    ).animate(delay: 140.ms).fadeIn(duration: 350.ms);
+  }
+
+  Widget _buildPendingTasks() {
+    final stats = _dashboardData?['stats'] ?? {};
+    final doubts = (stats['pending_doubts'] ?? 0).toString();
+    final assignments = (stats['assignments_to_review'] ?? 0).toString();
+    final tests = (stats['tests_to_review'] ?? 0).toString();
+
+    Widget taskChip(String value, String label, Color color) {
+      return Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withValues(alpha: 0.22)),
+          ),
+          child: Column(
+            children: [
+              Text(value, style: GoogleFonts.sora(fontWeight: FontWeight.w800, fontSize: 16, color: color)),
+              const SizedBox(height: 2),
+              Text(label, textAlign: TextAlign.center, style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: CT.textM(context))),
+            ],
+          ),
         ),
-        const SizedBox(width: AppDimensions.sm),
-        _miniAction(Icons.assignment_outlined, 'Post', AppColors.blueGradient, () => context.go('/teacher/upload-material')),
-        const SizedBox(width: AppDimensions.sm),
-        _miniAction(Icons.quiz_outlined, 'Quiz', AppColors.purpleGradient, () => context.go('/teacher/create-quiz')),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader('Pending Tasks'),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            taskChip(doubts, 'Doubts pending', const Color(0xFF0D1282)),
+            const SizedBox(width: 8),
+            taskChip(assignments, 'Assignments to check', const Color(0xFFD71313)),
+            const SizedBox(width: 8),
+            taskChip(tests, 'Tests to review', const Color(0xFFF0DE36)),
+          ],
+        ),
       ],
+    ).animate(delay: 220.ms).fadeIn(duration: 350.ms);
+  }
+
+  Widget _buildQuickActions(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: CT.cardDecor(context),
+      child: Row(
+        children: [
+          const Icon(Icons.touch_app_rounded, color: Color(0xFF0D1282), size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Quick actions moved to the + button for 2-click execution.',
+              style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textH(context)),
+            ),
+          ),
+        ],
+      ),
     ).animate(delay: 400.ms).fadeIn(duration: 500.ms);
   }
 
-  Widget _miniAction(IconData icon, String label, Gradient gradient, [VoidCallback? onTap]) {
-    return CPPressable(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppDimensions.md, horizontal: AppDimensions.md),
-        decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(AppDimensions.radiusMD)),
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(height: 4),
-            Text(label, style: GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
-          ],
-        ),
+  Future<void> _showQuickActionMenu() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: CT.card(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
+      builder: (ctx) {
+        Widget actionTile(IconData icon, String label, String route) {
+          return CPPressable(
+            onTap: () {
+              Navigator.pop(ctx);
+              context.go(route);
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEEDED),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF0D1282).withValues(alpha: 0.14)),
+              ),
+              child: Row(
+                children: [
+                  Icon(icon, color: const Color(0xFF0D1282), size: 18),
+                  const SizedBox(width: 10),
+                  Text(label, style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Quick Actions', style: GoogleFonts.sora(fontWeight: FontWeight.w800, color: CT.textH(context))),
+              const SizedBox(height: 12),
+              actionTile(Icons.fact_check_outlined, 'Take Attendance', '/teacher/attendance'),
+              actionTile(Icons.ondemand_video_outlined, 'Upload Lecture', '/teacher/upload-material'),
+              actionTile(Icons.assignment_outlined, 'Add Assignment', '/teacher/upload-material'),
+              actionTile(Icons.quiz_outlined, 'Create Test', '/teacher/create-quiz'),
+            ],
+          ),
+        );
+      },
     );
   }
 

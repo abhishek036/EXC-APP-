@@ -7,7 +7,6 @@ import '../../../../core/theme/theme_aware.dart';
 
 import '../../../../features/teacher/data/repositories/teacher_repository.dart';
 import '../../../../core/di/injection_container.dart';
-import 'package:go_router/go_router.dart';
 
 class PendingDoubtsPage extends StatefulWidget {
   const PendingDoubtsPage({super.key});
@@ -20,6 +19,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
   final _teacherRepo = sl<TeacherRepository>();
   List<Map<String, dynamic>> _doubts = [];
   bool _isLoading = true;
+  bool _isReplying = false;
   String? _error;
 
   @override
@@ -132,9 +132,9 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
         Row(children: [
           Expanded(
             child: ElevatedButton(
-              onPressed: () => context.go('/teacher/doubts/response', extra: d),
+              onPressed: () => _openReplySheet(d),
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              child: Text('Resolve', style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w600, color: CT.card(context))),
+              child: Text('Reply', style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w600, color: CT.card(context))),
             ),
           ),
           if (hasImg) ...[
@@ -151,6 +151,127 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
         ]),
       ]),
     ).animate(delay: Duration(milliseconds: 100 * i)).fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0);
+  }
+
+  Future<void> _openReplySheet(Map<String, dynamic> doubt) async {
+    final replyCtrl = TextEditingController();
+    String status = 'resolved';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: CT.card(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            Widget statusChip(String label, String value) {
+              final active = status == value;
+              return GestureDetector(
+                onTap: () => setSheetState(() => status = value),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: active ? const Color(0xFFF0DE36) : CT.bg(context),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: active ? const Color(0xFFF0DE36) : CT.textM(context).withValues(alpha: 0.25)),
+                  ),
+                  child: Text(label, style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
+                ),
+              );
+            }
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Quick Reply', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
+                  const SizedBox(height: 6),
+                  Text((doubt['question_text'] ?? '').toString(), maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.dmSans(color: CT.textM(context))),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      statusChip('Resolved', 'resolved'),
+                      statusChip('Pending', 'pending'),
+                      statusChip('Discuss in class', 'discuss_in_class'),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: replyCtrl,
+                    minLines: 2,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      hintText: 'Write text/voice/image reply summary...',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _isReplying ? null : () => Navigator.pop(ctx),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isReplying
+                              ? null
+                              : () async {
+                                  final answer = replyCtrl.text.trim();
+                                  if (answer.isEmpty) return;
+                                  await _submitReply(doubt, answer, status);
+                                  if (!mounted || !ctx.mounted) return;
+                                  Navigator.of(ctx).pop();
+                                },
+                          child: _isReplying
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Text('Send Reply'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _submitReply(Map<String, dynamic> doubt, String answer, String status) async {
+    final doubtId = (doubt['id'] ?? '').toString();
+    if (doubtId.isEmpty) return;
+
+    setState(() => _isReplying = true);
+    try {
+      await _teacherRepo.answerDoubt(doubtId: doubtId, answer: answer);
+      if (!mounted) return;
+
+      if (status == 'resolved') {
+        setState(() {
+          _doubts.removeWhere((d) => (d['id'] ?? '').toString() == doubtId);
+        });
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(status == 'resolved' ? 'Doubt resolved' : 'Reply sent ($status)')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to reply: $e')));
+    } finally {
+      if (mounted) setState(() => _isReplying = false);
+    }
   }
 
   Color _getSubjectColor(String s) {

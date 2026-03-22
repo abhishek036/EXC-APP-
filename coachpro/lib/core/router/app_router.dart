@@ -20,12 +20,10 @@ import '../../features/admin/presentation/pages/exam_management_page.dart';
 import '../../features/admin/presentation/pages/admin_reports_page.dart';
 import '../../features/admin/presentation/pages/add_student_page.dart';
 import '../../features/admin/presentation/pages/student_import_page.dart';
-import '../../features/teacher/presentation/pages/attendance_marking_page.dart';
 import '../../features/teacher/presentation/pages/upload_material_page.dart';
 import '../../features/teacher/presentation/pages/create_quiz_page.dart';
 import '../../features/teacher/presentation/pages/pending_doubts_page.dart';
 import '../../features/teacher/presentation/pages/doubt_response_page.dart';
-import '../../features/teacher/presentation/pages/quiz_results_page.dart';
 import '../../features/student/presentation/pages/quiz_taking_page.dart';
 import '../../features/student/presentation/pages/quizzes_list_page.dart';
 import '../../features/student/presentation/pages/exam_results_page.dart';
@@ -79,6 +77,8 @@ import '../../features/admin/presentation/pages/edit_student_page.dart';
 import '../../features/admin/presentation/pages/edit_teacher_page.dart';
 import '../../features/admin/presentation/pages/batch_detail_page.dart';
 import '../../features/teacher/presentation/pages/teacher_batches_page.dart';
+import '../../features/teacher/presentation/pages/teacher_batch_panel_page.dart';
+import '../../features/teacher/presentation/pages/teacher_schedule_page.dart';
 import '../widgets/cp_bottom_nav.dart';
 import '../widgets/cp_role_shell.dart';
 
@@ -443,10 +443,10 @@ class AppRouter {
               navigationShell: shell,
               items: const [
                 CPBottomNavItem(icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard, label: 'Home'),
-                CPBottomNavItem(icon: Icons.fact_check_outlined, activeIcon: Icons.fact_check, label: 'Attendance'),
-                CPBottomNavItem(icon: Icons.quiz_outlined, activeIcon: Icons.quiz, label: 'Results'),
+                CPBottomNavItem(icon: Icons.class_outlined, activeIcon: Icons.class_, label: 'My Batches'),
                 CPBottomNavItem(icon: Icons.help_outline, activeIcon: Icons.help, label: 'Doubts'),
-                CPBottomNavItem(icon: Icons.settings_outlined, activeIcon: Icons.settings, label: 'Settings'),
+                CPBottomNavItem(icon: Icons.calendar_month_outlined, activeIcon: Icons.calendar_month, label: 'Schedule'),
+                CPBottomNavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'More'),
               ],
             ),
             branches: [
@@ -475,23 +475,25 @@ class AppRouter {
                       name: 'teacher-batches',
                       pageBuilder: (c, s) => _page(s, const TeacherBatchesPage()),
                       routes: [
-                        // Reuse admin's batch detail page for now, or just send to attendance if that's all they need
-                        GoRoute(path: ':id', name: 'teacher-batch-detail', pageBuilder: (c, s) => _page(s, BatchDetailPage(batchId: s.pathParameters['id'] ?? ''))),
+                        GoRoute(path: ':id', name: 'teacher-batch-detail', pageBuilder: (c, s) => _page(s, TeacherBatchPanelPage(batchId: s.pathParameters['id'] ?? ''))),
                       ],
                     ),
                   ],
                 ),
               ]),
-              // Branch 1 — Attendance
+              // Branch 1 — My Batches
               StatefulShellBranch(navigatorKey: _tch1, routes: [
-                GoRoute(path: '/teacher/attendance', name: 'attendance-marking', pageBuilder: (c, s) => _page(s, const AttendanceMarkingPage())),
+                GoRoute(
+                  path: '/teacher/batches',
+                  name: 'teacher-batches-tab',
+                  pageBuilder: (c, s) => _page(s, const TeacherBatchesPage()),
+                  routes: [
+                    GoRoute(path: ':id', name: 'teacher-batch-detail-tab', pageBuilder: (c, s) => _page(s, TeacherBatchPanelPage(batchId: s.pathParameters['id'] ?? ''))),
+                  ],
+                ),
               ]),
-              // Branch 2 — Results
+              // Branch 2 — Doubts
               StatefulShellBranch(navigatorKey: _tch2, routes: [
-                GoRoute(path: '/teacher/quiz-results', name: 'teacher-quiz-results', pageBuilder: (c, s) => _page(s, const QuizResultsPage())),
-              ]),
-              // Branch 3 — Doubts
-              StatefulShellBranch(navigatorKey: _tch3, routes: [
                 GoRoute(
                   path: '/teacher/doubts',
                   name: 'pending-doubts',
@@ -501,9 +503,20 @@ class AppRouter {
                   ],
                 ),
               ]),
-              // Branch 4 — Settings
+              // Branch 3 — Schedule
+              StatefulShellBranch(navigatorKey: _tch3, routes: [
+                GoRoute(path: '/teacher/schedule', name: 'teacher-schedule', pageBuilder: (c, s) => _page(s, const TeacherSchedulePage())),
+              ]),
+              // Branch 4 — Profile / More
               StatefulShellBranch(navigatorKey: _tch4, routes: [
-                GoRoute(path: '/teacher/settings', name: 'teacher-settings', pageBuilder: (c, s) => _page(s, const SettingsPage())),
+                GoRoute(
+                  path: '/teacher/profile',
+                  name: 'teacher-profile-self',
+                  pageBuilder: (c, s) => _page(s, const ProfilePage()),
+                  routes: [
+                    GoRoute(path: 'settings', name: 'teacher-settings', pageBuilder: (c, s) => _page(s, const SettingsPage())),
+                  ],
+                ),
               ]),
             ],
           ),
