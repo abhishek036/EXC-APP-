@@ -19,4 +19,12 @@ export class LeadService {
   async updateStatus(instituteId: string, id: string, status: string) {
     return this.repo.updateStatus(instituteId, id, status);
   }
+
+  async updateLead(instituteId: string, id: string, data: any) {
+    return this.repo.updateLead(instituteId, id, data);
+  }
+
+  async deleteLead(instituteId: string, id: string) {
+    return this.repo.deleteLead(instituteId, id);
+  }
 }

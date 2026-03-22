@@ -17,4 +17,15 @@ export const updateExamStatusSchema = z.object({
   }),
 });
 
+export const saveExamResultSchema = z.object({
+  body: z.object({
+    examId: z.string().uuid(),
+    studentId: z.string().uuid(),
+    score: z.number().min(0),
+    maxMarks: z.number().positive().optional(),
+    remarks: z.string().max(500).optional(),
+  }),
+});
+
 export type CreateExamInput = z.infer<typeof createExamSchema>['body'];
+export type SaveExamResultInput = z.infer<typeof saveExamResultSchema>['body'];

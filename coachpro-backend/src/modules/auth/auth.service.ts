@@ -185,8 +185,10 @@ export class AuthService {
     const refreshExpiresInMs = this._refreshExpiryMs();
     await this.authRepository.storeRefreshToken(user.id, refreshHash, new Date(Date.now() + refreshExpiresInMs));
 
-    return {
-       user: { id: user.id, role: user.role, instituteId: user.institute_id },
+     const profile = await this.getUserProfile(user.id);
+
+     return {
+         user: { id: user.id, role: user.role, instituteId: user.institute_id, name: profile?.name },
        accessToken,
        refreshToken,
        isNewUser
@@ -226,8 +228,10 @@ export class AuthService {
     const refreshExpiresInMs = this._refreshExpiryMs();
     await this.authRepository.storeRefreshToken(user.id, refreshHash, new Date(Date.now() + refreshExpiresInMs));
 
+      const profile = await this.getUserProfile(user.id);
+
       return {
-          user: { id: user.id, role: user.role, instituteId: user.institute_id },
+          user: { id: user.id, role: user.role, instituteId: user.institute_id, name: profile?.name },
           accessToken,
           refreshToken
       };
@@ -352,15 +356,74 @@ export class AuthService {
       
       if (!user) return null;
 
+            const phonesToSearch = user.phone
+                ? [
+                        user.phone,
+                        ...(user.phone.startsWith('+91') ? [user.phone.substring(3)] : []),
+                        ...(user.phone.length === 10 ? [`+91${user.phone}`] : []),
+                    ]
+                : [];
+
       let name = 'User';
       if (user.role === 'admin') {
-          name = 'Administrator';
+          let staff = await prisma.staff.findFirst({ where: { user_id: userId } });
+
+                      if (!staff && phonesToSearch.length > 0) {
+              staff = await prisma.staff.findFirst({
+                  where: {
+                      institute_id: user.institute_id,
+                      phone: { in: phonesToSearch },
+                  },
+              });
+
+              if (staff && !staff.user_id) {
+                  await prisma.staff.update({ where: { id: staff.id }, data: { user_id: userId } });
+              }
+          }
+
+          if (staff?.name) name = staff.name;
       } else if (user.role === 'student') {
-          const student = await prisma.student.findFirst({ where: { user_id: userId } });
+          let student = await prisma.student.findFirst({ where: { user_id: userId } });
+          if (!student && phonesToSearch.length > 0) {
+              student = await prisma.student.findFirst({
+                  where: {
+                      institute_id: user.institute_id,
+                      phone: { in: phonesToSearch },
+                  },
+              });
+              if (student && !student.user_id) {
+                  await prisma.student.update({ where: { id: student.id }, data: { user_id: userId } });
+              }
+          }
           if (student) name = student.name;
       } else if (user.role === 'teacher') {
-          const teacher = await prisma.teacher.findFirst({ where: { user_id: userId } });
+          let teacher = await prisma.teacher.findFirst({ where: { user_id: userId } });
+          if (!teacher && phonesToSearch.length > 0) {
+              teacher = await prisma.teacher.findFirst({
+                  where: {
+                      institute_id: user.institute_id,
+                      phone: { in: phonesToSearch },
+                  },
+              });
+              if (teacher && !teacher.user_id) {
+                  await prisma.teacher.update({ where: { id: teacher.id }, data: { user_id: userId } });
+              }
+          }
           if (teacher) name = teacher.name;
+      } else if (user.role === 'parent') {
+          let parent = await prisma.parent.findFirst({ where: { user_id: userId } });
+          if (!parent && phonesToSearch.length > 0) {
+              parent = await prisma.parent.findFirst({
+                  where: {
+                      institute_id: user.institute_id,
+                      phone: { in: phonesToSearch },
+                  },
+              });
+              if (parent && !parent.user_id) {
+                  await prisma.parent.update({ where: { id: parent.id }, data: { user_id: userId } });
+              }
+          }
+          if (parent) name = parent.name;
       }
 
       return { ...user, name };

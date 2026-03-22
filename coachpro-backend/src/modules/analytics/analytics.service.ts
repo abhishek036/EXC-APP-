@@ -5,6 +5,10 @@ export class AnalyticsService {
     return AnalyticsRepository.getDashboardStats(instituteId);
   }
 
+  static async getAdminReports(instituteId: string) {
+    return AnalyticsRepository.getAdminReports(instituteId);
+  }
+
   static async getStudentPerformance(studentId: string, instituteId: string) {
     return AnalyticsRepository.getStudentPerformance(studentId, instituteId);
   }

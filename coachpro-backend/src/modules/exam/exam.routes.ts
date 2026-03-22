@@ -3,7 +3,7 @@ import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
 import { tenantMiddleware } from '../../middleware/tenant.middleware';
 import { validate } from '../../middleware/validate.middleware';
 import { ExamController } from './exam.controller';
-import { createExamSchema, updateExamStatusSchema } from './exam.validator';
+import { createExamSchema, saveExamResultSchema, updateExamStatusSchema } from './exam.validator';
 
 const router = Router();
 const controller = new ExamController();
@@ -15,5 +15,6 @@ router.post('/', requireRole('admin'), validate(createExamSchema), controller.cr
 router.patch('/:id/status', requireRole('admin'), validate(updateExamStatusSchema), controller.updateStatus);
 router.delete('/:id', requireRole('admin'), controller.remove);
 router.get('/results/list', requireRole('admin', 'teacher'), controller.results);
+router.post('/results', requireRole('admin', 'teacher'), validate(saveExamResultSchema), controller.saveResult);
 
 export default router;

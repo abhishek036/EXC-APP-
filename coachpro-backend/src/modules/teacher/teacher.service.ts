@@ -56,4 +56,11 @@ export class TeacherService {
 
     return this.teacherRepository.toggleStatus(teacherId, isActive);
   }
+
+  async removeTeacher(teacherId: string, instituteId: string) {
+    const teacher = await this.teacherRepository.findTeacherById(teacherId, instituteId);
+    if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
+
+    return this.teacherRepository.removeTeacher(teacherId);
+  }
 }

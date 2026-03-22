@@ -9,6 +9,7 @@ router.use(authenticateJWT);
 router.use(tenantMiddleware);
 
 router.get('/dashboard', requireRole('admin'), AnalyticsController.getDashboard);
+router.get('/reports', requireRole('admin'), AnalyticsController.getAdminReports);
 router.get('/student/:id', requireRole('admin', 'teacher', 'parent', 'student'), AnalyticsController.getStudentPerformance);
 
 export default router;

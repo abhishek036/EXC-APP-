@@ -1,6 +1,6 @@
 import { ApiError } from '../../middleware/error.middleware';
 import { ExamRepository } from './exam.repository';
-import { CreateExamInput } from './exam.validator';
+import { CreateExamInput, SaveExamResultInput } from './exam.validator';
 
 export class ExamService {
   private repo: ExamRepository;
@@ -60,5 +60,9 @@ export class ExamService {
         grade,
       };
     });
+  }
+
+  async saveResult(instituteId: string, data: SaveExamResultInput) {
+    return this.repo.saveResult(instituteId, data);
   }
 }

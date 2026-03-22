@@ -63,4 +63,11 @@ export class TeacherRepository {
       data: { is_active: isActive }
     });
   }
+
+  async removeTeacher(teacherId: string) {
+    return prisma.teacher.update({
+      where: { id: teacherId },
+      data: { is_active: false }
+    });
+  }
 }

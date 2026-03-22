@@ -16,6 +16,14 @@ export class StaffService {
     return this.repo.createStaff(instituteId, data);
   }
 
+  async updateStaff(id: string, instituteId: string, data: any) {
+    return this.repo.updateStaff(id, instituteId, data);
+  }
+
+  async deleteStaff(id: string, instituteId: string) {
+    return this.repo.deleteStaff(id, instituteId);
+  }
+
   async listPayroll(instituteId: string) {
     const records = await this.repo.listPayroll(instituteId);
     return records.map((record) => ({

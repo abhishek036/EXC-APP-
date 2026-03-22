@@ -349,7 +349,19 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
 
   void _showCollectFeeSheet(BuildContext context) {
     final isDark = CT.isDark(context);
-    String? sid; final amtC = TextEditingController(); final nC = TextEditingController(); String mode = 'cash';
+    final debtors = _records
+        .where((r) => (r['status'] ?? '').toString().toLowerCase() != 'paid')
+        .toList();
+    String? sid = debtors.isNotEmpty ? debtors.first['id'].toString() : null;
+    final amtC = TextEditingController();
+    final nC = TextEditingController();
+    String mode = 'cash';
+
+    if (sid != null && debtors.isNotEmpty) {
+      final first = debtors.first;
+      final pend = _toDouble(first['final_amount'] ?? first['amount']) - (_toDouble((first['payments'] as List? ?? []).fold<double>(0, (s, p) => s + _toDouble((p as Map)['amount_paid']))));
+      amtC.text = pend > 0 ? pend.toInt().toString() : '';
+    }
 
     showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (ctx) => StatefulBuilder(builder: (ctx, setS) => Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom), child: CPGlassCard(isDark: isDark, padding: EdgeInsets.fromLTRB(28, 16, 28, MediaQuery.of(ctx).viewInsets.bottom + 40), borderRadius: 40, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
       Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)))),
@@ -358,10 +370,25 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
       const SizedBox(height: 32),
       _sheetLabel('ACTIVE DEBTORS', isDark),
       const SizedBox(height: 10),
-      Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), decoration: BoxDecoration(color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: sid, hint: Text('Select outstanding account', style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26), fontWeight: FontWeight.w600)), isExpanded: true, dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white, icon: const Icon(Icons.keyboard_arrow_down_rounded), items: _records.where((r) => (r['status'] ?? '').toString().toLowerCase() != 'paid').map((r) {
+      if (debtors.isEmpty) ...[
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05),
+            border: Border.all(color: const Color(0xFF0D1282), width: 2),
+          ),
+          child: Text(
+            'No outstanding accounts available',
+            style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ] else ...[
+      Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), decoration: BoxDecoration(color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: sid, hint: Text('Select outstanding account', style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26), fontWeight: FontWeight.w600)), isExpanded: true, dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white, icon: const Icon(Icons.keyboard_arrow_down_rounded), items: debtors.map((r) {
         final pend = _toDouble(r['final_amount'] ?? r['amount']) - (_toDouble((r['payments'] as List? ?? []).fold<double>(0, (s, p) => s + _toDouble((p as Map)['amount_paid']))));
         return DropdownMenuItem(value: r['id'].toString(), child: Text('${r['student']?['name']} • ₹${pend.toInt()}', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy)));
       }).toList(), onChanged: (v) { setS(() { sid = v; final r = _records.firstWhere((e) => e['id'].toString() == v); final pend = _toDouble(r['final_amount'] ?? r['amount']) - (_toDouble((r['payments'] as List? ?? []).fold<double>(0, (s, p) => s + _toDouble((p as Map)['amount_paid'])))); amtC.text = pend.toInt().toString(); }); }))),
+      ],
       const SizedBox(height: 24),
       CustomTextField(label: 'Amount Tendered (₹)', hint: '0', controller: amtC, prefixIcon: Icons.currency_rupee_rounded, keyboardType: TextInputType.number),
       const SizedBox(height: 28),
@@ -370,7 +397,8 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
       Row(children: ['cash', 'upi', 'bank'].map((m) => Expanded(child: CPPressable(onTap: () { HapticFeedback.selectionClick(); setS(() => mode = m); }, child: AnimatedContainer(duration: 250.ms, margin: const EdgeInsets.symmetric(horizontal: 4), padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(color: mode == m ? AppColors.elitePrimary : (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: mode == m ? Colors.transparent : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05)))), child: Center(child: Text(m.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: mode == m ? Colors.white : (isDark ? Colors.white38 : Colors.black38), letterSpacing: 0.5))))))).toList()),
       const SizedBox(height: 48),
       CustomButton(text: 'Process Payment', icon: Icons.offline_bolt_rounded, onPressed: () async {
-        if (sid == null || amtC.text.isEmpty) { CPToast.warning(ctx, 'Incomplete data'); return; }
+        if (debtors.isEmpty) { CPToast.warning(ctx, 'No outstanding accounts to collect'); return; }
+        if (sid == null || amtC.text.isEmpty) { CPToast.warning(ctx, 'Select an account and enter an amount'); return; }
         try { await _adminRepo.recordFeePayment(feeRecordId: sid!, amountPaid: double.parse(amtC.text), paymentMode: mode, note: nC.text); if (ctx.mounted) { Navigator.pop(ctx); CPToast.success(context, 'Transaction Confirmed'); _loadFeeRecords(); } } catch (_) { if (ctx.mounted) CPToast.error(ctx, 'Transaction Error'); }
       }),
       const SizedBox(height: 12),

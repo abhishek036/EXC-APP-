@@ -28,4 +28,17 @@ export class LeadRepository {
     });
     return { success: true };
   }
+
+  async updateLead(instituteId: string, id: string, data: any) {
+    return prisma.lead.update({
+      where: { id, institute_id: instituteId },
+      data,
+    });
+  }
+
+  async deleteLead(instituteId: string, id: string) {
+    return prisma.lead.delete({
+      where: { id, institute_id: instituteId },
+    });
+  }
 }

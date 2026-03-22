@@ -4,7 +4,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/widgets/cp_pressable.dart';
@@ -21,6 +20,7 @@ class _StudentListPageState extends State<StudentListPage> {
   final _adminRepo = sl<AdminRepository>();
   List<_Student> _students = [];
   bool _loadingStudents = true;
+  bool _loadFailed = false;
 
   // Filters
   int _selectedFilter = 0;
@@ -50,7 +50,10 @@ class _StudentListPageState extends State<StudentListPage> {
 
   Future<void> _loadAll() async {
     if (!mounted) return;
-    setState(() { _loadingStudents = true; });
+    setState(() {
+      _loadingStudents = true;
+      _loadFailed = false;
+    });
     try {
       final results = await Future.wait([
         _adminRepo.getStudents(),
@@ -60,36 +63,30 @@ class _StudentListPageState extends State<StudentListPage> {
         final students = (results[0] as List)
             .map((s) => _Student.fromMap(s as Map<String, dynamic>))
             .toList();
-        final rawBatches = results[1] as List<Map<String, dynamic>>;
+        final rawBatches = (results[1] as List)
+          .map((b) => Map<String, dynamic>.from(b as Map))
+          .toList();
         final batchNames = rawBatches.map((b) => (b['name'] ?? 'Batch').toString()).toList();
         setState(() {
           _students = students;
           _batchRaw = rawBatches;
           _batches = ['All', ...batchNames];
           _loadingStudents = false;
+          _loadFailed = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _loadingStudents = false;
-          // Use demo data so the UI is always useful
-          _students = _demoStudents();
+          _loadFailed = true;
+          _students = [];
+          _batchRaw = [];
+          _batches = ['All'];
         });
       }
     }
   }
-
-  List<_Student> _demoStudents() => [
-    _Student(docId: '1', name: 'Aarav Sharma', id: 'STU-001', rollNumber: 'R001', phone: '9876543210', batchNames: ['JEE Batch A'], attendance: 88, feeStatus: 'PAID', status: 'active'),
-    _Student(docId: '2', name: 'Priya Singh', id: 'STU-002', rollNumber: 'R002', phone: '9876543211', batchNames: ['NEET Batch B'], attendance: 72, feeStatus: 'PENDING', status: 'active'),
-    _Student(docId: '3', name: 'Rahul Gupta', id: 'STU-003', rollNumber: 'R003', phone: '9876543212', batchNames: ['JEE Batch A'], attendance: 55, feeStatus: 'OVERDUE', status: 'active'),
-    _Student(docId: '4', name: 'Sneha Patel', id: 'STU-004', rollNumber: 'R004', phone: '9876543213', batchNames: ['Foundation'], attendance: 91, feeStatus: 'PAID', status: 'active'),
-    _Student(docId: '5', name: 'Karan Mehta', id: 'STU-005', rollNumber: 'R005', phone: '9876543214', batchNames: ['NEET Batch B'], attendance: 66, feeStatus: 'PENDING', status: 'inactive'),
-    _Student(docId: '6', name: 'Divya Nair', id: 'STU-006', rollNumber: 'R006', phone: '9876543215', batchNames: ['JEE Batch A'], attendance: 80, feeStatus: 'PAID', status: 'active'),
-    _Student(docId: '7', name: 'Rohit Verma', id: 'STU-007', rollNumber: 'R007', phone: '9876543216', batchNames: ['Foundation'], attendance: 43, feeStatus: 'OVERDUE', status: 'active'),
-    _Student(docId: '8', name: 'Anjali Dubey', id: 'STU-008', rollNumber: 'R008', phone: '9876543217', batchNames: ['JEE Batch A'], attendance: 95, feeStatus: 'PAID', status: 'active'),
-  ];
 
   List<_Student> get _filtered {
     final query = _searchController.text.trim().toLowerCase();
@@ -234,7 +231,9 @@ class _StudentListPageState extends State<StudentListPage> {
                 Expanded(
                   child: _loadingStudents
                     ? _buildShimmer()
-                    : filtered.isEmpty
+                    : _loadFailed
+                      ? _buildLoadFailedState()
+                      : filtered.isEmpty
                       ? _buildEmptyState(total == 0)
                       : RefreshIndicator(
                           color: const Color(0xFF0D1282),
@@ -478,7 +477,7 @@ class _StudentListPageState extends State<StudentListPage> {
     return ListView.builder(
       padding: const EdgeInsets.only(top: 12),
       itemCount: 8,
-      itemBuilder: (_, __) => Padding(
+      itemBuilder: (_, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
         child: CPShimmer(width: double.infinity, height: 72, borderRadius: 14),
       ),
@@ -546,6 +545,53 @@ class _StudentListPageState extends State<StudentListPage> {
         ],
       ),
     ).animate().fadeIn(duration: 400.ms);
+  }
+
+  Widget _buildLoadFailedState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD71313).withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.cloud_off_rounded, size: 52, color: Color(0xFFD71313)),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Unable to load students',
+              style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E)),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Check the network or backend connection, then retry.',
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF8F97B8), height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 22),
+            CPPressable(
+              onTap: _loadAll,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D1282),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Retry',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildStudentRow(_Student student, int index) {
@@ -776,11 +822,7 @@ class _BatchPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final demoBatches = batches.isEmpty ? [
-      {'id': 'demo-1', 'name': 'JEE Batch A'},
-      {'id': 'demo-2', 'name': 'NEET Batch B'},
-      {'id': 'demo-3', 'name': 'Foundation'},
-    ] : batches;
+    final availableBatches = batches;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -807,10 +849,10 @@ class _BatchPickerSheet extends StatelessWidget {
             constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.45),
             child: ListView.separated(
               shrinkWrap: true,
-              itemCount: demoBatches.length,
+              itemCount: availableBatches.length,
               separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFE3E4EE)),
               itemBuilder: (ctx, i) {
-                final batch = demoBatches[i];
+                final batch = availableBatches[i];
                 final name = (batch['name'] ?? 'Batch').toString();
                 // Color cycling for batch avatars
                 final colors = [const Color(0xFF0D1282), const Color(0xFF7C3AED), const Color(0xFF0891B2), const Color(0xFF16A34A)];

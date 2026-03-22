@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:async';
 
 import 'core/constants/app_colors.dart';
 import 'core/di/injection_container.dart';
@@ -93,6 +94,7 @@ class CoachProApp extends StatefulWidget {
 class _CoachProAppState extends State<CoachProApp> with WidgetsBindingObserver {
   late final AuthBloc _authBloc;
   late final GoRouter _router;
+  Timer? _authSyncTimer;
 
   @override
   void initState() {
@@ -102,12 +104,21 @@ class _CoachProAppState extends State<CoachProApp> with WidgetsBindingObserver {
     // Splash page will fire the first AuthCheckRequested.
     _authBloc = sl<AuthBloc>();
     _router = AppRouter.router(_authBloc);
+    _startAuthSyncTimer();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _authSyncTimer?.cancel();
     super.dispose();
+  }
+
+  void _startAuthSyncTimer() {
+    _authSyncTimer?.cancel();
+    _authSyncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _authBloc.add(const AuthRefreshRequested());
+    });
   }
 
   @override
@@ -115,6 +126,9 @@ class _CoachProAppState extends State<CoachProApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // Quietly refresh auth state when app comes back to foreground
       _authBloc.add(const AuthRefreshRequested());
+      _startAuthSyncTimer();
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.detached) {
+      _authSyncTimer?.cancel();
     }
   }
 

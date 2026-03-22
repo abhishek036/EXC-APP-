@@ -27,6 +27,24 @@ export class StaffController {
     }
   };
 
+  updateStaff = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.service.updateStaff(req.params.id, req.instituteId!, req.body);
+      return sendResponse({ res, data, message: 'Staff updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteStaff = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await this.service.deleteStaff(req.params.id, req.instituteId!);
+      return sendResponse({ res, data: null, message: 'Staff deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   listPayroll = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.service.listPayroll(req.instituteId!);

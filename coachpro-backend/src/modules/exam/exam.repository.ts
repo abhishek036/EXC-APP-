@@ -1,5 +1,5 @@
 import { prisma } from '../../server';
-import { CreateExamInput } from './exam.validator';
+import { CreateExamInput, SaveExamResultInput } from './exam.validator';
 
 export class ExamRepository {
   async list(instituteId: string) {
@@ -72,6 +72,54 @@ export class ExamRepository {
         exam: { select: { id: true, title: true, subject: true, total_marks: true, exam_date: true } },
       },
       take: 100,
+    });
+  }
+
+  async saveResult(instituteId: string, data: SaveExamResultInput) {
+    const exam = await prisma.exam.findFirst({
+      where: { id: data.examId, institute_id: instituteId },
+      select: { total_marks: true }
+    });
+
+    if (!exam) {
+      throw new Error('Exam not found');
+    }
+
+    const totalMarks = Number(data.maxMarks ?? exam.total_marks ?? 100);
+    const score = Number(data.score);
+    const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
+
+    let grade = 'F';
+    if (percentage >= 90) grade = 'A+';
+    else if (percentage >= 80) grade = 'A';
+    else if (percentage >= 70) grade = 'B';
+    else if (percentage >= 60) grade = 'C';
+    else if (percentage >= 50) grade = 'D';
+
+    return prisma.examResult.upsert({
+      where: {
+        exam_id_student_id: {
+          exam_id: data.examId,
+          student_id: data.studentId,
+        },
+      },
+      create: {
+        exam_id: data.examId,
+        student_id: data.studentId,
+        institute_id: instituteId,
+        marks_obtained: score,
+        is_absent: false,
+        grade,
+      },
+      update: {
+        marks_obtained: score,
+        is_absent: false,
+        grade,
+      },
+      include: {
+        student: { select: { id: true, name: true } },
+        exam: { select: { id: true, title: true, subject: true, total_marks: true } },
+      }
     });
   }
 }

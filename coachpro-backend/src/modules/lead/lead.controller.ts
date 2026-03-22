@@ -35,4 +35,22 @@ export class LeadController {
       next(error);
     }
   };
+
+  updateLead = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.service.updateLead(req.instituteId!, req.params.id, req.body);
+      return sendResponse({ res, data, message: 'Lead updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteLead = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await this.service.deleteLead(req.instituteId!, req.params.id);
+      return sendResponse({ res, data: null, message: 'Lead deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

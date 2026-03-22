@@ -12,6 +12,8 @@ router.use(authenticateJWT, tenantMiddleware);
 
 router.get('/', requireRole('admin', 'teacher'), controller.listStaff);
 router.post('/', requireRole('admin'), validate(createStaffSchema), controller.createStaff);
+router.put('/:id', requireRole('admin'), controller.updateStaff);
+router.delete('/:id', requireRole('admin'), controller.deleteStaff);
 
 router.get('/payroll', requireRole('admin', 'teacher'), controller.listPayroll);
 router.post('/payroll', requireRole('admin'), validate(createPayrollSchema), controller.createPayroll);

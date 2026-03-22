@@ -53,6 +53,13 @@ export class TeacherController {
     } catch (error) { next(error); }
   };
 
+  remove = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.teacherService.removeTeacher(req.params.id, req.instituteId!);
+      return sendResponse({ res, data, message: 'Teacher removed successfully' });
+    } catch (error) { next(error); }
+  };
+
   // ─── Self-service: /teachers/me ──────────────────────────
 
   getMe = async (req: Request, res: Response, next: NextFunction) => {

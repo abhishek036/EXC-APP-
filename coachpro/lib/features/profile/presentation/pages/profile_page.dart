@@ -95,6 +95,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (mounted) {
           // 3. Update Global State
           context.read<AuthBloc>().add(AuthProfileCompleted(updated));
+          context.read<AuthBloc>().add(const AuthRefreshRequested());
           setState(() {
             _editMode = false;
             _saving = false;

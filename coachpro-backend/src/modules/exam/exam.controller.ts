@@ -53,4 +53,13 @@ export class ExamController {
       next(error);
     }
   };
+
+  saveResult = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.service.saveResult(req.instituteId!, req.body);
+      return sendResponse({ res, data, statusCode: 201, message: 'Exam result saved successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

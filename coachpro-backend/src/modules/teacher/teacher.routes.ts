@@ -24,5 +24,6 @@ router.post('/', requireRole('admin'), validate(createTeacherSchema), teacherCon
 router.get('/:id', requireRole('admin', 'teacher'), teacherController.getById);
 router.put('/:id', requireRole('admin'), validate(updateTeacherSchema), teacherController.update);
 router.patch('/:id/status', requireRole('admin'), teacherController.toggleStatus);
+router.delete('/:id', requireRole('admin'), teacherController.remove);
 
 export default router;

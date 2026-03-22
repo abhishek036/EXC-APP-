@@ -23,6 +23,19 @@ export class StaffRepository {
     });
   }
 
+  async updateStaff(id: string, instituteId: string, data: any) {
+    return prisma.staff.update({
+      where: { id, institute_id: instituteId },
+      data,
+    });
+  }
+
+  async deleteStaff(id: string, instituteId: string) {
+    return prisma.staff.delete({
+      where: { id, institute_id: instituteId },
+    });
+  }
+
   async listPayroll(instituteId: string) {
     return prisma.payrollRecord.findMany({
       where: { institute_id: instituteId },

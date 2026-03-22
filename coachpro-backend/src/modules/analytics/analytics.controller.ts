@@ -12,6 +12,15 @@ export class AnalyticsController {
     }
   }
 
+  static async getAdminReports(req: Request, res: Response, next: NextFunction) {
+    try {
+      const reports = await AnalyticsService.getAdminReports(req.instituteId!);
+      return sendResponse({ res, data: reports });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getStudentPerformance(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;

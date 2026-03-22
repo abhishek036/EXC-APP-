@@ -13,5 +13,7 @@ router.use(authenticateJWT, tenantMiddleware);
 router.get('/', requireRole('admin', 'teacher'), controller.list);
 router.post('/', requireRole('admin'), validate(createLeadSchema), controller.create);
 router.patch('/:id/status', requireRole('admin'), validate(updateLeadStatusSchema), controller.updateStatus);
+router.put('/:id', requireRole('admin'), controller.updateLead);
+router.delete('/:id', requireRole('admin'), controller.deleteLead);
 
 export default router;

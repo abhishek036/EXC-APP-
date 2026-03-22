@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/widgets/cp_pressable.dart';
@@ -30,6 +29,7 @@ class _StudentProfilePageState extends State<StudentProfilePage>
   // Student's current batch assignments: [{id, name}]
   List<Map<String, dynamic>> _studentBatchData = [];
   bool _loading = true;
+  bool _loadFailed = false;
   bool _editMode = false;
   bool _saving = false;
   bool _deleting = false;
@@ -74,28 +74,79 @@ class _StudentProfilePageState extends State<StudentProfilePage>
     _phoneCtrl.text = (s['phone'] ?? '').toString();
     _emailCtrl.text = (s['email'] ?? '').toString();
     _addressCtrl.text = (s['address'] ?? '').toString();
-    final parents = (s['parents'] as List?)?.whereType<Map>().toList() ?? [];
-    final p = parents.isNotEmpty ? Map<String, dynamic>.from(parents.first) : <String, dynamic>{};
-    _parentNameCtrl.text = (s['parentName'] ?? p['name'] ?? '').toString();
-    _parentPhoneCtrl.text = (s['parentPhone'] ?? p['phone'] ?? '').toString();
-    _parentRelCtrl.text = (p['relationship'] ?? 'Parent').toString();
+
+    final parentsRaw = s['parents'];
+    final parentStudentsRaw = s['parent_students'];
+
+    final parents = <Map<String, dynamic>>[
+      if (parentsRaw is List)
+        ...parentsRaw
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e)),
+    ];
+
+    final parentStudents = <Map<String, dynamic>>[
+      if (parentStudentsRaw is List)
+        ...parentStudentsRaw
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e)),
+    ];
+
+    final parentFromStudent = parentStudents.isNotEmpty
+        ? Map<String, dynamic>.from(parentStudents.first)
+        : <String, dynamic>{};
+    final nestedParent = parentFromStudent['parent'] is Map
+        ? Map<String, dynamic>.from(parentFromStudent['parent'] as Map)
+        : <String, dynamic>{};
+    final directParent = parents.isNotEmpty ? parents.first : <String, dynamic>{};
+
+    _parentNameCtrl.text = (
+      s['parentName'] ??
+      s['parent_name'] ??
+      nestedParent['name'] ??
+      directParent['name'] ??
+      ''
+    ).toString();
+
+    _parentPhoneCtrl.text = (
+      s['parentPhone'] ??
+      s['parent_phone'] ??
+      nestedParent['phone'] ??
+      directParent['phone'] ??
+      ''
+    ).toString();
+
+    _parentRelCtrl.text = (
+      s['parentRelation'] ??
+      s['parent_relation'] ??
+      parentFromStudent['relation'] ??
+      directParent['relationship'] ??
+      'Parent'
+    ).toString();
   }
 
   Future<void> _loadAll() async {
     if (!mounted) return;
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _loadFailed = false;
+    });
     try {
-      final results = await Future.wait([
-        _adminRepo.getStudentById(widget.studentId).catchError((_) => _demoStudent()),
-        _adminRepo.getFeeRecords(studentId: widget.studentId).catchError((_) => _demoFees()),
-        _adminRepo.getExamResults().catchError((_) => _demoExams()),
-        _adminRepo.getStudentAttendance(studentId: widget.studentId).catchError((_) => <String,dynamic>{'attendancePercent': 76}),
-      ]);
+      final studentResult = await _adminRepo.getStudentById(widget.studentId);
+      final feesResult = await _adminRepo
+          .getFeeRecords(studentId: widget.studentId)
+          .catchError((_) => <Map<String, dynamic>>[]);
+      final examsResult = await _adminRepo
+          .getExamResults()
+          .catchError((_) => <Map<String, dynamic>>[]);
+      final attendanceResult = await _adminRepo
+          .getStudentAttendance(studentId: widget.studentId)
+          .catchError((_) => <String, dynamic>{'attendancePercent': 76});
       if (mounted) {
-        final attData = results[3] as Map<String, dynamic>;
+        final attData = attendanceResult;
         final attPct = (attData['attendancePercent'] as num?)?.toInt()
             ?? (attData['percentage'] as num?)?.toInt() ?? 0;
-        final studentMap = Map<String, dynamic>.from(results[0] as Map<String, dynamic>);
+        final studentMap = Map<String, dynamic>.from(studentResult);
         studentMap['attendancePercent'] = attPct;
         _populateControllers(studentMap);
         // Extract batch data as list of {id, name}
@@ -113,61 +164,30 @@ class _StudentProfilePageState extends State<StudentProfilePage>
           _student = studentMap;
           _studentBatchData = rawBatches;
           _allBatches = allBatches;
-          _feeHistory = (results[1] as List<dynamic>).cast<Map<String, dynamic>>();
-          _examResults = (results[2] as List<dynamic>).cast<Map<String, dynamic>>()
+          _feeHistory = feesResult;
+          _examResults = examsResult
               .where((e) => (e['studentId'] ?? e['student_id'] ?? '').toString() == widget.studentId)
               .toList();
           _loading = false;
+          _loadFailed = false;
         });
       }
-    } catch (_) {
-      // Full demo fallback
+    } catch (error, stackTrace) {
+      debugPrint('StudentProfilePage _loadAll failed for ${widget.studentId}: $error');
+      debugPrint(stackTrace.toString());
       if (mounted) {
-        final demo = _demoStudent();
-        _populateControllers(demo);
-        final demoBatches = (demo['student_batches'] as List).whereType<Map>().map((e) {
-          final batch = e['batch'] as Map?;
-          return <String, dynamic>{'id': 'demo-b1', 'name': (batch?['name'] ?? '').toString()};
-        }).toList();
         setState(() {
-          _student = demo;
-          _studentBatchData = demoBatches;
-          _allBatches = [
-            {'id': 'demo-b1', 'name': 'JEE Batch A'},
-            {'id': 'demo-b2', 'name': 'NEET Batch B'},
-            {'id': 'demo-b3', 'name': 'Foundation'},
-          ];
-          _feeHistory = _demoFees();
+          _student = null;
+          _studentBatchData = [];
+          _allBatches = [];
+          _feeHistory = [];
           _examResults = [];
           _loading = false;
+          _loadFailed = true;
         });
       }
     }
   }
-
-  Map<String, dynamic> _demoStudent() => {
-    'id': widget.studentId,
-    'name': 'Demo Student',
-    'student_code': 'STU-001',
-    'phone': '9876543210',
-    'email': 'demo@coachpro.app',
-    'gender': 'Male',
-    'address': 'Sector 21, Noida, UP',
-    'parentName': 'Mr. Demo Parent',
-    'parentPhone': '9876543200',
-    'status': 'active',
-    'feeStatus': 'PENDING',
-    'attendancePercent': 76,
-    'student_batches': [{'batch': {'name': 'JEE Batch A'}}],
-  };
-
-  List<Map<String, dynamic>> _demoFees() => [
-    {'month': 'March 2026', 'amount': 4500, 'status': 'PENDING'},
-    {'month': 'February 2026', 'amount': 4500, 'status': 'PAID'},
-    {'month': 'January 2026', 'amount': 4500, 'status': 'PAID'},
-  ];
-
-  List<Map<String, dynamic>> _demoExams() => [];
 
   Future<void> _saveChanges() async {
     if (_nameCtrl.text.trim().isEmpty) return;
@@ -314,6 +334,24 @@ class _StudentProfilePageState extends State<StudentProfilePage>
       );
     }
 
+    if (_loadFailed) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF4F5FA),
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0,
+          leading: CPPressable(onTap: () => context.pop(),
+            child: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Color(0xFF0A0C1E)))) ,
+        body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.cloud_off_rounded, size: 64, color: const Color(0xFFD71313).withValues(alpha: 0.3)),
+          const SizedBox(height: 16),
+          Text('Unable to load student', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Text('Check the connection and retry.', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF8F97B8))),
+          const SizedBox(height: 16),
+          CPPressable(onTap: _loadAll, child: Text('Retry', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)))),
+        ])),
+      );
+    }
+
     if (_student == null) {
       return Scaffold(
         backgroundColor: const Color(0xFFF4F5FA),
@@ -357,7 +395,7 @@ class _StudentProfilePageState extends State<StudentProfilePage>
       backgroundColor: const Color(0xFFF4F5FA),
       body: Stack(children: [
         NestedScrollView(
-          headerSliverBuilder: (_, __) => [
+          headerSliverBuilder: (_, isScrolled) => [
             // ── Sliver App Bar ──────────────────────────────────
             SliverAppBar(
               expandedHeight: 260,

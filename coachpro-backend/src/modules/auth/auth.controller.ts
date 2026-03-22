@@ -97,18 +97,10 @@ export class AuthController {
       if (!name || name.trim().length < 2) {
         return next({ message: 'Name must be at least 2 characters', status: 400 });
       }
-      const { prisma } = require('../../server');
       const userId = req.user!.userId;
       const role = req.user!.role;
-      // Update the name on the role-specific profile
-      if (role === 'student') {
-        await prisma.student.updateMany({ where: { user_id: userId }, data: { name: name.trim() } });
-      } else if (role === 'teacher') {
-        await prisma.teacher.updateMany({ where: { user_id: userId }, data: { name: name.trim() } });
-      } else if (role === 'parent') {
-        await prisma.parent.updateMany({ where: { user_id: userId }, data: { name: name.trim() } });
-      }
-      return sendResponse({ res, data: { name: name.trim() }, message: 'Name updated successfully' });
+      const data = await this.authService.updateMe(userId, role, { name: name.trim() });
+      return sendResponse({ res, data, message: 'Name updated successfully' });
     } catch (error) {
       next(error);
     }

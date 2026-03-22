@@ -22,6 +22,14 @@ class AdminRepository {
     return const [];
   }
 
+  Future<Map<String, dynamic>> getAdminReports() async {
+    final response = await _api.dio.get('analytics/reports');
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch admin reports');
+  }
+
   Future<Map<String, dynamic>> importStudents({
     required List<int> bytes,
     required String fileName,
@@ -41,7 +49,7 @@ class AdminRepository {
 
   // ── Audit Logs ──────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getAuditLogs({int page = 1, int limit = 5}) async {
-    final response = await _api.dio.get('audit-logs', queryParameters: {'page': page, 'limit': limit});
+    final response = await _api.dio.get('audit-logs', queryParameters: {'page': page, 'perPage': limit});
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -93,7 +101,8 @@ class AdminRepository {
   // ── Students ──────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getStudents({String? query, String? batchId, bool isActive = true}) async {
     final queryParams = <String, dynamic>{
-      'search': query,
+      'name': query,
+      'phone': query,
       'batchId': batchId,
       'isActive': isActive.toString(),
     };
@@ -172,7 +181,19 @@ class AdminRepository {
   }
 
   Future<Map<String, dynamic>> updateStudent(String studentId, Map<String, dynamic> data) async {
-    final response = await _api.dio.put('students/$studentId', data: data);
+    final normalized = Map<String, dynamic>.from(data);
+
+    if (normalized.containsKey('parentName')) {
+      normalized['parent_name'] = normalized.remove('parentName');
+    }
+    if (normalized.containsKey('parentPhone')) {
+      normalized['parent_phone'] = normalized.remove('parentPhone');
+    }
+    if (normalized.containsKey('parentRelation')) {
+      normalized['parent_relation'] = normalized.remove('parentRelation');
+    }
+
+    final response = await _api.dio.put('students/$studentId', data: normalized);
     if (response.statusCode == 200) {
       return Map<String, dynamic>.from(response.data['data'] as Map);
     }
@@ -297,9 +318,17 @@ class AdminRepository {
   }
 
   Future<void> deleteTeacher(String teacherId) async {
-    final response = await _api.dio.delete('teachers/$teacherId');
-    if (response.statusCode != 200) {
+    try {
+      final response = await _api.dio.delete('teachers/$teacherId');
+      if (response.statusCode == 200 || response.statusCode == 204) return;
       throw Exception(response.data['message'] ?? 'Failed to delete teacher');
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 404 || code == 405) {
+        await toggleTeacherStatus(teacherId, false);
+        return;
+      }
+      rethrow;
     }
   }
 
@@ -487,6 +516,20 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to update lead status');
   }
 
+  Future<Map<String, dynamic>> updateLead(String leadId, Map<String, dynamic> data) async {
+    final response = await _api.dio.put('leads/$leadId', data: data);
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update lead');
+  }
+
+  Future<void> deleteLead(String leadId) async {
+    final response = await _api.dio.delete('leads/$leadId');
+    if (response.statusCode == 200) return;
+    throw Exception(response.data['message'] ?? 'Failed to delete lead');
+  }
+
   // ── Staff & Payroll ────────────────────────────────────
   Future<List<Map<String, dynamic>>> getStaff() async {
     final response = await _api.dio.get('staff');
@@ -515,6 +558,20 @@ class AdminRepository {
       return Map<String, dynamic>.from(response.data['data'] as Map);
     }
     throw Exception(response.data['message'] ?? 'Failed to create staff');
+  }
+
+  Future<Map<String, dynamic>> updateStaff(String staffId, Map<String, dynamic> data) async {
+    final response = await _api.dio.put('staff/$staffId', data: data);
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update staff');
+  }
+
+  Future<void> deleteStaff(String staffId) async {
+    final response = await _api.dio.delete('staff/$staffId');
+    if (response.statusCode == 200) return;
+    throw Exception(response.data['message'] ?? 'Failed to delete staff');
   }
 
   Future<List<Map<String, dynamic>>> getStaffPayrollRecords() async {
@@ -734,7 +791,7 @@ class AdminRepository {
   }) async {
     final response = await _api.dio.post(
       'batches/$batchId/students',
-      data: {'studentId': studentId},
+      data: {'studentIds': [studentId]},
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
@@ -756,7 +813,7 @@ class AdminRepository {
     required List<String> studentIds,
   }) async {
     final response = await _api.dio.post(
-      'batches/$batchId/students/bulk',
+      'batches/$batchId/students',
       data: {'studentIds': studentIds},
     );
     if (response.statusCode == 200 || response.statusCode == 201) return;
