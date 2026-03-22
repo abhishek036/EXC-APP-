@@ -171,7 +171,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                       SliverToBoxAdapter(child: _buildTimetableSection()),
                       SliverToBoxAdapter(child: _buildClassesSection()),
                       SliverToBoxAdapter(child: _buildQuizzesSection()),
-                      SliverToBoxAdapter(child: _buildStudentsHeader()),
+                      _buildStudentsHeader(),
                       _buildStudentList(),
                       const SliverToBoxAdapter(child: SizedBox(height: 80)),
                     ],
