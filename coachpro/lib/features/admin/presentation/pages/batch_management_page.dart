@@ -646,7 +646,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
 
                       try {
                         final teacherIds = selectedTeacherIds.toList();
-                        final created = await _adminRepo.createBatch({
+                        final payload = <String, dynamic>{
                           'name': nameCtrl.text.trim(),
                           'subject': subjectCtrl.text.trim(),
                           'capacity': int.tryParse(capacityCtrl.text.trim()) ?? 60,
@@ -657,7 +657,10 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                           'teacher_id': teacherIds.isNotEmpty ? teacherIds.first : null,
                           'teacher_ids': teacherIds,
                           'description': descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
-                        });
+                        };
+                        payload.removeWhere((key, value) => value == null);
+
+                        final created = await _adminRepo.createBatch(payload);
 
                         final batchId = (created['id'] ?? '').toString();
                         final monthlyFee = double.tryParse(feeCtrl.text.trim()) ?? 0;

@@ -15,6 +15,19 @@ export class LectureRepository {
         institute_id: instituteId,
         is_active: true,
       },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        class_room: true,
+        link: true,
+        scheduled_at: true,
+        duration_minutes: true,
+        created_at: true,
+        teacher_id: true,
+        batch_id: true,
+        is_active: true,
+      },
       orderBy: { created_at: 'desc' },
     });
   }

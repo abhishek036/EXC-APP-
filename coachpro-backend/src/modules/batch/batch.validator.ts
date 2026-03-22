@@ -1,21 +1,23 @@
 import { z } from 'zod';
 
+const nullableOptionalString = () => z.preprocess((value) => value === null ? undefined : value, z.string().optional());
+
 export const createBatchSchema = z.object({
   body: z.object({
     name: z.string().min(2).max(200),
-    subject: z.string().max(100).optional(),
+    subject: nullableOptionalString().refine((v) => v == null || v.length <= 100, { message: 'String must contain at most 100 character(s)' }),
     teacher_id: z.string().uuid().optional(),
     teacher_ids: z.array(z.string().uuid()).optional(),
     days_of_week: z.array(z.number().min(0).max(6)).optional(),
-    start_time: z.string().optional(), // 'HH:mm:ss' assumed, but db.Time is weird in Prisma, often passed as a DateTime ISO string but with time 
-    end_time: z.string().optional(),
-    room: z.string().max(50).optional(),
-    start_date: z.string().optional(), // accepts ISO or yyyy-mm-dd
-    end_date: z.string().optional(),
+    start_time: nullableOptionalString(), // 'HH:mm:ss' assumed, but db.Time is weird in Prisma, often passed as a DateTime ISO string but with time 
+    end_time: nullableOptionalString(),
+    room: nullableOptionalString().refine((v) => v == null || v.length <= 50, { message: 'String must contain at most 50 character(s)' }),
+    start_date: nullableOptionalString(), // accepts ISO or yyyy-mm-dd
+    end_date: nullableOptionalString(),
     capacity: z.number().positive().optional(),
     batch_type: z.enum(['regular', 'crash', 'test_series']).optional(),
-    description: z.string().max(2000).optional(),
-    cover_image_url: z.string().url().optional(),
+    description: nullableOptionalString().refine((v) => v == null || v.length <= 2000, { message: 'String must contain at most 2000 character(s)' }),
+    cover_image_url: z.preprocess((value) => value === null ? undefined : value, z.string().url().optional()),
     faqs: z.array(
       z.object({
         question: z.string().min(1).max(300),

@@ -7,7 +7,7 @@ export class QuizController {
     try {
       const { batch_id } = req.query;
       const quizzes = await QuizService.listQuizzes(req.instituteId!, batch_id as string);
-      res.json(sendResponse({ res, data: quizzes }));
+      return sendResponse({ res, data: quizzes });
     } catch (error) {
       next(error);
     }

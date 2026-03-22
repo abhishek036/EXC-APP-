@@ -54,7 +54,6 @@ export class TimetableService {
         batch_id: data.batchId,
         teacher_id: data.teacherId,
         title: `${data.subject} - ${data.batchId}`, // Adding a default title
-        subject: data.subject,
         class_room: data.room || 'online',
         link: data.link,
         scheduled_at: lectureStart,
@@ -66,7 +65,17 @@ export class TimetableService {
   async getBatchTimetable(batchId: string, instituteId: string) {
     return prisma.lecture.findMany({
       where: { batch_id: batchId, institute_id: instituteId },
-      include: { teacher: { select: { name: true } } },
+      select: {
+        id: true,
+        title: true,
+        class_room: true,
+        link: true,
+        scheduled_at: true,
+        duration_minutes: true,
+        batch_id: true,
+        teacher_id: true,
+        teacher: { select: { name: true } },
+      },
       orderBy: { scheduled_at: 'asc' }
     });
   }
@@ -74,7 +83,17 @@ export class TimetableService {
   async getTeacherTimetable(teacherId: string, instituteId: string) {
     return prisma.lecture.findMany({
       where: { teacher_id: teacherId, institute_id: instituteId },
-      include: { batch: { select: { name: true } } },
+      select: {
+        id: true,
+        title: true,
+        class_room: true,
+        link: true,
+        scheduled_at: true,
+        duration_minutes: true,
+        batch_id: true,
+        teacher_id: true,
+        batch: { select: { name: true } },
+      },
       orderBy: { scheduled_at: 'asc' }
     });
   }
