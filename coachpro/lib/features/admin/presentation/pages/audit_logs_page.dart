@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -124,8 +123,8 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       itemCount: 8,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (_, __) => const CPShimmer(width: double.infinity, height: 100, borderRadius: 20),
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      itemBuilder: (context, index) => const CPShimmer(width: double.infinity, height: 100, borderRadius: 20),
     );
   }
 

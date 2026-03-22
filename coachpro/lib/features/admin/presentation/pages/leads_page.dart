@@ -255,8 +255,8 @@ class _LeadsPageState extends State<LeadsPage> {
                       ? ListView.separated(
                           padding: const EdgeInsets.all(24),
                           itemCount: 5,
-                          separatorBuilder: (_, __) => const SizedBox(height: 16),
-                          itemBuilder: (_, __) => const CPShimmer(width: double.infinity, height: 100, borderRadius: 24),
+                          separatorBuilder: (context, index) => const SizedBox(height: 16),
+                          itemBuilder: (context, index) => const CPShimmer(width: double.infinity, height: 100, borderRadius: 24),
                         )
                       : currentLeads.isEmpty
                           ? Center(

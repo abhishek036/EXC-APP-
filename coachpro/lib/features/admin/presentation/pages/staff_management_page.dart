@@ -77,8 +77,8 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       ? ListView.separated(
                           padding: const EdgeInsets.all(20),
                           itemCount: 5,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
-                          itemBuilder: (_, __) => const CPShimmer(width: double.infinity, height: 80, borderRadius: 16),
+                          separatorBuilder: (context, index) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) => const CPShimmer(width: double.infinity, height: 80, borderRadius: 16),
                         )
                       : RefreshIndicator(
                           onRefresh: _loadData,

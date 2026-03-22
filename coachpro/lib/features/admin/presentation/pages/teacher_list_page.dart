@@ -239,10 +239,12 @@ class _TeacherListPageState extends State<TeacherListPage> {
               Navigator.pop(ctx);
               try {
                 await _adminRepo.deleteTeacher(id);
+                if (!mounted) return;
                 _loadTeachers();
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Faculty removed successfully')));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Faculty removed successfully')));
               } catch (e) {
-                if (mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e')));
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD71313), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),

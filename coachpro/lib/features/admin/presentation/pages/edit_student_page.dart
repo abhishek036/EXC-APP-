@@ -307,8 +307,11 @@ class _EditStudentPageState extends State<EditStudentPage> {
                                   onTap: () {
                                     HapticFeedback.selectionClick();
                                     setState(() {
-                                      if (isSelected) _selectedBatchIds.remove(batchId);
-                                      else _selectedBatchIds.add(batchId);
+                                      if (isSelected) {
+                                        _selectedBatchIds.remove(batchId);
+                                      } else {
+                                        _selectedBatchIds.add(batchId);
+                                      }
                                     });
                                   },
                                 );
@@ -403,9 +406,11 @@ class _EditStudentPageState extends State<EditStudentPage> {
 
     try {
       await _adminRepo.toggleStudentStatus(widget.studentId, !current);
+      if (!mounted) return;
       setState(() => _student!['is_active'] = !current);
       CPToast.success(context, 'Student ${!current ? 'activated' : 'deactivated'}');
     } catch (e) {
+      if (!mounted) return;
       CPToast.error(context, 'Failed: $e');
     }
   }

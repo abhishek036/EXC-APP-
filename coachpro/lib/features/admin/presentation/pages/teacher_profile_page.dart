@@ -375,7 +375,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
     return ListView.separated(
       padding: const EdgeInsets.all(20),
       itemCount: _batches.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final batch = _batches[index];
         final studentCount = _toNum(((batch['_count'] as Map?)?['student_batches'])).toInt();

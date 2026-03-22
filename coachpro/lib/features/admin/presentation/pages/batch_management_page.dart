@@ -118,8 +118,8 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                   ? ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                       itemCount: 4,
-                      separatorBuilder: (_, __) => const SizedBox(height: 16),
-                      itemBuilder: (_, __) => const CPShimmer(width: double.infinity, height: 160, borderRadius: 22),
+                      separatorBuilder: (context, index) => const SizedBox(height: 16),
+                      itemBuilder: (context, index) => const CPShimmer(width: double.infinity, height: 160, borderRadius: 22),
                     )
                   : RefreshIndicator(
                       color: const Color(0xFF0D1282),
@@ -677,9 +677,9 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                         }
 
                         if (ctx.mounted) Navigator.pop(ctx);
-                        if (!mounted) return;
+                        if (!mounted || !ctx.mounted) return;
                         HapticFeedback.mediumImpact();
-                        CPToast.success(context, 'Batch created successfully');
+                        CPToast.success(ctx, 'Batch created successfully');
                         _loadData();
                       } catch (e) {
                         if (ctx.mounted) {

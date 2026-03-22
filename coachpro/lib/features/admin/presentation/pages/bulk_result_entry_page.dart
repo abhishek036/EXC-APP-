@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -223,8 +222,8 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
     return ListView.separated(
       padding: const EdgeInsets.all(20),
       itemCount: 8,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (_, __) => CPShimmer(width: double.infinity, height: 80, borderRadius: 16),
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) => CPShimmer(width: double.infinity, height: 80, borderRadius: 16),
     );
   }
 
@@ -245,7 +244,7 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       itemCount: _students.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, i) {
         final student = _students[i];
         final name = student['name'] ?? 'Student';

@@ -26,7 +26,6 @@ class _StudentImportPageState extends State<StudentImportPage> {
   String? _selectedFileName;
   bool _isPicking = false;
   bool _isUploading = false;
-  List<Map<String, dynamic>> _studentRows = [];
   List<Map<String, dynamic>> _userRows = [];
   List<String> _errors = [];
 
@@ -74,7 +73,6 @@ class _StudentImportPageState extends State<StudentImportPage> {
              });
            }
            setState(() {
-             _studentRows = parsedStudents;
              _userRows = parsedStudents;
            });
         }
@@ -122,7 +120,6 @@ class _StudentImportPageState extends State<StudentImportPage> {
       setState(() {
         _isUploading = false;
         _userRows = [];
-        _studentRows = [];
         _selectedFileName = null;
         _fileBytes = null;
         _errors = errors?.map((e) => e.toString()).toList() ?? [];

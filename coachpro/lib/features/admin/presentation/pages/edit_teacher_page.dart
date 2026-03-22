@@ -121,9 +121,11 @@ class _EditTeacherPageState extends State<EditTeacherPage> {
 
     try {
       await _adminRepo.toggleTeacherStatus(widget.teacherId, !current);
+      if (!mounted) return;
       setState(() => _teacher!['is_active'] = !current);
       CPToast.success(context, 'Teacher ${!current ? 'activated' : 'deactivated'}');
     } catch (e) {
+      if (!mounted) return;
       CPToast.error(context, 'Failed: $e');
     }
   }

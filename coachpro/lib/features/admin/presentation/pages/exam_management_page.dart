@@ -181,8 +181,6 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
     final totalMarks = exam['totalMarks']?.toString() ?? '';
     final id = (exam['id'] ?? '').toString();
 
-    final statusColor = status == 'upcoming' ? AppColors.electricBlue : AppColors.success;
-
     return CPPressable(
       onTap: () {
         HapticFeedback.lightImpact();

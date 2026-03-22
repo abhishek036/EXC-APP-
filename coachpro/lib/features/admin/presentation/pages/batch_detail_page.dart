@@ -41,6 +41,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
   int _activeContentTab = 0;
   String _studentFilter = 'All';
   String _feeFilter = 'All';
+  bool _fabExpanded = false;
 
   static const _tabs = ['Overview', 'Content', 'Students', 'Tests', 'Fees', 'Analytics'];
   static const _contentTabs = ['Lectures', 'Notes', 'Assignments', 'DPP', 'Materials'];
@@ -285,7 +286,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                       children: [
                         _buildHeroPanel(isDark),
                         _buildLiveInsights(),
-                        _buildTabBar(),
+                        _buildTabBar(isDark),
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 220),
                           child: _buildTabBody(),
@@ -333,14 +334,16 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     final statusColor = _isCompleted
         ? const Color(0xFFD71313)
         : (isActive ? const Color(0xFF0D1282) : Colors.black54);
+    final pending = _toDouble(fee['pending']);
+    final paid = _toDouble(fee['paid']);
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 14, AppDimensions.pagePaddingH, 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 14, AppDimensions.pagePaddingH, 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFEEEDED),
         border: Border.all(color: const Color(0xFF0D1282), width: 2.5),
-        boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4))],
+        boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4), blurRadius: 0)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,15 +385,73 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0DE36),
+              border: Border.all(color: const Color(0xFF0D1282), width: 2),
+              boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3), blurRadius: 0)],
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.currency_rupee_rounded, color: Color(0xFF0D1282), size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '₹${paid.toStringAsFixed(0)}',
+                        style: GoogleFonts.inter(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF0D1282),
+                          letterSpacing: -0.6,
+                        ),
+                      ),
+                      Text('Total Revenue', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFFD71313), width: 1.2),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('₹${pending.toStringAsFixed(0)}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, color: const Color(0xFFD71313))),
+                      Text('Pending', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFFD71313))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _quickStatCard('Total Students', '$totalStudents', Icons.groups_rounded, const Color(0xFF0D1282)),
-              _quickStatCard('Active Students', '$activeStudents', Icons.how_to_reg_rounded, const Color(0xFF0D1282)),
-              _quickStatCard('Revenue', '₹${_toDouble(fee['paid']).toStringAsFixed(0)}', Icons.payments_rounded, const Color(0xFFF0DE36)),
-              _quickStatCard('Duration', '${_dateLabel(_batch!['start_date'])} - ${_dateLabel(_batch!['end_date'])}', Icons.date_range_rounded, const Color(0xFF0D1282)),
+              _quickStatCard('Total Students', '$totalStudents', Icons.groups_rounded, const Color(0xFF0D1282), width: 154),
+              _quickStatCard('Active Students', '$activeStudents', Icons.how_to_reg_rounded, const Color(0xFF0D1282), width: 154),
+              _quickStatCard('Monthly Fee', '₹${_toDouble(_feeStructure?['monthly_fee']).toStringAsFixed(0)}', Icons.payments_rounded, const Color(0xFFF0DE36), width: 154),
+              _quickStatCard('Duration', '${_dateLabel(_batch!['start_date'])} - ${_dateLabel(_batch!['end_date'])}', Icons.date_range_rounded, const Color(0xFF0D1282), width: 154),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _microTag('Lectures ${_lectures.length}', Icons.ondemand_video_rounded, const Color(0xFF0D1282)),
+              _microTag('Notes ${_materials.length}', Icons.description_outlined, const Color(0xFF0D1282)),
+              _microTag('Tests ${_quizzes.length}', Icons.quiz_outlined, const Color(0xFF0D1282)),
+              _microTag('Low Attendance ${_students.where((s) => _studentAttendance(s) < 70).length}', Icons.warning_amber_rounded, const Color(0xFFD71313)),
             ],
           ),
         ],
@@ -398,20 +459,21 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     ).animate().fadeIn(duration: 360.ms);
   }
 
-  Widget _quickStatCard(String title, String value, IconData icon, Color accent) {
+  Widget _quickStatCard(String title, String value, IconData icon, Color accent, {double width = 164}) {
     return Container(
-      width: 164,
+      width: width,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFF0D1282), width: 1.5),
+        boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2), blurRadius: 0)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 16, color: const Color(0xFF0D1282)),
           const SizedBox(height: 6),
-          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 12)),
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 14)),
           const SizedBox(height: 2),
           Row(
             children: [
@@ -420,6 +482,25 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
               Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 10))),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _microTag(String label, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color, width: 1.2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(label, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
         ],
       ),
     );
@@ -439,47 +520,88 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Live Insights', style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 14, color: const Color(0xFF0D1282))),
+          Text('Realtime batch health and outcomes', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF0D1282).withValues(alpha: 0.72))),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
             children: [
-              _insightTile('🎥 Lectures', '${data['lectures']}', const Color(0xFF0D1282)),
-              _insightTile('📄 Notes', '${data['notes']}', const Color(0xFF0D1282)),
-              _insightTile('🧪 Tests', '${data['tests']}', const Color(0xFF0D1282)),
-              _insightTile('📥 Submissions', '${data['assignmentsSubmitted']}', const Color(0xFF0D1282)),
-              _insightTile('💰 Fees Paid', '₹${_toDouble(data['feesPaid']).toStringAsFixed(0)}', const Color(0xFFF0DE36)),
-              _insightTile('⏳ Fees Pending', '₹${_toDouble(data['feesPending']).toStringAsFixed(0)}', const Color(0xFFD71313)),
-              _insightTile('🔴 Low Attendance', '${data['lowAttendance']}', const Color(0xFFD71313)),
+              Expanded(
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: _insightTile('Lectures', '${data['lectures']}', Icons.ondemand_video_rounded, const Color(0xFF0D1282))),
+                        const SizedBox(width: 8),
+                        Expanded(child: _insightTile('Notes', '${data['notes']}', Icons.description_outlined, const Color(0xFF0D1282))),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(child: _insightTile('Tests', '${data['tests']}', Icons.quiz_outlined, const Color(0xFF0D1282))),
+                        const SizedBox(width: 8),
+                        Expanded(child: _insightTile('Submissions', '${data['assignmentsSubmitted']}', Icons.assignment_turned_in_outlined, const Color(0xFF0D1282))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
+          const SizedBox(height: 8),
+          _wideInsightTile('Fees Paid', '₹${_toDouble(data['feesPaid']).toStringAsFixed(0)}', Icons.payments_rounded, const Color(0xFFF0DE36), emphasized: true),
+          const SizedBox(height: 8),
+          _wideInsightTile('Fees Pending', '₹${_toDouble(data['feesPending']).toStringAsFixed(0)}', Icons.warning_rounded, const Color(0xFFD71313), emphasized: true),
+          const SizedBox(height: 8),
+          _wideInsightTile('Low Attendance', '${data['lowAttendance']} Students', Icons.error_outline_rounded, const Color(0xFFD71313)),
         ],
       ),
     );
   }
 
-  Widget _insightTile(String label, String value, Color accent) {
+  Widget _insightTile(String label, String value, IconData icon, Color accent) {
     return Container(
-      width: 104,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: accent.withValues(alpha: 0.1),
         border: Border.all(color: accent, width: 1.3),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 13, color: const Color(0xFF0D1282))),
+          Icon(icon, size: 16, color: accent),
+          const SizedBox(height: 8),
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 15, color: const Color(0xFF0D1282))),
           const SizedBox(height: 3),
-          Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.black87)),
+          Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
         ],
       ),
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _wideInsightTile(String label, String value, IconData icon, Color accent, {bool emphasized = false}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: emphasized ? 0.2 : 0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accent, width: emphasized ? 1.8 : 1.2),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: accent),
+          const SizedBox(width: 10),
+          Expanded(child: Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)))),
+          Text(value, style: GoogleFonts.inter(fontSize: emphasized ? 15 : 13, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBar(bool isDark) {
     return SizedBox(
-      height: 44,
+      height: 48,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
         scrollDirection: Axis.horizontal,
@@ -489,10 +611,12 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             onTap: () => setState(() => _activeTab = index),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 160),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: BoxDecoration(
                 color: selected ? const Color(0xFF0D1282) : Colors.white,
                 border: Border.all(color: const Color(0xFF0D1282), width: 1.4),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: selected ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2), blurRadius: 0)] : null,
               ),
               child: Center(
                 child: Text(
@@ -642,7 +766,39 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         _sectionCard(
           title: 'Activity Timeline',
           child: timelineItems.isEmpty
-              ? Text('No recent activity', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
+              ? Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFF0D1282), width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(color: Color(0xFFF0DE36), shape: BoxShape.circle),
+                        child: const Icon(Icons.timeline_rounded, size: 16, color: Color(0xFF0D1282)),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Batch created • waiting for first activity', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 11)),
+                            Text('Add your first lecture or test to start timeline tracking', style: GoogleFonts.inter(fontSize: 10, color: Colors.black54)),
+                          ],
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => setState(() => _fabExpanded = true),
+                        icon: const Icon(Icons.add_rounded, size: 14),
+                        label: const Text('Add'),
+                      ),
+                    ],
+                  ),
+                )
               : Column(
                   children: timelineItems
                       .map((entry) => Container(
@@ -1216,25 +1372,60 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _actionButton('Add Lecture', Icons.ondemand_video_rounded, () => context.push('/admin/timetable')),
-        const SizedBox(height: 8),
-        _actionButton('Add Test', Icons.quiz_rounded, () => context.push('/admin/exams')),
-        const SizedBox(height: 8),
-        _actionButton('Add Student', Icons.person_add_alt_rounded, () => context.push('/admin/add-student')),
-        const SizedBox(height: 8),
-        _actionButton('Collect Fee', Icons.payments_rounded, () => context.push('/admin/fees')),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: !_fabExpanded
+              ? const SizedBox.shrink()
+              : Container(
+                  key: const ValueKey('fab-menu'),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEEDED),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF0D1282), width: 1.6),
+                    boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3), blurRadius: 0)],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _fabMenuItem('Lecture', Icons.ondemand_video_rounded, () => context.push('/admin/timetable')),
+                      _fabMenuItem('Test', Icons.quiz_rounded, () => context.push('/admin/exams')),
+                      _fabMenuItem('Student', Icons.person_add_alt_rounded, () => context.push('/admin/add-student')),
+                      _fabMenuItem('Fee', Icons.payments_rounded, () => context.push('/admin/fees')),
+                    ],
+                  ),
+                ),
+        ),
+        FloatingActionButton.extended(
+          heroTag: '${widget.batchId}_fab_menu',
+          onPressed: () => setState(() => _fabExpanded = !_fabExpanded),
+          backgroundColor: const Color(0xFF0D1282),
+          foregroundColor: const Color(0xFFEEEDED),
+          icon: Icon(_fabExpanded ? Icons.close_rounded : Icons.add_rounded, size: 18),
+          label: Text(_fabExpanded ? 'Close' : 'Add', style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 12)),
+        ),
       ],
     );
   }
 
-  Widget _actionButton(String label, IconData icon, VoidCallback onTap) {
-    return FloatingActionButton.extended(
-      heroTag: '${widget.batchId}_$label',
-      onPressed: onTap,
-      backgroundColor: const Color(0xFF0D1282),
-      foregroundColor: const Color(0xFFEEEDED),
-      icon: Icon(icon, size: 18),
-      label: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 11)),
+  Widget _fabMenuItem(String label, IconData icon, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: OutlinedButton.icon(
+        onPressed: () {
+          setState(() => _fabExpanded = false);
+          onTap();
+        },
+        icon: Icon(icon, size: 16),
+        label: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 11)),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Color(0xFF0D1282), width: 1.2),
+          foregroundColor: const Color(0xFF0D1282),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
     );
   }
 
