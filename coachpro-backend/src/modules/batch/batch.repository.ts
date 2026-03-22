@@ -80,7 +80,82 @@ export class BatchRepository {
   }
 
   async deleteBatch(batchId: string) {
-    return prisma.batch.delete({ where: { id: batchId } });
+    return prisma.$transaction(async (tx) => {
+      await tx.feePayment.deleteMany({
+        where: { fee_record: { batch_id: batchId } },
+      });
+
+      await tx.feeRecord.deleteMany({
+        where: { batch_id: batchId },
+      });
+
+      await tx.attendanceRecord.deleteMany({
+        where: { session: { batch_id: batchId } },
+      });
+
+      await tx.attendanceSession.deleteMany({
+        where: { batch_id: batchId },
+      });
+
+      await tx.quizAttempt.deleteMany({
+        where: { quiz: { batch_id: batchId } },
+      });
+
+      await tx.quizQuestion.deleteMany({
+        where: { quiz: { batch_id: batchId } },
+      });
+
+      await tx.quiz.deleteMany({
+        where: { batch_id: batchId },
+      });
+
+      await tx.studentSyllabusProgress.deleteMany({
+        where: { topic: { batch_id: batchId } },
+      });
+
+      await tx.syllabusTopic.deleteMany({
+        where: { batch_id: batchId },
+      });
+
+      await tx.examBatch.deleteMany({
+        where: { batch_id: batchId },
+      });
+
+      await tx.note.deleteMany({
+        where: { batch_id: batchId },
+      });
+
+      await tx.assignment.deleteMany({
+        where: { batch_id: batchId },
+      });
+
+      await tx.doubt.deleteMany({
+        where: { batch_id: batchId },
+      });
+
+      await tx.chatMessage.deleteMany({
+        where: { batch_id: batchId },
+      });
+
+      await tx.lecture.deleteMany({
+        where: { batch_id: batchId },
+      });
+
+      await tx.announcement.updateMany({
+        where: { target_batch_id: batchId },
+        data: { target_batch_id: null },
+      });
+
+      await tx.studentBatch.deleteMany({
+        where: { batch_id: batchId },
+      });
+
+      await tx.feeStructure.deleteMany({
+        where: { batch_id: batchId },
+      });
+
+      return tx.batch.delete({ where: { id: batchId } });
+    });
   }
 
   async toggleStatus(batchId: string, isActive: boolean) {
