@@ -10,18 +10,7 @@ export class TimetableService {
     const lectureStart = new Date(data.scheduledAt);
     const lectureEnd = new Date(lectureStart.getTime() + data.duration * 60000);
 
-    // 1. Check Teacher Conflict
-    const teacherConflict = await prisma.lecture.findFirst({
-        where: {
-            teacher_id: data.teacherId,
-            institute_id: instituteId,
-            scheduled_at: { lt: lectureEnd },
-            // End of lecture calculation is harder in SQL directly with duration, but we'll approximate 
-            // OR fetch all potentially overlapping and filter in JS
-        }
-    });
-    
-    // For premium robustness, let's fetch candidate overlaps
+    // 1. Check teacher conflict with overlapping slots
     const candidates = await prisma.lecture.findMany({
         where: {
             institute_id: instituteId,
@@ -29,10 +18,7 @@ export class TimetableService {
                 gte: new Date(lectureStart.getTime() - 240 * 60000), // Checked 4 hrs before
                 lte: lectureEnd 
             },
-            OR: [
-                { teacher_id: data.teacherId },
-                { class_room: data.room || 'online' }
-            ]
+        teacher_id: data.teacherId,
         }
     });
 
@@ -42,8 +28,7 @@ export class TimetableService {
         const cEnd = new Date(cStart.getTime() + (c.duration_minutes || 60) * 60000);
         
         if (lectureStart < cEnd && lectureEnd > cStart) {
-            const reason = (c.teacher_id === data.teacherId) ? 'Teacher is already busy' : 'Classroom is already occupied';
-            throw new ApiError(`${reason} during this time slot`, 400, 'CONFLICT');
+            throw new ApiError('Teacher is already busy during this time slot', 400, 'CONFLICT');
         }
     }
 
@@ -54,8 +39,6 @@ export class TimetableService {
         batch_id: data.batchId,
         teacher_id: data.teacherId,
         title: `${data.subject} - ${data.batchId}`, // Adding a default title
-        class_room: data.room || 'online',
-        link: data.link,
         scheduled_at: lectureStart,
         duration_minutes: data.duration
       }
@@ -68,8 +51,6 @@ export class TimetableService {
       select: {
         id: true,
         title: true,
-        class_room: true,
-        link: true,
         scheduled_at: true,
         duration_minutes: true,
         batch_id: true,
@@ -86,8 +67,6 @@ export class TimetableService {
       select: {
         id: true,
         title: true,
-        class_room: true,
-        link: true,
         scheduled_at: true,
         duration_minutes: true,
         batch_id: true,

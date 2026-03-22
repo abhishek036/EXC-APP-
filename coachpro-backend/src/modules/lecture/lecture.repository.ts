@@ -18,9 +18,6 @@ export class LectureRepository {
       select: {
         id: true,
         title: true,
-        description: true,
-        class_room: true,
-        link: true,
         scheduled_at: true,
         duration_minutes: true,
         created_at: true,

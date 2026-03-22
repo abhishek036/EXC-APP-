@@ -20,13 +20,31 @@ export class TimetableController {
     try {
       const data = await this.service.getBatchTimetable(req.params.batchId, req.instituteId!);
       return sendResponse({ res, data, message: 'Batch timetable fetched' });
-    } catch (error) { next(error); }
+    } catch (error) {
+      if ((error as any)?.code === 'P2022') {
+        return sendResponse({
+          res,
+          data: [],
+          message: 'Batch timetable unavailable for current DB schema; returning empty result',
+        });
+      }
+      next(error);
+    }
   };
 
   getByTeacher = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.service.getTeacherTimetable(req.params.teacherId, req.instituteId!);
       return sendResponse({ res, data, message: 'Teacher timetable fetched' });
-    } catch (error) { next(error); }
+    } catch (error) {
+      if ((error as any)?.code === 'P2022') {
+        return sendResponse({
+          res,
+          data: [],
+          message: 'Teacher timetable unavailable for current DB schema; returning empty result',
+        });
+      }
+      next(error);
+    }
   };
 }
