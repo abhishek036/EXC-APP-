@@ -3,7 +3,7 @@ import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
 import { tenantMiddleware } from '../../middleware/tenant.middleware';
 import { validate } from '../../middleware/validate.middleware';
 import { StaffController } from './staff.controller';
-import { createPayrollSchema, createStaffSchema } from './staff.validator';
+import { createPayrollSchema, createStaffSchema, updateStaffSchema } from './staff.validator';
 
 const router = Router();
 const controller = new StaffController();
@@ -12,7 +12,7 @@ router.use(authenticateJWT, tenantMiddleware);
 
 router.get('/', requireRole('admin', 'teacher'), controller.listStaff);
 router.post('/', requireRole('admin'), validate(createStaffSchema), controller.createStaff);
-router.put('/:id', requireRole('admin'), controller.updateStaff);
+router.put('/:id', requireRole('admin'), validate(updateStaffSchema), controller.updateStaff);
 router.delete('/:id', requireRole('admin'), controller.deleteStaff);
 
 router.get('/payroll', requireRole('admin', 'teacher'), controller.listPayroll);

@@ -639,37 +639,6 @@ class AppRouter {
             ],
           ),
         ],
-        errorBuilder: (context, state) => Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.location_off_outlined, size: 80, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Page Not Found',
-                    style: GoogleFonts.sora(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'The page you are looking for does not exist or has been moved.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.dmSans(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () => context.go('/splash'),
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1), foregroundColor: Colors.white),
-                    child: const Text('Go to Home'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       );
 }
 

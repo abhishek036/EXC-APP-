@@ -30,6 +30,10 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   List<Map<String, dynamic>> _staff = [];
   List<Map<String, dynamic>> _payroll = [];
 
+  String _extractDigits(String raw) {
+    return raw.replaceAll(RegExp(r'\D'), '');
+  }
+
   List<Map<String, dynamic>> _uniqueById(List<Map<String, dynamic>> items) {
     final seen = <String>{};
     final unique = <Map<String, dynamic>>[];
@@ -397,17 +401,40 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                     onPressed: isSubmitting
                         ? null
                         : () async {
-                            if (nameCtrl.text.isEmpty || salaryCtrl.text.isEmpty) return;
+                            final name = nameCtrl.text.trim();
+                            final role = roleCtrl.text.trim();
+                            final phoneDigits = _extractDigits(phoneCtrl.text.trim());
+                            final salaryText = salaryCtrl.text.trim();
+                            final salary = double.tryParse(salaryText);
+
+                            if (name.length < 2) {
+                              CPToast.error(ctx, 'Enter a valid name (min 2 characters)');
+                              return;
+                            }
+                            if (salaryText.isEmpty || salary == null || salary < 0) {
+                              CPToast.error(ctx, 'Enter a valid salary amount');
+                              return;
+                            }
+                            if (phoneDigits.isNotEmpty && (phoneDigits.length < 10 || phoneDigits.length > 15)) {
+                              CPToast.error(ctx, 'Phone must be 10 to 15 digits');
+                              return;
+                            }
+
                             setSS(() => isSubmitting = true);
                             try {
-                              await _adminRepo.createStaff(name: nameCtrl.text.trim(), role: roleCtrl.text.trim(), phone: phoneCtrl.text.trim(), salary: double.tryParse(salaryCtrl.text.trim()) ?? 0);
+                              await _adminRepo.createStaff(
+                                name: name,
+                                role: role.isEmpty ? null : role,
+                                phone: phoneDigits.isEmpty ? null : phoneDigits,
+                                salary: salary,
+                              );
                               if (ctx.mounted) {
                                 Navigator.pop(ctx);
                                 CPToast.success(ctx, 'Personnel added effectively');
                                 _loadData();
                               }
-                            } catch (_) {
-                              if (ctx.mounted) CPToast.error(ctx, 'Hiring protocol failed');
+                            } catch (e) {
+                              if (ctx.mounted) CPToast.error(ctx, 'Hiring failed: $e');
                             } finally {
                               if (ctx.mounted) setSS(() => isSubmitting = false);
                             }
