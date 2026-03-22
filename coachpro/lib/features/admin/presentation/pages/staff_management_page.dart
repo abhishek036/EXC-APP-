@@ -347,7 +347,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             const SizedBox(height: 32),
             Text('Identify Payee', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 0.5)),
             const SizedBox(height: 10),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: sid, hint: Text('Select Elite Employee', style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26), fontWeight: FontWeight.w600)), isExpanded: true, dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white, items: _staff.map((s) => DropdownMenuItem(value: s['id'].toString(), child: Text(s['name'].toString(), style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white : AppColors.deepNavy, fontWeight: FontWeight.w700)))).toList(), onChanged: (v) => setSS(() => sid = v)))),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: sid, hint: Text('Select Elite Employee', style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26), fontWeight: FontWeight.w600)), isExpanded: true, dropdownColor: isDark ? const Color(0xFF0D1282) : Colors.white, items: _staff.map((s) => DropdownMenuItem(value: s['id'].toString(), child: Text(s['name'].toString(), style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white : AppColors.deepNavy, fontWeight: FontWeight.w700)))).toList(), onChanged: (v) => setSS(() => sid = v)))),
             const SizedBox(height: 24),
             CustomTextField(label: 'Disbursement Amount (₹)', hint: '0', controller: amtCtrl, keyboardType: TextInputType.number, prefixIcon: Icons.currency_rupee_rounded),
             const SizedBox(height: 32),
@@ -372,3 +372,5 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     );
   }
 }
+
+

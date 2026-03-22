@@ -468,7 +468,7 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
                         value: selectedBatchId,
                         hint: Text('Select Academy Batch', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26))),
                         isExpanded: true,
-                        dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                        dropdownColor: isDark ? const Color(0xFF0D1282) : Colors.white,
                         items: _batches.map((batch) => DropdownMenuItem(value: (batch['id'] ?? '').toString(), child: Text((batch['name'] ?? 'Batch').toString(), style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy)))).toList(),
                         onChanged: (value) => setSS(() => selectedBatchId = value),
                       ),
@@ -505,3 +505,5 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
     );
   }
 }
+
+

@@ -147,7 +147,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _sid, hint: Text('Choose Recipient', style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26), fontWeight: FontWeight.w600)),
-              isExpanded: true, dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white, icon: Icon(Icons.keyboard_arrow_down_rounded, color: isDark ? Colors.white38 : Colors.black38),
+              isExpanded: true, dropdownColor: isDark ? const Color(0xFF0D1282) : Colors.white, icon: Icon(Icons.keyboard_arrow_down_rounded, color: isDark ? Colors.white38 : Colors.black38),
               items: students.map((s) => DropdownMenuItem(value: s['id'].toString(), child: Text(s['name'].toString(), style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white : AppColors.deepNavy, fontWeight: FontWeight.w600)))).toList(),
               onChanged: (v) {
                 setState(() {
@@ -216,3 +216,5 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
     finally { if (mounted) setState(() => _generating = false); }
   }
 }
+
+

@@ -245,3 +245,5 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
 
   Widget _buildErrorState(bool isDark) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.error_outline_rounded, size: 40, color: AppColors.error.withValues(alpha: 0.5)), const SizedBox(height: 16), Text(_error, style: GoogleFonts.inter(color: AppColors.error, fontWeight: FontWeight.w600)), const SizedBox(height: 24), CPPressable(onTap: _loadData, child: Text('Retry Sync', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: AppColors.elitePrimary)))]));
 }
+
+

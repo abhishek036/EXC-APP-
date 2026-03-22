@@ -291,9 +291,9 @@ class AppRouter {
               navigationShell: shell,
               items: const [
                 CPBottomNavItem(icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard, label: 'Home'),
+                CPBottomNavItem(icon: Icons.class_outlined, activeIcon: Icons.class_, label: 'Batches'),
                 CPBottomNavItem(icon: Icons.people_outline, activeIcon: Icons.people, label: 'Students'),
                 CPBottomNavItem(icon: Icons.receipt_long_outlined, activeIcon: Icons.receipt_long, label: 'Fees'),
-                CPBottomNavItem(icon: Icons.class_outlined, activeIcon: Icons.class_, label: 'Batches'),
                 CPBottomNavItem(icon: Icons.more_horiz, activeIcon: Icons.more_horiz, label: 'More'),
               ],
             ),
@@ -341,8 +341,19 @@ class AppRouter {
                   ],
                 ),
               ]),
-              // Branch 1 — Students
+              // Branch 1 — Batches
               StatefulShellBranch(navigatorKey: _adm1, routes: [
+                GoRoute(
+                  path: '/admin/batches',
+                  name: 'batch-management',
+                  pageBuilder: (c, s) => _page(s, const BatchManagementPage()),
+                  routes: [
+                    GoRoute(path: ':id', name: 'admin-batch-detail', pageBuilder: (c, s) => _page(s, BatchDetailPage(batchId: s.pathParameters['id'] ?? ''))),
+                  ],
+                ),
+              ]),
+              // Branch 2 — Students
+              StatefulShellBranch(navigatorKey: _adm2, routes: [
                 GoRoute(
                   path: '/admin/students',
                   name: 'student-list',
@@ -353,20 +364,9 @@ class AppRouter {
                   ],
                 ),
               ]),
-              // Branch 2 — Fees
-              StatefulShellBranch(navigatorKey: _adm2, routes: [
-                GoRoute(path: '/admin/fees', name: 'fee-collection', pageBuilder: (c, s) => _page(s, const FeeCollectionPage())),
-              ]),
-              // Branch 3 — Batches
+              // Branch 3 — Fees
               StatefulShellBranch(navigatorKey: _adm3, routes: [
-                GoRoute(
-                  path: '/admin/batches', 
-                  name: 'batch-management', 
-                  pageBuilder: (c, s) => _page(s, const BatchManagementPage()),
-                  routes: [
-                    GoRoute(path: ':id', name: 'admin-batch-detail', pageBuilder: (c, s) => _page(s, BatchDetailPage(batchId: s.pathParameters['id'] ?? ''))),
-                  ],
-                ),
+                GoRoute(path: '/admin/fees', name: 'fee-collection', pageBuilder: (c, s) => _page(s, const FeeCollectionPage())),
               ]),
               // Branch 4 — More / Settings
               StatefulShellBranch(navigatorKey: _adm4, routes: [

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/theme_aware.dart';
@@ -26,10 +27,23 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
   List<Map<String, dynamic>> _lectures = [];
   List<Map<String, dynamic>> _quizzes = [];
   List<Map<String, dynamic>> _teachers = [];
+  List<Map<String, dynamic>> _assignments = [];
+  List<Map<String, dynamic>> _materials = [];
+  List<Map<String, dynamic>> _feeRecords = [];
+  List<Map<String, dynamic>> _attendanceSessions = [];
+
   Map<String, dynamic>? _feeStructure;
 
   bool _isLoading = true;
   String? _error;
+
+  int _activeTab = 0;
+  int _activeContentTab = 0;
+  String _studentFilter = 'All';
+  String _feeFilter = 'All';
+
+  static const _tabs = ['Overview', 'Content', 'Students', 'Tests', 'Fees', 'Analytics'];
+  static const _contentTabs = ['Lectures', 'Notes', 'Assignments', 'DPP', 'Materials'];
 
   @override
   void initState() {
@@ -58,7 +72,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
   String _dateLabel(dynamic value) {
     final parsed = _toDate(value);
     if (parsed == null) return '--';
-    return '${parsed.year}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
+    return '${parsed.day.toString().padLeft(2, '0')}/${parsed.month.toString().padLeft(2, '0')}/${parsed.year}';
   }
 
   String _timeLabel(dynamic value) {
@@ -76,12 +90,14 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
 
   Future<void> _loadBatch() async {
     try {
+      if (!mounted) return;
       setState(() {
         _isLoading = true;
         _error = null;
       });
 
       final batch = await _adminRepo.getBatchById(widget.batchId);
+      final now = DateTime.now();
 
       final results = await Future.wait([
         _adminRepo.getBatchTimetable(widget.batchId).catchError((_) => <Map<String, dynamic>>[]),
@@ -89,6 +105,12 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         _adminRepo.getQuizzes(batchId: widget.batchId).catchError((_) => <Map<String, dynamic>>[]),
         _adminRepo.getFeeStructure(widget.batchId).catchError((_) => <String, dynamic>{}),
         _adminRepo.getTeachers().catchError((_) => <Map<String, dynamic>>[]),
+        _adminRepo.getAssignments(batchId: widget.batchId).catchError((_) => <Map<String, dynamic>>[]),
+        _adminRepo.getMaterials().catchError((_) => <Map<String, dynamic>>[]),
+        _adminRepo.getFeeRecords(batchId: widget.batchId).catchError((_) => <Map<String, dynamic>>[]),
+        _adminRepo
+            .getBatchAttendanceMonthly(batchId: widget.batchId, month: now.month, year: now.year)
+            .catchError((_) => <Map<String, dynamic>>[]),
       ]);
 
       if (!mounted) return;
@@ -102,6 +124,10 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         _quizzes = List<Map<String, dynamic>>.from(results[2] as List);
         _feeStructure = Map<String, dynamic>.from(results[3] as Map);
         _teachers = List<Map<String, dynamic>>.from(results[4] as List);
+        _assignments = List<Map<String, dynamic>>.from(results[5] as List);
+        _materials = List<Map<String, dynamic>>.from(results[6] as List);
+        _feeRecords = List<Map<String, dynamic>>.from(results[7] as List);
+        _attendanceSessions = List<Map<String, dynamic>>.from(results[8] as List);
         _isLoading = false;
       });
     } catch (e) {
@@ -120,6 +146,98 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     return endDate.isBefore(DateTime(today.year, today.month, today.day));
   }
 
+  Map<String, dynamic> _feeStats() {
+    double total = 0;
+    double paid = 0;
+    double pending = 0;
+    double collectedToday = 0;
+    final today = DateTime.now();
+
+    for (final record in _feeRecords) {
+      final amount = _toDouble(record['final_amount'] ?? record['amount']);
+      final payments = (record['payments'] as List?) ?? const [];
+      final paidAmount = payments.fold<double>(0, (sum, item) {
+        if (item is! Map) return sum;
+        final p = _toDouble(item['amount_paid']);
+        final date = _toDate(item['created_at'] ?? item['paid_at']);
+        if (date != null && date.year == today.year && date.month == today.month && date.day == today.day) {
+          collectedToday += p;
+        }
+        return sum + p;
+      });
+
+      total += amount;
+      paid += paidAmount;
+      pending += (amount - paidAmount).clamp(0, double.infinity);
+    }
+
+    return {
+      'total': total,
+      'paid': paid,
+      'pending': pending,
+      'collectedToday': collectedToday,
+    };
+  }
+
+  Map<String, dynamic> _insights() {
+    final fees = _feeStats();
+    final lowAttendanceCount = _students.where((s) => _studentAttendance(s) < 70).length;
+    final submittedAssignments = _assignments.fold<int>(0, (sum, item) {
+      return sum + _toInt(item['submission_count'] ?? item['submissions_count'] ?? item['submitted_count']);
+    });
+
+    return {
+      'lectures': _lectures.length,
+      'notes': _materials.length,
+      'tests': _quizzes.length,
+      'assignmentsSubmitted': submittedAssignments,
+      'feesPaid': fees['paid'],
+      'feesPending': fees['pending'],
+      'lowAttendance': lowAttendanceCount,
+    };
+  }
+
+  double _studentAttendance(Map<String, dynamic> student) {
+    final studentId = (student['id'] ?? '').toString();
+    if (studentId.isEmpty || _attendanceSessions.isEmpty) {
+      return _toDouble(student['attendance_percent'], fallback: 0);
+    }
+
+    int total = 0;
+    int present = 0;
+
+    for (final session in _attendanceSessions) {
+      final records = (session['student_records'] as List?) ?? const [];
+      for (final entry in records) {
+        if (entry is! Map) continue;
+        final id = (entry['student_id'] ?? '').toString();
+        if (id != studentId) continue;
+        total += 1;
+        if ((entry['status'] ?? '').toString().toLowerCase() == 'present') present += 1;
+      }
+    }
+
+    if (total == 0) return _toDouble(student['attendance_percent'], fallback: 0);
+    return (present / total) * 100;
+  }
+
+  String _studentFeeStatus(String studentId) {
+    final related = _feeRecords.where((r) => (r['student_id'] ?? '').toString() == studentId);
+    if (related.isEmpty) return 'Pending';
+
+    bool anyPending = false;
+    for (final record in related) {
+      final amount = _toDouble(record['final_amount'] ?? record['amount']);
+      final payments = (record['payments'] as List?) ?? const [];
+      final paid = payments.fold<double>(0, (sum, p) => sum + _toDouble((p as Map)['amount_paid']));
+      if (paid + 0.01 < amount) {
+        anyPending = true;
+        break;
+      }
+    }
+    return anyPending ? 'Pending' : 'Paid';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
@@ -128,7 +246,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       backgroundColor: CT.bg(context),
       appBar: AppBar(
         title: Text(
-          _batch?['name']?.toString() ?? 'Batch Detail',
+          _batch?['name']?.toString() ?? 'Batch Control Panel',
           style: GoogleFonts.sora(fontWeight: FontWeight.w700, fontSize: 16),
         ),
         actions: [
@@ -146,7 +264,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                 }
               },
               itemBuilder: (_) => [
-                PopupMenuItem(value: 'toggle', child: Text((_batch?['is_active'] ?? true) ? 'Suspend batch' : 'Resume batch')),
+                PopupMenuItem(value: 'toggle', child: Text((_batch?['is_active'] ?? true) ? 'Close batch' : 'Re-open batch')),
                 const PopupMenuItem(value: 'meta', child: Text('Edit details')),
                 const PopupMenuItem(value: 'migrate', child: Text('Promote / Migrate students')),
                 const PopupMenuItem(value: 'delete', child: Text('Delete batch')),
@@ -160,32 +278,25 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
               ? _buildErrorState()
               : RefreshIndicator(
                   onRefresh: _loadBatch,
-                  child: CustomScrollView(
+                  child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      SliverToBoxAdapter(child: _buildHeroCard(isDark)),
-                      SliverToBoxAdapter(child: _buildStatsRow(isDark)),
-                      SliverToBoxAdapter(child: _buildTeachersSection()),
-                      SliverToBoxAdapter(child: _buildDescriptionSection()),
-                      SliverToBoxAdapter(child: _buildFaqSection()),
-                      SliverToBoxAdapter(child: _buildTimetableSection()),
-                      SliverToBoxAdapter(child: _buildClassesSection()),
-                      SliverToBoxAdapter(child: _buildQuizzesSection()),
-                      _buildStudentsHeader(),
-                      _buildStudentList(),
-                      const SliverToBoxAdapter(child: SizedBox(height: 80)),
-                    ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeroPanel(isDark),
+                        _buildLiveInsights(),
+                        _buildTabBar(),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 220),
+                          child: _buildTabBody(),
+                        ),
+                        const SizedBox(height: 120),
+                      ],
+                    ),
                   ),
                 ),
-      floatingActionButton: (_batch != null && _isCompleted)
-          ? FloatingActionButton.extended(
-              onPressed: _showMigrateSheet,
-              backgroundColor: const Color(0xFFF0DE36),
-              foregroundColor: const Color(0xFF0D1282),
-              icon: const Icon(Icons.trending_up_rounded),
-              label: const Text('Promote Students'),
-            )
-          : null,
+      floatingActionButton: _buildActionDock(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -207,157 +318,222 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     );
   }
 
-  Widget _buildHeroCard(bool isDark) {
+  Widget _buildHeroPanel(bool isDark) {
     if (_batch == null) return const SizedBox.shrink();
 
-    final coverUrl = (_batch!['cover_image_url'] ?? '').toString();
     final isActive = (_batch!['is_active'] ?? true) == true;
-    final statusText = _isCompleted ? 'COMPLETED' : (isActive ? 'ACTIVE' : 'SUSPENDED');
+    final fee = _feeStats();
+    final totalStudents = _students.length;
+    final activeStudents = _students.where((s) {
+      final status = (s['status'] ?? s['is_active'])?.toString().toLowerCase();
+      return status == null || status == 'active' || status == 'true';
+    }).length;
+
+    final statusLabel = _isCompleted ? 'Closed' : (isActive ? 'Active' : 'Paused');
     final statusColor = _isCompleted
         ? const Color(0xFFD71313)
-        : (isActive ? const Color(0xFF0D1282) : Colors.grey.shade700);
+        : (isActive ? const Color(0xFF0D1282) : Colors.black54);
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 14, AppDimensions.pagePaddingH, 10),
+      margin: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 14, AppDimensions.pagePaddingH, 12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFEEEDED),
-        border: Border.all(color: const Color(0xFF0D1282), width: 3),
+        border: Border.all(color: const Color(0xFF0D1282), width: 2.5),
         boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            height: 160,
-            width: double.infinity,
-            child: coverUrl.isNotEmpty
-                ? Image.network(
-                    coverUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _defaultCover(),
-                  )
-                : _defaultCover(),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        (_batch!['name'] ?? '').toString(),
-                        style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282)),
+                    Text(
+                      (_batch!['name'] ?? 'Batch').toString(),
+                      style: GoogleFonts.inter(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF0D1282),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: statusColor, width: 2),
-                        boxShadow: [BoxShadow(color: statusColor, offset: const Offset(2, 2))],
-                      ),
-                      child: Text(
-                        statusText,
-                        style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282)),
-                      ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${(_batch!['subject'] ?? 'General').toString()} • ${(_batch!['target'] ?? _batch!['class_name'] ?? 'Target').toString()}',
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  (_batch!['subject'] ?? 'General').toString(),
-                  style: GoogleFonts.inter(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: statusColor, width: 2),
+                  boxShadow: [BoxShadow(color: statusColor, offset: const Offset(2, 2))],
                 ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  children: [
-                    _metaPill(Icons.event_rounded, '${_dateLabel(_batch!['start_date'])} → ${_dateLabel(_batch!['end_date'])}'),
-                    _metaPill(Icons.schedule_rounded, '${_timeLabel(_batch!['start_time'])} - ${_timeLabel(_batch!['end_time'])}'),
-                    _metaPill(Icons.class_rounded, (_batch!['room'] ?? 'Room TBD').toString()),
-                  ],
+                child: Text(
+                  statusLabel.toUpperCase(),
+                  style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282)),
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _quickStatCard('Total Students', '$totalStudents', Icons.groups_rounded, const Color(0xFF0D1282)),
+              _quickStatCard('Active Students', '$activeStudents', Icons.how_to_reg_rounded, const Color(0xFF0D1282)),
+              _quickStatCard('Revenue', '₹${_toDouble(fee['paid']).toStringAsFixed(0)}', Icons.payments_rounded, const Color(0xFFF0DE36)),
+              _quickStatCard('Duration', '${_dateLabel(_batch!['start_date'])} - ${_dateLabel(_batch!['end_date'])}', Icons.date_range_rounded, const Color(0xFF0D1282)),
+            ],
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms);
+    ).animate().fadeIn(duration: 360.ms);
   }
 
-  Widget _defaultCover() {
-    final initial = (_batch?['name']?.toString().isNotEmpty ?? false)
-        ? _batch!['name'].toString().substring(0, 1).toUpperCase()
-        : 'B';
+  Widget _quickStatCard(String title, String value, IconData icon, Color accent) {
     return Container(
-      color: const Color(0xFF0D1282),
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: GoogleFonts.inter(fontSize: 54, fontWeight: FontWeight.w900, color: const Color(0xFFEEEDED)),
-      ),
-    );
-  }
-
-  Widget _metaPill(IconData icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: const Color(0xFF0D1282)),
-        const SizedBox(width: 4),
-        Text(text, style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF0D1282), fontWeight: FontWeight.w700)),
-      ],
-    );
-  }
-
-  Widget _buildStatsRow(bool isDark) {
-    final capacity = _toInt(_batch?['capacity']);
-    final enrolled = _students.length;
-    final fee = _toDouble(_feeStructure?['monthly_fee']);
-    final fill = capacity > 0 ? ((enrolled / capacity) * 100).toStringAsFixed(0) : '--';
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 0, AppDimensions.pagePaddingH, 10),
-      child: Row(
-        children: [
-          Expanded(child: _statCard('Students', '$enrolled', Icons.groups_rounded, isDark)),
-          const SizedBox(width: 8),
-          Expanded(child: _statCard('Capacity', capacity > 0 ? '$capacity' : '--', Icons.event_seat_rounded, isDark)),
-          const SizedBox(width: 8),
-          Expanded(child: _statCard('Fill %', fill, Icons.bar_chart_rounded, isDark)),
-          const SizedBox(width: 8),
-          Expanded(child: _statCard('Fee', fee > 0 ? '₹${fee.toStringAsFixed(0)}' : '--', Icons.payments_rounded, isDark)),
-        ],
-      ),
-    );
-  }
-
-  Widget _statCard(String title, String value, IconData icon, bool isDark) {
-    return Container(
+      width: 164,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: CT.card(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF0D1282), width: 1.4),
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFF0D1282), width: 1.5),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 16, color: const Color(0xFF0D1282)),
           const SizedBox(height: 6),
-          Text(value, style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: CT.textH(context), fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 12)),
           const SizedBox(height: 2),
-          Text(title, style: GoogleFonts.inter(fontSize: 10, color: CT.textS(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Row(
+            children: [
+              Container(width: 8, height: 8, color: accent),
+              const SizedBox(width: 6),
+              Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 10))),
+            ],
+          ),
         ],
       ),
     );
+  }
+
+  Widget _buildLiveInsights() {
+    final data = _insights();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 0, AppDimensions.pagePaddingH, 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: CT.card(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF0D1282), width: 1.6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Live Insights', style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 14, color: const Color(0xFF0D1282))),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _insightTile('🎥 Lectures', '${data['lectures']}', const Color(0xFF0D1282)),
+              _insightTile('📄 Notes', '${data['notes']}', const Color(0xFF0D1282)),
+              _insightTile('🧪 Tests', '${data['tests']}', const Color(0xFF0D1282)),
+              _insightTile('📥 Submissions', '${data['assignmentsSubmitted']}', const Color(0xFF0D1282)),
+              _insightTile('💰 Fees Paid', '₹${_toDouble(data['feesPaid']).toStringAsFixed(0)}', const Color(0xFFF0DE36)),
+              _insightTile('⏳ Fees Pending', '₹${_toDouble(data['feesPending']).toStringAsFixed(0)}', const Color(0xFFD71313)),
+              _insightTile('🔴 Low Attendance', '${data['lowAttendance']}', const Color(0xFFD71313)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _insightTile(String label, String value, Color accent) {
+    return Container(
+      width: 104,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: accent, width: 1.3),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 13, color: const Color(0xFF0D1282))),
+          const SizedBox(height: 3),
+          Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.black87)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (_, index) {
+          final selected = _activeTab == index;
+          return InkWell(
+            onTap: () => setState(() => _activeTab = index),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: selected ? const Color(0xFF0D1282) : Colors.white,
+                border: Border.all(color: const Color(0xFF0D1282), width: 1.4),
+              ),
+              child: Center(
+                child: Text(
+                  _tabs[index],
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    color: selected ? const Color(0xFFEEEDED) : const Color(0xFF0D1282),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemCount: _tabs.length,
+      ),
+    );
+  }
+
+  Widget _buildTabBody() {
+    switch (_activeTab) {
+      case 0:
+        return _buildOverviewTab();
+      case 1:
+        return _buildContentTab();
+      case 2:
+        return _buildStudentsTab();
+      case 3:
+        return _buildTestsTab();
+      case 4:
+        return _buildFeesTab();
+      case 5:
+      default:
+        return _buildAnalyticsTab();
+    }
   }
 
   Widget _sectionCard({required String title, required Widget child, Widget? trailing}) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 0, AppDimensions.pagePaddingH, 10),
+      margin: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 12, AppDimensions.pagePaddingH, 0),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: CT.card(context),
@@ -375,7 +551,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 14, color: const Color(0xFF0D1282)),
                 ),
               ),
-              if (trailing != null) trailing,
+              if (trailing case final Widget item) item,
             ],
           ),
           const SizedBox(height: 10),
@@ -385,110 +561,207 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     );
   }
 
-  Widget _buildTeachersSection() {
+  Widget _buildOverviewTab() {
     final assigned = ((_batch?['assigned_teachers'] as List?) ?? const [])
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
+    final upcoming = [..._timetable]..sort((a, b) => (_toDate(a['scheduled_at']) ?? DateTime(0)).compareTo(_toDate(b['scheduled_at']) ?? DateTime(0)));
+    final nextSlot = upcoming.isEmpty ? null : upcoming.first;
 
-    return _sectionCard(
-      title: 'Assigned Teachers',
-      child: assigned.isEmpty
-          ? Text('No teachers assigned', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
-          : Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: assigned
-                  .map((teacher) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEEEDED),
-                          border: Border.all(color: const Color(0xFF0D1282), width: 1.5),
-                        ),
-                        child: Text((teacher['name'] ?? 'Teacher').toString(), style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12, color: const Color(0xFF0D1282))),
-                      ))
-                  .toList(),
-            ),
+    final timelineItems = <Map<String, String>>[];
+    timelineItems.addAll(_lectures.take(2).map((e) => {
+          'title': 'Lecture uploaded',
+          'subtitle': (e['title'] ?? 'Lecture').toString(),
+          'time': _dateLabel(e['created_at'] ?? e['scheduled_at']),
+        }));
+    timelineItems.addAll(_quizzes.take(2).map((e) => {
+          'title': 'Test created',
+          'subtitle': (e['title'] ?? 'Test').toString(),
+          'time': _dateLabel(e['created_at'] ?? e['scheduled_at']),
+        }));
+    timelineItems.addAll(_feeRecords.take(2).map((e) => {
+          'title': 'Fee collected',
+          'subtitle': ((e['student'] as Map?)?['name'] ?? 'Student').toString(),
+          'time': _dateLabel(e['updated_at'] ?? e['created_at']),
+        }));
+
+    return Column(
+      key: const ValueKey('overview-tab'),
+      children: [
+        _sectionCard(
+          title: 'Batch Snapshot',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                ((_batch?['description'] ?? '').toString().trim().isEmpty)
+                    ? 'No description added yet.'
+                    : (_batch?['description'] ?? '').toString(),
+                style: GoogleFonts.inter(fontSize: 12, height: 1.35),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _pill(Icons.calendar_month_rounded, '${_dateLabel(_batch?['start_date'])} → ${_dateLabel(_batch?['end_date'])}'),
+                  _pill(Icons.class_rounded, (_batch?['subject'] ?? 'General').toString()),
+                  _pill(Icons.location_on_rounded, (_batch?['room'] ?? 'Room TBD').toString()),
+                  if (nextSlot != null)
+                    _pill(
+                      Icons.schedule_rounded,
+                      'Next class ${_dateLabel(nextSlot['scheduled_at'])} ${_timeLabel(nextSlot['scheduled_at'])}',
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        _sectionCard(
+          title: 'Faculty Assigned',
+          child: assigned.isEmpty
+              ? Text('No faculty mapped yet', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: assigned
+                      .map((teacher) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEEEDED),
+                              border: Border.all(color: const Color(0xFF0D1282), width: 1.2),
+                            ),
+                            child: Text(
+                              (teacher['name'] ?? 'Teacher').toString(),
+                              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12, color: const Color(0xFF0D1282)),
+                            ),
+                          ))
+                      .toList(),
+                ),
+        ),
+        _sectionCard(
+          title: 'Activity Timeline',
+          child: timelineItems.isEmpty
+              ? Text('No recent activity', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
+              : Column(
+                  children: timelineItems
+                      .map((entry) => Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(color: const Color(0xFF0D1282), width: 1),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(width: 8, height: 8, margin: const EdgeInsets.only(top: 4), color: const Color(0xFFF0DE36)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(entry['title'] ?? '', style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 12)),
+                                      Text(entry['subtitle'] ?? '', style: GoogleFonts.inter(fontSize: 11, color: Colors.black87)),
+                                    ],
+                                  ),
+                                ),
+                                Text(entry['time'] ?? '--', style: GoogleFonts.inter(fontSize: 10, color: Colors.black54)),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                ),
+        ),
+      ],
     );
   }
 
-  Widget _buildDescriptionSection() {
-    final description = (_batch?['description'] ?? '').toString().trim();
+  Widget _buildContentTab() {
+    return Column(
+      key: const ValueKey('content-tab'),
+      children: [
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 38,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
+            scrollDirection: Axis.horizontal,
+            itemCount: _contentTabs.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 8),
+            itemBuilder: (_, index) {
+              final selected = _activeContentTab == index;
+              return InkWell(
+                onTap: () => setState(() => _activeContentTab = index),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected ? const Color(0xFFF0DE36) : Colors.white,
+                    border: Border.all(color: const Color(0xFF0D1282), width: 1.2),
+                  ),
+                  child: Text(
+                    _contentTabs[index],
+                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282)),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        if (_activeContentTab == 0) _buildLecturesBlock(),
+        if (_activeContentTab == 1) _buildNotesBlock(),
+        if (_activeContentTab == 2 || _activeContentTab == 3) _buildAssignmentsBlock(isDpp: _activeContentTab == 3),
+        if (_activeContentTab == 4) _buildMaterialsBlock(),
+      ],
+    );
+  }
+
+  Widget _buildLecturesBlock() {
     return _sectionCard(
-      title: 'Description',
-      child: Text(
-        description.isEmpty ? 'No description added yet.' : description,
-        style: GoogleFonts.inter(fontSize: 12, color: CT.textH(context), height: 1.35),
+      title: 'Lectures',
+      trailing: TextButton.icon(
+        onPressed: () => context.push('/admin/timetable'),
+        icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+        label: const Text('Add Lecture'),
       ),
-    );
-  }
-
-  Widget _buildFaqSection() {
-    final faqs = ((_batch?['faqs'] as List?) ?? const [])
-        .whereType<Map>()
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList();
-
-    return _sectionCard(
-      title: 'FAQs',
-      child: faqs.isEmpty
-          ? Text('No FAQs added for this batch.', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
+      child: _lectures.isEmpty
+          ? Text('No lectures uploaded yet', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
           : Column(
-              children: faqs
-                  .asMap()
-                  .entries
-                  .map((entry) => Padding(
-                        padding: EdgeInsets.only(bottom: entry.key == faqs.length - 1 ? 0 : 10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Q. ${(entry.value['question'] ?? '').toString()}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))),
-                            const SizedBox(height: 4),
-                            Text('A. ${(entry.value['answer'] ?? '').toString()}', style: GoogleFonts.inter(fontSize: 12, color: CT.textH(context))),
-                          ],
-                        ),
-                      ))
-                  .toList(),
-            ),
-    );
-  }
-
-  Widget _buildTimetableSection() {
-    final grouped = <String, List<Map<String, dynamic>>>{};
-    for (final item in _timetable) {
-      final dt = _toDate(item['scheduled_at']);
-      final key = dt == null
-          ? 'Unscheduled'
-          : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][(dt.weekday - 1).clamp(0, 6)];
-      grouped.putIfAbsent(key, () => []);
-      grouped[key]!.add(item);
-    }
-
-    return _sectionCard(
-      title: 'Timetable',
-      trailing: TextButton(onPressed: () => context.push('/admin/timetable'), child: const Text('Manage')),
-      child: grouped.isEmpty
-          ? Text('No timetable entries yet.', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: grouped.entries.map((entry) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+              children: _lectures.take(12).map((lecture) {
+                final status = (lecture['status'] ?? lecture['is_live'] == true ? 'Live' : 'Recorded').toString();
+                final completion = _toDouble(lecture['completion_percent']);
+                final views = _toInt(lecture['views_count'] ?? lecture['view_count']);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFF0D1282), width: 1)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(entry.key, style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 12, color: const Color(0xFF0D1282))),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text((lecture['title'] ?? 'Lecture').toString(), style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 12)),
+                          ),
+                          _statusTag(status, status.toLowerCase() == 'live' ? const Color(0xFFF0DE36) : const Color(0xFF0D1282)),
+                        ],
+                      ),
                       const SizedBox(height: 4),
-                      ...entry.value.map((slot) {
-                        final time = _toDate(slot['scheduled_at']);
-                        final hhmm = time == null
-                            ? '--'
-                            : '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-                        final teacher = ((slot['teacher'] as Map?)?['name'] ?? 'Teacher').toString();
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text('• $hhmm  ${(slot['subject'] ?? 'Class').toString()}  •  $teacher', style: GoogleFonts.inter(fontSize: 12, color: CT.textH(context))),
-                        );
-                      }),
+                      Text(
+                        '${_dateLabel(lecture['scheduled_at'])} ${_timeLabel(lecture['scheduled_at'])} • ${_toInt(lecture['duration_minutes'])} min',
+                        style: GoogleFonts.inter(fontSize: 11, color: Colors.black54),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text('Views: $views', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 10),
+                          Text('Completion: ${completion.toStringAsFixed(0)}%', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600)),
+                          const Spacer(),
+                          IconButton(onPressed: () => context.push('/admin/timetable'), icon: const Icon(Icons.edit_outlined, size: 18)),
+                          IconButton(onPressed: () => CPToast.info(context, 'Delete from timetable manager'), icon: const Icon(Icons.delete_outline_rounded, size: 18)),
+                        ],
+                      ),
                     ],
                   ),
                 );
@@ -497,27 +770,98 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     );
   }
 
-  Widget _buildClassesSection() {
+  Widget _buildNotesBlock() {
     return _sectionCard(
-      title: 'Classes / Schedule List',
-      child: _lectures.isEmpty
-          ? Text('No lecture schedule found.', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
+      title: 'Notes',
+      child: _materials.isEmpty
+          ? Text('No notes uploaded yet', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
           : Column(
-              children: _lectures.take(8).map((lecture) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+              children: _materials.take(12).map((note) {
+                final downloads = _toInt(note['downloads_count'] ?? note['download_count']);
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.description_outlined, color: Color(0xFF0D1282)),
+                  title: Text((note['title'] ?? note['file_name'] ?? 'Note').toString(), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700)),
+                  subtitle: Text(
+                    '${(note['subject'] ?? 'General').toString()} • ${_dateLabel(note['created_at'])}',
+                    style: GoogleFonts.inter(fontSize: 11),
+                  ),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('$downloads downloads', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
+                      const SizedBox(height: 4),
+                      InkWell(onTap: () => CPToast.info(context, 'Use material upload flow to replace file'), child: Text('Replace', style: GoogleFonts.inter(fontSize: 10, decoration: TextDecoration.underline))),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+    );
+  }
+
+  Widget _buildAssignmentsBlock({required bool isDpp}) {
+    final title = isDpp ? 'DPP' : 'Assignments';
+    final list = _assignments.where((item) {
+      final type = (item['type'] ?? '').toString().toLowerCase();
+      if (isDpp) return type == 'dpp' || type.contains('practice');
+      return type.isEmpty || type == 'assignment';
+    }).toList();
+
+    return _sectionCard(
+      title: title,
+      child: list.isEmpty
+          ? Text('No $title found', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
+          : Column(
+              children: list.take(12).map((item) {
+                final submissions = _toInt(item['submission_count'] ?? item['submissions_count'] ?? item['submitted_count']);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFF0D1282), width: 1)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text((item['title'] ?? title).toString(), style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 12)),
+                      const SizedBox(height: 4),
+                      Text('Due: ${_dateLabel(item['due_date'])} • Submissions: $submissions', style: GoogleFonts.inter(fontSize: 11, color: Colors.black54)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          OutlinedButton(onPressed: () => CPToast.info(context, 'Submission viewer will open here'), child: const Text('View Submissions')),
+                          OutlinedButton(onPressed: () => CPToast.info(context, 'Grading console will open here'), child: const Text('Grade')),
+                          OutlinedButton(onPressed: () => context.push('/admin/whatsapp-broadcast'), child: const Text('Send Reminder')),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+    );
+  }
+
+  Widget _buildMaterialsBlock() {
+    return _sectionCard(
+      title: 'Materials Library',
+      child: _materials.isEmpty
+          ? Text('No materials available', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
+          : Column(
+              children: _materials.take(10).map((item) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFF0D1282), width: 1)),
                   child: Row(
                     children: [
-                      const Icon(Icons.play_circle_outline_rounded, size: 16, color: Color(0xFF0D1282)),
+                      const Icon(Icons.folder_open_rounded, color: Color(0xFF0D1282)),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          (lecture['title'] ?? lecture['subject'] ?? 'Lecture').toString(),
-                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textH(context)),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: Text((item['title'] ?? item['file_name'] ?? 'Material').toString(), style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12)),
                       ),
-                      Text(_dateLabel(lecture['scheduled_at']), style: GoogleFonts.inter(fontSize: 11, color: CT.textS(context))),
+                      Text((item['type'] ?? 'File').toString(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
                     ],
                   ),
                 );
@@ -526,99 +870,437 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     );
   }
 
-  Widget _buildQuizzesSection() {
-    return _sectionCard(
-      title: 'Quizzes Assigned',
-      child: _quizzes.isEmpty
-          ? Text('No quizzes assigned yet.', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
-          : Column(
-              children: _quizzes.take(8).map((quiz) {
-                return ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.quiz_outlined, color: Color(0xFF0D1282), size: 18),
-                  title: Text((quiz['title'] ?? 'Quiz').toString(), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700)),
-                  subtitle: Text((quiz['subject'] ?? '').toString(), style: GoogleFonts.inter(fontSize: 11)),
-                  trailing: Text(
-                    (quiz['is_published'] == true) ? 'Published' : 'Draft',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: quiz['is_published'] == true ? const Color(0xFF0D1282) : const Color(0xFFD71313),
+  Widget _buildStudentsTab() {
+    final filtered = _students.where((student) {
+      if (_studentFilter == 'All') return true;
+      if (_studentFilter == 'Low attendance') return _studentAttendance(student) < 70;
+
+      final status = (student['status'] ?? student['is_active'])?.toString().toLowerCase();
+      final active = status == null || status == 'active' || status == 'true';
+
+      if (_studentFilter == 'Active') return active;
+      if (_studentFilter == 'Inactive') return !active;
+      if (_studentFilter == 'Paid') return _studentFeeStatus((student['id'] ?? '').toString()) == 'Paid';
+      if (_studentFilter == 'Unpaid') return _studentFeeStatus((student['id'] ?? '').toString()) == 'Pending';
+      return true;
+    }).toList();
+
+    return Column(
+      key: const ValueKey('students-tab'),
+      children: [
+        _sectionCard(
+          title: 'Students',
+          trailing: TextButton.icon(
+            onPressed: () => context.push('/admin/add-student'),
+            icon: const Icon(Icons.person_add_alt_rounded, size: 16),
+            label: const Text('Add Student'),
+          ),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 34,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: ['All', 'Paid', 'Unpaid', 'Active', 'Inactive', 'Low attendance']
+                      .map((f) => Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(f),
+                              selected: _studentFilter == f,
+                              onSelected: (_) => setState(() => _studentFilter = f),
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (filtered.isEmpty)
+                Text('No students match this filter', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
+              else
+                ...filtered.map((student) {
+                  final attendance = _studentAttendance(student);
+                  final feeStatus = _studentFeeStatus((student['id'] ?? '').toString());
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFF0D1282), width: 1)),
+                    child: ListTile(
+                      onTap: () => context.push('/admin/students/${student['id']}'),
+                      leading: CircleAvatar(
+                        backgroundColor: const Color(0xFFEEEDED),
+                        child: Text(
+                          ((student['name'] ?? 'S').toString()).substring(0, 1).toUpperCase(),
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFF0D1282)),
+                        ),
+                      ),
+                      title: Text((student['name'] ?? 'Student').toString(), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800)),
+                      subtitle: Text(
+                        'Batch: ${(_batch?['name'] ?? 'Batch')} • Attendance ${attendance.toStringAsFixed(0)}%',
+                        style: GoogleFonts.inter(fontSize: 11),
+                      ),
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _statusTag(feeStatus, feeStatus == 'Paid' ? const Color(0xFFF0DE36) : const Color(0xFFD71313)),
+                          const SizedBox(height: 4),
+                          Text(attendance < 70 ? 'Low' : 'Good', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
-            ),
-    );
-  }
-
-  Widget _buildStudentsHeader() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 4, AppDimensions.pagePaddingH, 6),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Enrolled Students (${_students.length})', style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 14, color: const Color(0xFF0D1282))),
-            TextButton.icon(
-              onPressed: () => context.push('/admin/add-student'),
-              icon: const Icon(Icons.person_add_alt_rounded, size: 16),
-              label: const Text('Add'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStudentList() {
-    if (_students.isEmpty) {
-      return SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 0, AppDimensions.pagePaddingH, 12),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: CT.card(context),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF0D1282), width: 1.5),
-            ),
-            child: Text('No students enrolled yet.', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context))),
+                  );
+                }),
+            ],
           ),
         ),
-      );
-    }
+      ],
+    );
+  }
 
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final student = _students[index];
-          final name = (student['name'] ?? 'Student').toString();
-          final phone = (student['phone'] ?? '').toString();
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 0, AppDimensions.pagePaddingH, 8),
-            child: Container(
-              decoration: BoxDecoration(
-                color: CT.card(context),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF0D1282), width: 1.4),
-              ),
-              child: ListTile(
-                onTap: () => context.push('/admin/students/${student['id']}'),
-                leading: CircleAvatar(
-                  backgroundColor: const Color(0xFFEEEDED),
-                  child: Text(name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'S', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))),
+  Widget _buildTestsTab() {
+    return Column(
+      key: const ValueKey('tests-tab'),
+      children: [
+        _sectionCard(
+          title: 'Tests',
+          trailing: TextButton.icon(
+            onPressed: () => context.push('/admin/exams'),
+            icon: const Icon(Icons.add_rounded, size: 16),
+            label: const Text('Add Test'),
+          ),
+          child: _quizzes.isEmpty
+              ? Text('No tests available', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
+              : Column(
+                  children: _quizzes.take(12).map((quiz) {
+                    final attempts = _toInt(quiz['attempt_count'] ?? quiz['attempts']);
+                    final questions = _toInt(quiz['question_count'] ?? quiz['questions']);
+                    final marks = _toDouble(quiz['total_marks'] ?? quiz['marks']);
+                    final avg = _toDouble(quiz['average_score']);
+                    final failure = _toDouble(quiz['failure_percent'] ?? quiz['failure_rate']);
+                    final topper = (quiz['topper_name'] ?? 'N/A').toString();
+
+                    String status = 'Upcoming';
+                    if ((quiz['is_published'] ?? false) == true) status = 'Live';
+                    if ((quiz['status'] ?? '').toString().toLowerCase() == 'completed') status = 'Completed';
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFF0D1282), width: 1)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(child: Text((quiz['title'] ?? 'Test').toString(), style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 12))),
+                              _statusTag(status, status == 'Completed' ? const Color(0xFF0D1282) : const Color(0xFFF0DE36)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text('Questions: $questions • Marks: ${marks.toStringAsFixed(0)} • Attempts: $attempts', style: GoogleFonts.inter(fontSize: 11, color: Colors.black54)),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 6,
+                            children: [
+                              Text('Avg: ${avg > 0 ? avg.toStringAsFixed(1) : '--'}', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700)),
+                              Text('Topper: $topper', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700)),
+                              Text('Failure: ${failure > 0 ? '${failure.toStringAsFixed(0)}%' : '--'}', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFFD71313))),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 ),
-                title: Text(name, style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13)),
-                subtitle: Text(phone, style: GoogleFonts.inter(fontSize: 11)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeesTab() {
+    final fee = _feeStats();
+    final rows = _feeRecords.where((record) {
+      if (_feeFilter == 'All') return true;
+      final status = _recordStatus(record);
+      if (_feeFilter == 'Paid') return status == 'Paid';
+      if (_feeFilter == 'Pending') return status == 'Pending';
+      return true;
+    }).toList();
+
+    return Column(
+      key: const ValueKey('fees-tab'),
+      children: [
+        _sectionCard(
+          title: 'Fee Summary',
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _feeMetric('Total Revenue', '₹${_toDouble(fee['total']).toStringAsFixed(0)}', const Color(0xFF0D1282)),
+              _feeMetric('Pending Fees', '₹${_toDouble(fee['pending']).toStringAsFixed(0)}', const Color(0xFFD71313)),
+              _feeMetric('Collected Today', '₹${_toDouble(fee['collectedToday']).toStringAsFixed(0)}', const Color(0xFFF0DE36)),
+              _feeMetric('Monthly Fee', '₹${_toDouble(_feeStructure?['monthly_fee']).toStringAsFixed(0)}', const Color(0xFF0D1282)),
+            ],
+          ),
+        ),
+        _sectionCard(
+          title: 'Student Fee Table',
+          trailing: OutlinedButton(
+            onPressed: () => context.push('/admin/whatsapp-broadcast'),
+            child: const Text('Send WhatsApp Reminder'),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: ['All', 'Paid', 'Pending']
+                    .map((label) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(label),
+                            selected: _feeFilter == label,
+                            onSelected: (_) => setState(() => _feeFilter = label),
+                          ),
+                        ))
+                    .toList(),
               ),
-            ),
-          );
-        },
-        childCount: _students.length,
+              const SizedBox(height: 10),
+              if (rows.isEmpty)
+                Text('No fee records for selected filter', style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context)))
+              else
+                ...rows.take(20).map((record) {
+                  final status = _recordStatus(record);
+                  final amount = _toDouble(record['final_amount'] ?? record['amount']);
+                  final paidAmount = _recordPaidAmount(record);
+                  final studentName = ((record['student'] as Map?)?['name'] ?? record['student_name'] ?? 'Student').toString();
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFF0D1282), width: 1)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: Text(studentName, style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 12))),
+                            _statusTag(status, status == 'Paid' ? const Color(0xFFF0DE36) : const Color(0xFFD71313)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text('Paid ₹${paidAmount.toStringAsFixed(0)} / ₹${amount.toStringAsFixed(0)} • Due ${_dateLabel(record['due_date'])}', style: GoogleFonts.inter(fontSize: 11, color: Colors.black54)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            OutlinedButton(
+                              onPressed: status == 'Paid'
+                                  ? null
+                                  : () => _markAsPaid(record),
+                              child: const Text('Mark paid'),
+                            ),
+                            OutlinedButton(
+                              onPressed: () => context.push('/admin/whatsapp-broadcast'),
+                              child: const Text('Send reminder'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _feeMetric(String label, String value, Color accent) {
+    return Container(
+      width: 156,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: accent, width: 1.2)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value, style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 13, color: const Color(0xFF0D1282))),
+          const SizedBox(height: 2),
+          Text(label, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600)),
+        ],
       ),
     );
+  }
+
+  Widget _buildAnalyticsTab() {
+    final attendanceTrend = _attendanceTrend();
+    final revenueTrend = _revenueTrend();
+    final performanceTrend = _performanceTrend();
+
+    return Column(
+      key: const ValueKey('analytics-tab'),
+      children: [
+        _sectionCard(title: 'Attendance Graph', child: _miniBarGraph(attendanceTrend, const Color(0xFF0D1282))),
+        _sectionCard(title: 'Performance Graph', child: _miniBarGraph(performanceTrend, const Color(0xFFF0DE36))),
+        _sectionCard(title: 'Revenue Graph', child: _miniBarGraph(revenueTrend, const Color(0xFFD71313))),
+      ],
+    );
+  }
+
+  List<double> _attendanceTrend() {
+    if (_attendanceSessions.isEmpty) return [0, 0, 0, 0, 0, 0];
+    final sorted = [..._attendanceSessions]..sort((a, b) => (_toDate(a['date']) ?? DateTime(0)).compareTo(_toDate(b['date']) ?? DateTime(0)));
+    final recent = sorted.take(6).toList();
+
+    return recent.map((session) {
+      final records = (session['student_records'] as List?) ?? const [];
+      if (records.isEmpty) return 0.0;
+      final present = records.where((e) => (e as Map)['status']?.toString().toLowerCase() == 'present').length;
+      return (present / records.length) * 100;
+    }).toList();
+  }
+
+  List<double> _performanceTrend() {
+    if (_quizzes.isEmpty) return [0, 0, 0, 0, 0, 0];
+    final recent = _quizzes.take(6).toList();
+    return recent.map((q) => _toDouble(q['average_score'])).toList();
+  }
+
+  List<double> _revenueTrend() {
+    if (_feeRecords.isEmpty) return [0, 0, 0, 0, 0, 0];
+    final monthMap = <int, double>{};
+    for (final record in _feeRecords) {
+      final payments = (record['payments'] as List?) ?? const [];
+      for (final item in payments) {
+        if (item is! Map) continue;
+        final dt = _toDate(item['created_at'] ?? item['paid_at']);
+        if (dt == null) continue;
+        monthMap[dt.month] = (monthMap[dt.month] ?? 0) + _toDouble(item['amount_paid']);
+      }
+    }
+
+    final now = DateTime.now();
+    final result = <double>[];
+    for (var i = 5; i >= 0; i--) {
+      final m = now.month - i;
+      final month = m > 0 ? m : m + 12;
+      result.add(monthMap[month] ?? 0);
+    }
+    return result;
+  }
+
+  Widget _miniBarGraph(List<double> values, Color color) {
+    final fixed = values.isEmpty ? [0.0] : values;
+    final maxValue = fixed.reduce((a, b) => a > b ? a : b);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: fixed.map((value) {
+        final height = maxValue <= 0 ? 6.0 : ((value / maxValue) * 70).clamp(6, 70).toDouble();
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(value.toStringAsFixed(0), style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Container(height: height, color: color),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildActionDock() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        _actionButton('Add Lecture', Icons.ondemand_video_rounded, () => context.push('/admin/timetable')),
+        const SizedBox(height: 8),
+        _actionButton('Add Test', Icons.quiz_rounded, () => context.push('/admin/exams')),
+        const SizedBox(height: 8),
+        _actionButton('Add Student', Icons.person_add_alt_rounded, () => context.push('/admin/add-student')),
+        const SizedBox(height: 8),
+        _actionButton('Collect Fee', Icons.payments_rounded, () => context.push('/admin/fees')),
+      ],
+    );
+  }
+
+  Widget _actionButton(String label, IconData icon, VoidCallback onTap) {
+    return FloatingActionButton.extended(
+      heroTag: '${widget.batchId}_$label',
+      onPressed: onTap,
+      backgroundColor: const Color(0xFF0D1282),
+      foregroundColor: const Color(0xFFEEEDED),
+      icon: Icon(icon, size: 18),
+      label: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 11)),
+    );
+  }
+
+  Widget _pill(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFF0D1282), width: 1.2)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF0D1282)),
+          const SizedBox(width: 6),
+          Text(text, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: color, width: 1.2)),
+      child: Text(label, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))),
+    );
+  }
+
+  String _recordStatus(Map<String, dynamic> record) {
+    final amount = _toDouble(record['final_amount'] ?? record['amount']);
+    final paid = _recordPaidAmount(record);
+    return paid + 0.01 >= amount ? 'Paid' : 'Pending';
+  }
+
+  double _recordPaidAmount(Map<String, dynamic> record) {
+    final payments = (record['payments'] as List?) ?? const [];
+    return payments.fold<double>(0, (sum, p) => sum + _toDouble((p as Map)['amount_paid']));
+  }
+
+  Future<void> _markAsPaid(Map<String, dynamic> record) async {
+    final feeRecordId = (record['id'] ?? '').toString();
+    if (feeRecordId.isEmpty) {
+      CPToast.error(context, 'Invalid fee record');
+      return;
+    }
+
+    final amount = _toDouble(record['final_amount'] ?? record['amount']);
+    final paid = _recordPaidAmount(record);
+    final remaining = (amount - paid).clamp(0, double.infinity);
+    if (remaining <= 0) {
+      CPToast.info(context, 'Already fully paid');
+      return;
+    }
+
+    try {
+      await _adminRepo.recordFeePayment(
+        feeRecordId: feeRecordId,
+        amountPaid: remaining,
+        paymentMode: 'Cash',
+        note: 'Marked paid from batch control panel',
+      );
+      if (!mounted) return;
+      CPToast.success(context, 'Fee marked paid');
+      _loadBatch();
+    } catch (e) {
+      if (!mounted) return;
+      CPToast.error(context, 'Payment failed: $e');
+    }
   }
 
   Future<void> _toggleBatchStatus() async {
@@ -661,6 +1343,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
 
   Future<void> _showMigrateSheet() async {
     final batches = await _adminRepo.getBatches();
+    if (!mounted) return;
     final candidates = batches.where((b) => (b['id'] ?? '').toString() != widget.batchId).toList();
     if (candidates.isEmpty) {
       if (!mounted) return;
@@ -678,7 +1361,11 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
               color: Color(0xFFEEEDED),
-              border: Border(top: BorderSide(color: Color(0xFF0D1282), width: 3), left: BorderSide(color: Color(0xFF0D1282), width: 3), right: BorderSide(color: Color(0xFF0D1282), width: 3)),
+              border: Border(
+                top: BorderSide(color: Color(0xFF0D1282), width: 3),
+                left: BorderSide(color: Color(0xFF0D1282), width: 3),
+                right: BorderSide(color: Color(0xFF0D1282), width: 3),
+              ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -739,7 +1426,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       ...(((_batch!['teacher_ids'] as List?) ?? const []).map((e) => e.toString())),
     };
 
-    final faqs = (( _batch!['faqs'] as List?) ?? const [])
+    final faqs = ((_batch!['faqs'] as List?) ?? const [])
         .whereType<Map>()
         .map((e) => Map<String, dynamic>.from(e))
         .toList();
@@ -754,7 +1441,11 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(ctx).viewInsets.bottom + 20),
             decoration: const BoxDecoration(
               color: Color(0xFFEEEDED),
-              border: Border(top: BorderSide(color: Color(0xFF0D1282), width: 3), left: BorderSide(color: Color(0xFF0D1282), width: 3), right: BorderSide(color: Color(0xFF0D1282), width: 3)),
+              border: Border(
+                top: BorderSide(color: Color(0xFF0D1282), width: 3),
+                left: BorderSide(color: Color(0xFF0D1282), width: 3),
+                right: BorderSide(color: Color(0xFF0D1282), width: 3),
+              ),
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -837,10 +1528,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     onPressed: () {
                       if (faqQuestionCtrl.text.trim().isEmpty || faqAnswerCtrl.text.trim().isEmpty) return;
                       setS(() {
-                        faqs.add({
-                          'question': faqQuestionCtrl.text.trim(),
-                          'answer': faqAnswerCtrl.text.trim(),
-                        });
+                        faqs.add({'question': faqQuestionCtrl.text.trim(), 'answer': faqAnswerCtrl.text.trim()});
                         faqQuestionCtrl.clear();
                         faqAnswerCtrl.clear();
                       });
@@ -880,3 +1568,5 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     );
   }
 }
+
+

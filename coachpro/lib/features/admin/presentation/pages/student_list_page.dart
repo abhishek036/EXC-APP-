@@ -167,13 +167,13 @@ class _StudentListPageState extends State<StudentListPage> {
         studentIds: _selected.toList(),
       );
       if (mounted) {
-        _showSnack('${_selected.length} students assigned to ${picked['name']}', const Color(0xFF16A34A));
+        _showSnack('${_selected.length} students assigned to ${picked['name']}', const Color(0xFFF0DE36));
         setState(() { _selectMode = false; _selected.clear(); _bulkSending = false; });
         _loadAll(); // Refresh list
       }
     } catch (_) {
       if (mounted) {
-        _showSnack('Assigned locally (sync when online)', const Color(0xFFD97706));
+        _showSnack('Assigned locally (sync when online)', const Color(0xFFF0DE36));
         setState(() { _selectMode = false; _selected.clear(); _bulkSending = false; });
       }
     }
@@ -197,7 +197,7 @@ class _StudentListPageState extends State<StudentListPage> {
     final overdue = _students.where((s) => s.feeStatus == 'OVERDUE').length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F5FA),
+      backgroundColor: const Color(0xFFEEEDED),
       floatingActionButton: _selectMode ? null : FloatingActionButton(
         onPressed: () => context.go('/admin/add-student'),
         backgroundColor: const Color(0xFF0D1282),
@@ -261,14 +261,14 @@ class _StudentListPageState extends State<StudentListPage> {
   Widget _buildAppBar(List<_Student> filtered) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 16, 8),
-      color: const Color(0xFFF4F5FA),
+      color: const Color(0xFFEEEDED),
       child: Row(
         children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Students', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF0A0C1E), letterSpacing: -0.5)),
+              Text('Students', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282), letterSpacing: -0.5)),
               Text('${filtered.length} record${filtered.length == 1 ? '' : 's'} found',
-                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF8F97B8), fontWeight: FontWeight.w500)),
+                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF0D1282), fontWeight: FontWeight.w500)),
             ]),
           ),
           // Bulk select toggle
@@ -356,9 +356,9 @@ class _StudentListPageState extends State<StudentListPage> {
       child: Row(children: [
         _metricCard('Total', '$total', const Color(0xFF0D1282), Icons.people_rounded),
         const SizedBox(width: 10),
-        _metricCard('Active', '$active', const Color(0xFF16A34A), Icons.check_circle_rounded),
+        _metricCard('Active', '$active', const Color(0xFFF0DE36), Icons.check_circle_rounded),
         const SizedBox(width: 10),
-        _metricCard('Fee Due', '$feeDue', const Color(0xFFD97706), Icons.receipt_long_rounded),
+        _metricCard('Fee Due', '$feeDue', const Color(0xFFF0DE36), Icons.receipt_long_rounded),
         const SizedBox(width: 10),
         _metricCard('Overdue', '$overdue', const Color(0xFFD71313), Icons.warning_rounded),
       ]),
@@ -379,7 +379,7 @@ class _StudentListPageState extends State<StudentListPage> {
           Icon(icon, size: 16, color: color),
           const SizedBox(height: 6),
           Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, color: color)),
-          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w600, color: const Color(0xFF8F97B8), letterSpacing: 0.5)),
+          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w600, color: const Color(0xFF0D1282), letterSpacing: 0.5)),
         ]),
       ),
     );
@@ -393,19 +393,19 @@ class _StudentListPageState extends State<StudentListPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE3E4EE), width: 1.5),
+          border: Border.all(color: const Color(0xFFEEEDED), width: 1.5),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2))],
         ),
         child: TextField(
           controller: _searchController,
-          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E)),
+          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0D1282)),
           decoration: InputDecoration(
             hintText: 'Search by name, ID, or phone…',
-            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF8F97B8)),
-            prefixIcon: const Icon(Icons.search_rounded, size: 20, color: Color(0xFF8F97B8)),
+            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF0D1282)),
+            prefixIcon: const Icon(Icons.search_rounded, size: 20, color: Color(0xFF0D1282)),
             suffixIcon: _searchController.text.isNotEmpty
               ? CPPressable(onTap: () { _searchController.clear(); setState(() {}); },
-                  child: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF8F97B8)))
+                  child: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF0D1282)))
               : null,
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -464,7 +464,7 @@ class _StudentListPageState extends State<StudentListPage> {
                 child: Center(child: Text(_statusFilters[i],
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10, fontWeight: FontWeight.w700,
-                    color: isSelected ? const Color(0xFF0D1282) : const Color(0xFF8F97B8)))),
+                    color: isSelected ? const Color(0xFF0D1282) : const Color(0xFF0D1282)))),
               ),
             ),
           );
@@ -500,7 +500,7 @@ class _StudentListPageState extends State<StudentListPage> {
           const SizedBox(height: 20),
           Text(
             noStudentsAtAll ? 'No students yet' : 'No students match your search',
-            style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)),
           ),
           const SizedBox(height: 8),
           Padding(
@@ -509,7 +509,7 @@ class _StudentListPageState extends State<StudentListPage> {
               noStudentsAtAll
                 ? 'Add your first student to get started'
                 : 'Try adjusting your search or filter criteria',
-              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF8F97B8), height: 1.5),
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF0D1282), height: 1.5),
               textAlign: TextAlign.center,
             ),
           ),
@@ -565,12 +565,12 @@ class _StudentListPageState extends State<StudentListPage> {
             const SizedBox(height: 20),
             Text(
               'Unable to load students',
-              style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E)),
+              style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)),
             ),
             const SizedBox(height: 8),
             Text(
               'Check the network or backend connection, then retry.',
-              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF8F97B8), height: 1.5),
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF0D1282), height: 1.5),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 22),
@@ -600,20 +600,20 @@ class _StudentListPageState extends State<StudentListPage> {
     final isPaid = student.feeStatus == 'PAID';
     final isInactive = student.status == 'inactive';
 
-    final feeColor = isPaid ? const Color(0xFF16A34A)
+    final feeColor = isPaid ? const Color(0xFFF0DE36)
         : isOverdue ? const Color(0xFFD71313)
-        : const Color(0xFFD97706);
+        : const Color(0xFFF0DE36);
 
     final attColor = student.attendance >= 80
-        ? const Color(0xFF16A34A)
+        ? const Color(0xFFF0DE36)
         : student.attendance >= 65
-          ? const Color(0xFFD97706)
+          ? const Color(0xFFF0DE36)
           : const Color(0xFFD71313);
 
     // Avatar background based on first initial
     final avatarColors = [
-      const Color(0xFF0D1282), const Color(0xFF16A34A), const Color(0xFF7C3AED),
-      const Color(0xFFD97706), const Color(0xFF0891B2), const Color(0xFFDB2777),
+      const Color(0xFF0D1282), const Color(0xFFF0DE36), const Color(0xFF7C3AED),
+      const Color(0xFFF0DE36), const Color(0xFF0D1282), const Color(0xFFD71313),
     ];
     final avatarColor = avatarColors[index % avatarColors.length];
 
@@ -636,7 +636,7 @@ class _StudentListPageState extends State<StudentListPage> {
           border: Border.all(
             color: isSelected ? const Color(0xFF0D1282)
                 : isOverdue ? const Color(0xFFD71313).withValues(alpha: 0.2)
-                : const Color(0xFFE3E4EE),
+                : const Color(0xFFEEEDED),
             width: 1.5,
           ),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2))],
@@ -673,7 +673,7 @@ class _StudentListPageState extends State<StudentListPage> {
                   child: Container(
                     width: 12, height: 12,
                     decoration: BoxDecoration(
-                      color: isInactive ? const Color(0xFF9CA3AF) : const Color(0xFF16A34A),
+                      color: isInactive ? const Color(0xFF9CA3AF) : const Color(0xFFF0DE36),
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
@@ -692,7 +692,7 @@ class _StudentListPageState extends State<StudentListPage> {
                   Row(children: [
                     Expanded(
                       child: Text(student.name,
-                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E)),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     ),
                     if (isOverdue)
@@ -705,7 +705,7 @@ class _StudentListPageState extends State<StudentListPage> {
                   const SizedBox(height: 3),
                   Text(
                     student.batchNames.isEmpty ? '—' : student.batchNames.join(', '),
-                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF8F97B8)),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF0D1282)),
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -741,7 +741,7 @@ class _StudentListPageState extends State<StudentListPage> {
                     const SizedBox(width: 5),
                     Container(
                       width: 38, height: 4,
-                      decoration: BoxDecoration(color: const Color(0xFFE3E4EE), borderRadius: BorderRadius.circular(2)),
+                      decoration: BoxDecoration(color: const Color(0xFFEEEDED), borderRadius: BorderRadius.circular(2)),
                       child: FractionallySizedBox(
                         alignment: Alignment.centerLeft,
                         widthFactor: (student.attendance / 100).clamp(0.0, 1.0),
@@ -835,14 +835,14 @@ class _BatchPickerSheet extends StatelessWidget {
             child: Container(
               width: 40, height: 4,
               margin: const EdgeInsets.only(top: 8, bottom: 20),
-              decoration: BoxDecoration(color: const Color(0xFFE3E4EE), borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: const Color(0xFFEEEDED), borderRadius: BorderRadius.circular(2)),
             ),
           ),
           Text('Assign $selectedCount student${selectedCount == 1 ? '' : 's'} to batch',
-            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF0A0C1E))),
+            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))),
           const SizedBox(height: 4),
           Text('Select a batch from the list below',
-            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF8F97B8))),
+            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF0D1282))),
           const SizedBox(height: 16),
           // Batch list
           ConstrainedBox(
@@ -850,12 +850,12 @@ class _BatchPickerSheet extends StatelessWidget {
             child: ListView.separated(
               shrinkWrap: true,
               itemCount: availableBatches.length,
-              separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFE3E4EE)),
+              separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFEEEDED)),
               itemBuilder: (ctx, i) {
                 final batch = availableBatches[i];
                 final name = (batch['name'] ?? 'Batch').toString();
                 // Color cycling for batch avatars
-                final colors = [const Color(0xFF0D1282), const Color(0xFF7C3AED), const Color(0xFF0891B2), const Color(0xFF16A34A)];
+                final colors = [const Color(0xFF0D1282), const Color(0xFF7C3AED), const Color(0xFF0D1282), const Color(0xFFF0DE36)];
                 final color = colors[i % colors.length];
                 return CPPressable(
                   onTap: () { HapticFeedback.selectionClick(); Navigator.pop(ctx, batch); },
@@ -869,10 +869,10 @@ class _BatchPickerSheet extends StatelessWidget {
                       ),
                       const SizedBox(width: 14),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(name, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E))),
+                        Text(name, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
                         Text(
                           (batch['schedule'] ?? batch['description'] ?? 'Tap to assign').toString(),
-                          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF8F97B8)),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF0D1282)),
                           maxLines: 1, overflow: TextOverflow.ellipsis,
                         ),
                       ])),
@@ -891,9 +891,9 @@ class _BatchPickerSheet extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE3E4EE))),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFEEEDED))),
               ),
-              child: Text('Cancel', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: const Color(0xFF8F97B8))),
+              child: Text('Cancel', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
             ),
           ),
         ],
@@ -901,3 +901,5 @@ class _BatchPickerSheet extends StatelessWidget {
     );
   }
 }
+
+

@@ -1,8 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../constants/app_colors.dart';
 import '../theme/theme_aware.dart';
 
 class CPBottomNav extends StatelessWidget {
@@ -23,8 +21,8 @@ class CPBottomNav extends StatelessWidget {
     return Container(
       height: 64, // Base height, safe area added below
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
-        border: Border(top: BorderSide(color: const Color(0xFFE3E4EE), width: 0.5)),
+        color: isDark ? const Color(0xFF0D1282) : const Color(0xFFEEEDED),
+        border: const Border(top: BorderSide(color: Color(0xFF0D1282), width: 1.2)),
       ),
       child: SafeArea(
         top: false,
@@ -79,8 +77,8 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
-    final activeColor = const Color(0xFF0D1282);
-    final inactiveColor = const Color(0xFF8F97B8);
+    final activeColor = isDark ? const Color(0xFFF0DE36) : const Color(0xFF0D1282);
+    final inactiveColor = isDark ? const Color(0xFFEEEDED) : const Color(0xFF0D1282);
 
     return GestureDetector(
       onTap: onTap,
@@ -95,7 +93,9 @@ class _NavItem extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isActive ? activeColor.withValues(alpha: 0.1) : Colors.transparent,
+                  color: isActive
+                      ? (isDark ? const Color(0xFFEEEDED).withValues(alpha: 0.18) : activeColor.withValues(alpha: 0.1))
+                      : Colors.transparent,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(

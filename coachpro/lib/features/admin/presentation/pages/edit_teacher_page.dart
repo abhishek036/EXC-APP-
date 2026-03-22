@@ -253,3 +253,5 @@ class _EditTeacherPageState extends State<EditTeacherPage> {
         Text(title, style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w600, color: CT.textH(context))),
       ]);
 }
+
+

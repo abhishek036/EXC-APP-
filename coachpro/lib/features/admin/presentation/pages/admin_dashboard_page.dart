@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -280,11 +279,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                        child: Column(
                          crossAxisAlignment: CrossAxisAlignment.start,
                          children: [
-                           Text(userName, style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w800, color: const Color(0xFF0A0C1E))),
+                           Text(userName, style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.elitePrimary)),
                            Row(children: [
-                             Text('Tap to edit profile', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF8F97B8))),
+                             Text('Tap to edit profile', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.elitePrimary.withValues(alpha: 0.6))),
                              const SizedBox(width: 4),
-                             const Icon(Icons.edit_rounded, size: 12, color: Color(0xFF8F97B8)),
+                             Icon(Icons.edit_rounded, size: 12, color: AppColors.elitePrimary.withValues(alpha: 0.6)),
                            ]),
                          ],
                        ),
@@ -293,7 +292,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 ),
               ),
             ),
-            const Divider(color: Color(0xFFE3E4EE), height: 1),
+            const Divider(color: AppColors.elitePrimary, height: 1),
             _drawerItem(Icons.sync_rounded, 'Global Syncing', () {
                HapticFeedback.lightImpact(); 
                Navigator.pop(context);
@@ -311,7 +310,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             _drawerItem(Icons.headset_mic_rounded, 'Support & Help', () { Navigator.pop(context); context.go('/admin/support'); }),
             _drawerItem(Icons.bolt_rounded, 'Quick Shortcuts', () { Navigator.pop(context); context.go('/admin/shortcuts'); }),
             const Spacer(),
-            const Divider(color: Color(0xFFE3E4EE), height: 1),
+            const Divider(color: AppColors.elitePrimary, height: 1),
             _drawerItem(Icons.logout_rounded, 'Sign Out', () async {
                Navigator.pop(context);
                final storage = sl<SecureStorageService>();
@@ -326,7 +325,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _drawerItem(IconData icon, String label, VoidCallback onTap, {bool isDestructive = false}) {
-    final color = isDestructive ? const Color(0xFFD71313) : const Color(0xFF0A0C1E);
+    final color = isDestructive ? AppColors.coralRed : AppColors.elitePrimary;
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -368,9 +367,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 HapticFeedback.lightImpact();
                 _scaffoldKey.currentState?.openDrawer(); // ← Fixed: use GlobalKey
               },
-              child: const Padding(
+              child: Padding(
                 padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
-                child: Icon(Icons.menu_rounded, color: Color(0xFF0A0C1E), size: 28),
+                child: Icon(Icons.menu_rounded, color: AppColors.elitePrimary, size: 28),
               ),
             ),
             CPPressable(
@@ -405,12 +404,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       onTap: onTap,
       child: Container(
         width: 44, height: 44,
-        decoration: const BoxDecoration(color: Color(0xFFF4F5FA), shape: BoxShape.circle),
+        decoration: const BoxDecoration(color: AppColors.eliteLightBg, shape: BoxShape.circle),
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Icon(icon, size: 21, color: const Color(0xFF0A0C1E)),
-            if (badge) Positioned(top: 8, right: 8, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFD71313), shape: BoxShape.circle))),
+            Icon(icon, size: 21, color: AppColors.elitePrimary),
+            if (badge) const Positioned(top: 8, right: 8, child: SizedBox(width: 8, height: 8, child: DecoratedBox(decoration: BoxDecoration(color: AppColors.coralRed, shape: BoxShape.circle)))),
           ],
         ),
       ),
@@ -446,7 +445,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             const SizedBox(width: 14),
             _glassStat('PENDING DUES', _formatCurrency(_toDouble(_stats['pending'])), AppColors.coralRed, isDark, Icons.account_balance_wallet_rounded),
             const SizedBox(width: 14),
-            _glassStat('BATCHES', '${_stats['batches']}', const Color(0xFF4C6EF5), isDark, Icons.groups_2_rounded),
+            _glassStat('BATCHES', '${_stats['batches']}', AppColors.elitePrimary, isDark, Icons.groups_2_rounded),
           ],
         ),
       ),
@@ -457,7 +456,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return Container(
       width: 180, padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF0A0C1E), 
+        color: AppColors.elitePrimary,
         borderRadius: BorderRadius.circular(16), 
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))]
       ),
@@ -468,9 +467,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Row(
              mainAxisAlignment: MainAxisAlignment.spaceBetween,
              children: [
-                Expanded(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFFF5D90A), letterSpacing: 0.5), overflow: TextOverflow.ellipsis)),
+                Expanded(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.moltenAmber, letterSpacing: 0.5), overflow: TextOverflow.ellipsis)),
                 const SizedBox(width: 8),
-                const Icon(Icons.trending_up_rounded, size: 16, color: Color(0xFFF5D90A)),
+                const Icon(Icons.trending_up_rounded, size: 16, color: AppColors.moltenAmber),
              ],
           ),
           const SizedBox(height: 8),
@@ -495,13 +494,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF8F97B8), letterSpacing: 0.5), overflow: TextOverflow.ellipsis)),
+              Expanded(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.elitePrimary.withValues(alpha: 0.65), letterSpacing: 0.5), overflow: TextOverflow.ellipsis)),
               const SizedBox(width: 8),
               Icon(icon, size: 18, color: color),
             ],
           ),
           const SizedBox(height: 10),
-          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800, color: const Color(0xFF1A1A1A), letterSpacing: -0.5)),
+          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.elitePrimary, letterSpacing: -0.5)),
         ],
       ),
     );
@@ -516,7 +515,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 11,
             fontWeight: FontWeight.w800,
-            color: const Color(0xFF8F97B8),
+            color: AppColors.elitePrimary.withValues(alpha: 0.65),
             letterSpacing: 1.2,
           ),
         ),
@@ -578,7 +577,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     children: [
                       const Icon(Icons.currency_rupee_rounded, size: 22, color: Color(0xFF0D1282)),
                       const Spacer(),
-                      Text('Collect Fee', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E))),
+                      Text('Collect Fee', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.elitePrimary)),
                     ],
                   ),
                 ),
@@ -607,7 +606,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     children: [
                       const Icon(Icons.fact_check_rounded, size: 22, color: Color(0xFFD71313)),
                       const Spacer(),
-                      Text('Attendance', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E))),
+                      Text('Attendance', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.elitePrimary)),
                     ],
                   ),
                 ),
@@ -630,8 +629,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(color: Color(0xFFF4F5FA), shape: BoxShape.circle),
-                        child: const Icon(Icons.campaign_rounded, color: Color(0xFFD97706), size: 24),
+                        decoration: const BoxDecoration(color: AppColors.eliteLightBg, shape: BoxShape.circle),
+                        child: const Icon(Icons.campaign_rounded, color: AppColors.moltenAmber, size: 24),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -639,9 +638,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('Announce', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E))),
+                            Text('Announce', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.elitePrimary)),
                             const SizedBox(height: 2),
-                            Text('Broadcast message', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w400, color: const Color(0xFF0A0C1E).withValues(alpha: 0.6))),
+                            Text('Broadcast message', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w400, color: AppColors.elitePrimary.withValues(alpha: 0.6))),
                           ],
                         ),
                       ),
@@ -658,12 +657,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Widget _buildManagementHub(bool isDark) {
     final modules = [
-      {'label': 'Teachers', 'icon': Icons.psychology_rounded, 'color': const Color(0xFF0D1282), 'route': '/admin/teachers', 'desc': 'Faculty Management', 'stat': '${_stats['teachers']} Active'}, 
-      {'label': 'Courses & Doubts', 'icon': Icons.auto_stories_rounded, 'color': const Color(0xFF4C6EF5), 'route': '/admin/academics', 'desc': 'Manage materials', 'stat': '8 active'}, 
-      {'label': 'Human Capital', 'icon': Icons.badge_rounded, 'color': const Color(0xFFF5D90A), 'route': '/admin/staff', 'desc': 'Staff & Payroll', 'stat': '3 departments'}, 
-      {'label': 'Certificate Studio', 'icon': Icons.workspace_premium_rounded, 'color': const Color(0xFF4C6EF5), 'route': '/admin/certificates', 'desc': 'Mint Documents', 'stat': '110 minted'}, 
-      {'label': 'Security IAM', 'icon': Icons.shield_rounded, 'color': const Color(0xFFD71313), 'route': '/admin/users', 'desc': 'Role Control', 'stat': '2 layers'}, 
-      {'label': 'Opportunity Pipeline', 'icon': Icons.radar_rounded, 'color': const Color(0xFF8A2BE2), 'route': '/admin/leads', 'desc': 'Lead Tracking', 'stat': '23 open'}, 
+      {'label': 'Teachers', 'icon': Icons.psychology_rounded, 'color': AppColors.elitePrimary, 'route': '/admin/teachers', 'desc': 'Faculty Management', 'stat': '${_stats['teachers']} Active'}, 
+      {'label': 'Courses & Doubts', 'icon': Icons.auto_stories_rounded, 'color': AppColors.elitePrimary, 'route': '/admin/academics', 'desc': 'Manage materials', 'stat': '8 active'}, 
+      {'label': 'Human Capital', 'icon': Icons.badge_rounded, 'color': AppColors.moltenAmber, 'route': '/admin/staff', 'desc': 'Staff & Payroll', 'stat': '3 departments'}, 
+      {'label': 'Certificate Studio', 'icon': Icons.workspace_premium_rounded, 'color': AppColors.elitePrimary, 'route': '/admin/certificates', 'desc': 'Mint Documents', 'stat': '110 minted'}, 
+      {'label': 'Security IAM', 'icon': Icons.shield_rounded, 'color': AppColors.coralRed, 'route': '/admin/users', 'desc': 'Role Control', 'stat': '2 layers'}, 
+      {'label': 'Opportunity Pipeline', 'icon': Icons.radar_rounded, 'color': AppColors.elitePrimary, 'route': '/admin/leads', 'desc': 'Lead Tracking', 'stat': '23 open'}, 
     ];
 
     return GridView.builder(
@@ -700,13 +699,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                          decoration: BoxDecoration(color: col.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), 
                          child: Icon(m['icon'] as IconData, color: col, size: 18)
                       ),
-                      const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF8F97B8)),
+                      Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.elitePrimary.withValues(alpha: 0.65)),
                    ]
                 ),
                 const SizedBox(height: 12),
-                Text(m['label'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E))),
+                Text(m['label'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.elitePrimary)),
                 const SizedBox(height: 4),
-                Text(m['desc'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w500, color: const Color(0xFF6B7280)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(m['desc'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.elitePrimary.withValues(alpha: 0.65)), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 8),
                 Text(m['stat'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: col)),
               ],
@@ -738,8 +737,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               children: [
                 Column(
                   children: [
-                    Container(width: 14, height: 14, decoration: BoxDecoration(color: const Color(0xFFFEF08A), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFF0DE36), width: 3))),
-                    Expanded(child: Container(width: 2, color: const Color(0xFFF0DE36).withValues(alpha: 0.3))),
+                    Container(width: 14, height: 14, decoration: BoxDecoration(color: AppColors.moltenAmber.withValues(alpha: 0.35), shape: BoxShape.circle, border: Border.all(color: AppColors.moltenAmber, width: 3))),
+                    Expanded(child: Container(width: 2, color: AppColors.moltenAmber.withValues(alpha: 0.3))),
                   ],
                 ),
                 const SizedBox(width: 16),
@@ -805,7 +804,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.6)),
-        CPPressable(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]), child: Row(children: [Text('Explore all', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))), const SizedBox(width: 4), const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Color(0xFF0D1282))])))
+        CPPressable(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: AppColors.moltenAmber, border: Border.all(color: AppColors.elitePrimary, width: 2), boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2))]), child: Row(children: [Text('Explore all', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.elitePrimary)), const SizedBox(width: 4), const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: AppColors.elitePrimary)])))
       ],
     );
   }
@@ -841,9 +840,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildRecentPayments(bool isDark) {
-    if (_loading) return SizedBox(height: 80, child: ListView.separated(scrollDirection: Axis.horizontal, clipBehavior: Clip.none, itemCount: 3, separatorBuilder: (_, __) => const SizedBox(width: 14), itemBuilder: (_, __) => const CPShimmer(width: 240, height: 80, borderRadius: 24)));
+    if (_loading) return SizedBox(height: 80, child: ListView.separated(scrollDirection: Axis.horizontal, clipBehavior: Clip.none, itemCount: 3, separatorBuilder: (context, index) => const SizedBox(width: 14), itemBuilder: (context, index) => const CPShimmer(width: 240, height: 80, borderRadius: 24)));
     if (_recentPayments.isEmpty) return _emptyCard("Revenue logs are waiting...", isDark);
-    return SizedBox(height: 80, child: ListView.separated(scrollDirection: Axis.horizontal, clipBehavior: Clip.none, itemCount: _recentPayments.length, separatorBuilder: (_, _) => const SizedBox(width: 14), itemBuilder: (_, i) {
+    return SizedBox(height: 80, child: ListView.separated(scrollDirection: Axis.horizontal, clipBehavior: Clip.none, itemCount: _recentPayments.length, separatorBuilder: (context, index) => const SizedBox(width: 14), itemBuilder: (context, i) {
       final p = _recentPayments[i];
       return SizedBox(width: 240, child: CPGlassCard(isDark: isDark, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0), borderRadius: 24, child: Row(children: [
         Container(width: 40, height: 40, decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(Icons.credit_card_rounded, size: 18, color: AppColors.success)),
@@ -941,7 +940,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       BarChartRodData(
                         toY: _revenueTrend[i],
                         width: 14,
-                        color: isCurrent ? const Color(0xFFF0DE36) : const Color(0xFF0D1282).withValues(alpha: 0.7),
+                        color: isCurrent ? AppColors.moltenAmber : AppColors.elitePrimary.withValues(alpha: 0.7),
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                       )
                     ],
@@ -957,3 +956,5 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Widget _emptyCard(String text, bool isDark) => CPGlassCard(isDark: isDark, padding: const EdgeInsets.all(32), borderRadius: 28, child: Center(child: Column(children: [Icon(Icons.inventory_2_outlined, size: 24, color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1)), const SizedBox(height: 12), Text(text, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: isDark ? Colors.white.withValues(alpha: 0.24) : Colors.black.withValues(alpha: 0.26), fontWeight: FontWeight.w600))])));
 }
+
+

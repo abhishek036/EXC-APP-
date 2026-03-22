@@ -4,44 +4,40 @@ import '../constants/app_dimensions.dart';
 /// Mixin for theme-aware color access across ALL pages.
 /// Usage: `with ThemeAware` on State classes, then use `isDark`, `bg`, `card`, etc.
 ///
-/// Dark mode  → Grey/Slate palette (no white)
-/// Light mode → Off White/Frost Blue/Steel Blue/Deep Navy
+/// Dark mode  → Deep Blue darker base
+/// Light mode → Off White + Deep Blue
 ///
 /// Multi-layer surface system:
 ///   bg → surfaceRecessed → card → surfaceRaised → surfaceOverlay
 mixin ThemeAware<T extends StatefulWidget> on State<T> {
+  static const _deepBlue = Color(0xFF0D1282);
+  static const _deepBlueDark = Color(0xFF090D5C);
+  static const _offWhite = Color(0xFFEEEDED);
+  static const _accentYellow = Color(0xFFF0DE36);
+
   bool get isDark => Theme.of(context).brightness == Brightness.dark;
 
   // ── Backgrounds ──
-  Color get bg => isDark ? const Color(0xFF212529) : const Color(0xFFF9F7F7);
-  Color get card => isDark ? const Color(0xFF343A40) : const Color(0xFFFFFFFF);
-  Color get elevated =>
-      isDark ? const Color(0xFF495057) : const Color(0xFFDBE2EF);
+  Color get bg => isDark ? _deepBlueDark : _offWhite;
+  Color get card => isDark ? _deepBlue : _offWhite;
+  Color get elevated => isDark ? _deepBlue : Colors.white;
 
   // ── Multi-layer surfaces ──
-  Color get surfaceRecessed =>
-      isDark ? const Color(0xFF1A1D21) : const Color(0xFFF1F3F8);
-  Color get surfaceRaised =>
-      isDark ? const Color(0xFF3E454D) : const Color(0xFFFFFFFF);
-  Color get surfaceOverlay =>
-      isDark ? const Color(0xFF495057) : const Color(0xFFFFFFFF);
+  Color get surfaceRecessed => isDark ? _deepBlueDark : _offWhite;
+  Color get surfaceRaised => isDark ? _deepBlue : Colors.white;
+  Color get surfaceOverlay => isDark ? _deepBlue : Colors.white;
 
   // ── Borders ──
-  Color get border =>
-      isDark ? const Color(0xFF495057) : const Color(0xFFDBE2EF);
+  Color get border => _deepBlue;
 
   // ── Text ──
-  Color get textH => isDark ? const Color(0xFFCED4DA) : const Color(0xFF112D4E);
-  Color get textS => isDark ? const Color(0xFFADB5BD) : const Color(0xFF3F72AF);
-  Color get textM => isDark
-      ? const Color(0xFF6C757D)
-      : const Color(0xFF3F72AF).withValues(alpha: 0.55);
+  Color get textH => isDark ? _offWhite : _deepBlue;
+  Color get textS => isDark ? _offWhite.withValues(alpha: 0.78) : _deepBlue.withValues(alpha: 0.78);
+  Color get textM => isDark ? _offWhite.withValues(alpha: 0.58) : _deepBlue.withValues(alpha: 0.58);
 
   // ── Accent ──
-  Color get accent =>
-      isDark ? const Color(0xFF4C6EF5) : const Color(0xFF3F72AF);
-  Color get onAccent =>
-      isDark ? const Color(0xFF212529) : const Color(0xFFF9F7F7);
+  Color get accent => _accentYellow;
+  Color get onAccent => _deepBlue;
 
   // ── Card decoration helper ──
   BoxDecoration cardDecor({double radius = 16}) => BoxDecoration(
@@ -65,43 +61,48 @@ mixin ThemeAware<T extends StatefulWidget> on State<T> {
 /// Stateless version — call these with BuildContext
 class CT {
   CT._();
+  static const _deepBlue = Color(0xFF0D1282);
+  static const _deepBlueDark = Color(0xFF090D5C);
+  static const _offWhite = Color(0xFFEEEDED);
+  static const _accentYellow = Color(0xFFF0DE36);
+
   static bool isDark(BuildContext c) =>
       Theme.of(c).brightness == Brightness.dark;
 
   // Backgrounds
   static Color bg(BuildContext c) =>
-      isDark(c) ? const Color(0xFF212529) : const Color(0xFFF9F7F7);
+      isDark(c) ? _deepBlueDark : _offWhite;
   static Color card(BuildContext c) =>
-      isDark(c) ? const Color(0xFF343A40) : const Color(0xFFFFFFFF);
+      isDark(c) ? _deepBlue : _offWhite;
   static Color elevated(BuildContext c) =>
-      isDark(c) ? const Color(0xFF495057) : const Color(0xFFDBE2EF);
+      isDark(c) ? _deepBlue : Colors.white;
 
   // Multi-layer surfaces
   static Color surfaceRecessed(BuildContext c) =>
-      isDark(c) ? const Color(0xFF1A1D21) : const Color(0xFFF1F3F8);
+      isDark(c) ? _deepBlueDark : _offWhite;
   static Color surfaceRaised(BuildContext c) =>
-      isDark(c) ? const Color(0xFF3E454D) : const Color(0xFFFFFFFF);
+      isDark(c) ? _deepBlue : Colors.white;
   static Color surfaceOverlay(BuildContext c) =>
-      isDark(c) ? const Color(0xFF495057) : const Color(0xFFFFFFFF);
+      isDark(c) ? _deepBlue : Colors.white;
 
   // Borders
   static Color border(BuildContext c) =>
-      isDark(c) ? const Color(0xFF495057) : const Color(0xFFDBE2EF);
+      _deepBlue;
 
   // Text
   static Color textH(BuildContext c) =>
-      isDark(c) ? const Color(0xFFCED4DA) : const Color(0xFF112D4E);
+      isDark(c) ? _offWhite : _deepBlue;
   static Color textS(BuildContext c) =>
-      isDark(c) ? const Color(0xFFADB5BD) : const Color(0xFF3F72AF);
+      isDark(c) ? _offWhite.withValues(alpha: 0.78) : _deepBlue.withValues(alpha: 0.78);
   static Color textM(BuildContext c) => isDark(c)
-      ? const Color(0xFF6C757D)
-      : const Color(0xFF3F72AF).withValues(alpha: 0.55);
+      ? _offWhite.withValues(alpha: 0.58)
+      : _deepBlue.withValues(alpha: 0.58);
 
   // Accent
   static Color accent(BuildContext c) =>
-      isDark(c) ? const Color(0xFF4C6EF5) : const Color(0xFF3F72AF);
+      _accentYellow;
   static Color onAccent(BuildContext c) =>
-      isDark(c) ? const Color(0xFF212529) : const Color(0xFFF9F7F7);
+      _deepBlue;
 
   // ── Card decoration helper ──
   static BoxDecoration cardDecor(BuildContext c, {double radius = 16}) =>
