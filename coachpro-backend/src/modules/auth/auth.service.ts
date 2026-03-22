@@ -148,7 +148,6 @@ export class AuthService {
         }) as any;
         isNewUser = true; // flag for profile completion flow
 
-        if (staff && !staff.user_id) await prisma.staff.update({ where: { id: staff.id }, data: { user_id: user.id } });
         if (teacher && !teacher.user_id) await prisma.teacher.update({ where: { id: teacher.id }, data: { user_id: user.id } });
         if (student && !student.user_id) await prisma.student.update({ where: { id: student.id }, data: { user_id: user.id } });
         if (parent && !parent.user_id) await prisma.parent.update({ where: { id: parent.id }, data: { user_id: user.id } });
@@ -336,8 +335,21 @@ export class AuthService {
             } else if (role === 'parent') {
                 await prisma.parent.updateMany({ where: { user_id: userId }, data: { name } });
             } else if (role === 'admin') {
-                // Admins are represented as Staff in this schema (role=admin), if present.
-                await prisma.staff.updateMany({ where: { user_id: userId }, data: { name } });
+                const phonesToSearch = user.phone
+                    ? [
+                        user.phone,
+                        ...(user.phone.startsWith('+91') ? [user.phone.substring(3)] : []),
+                        ...(user.phone.length === 10 ? [`+91${user.phone}`] : []),
+                    ]
+                    : [];
+
+                await prisma.staff.updateMany({
+                    where: {
+                        institute_id: user.institute_id,
+                        ...(phonesToSearch.length > 0 ? { phone: { in: phonesToSearch } } : {}),
+                    },
+                    data: { name },
+                });
             }
         }
 
@@ -376,20 +388,12 @@ export class AuthService {
 
       let name = 'User';
       if (user.role === 'admin') {
-          let staff = await prisma.staff.findFirst({ where: { user_id: userId } });
-
-                      if (!staff && phonesToSearch.length > 0) {
-              staff = await prisma.staff.findFirst({
-                  where: {
-                      institute_id: user.institute_id,
-                      phone: { in: phonesToSearch },
-                  },
-              });
-
-              if (staff && !staff.user_id) {
-                  await prisma.staff.update({ where: { id: staff.id }, data: { user_id: userId } });
-              }
-          }
+          const staff = await prisma.staff.findFirst({
+              where: {
+                  institute_id: user.institute_id,
+                  ...(phonesToSearch.length > 0 ? { phone: { in: phonesToSearch } } : {}),
+              },
+          });
 
           if (staff?.name) name = staff.name;
       } else if (user.role === 'student') {
