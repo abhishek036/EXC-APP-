@@ -41,11 +41,44 @@ export class BatchController {
     } catch (error) { next(error); }
   };
 
+  delete = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.batchService.deleteBatch(req.params.id, req.instituteId!);
+      return sendResponse({ res, data, message: 'Batch deleted successfully' });
+    } catch (error) { next(error); }
+  };
+
   toggleStatus = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { is_active } = req.body;
       const data = await this.batchService.changeStatus(req.params.id, req.instituteId!, is_active);
       return sendResponse({ res, data, message: `Batch ${is_active ? 'activated' : 'deactivated'} successfully` });
+    } catch (error) { next(error); }
+  };
+
+  getMeta = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.batchService.getBatchMeta(req.params.id, req.instituteId!);
+      return sendResponse({ res, data, message: 'Batch metadata fetched successfully' });
+    } catch (error) { next(error); }
+  };
+
+  updateMeta = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.batchService.updateBatchMeta(req.params.id, req.instituteId!, req.body);
+      return sendResponse({ res, data, message: 'Batch metadata updated successfully' });
+    } catch (error) { next(error); }
+  };
+
+  migrateStudents = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { target_batch_id, deactivate_source, activate_target } = req.body;
+      const data = await this.batchService.migrateStudents(req.params.id, req.instituteId!, {
+        target_batch_id,
+        deactivate_source,
+        activate_target,
+      });
+      return sendResponse({ res, data, message: 'Students migrated successfully' });
     } catch (error) { next(error); }
   };
 

@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/theme/theme_aware.dart';
+import '../../../../core/widgets/cp_glass_card.dart';
+import '../../../../core/widgets/cp_pressable.dart';
+import '../../../../core/widgets/cp_shimmer.dart';
 import '../../../../core/widgets/cp_toast.dart';
 import '../../../../core/widgets/custom_button.dart';
-import '../../../../core/theme/theme_aware.dart';
-import '../../../../core/widgets/cp_pressable.dart';
-import '../../../../core/widgets/cp_glass_card.dart';
-import '../../../../core/widgets/cp_shimmer.dart';
 import '../../data/repositories/admin_repository.dart';
 
 class BatchManagementPage extends StatefulWidget {
@@ -21,6 +22,7 @@ class BatchManagementPage extends StatefulWidget {
 
 class _BatchManagementPageState extends State<BatchManagementPage> {
   final _adminRepo = sl<AdminRepository>();
+
   bool _isLoading = true;
   List<Map<String, dynamic>> _batches = [];
   List<Map<String, dynamic>> _teachers = [];
@@ -35,84 +37,156 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final batches = await _adminRepo.getBatches();
-      final teachers = await _adminRepo.getTeachers();
+      final results = await Future.wait([
+        _adminRepo.getBatches(),
+        _adminRepo.getTeachers(),
+      ]);
       if (!mounted) return;
       setState(() {
-        _batches = batches;
-        _teachers = teachers;
+        _batches = List<Map<String, dynamic>>.from(results[0] as List);
+        _teachers = List<Map<String, dynamic>>.from(results[1] as List);
         _isLoading = false;
       });
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      CPToast.error(context, 'Unable to load batches: $e');
+    }
+  }
+
+  int _toInt(dynamic value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  double _toDouble(dynamic value, {double fallback = 0}) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  DateTime? _toDate(dynamic value) {
+    if (value is DateTime) return value;
+    if (value == null) return null;
+    return DateTime.tryParse(value.toString());
+  }
+
+  String _batchBadge(Map<String, dynamic> batch) {
+    final isActive = (batch['is_active'] ?? batch['isActive']) == true;
+    final currentStudents = _toInt(batch['current_students']);
+    final capacity = _toInt(batch['capacity']);
+    final endDate = _toDate(batch['end_date']);
+    final now = DateTime.now();
+
+    if (endDate != null && endDate.isBefore(DateTime(now.year, now.month, now.day))) {
+      return 'Completed';
+    }
+    if (!isActive) return 'Suspended';
+    if (capacity > 0 && currentStudents >= capacity) return 'Full';
+    if (capacity > 0 && currentStudents / capacity >= 0.8) return 'Filling Fast';
+    return 'Active';
+  }
+
+  Color _badgeColor(String badge) {
+    switch (badge) {
+      case 'Full':
+      case 'Completed':
+        return const Color(0xFFD71313);
+      case 'Filling Fast':
+        return const Color(0xFFF0DE36);
+      case 'Suspended':
+        return Colors.grey;
+      default:
+        return const Color(0xFF0D1282);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
-    final active = _batches.where((batch) => (batch['is_active'] ?? batch['isActive']) == true).length;
-    final totalStudents = _batches.fold<int>(0, (sum, batch) => sum + (batch['current_students'] as int? ?? 0));
+    final active = _batches.where((b) => (b['is_active'] ?? b['isActive']) == true).length;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Column(
-              children: [
-                _buildAppBar(context, isDark),
-                Expanded(
-                  child: _isLoading
-                      ? ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                          itemCount: 4,
-                          separatorBuilder: (_, __) => const SizedBox(height: 16),
-                          itemBuilder: (_, __) => const CPShimmer(width: double.infinity, height: 160, borderRadius: 28),
-                        )
-                      : RefreshIndicator(
-                          color: AppColors.elitePrimary,
-                          onRefresh: _loadData,
-                          child: SingleChildScrollView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(children: [
-                                  _summaryStat('ACTIVE', '$active', AppColors.mintGreen, isDark),
-                                  const SizedBox(width: 12),
-                                  _summaryStat('ENROLLED', '$totalStudents', AppColors.elitePrimary, isDark),
-                                  const SizedBox(width: 12),
-                                  _summaryStat('PROGRAMS', '${_batches.length}', AppColors.elitePurple, isDark),
-                                ]).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1),
-                                const SizedBox(height: 32),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('Academic Cohorts', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.6)),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(10)),
-                                      child: Text('${_batches.length} TOTAL', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 0.5)),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 20),
-                                if (_batches.isEmpty)
-                                  _buildEmptyState(isDark)
-                                else
-                                  ..._batches.asMap().entries.map((entry) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 16),
-                                        child: _batchCard(context, entry.value, entry.key, isDark),
-                                      )),
-                                const SizedBox(height: 100),
-                              ],
-                            ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildAppBar(isDark),
+            Expanded(
+              child: _isLoading
+                  ? ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                      itemCount: 4,
+                      separatorBuilder: (_, __) => const SizedBox(height: 16),
+                      itemBuilder: (_, __) => const CPShimmer(width: double.infinity, height: 160, borderRadius: 22),
+                    )
+                  : RefreshIndicator(
+                      color: const Color(0xFF0D1282),
+                      onRefresh: _loadData,
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+                        children: [
+                          Row(
+                            children: [
+                              _summaryStat('ACTIVE', '$active', const Color(0xFF0D1282), isDark),
+                              const SizedBox(width: 10),
+                              _summaryStat('TOTAL', '${_batches.length}', const Color(0xFF0D1282), isDark),
+                            ],
                           ),
-                        ),
-                ),
-              ],
+                          const SizedBox(height: 18),
+                          if (_batches.isEmpty)
+                            _buildEmptyState(isDark)
+                          else
+                            ..._batches.asMap().entries.map((entry) {
+                              final batch = entry.value;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 14),
+                                child: _batchCard(batch, entry.key, isDark),
+                              );
+                            }),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBar(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 14, 10),
+      child: Row(
+        children: [
+          CPPressable(
+            onTap: () => Navigator.pop(context),
+            child: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: isDark ? Colors.white : const Color(0xFF0D1282)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              'Batches',
+              style: GoogleFonts.inter(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white : const Color(0xFF0D1282),
+                letterSpacing: -0.7,
+              ),
+            ),
+          ),
+          CPPressable(
+            onTap: () => _showCreateBatchSheet(context),
+            child: Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0DE36),
+                border: Border.all(color: const Color(0xFF0D1282), width: 3),
+                boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))],
+              ),
+              child: const Icon(Icons.add_rounded, color: Color(0xFF0D1282)),
             ),
           ),
         ],
@@ -120,239 +194,495 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
     );
   }
 
-  // Removed _glow method
-  Widget _buildAppBar(BuildContext context, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-      child: Row(
-        children: [
-          CPPressable(onTap: () => Navigator.pop(context), child: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: isDark ? Colors.white : AppColors.deepNavy)),
-          const SizedBox(width: 16),
-          Expanded(child: Text('Batch Academy', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.8))),
-          _appBarAction(Icons.add_rounded, () => _showCreateBatchSheet(context), isDark, primary: true),
-        ],
-      ),
-    );
-  }
-
-  Widget _appBarAction(IconData icon, VoidCallback onTap, bool isDark, {bool primary = false}) {
-    return CPPressable(
-      onTap: onTap,
-      child: Container(
-        width: 44, height: 44,
-        decoration: BoxDecoration(color: primary ? const Color(0xFFF0DE36) : const Color(0xFF0D1282), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: primary ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))] : null),
-        child: Icon(icon, size: 22, color: primary ? const Color(0xFF0D1282) : Colors.white),
-      ),
-    );
-  }
-
-  Widget _summaryStat(String label, String value, Color color, bool isDark) => Expanded(
-    child: CPGlassCard(
-      isDark: isDark, padding: const EdgeInsets.symmetric(vertical: 20), borderRadius: 24,
-      child: Column(
-        children: [
-          Text(value, style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w900, color: color, letterSpacing: -1)),
-          const SizedBox(height: 4),
-          Text(label, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26), letterSpacing: 0.5)),
-        ],
-      ),
-    ),
-  );
-
-  Widget _batchCard(BuildContext context, Map<String, dynamic> batchData, int i, bool isDark) {
-    final name = (batchData['name'] ?? 'Batch').toString();
-    final subject = (batchData['subject'] ?? '').toString();
-    final teacherName = (batchData['teacher_name'] ?? 'Faculty Unassigned').toString();
-    final currentStudents = (batchData['current_students'] as int?) ?? 0;
-    final isActive = (batchData['is_active'] ?? batchData['isActive']) == true;
-    final maxStudents = (batchData['capacity'] as int?) ?? 60;
-    final fee = (batchData['fee'] as num?)?.toDouble() ?? 0;
-    final timing = _buildTiming(batchData);
-
-    return CPGlassCard(
-      isDark: isDark, padding: const EdgeInsets.all(20), borderRadius: 28,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: isActive ? AppColors.mintGreen : Colors.grey, width: 2), boxShadow: [BoxShadow(color: isActive ? AppColors.mintGreen : Colors.grey, offset: const Offset(2, 2))]), child: Icon(Icons.layers_rounded, size: 20, color: isActive ? AppColors.mintGreen : Colors.grey)),
-              const SizedBox(width: 16),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(name, style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.4)),
-                Text(subject.isNotEmpty ? subject : 'General Program', style: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600)),
-              ])),
-              _badge(isActive ? 'LIVE' : 'PAUSED', isActive ? AppColors.mintGreen : (isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26)), isDark),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _infoSegment(Icons.groups_rounded, '$currentStudents / $maxStudents seats', isDark),
-              if (fee > 0) Text('₹${fee.toInt()}', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.mintGreen)),
-            ],
-          ),
-          if (timing.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _infoSegment(Icons.schedule_rounded, timing, isDark),
+  Widget _summaryStat(String label, String value, Color color, bool isDark) {
+    return Expanded(
+      child: CPGlassCard(
+        isDark: isDark,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        borderRadius: 18,
+        child: Column(
+          children: [
+            Text(value, style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w900, color: color)),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white54 : Colors.black54,
+                letterSpacing: 0.7,
+              ),
+            ),
           ],
-          const SizedBox(height: 20),
-          Divider(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05), height: 1),
-          const SizedBox(height: 16),
-          Row(
+        ),
+      ),
+    );
+  }
+
+  Widget _batchCard(Map<String, dynamic> batch, int index, bool isDark) {
+    final badge = _batchBadge(batch);
+    final badgeColor = _badgeColor(badge);
+    final name = (batch['name'] ?? 'Batch').toString();
+    final subject = (batch['subject'] ?? 'General').toString();
+    final capacity = _toInt(batch['capacity'], fallback: 0);
+    final currentStudents = _toInt(batch['current_students']);
+    final fee = _toDouble(batch['monthly_fee'] ?? batch['fee']);
+    final isActive = (batch['is_active'] ?? batch['isActive']) == true;
+
+    final assignedTeachers = ((batch['assigned_teachers'] as List?) ?? const [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+
+    final teacherText = assignedTeachers.isNotEmpty
+        ? assignedTeachers.map((t) => (t['name'] ?? 'Teacher').toString()).join(', ')
+        : ((batch['teacher'] is Map && (batch['teacher'] as Map)['name'] != null)
+            ? (batch['teacher'] as Map)['name'].toString()
+            : 'No teacher assigned');
+
+    return CPPressable(
+      onTap: () => context.push('/admin/batches/${batch['id']}'),
+      child: CPGlassCard(
+        isDark: isDark,
+        padding: const EdgeInsets.all(18),
+        borderRadius: 22,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    name,
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : const Color(0xFF0D1282),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEEDED),
+                    border: Border.all(color: badgeColor, width: 2),
+                    boxShadow: [BoxShadow(color: badgeColor, offset: const Offset(2, 2))],
+                  ),
+                  child: Text(
+                    badge,
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 10, color: const Color(0xFF0D1282)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(subject, style: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87)),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(Icons.groups_rounded, size: 16, color: isDark ? Colors.white60 : Colors.black54),
+                const SizedBox(width: 6),
+                Text(
+                  capacity > 0 ? '$currentStudents / $capacity' : '$currentStudents enrolled',
+                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? Colors.white70 : Colors.black87),
+                ),
+                const Spacer(),
+                if (fee > 0)
+                  Text(
+                    '₹${fee.toStringAsFixed(0)}',
+                    style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              teacherText,
+              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white60 : Colors.black54),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                _inlineAction(
+                  icon: isActive ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded,
+                  label: isActive ? 'Suspend' : 'Resume',
+                  onTap: () => _toggleBatchStatus(batch),
+                  isDark: isDark,
+                ),
+                const SizedBox(width: 8),
+                _inlineAction(
+                  icon: Icons.swap_horiz_rounded,
+                  label: 'Migrate',
+                  onTap: () => _showMigrateSheet(batch),
+                  isDark: isDark,
+                ),
+                const SizedBox(width: 8),
+                _inlineAction(
+                  icon: Icons.delete_outline_rounded,
+                  label: 'Delete',
+                  onTap: () => _confirmDelete(batch),
+                  isDark: isDark,
+                  danger: true,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ).animate(delay: (80 * index).ms).fadeIn(duration: 400.ms).slideX(begin: 0.06),
+    );
+  }
+
+  Widget _inlineAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required bool isDark,
+    bool danger = false,
+  }) {
+    return Expanded(
+      child: CPPressable(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEEEDED),
+            border: Border.all(color: const Color(0xFF0D1282), width: 2),
+            boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircleAvatar(radius: 14, backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), child: Icon(Icons.person_pin_rounded, size: 14, color: isDark ? Colors.white54 : Colors.black54)),
-              const SizedBox(width: 12),
-              Expanded(child: Text(teacherName, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? Colors.white60 : Colors.black87))),
-              CPPressable(
-                onTap: () { HapticFeedback.mediumImpact(); _toggleBatchStatus(batchData); },
-                child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.power_settings_new_rounded, size: 16, color: isActive ? AppColors.coralRed : AppColors.mintGreen)),
+              Icon(icon, size: 14, color: danger ? const Color(0xFFD71313) : const Color(0xFF0D1282)),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: danger ? const Color(0xFFD71313) : const Color(0xFF0D1282),
+                  ),
+                ),
               ),
             ],
           ),
-        ],
+        ),
       ),
-    ).animate(delay: (100 * i).ms).fadeIn(duration: 500.ms).slideX(begin: 0.05);
-  }
-
-  Widget _infoSegment(IconData icon, String text, bool isDark) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(icon, size: 14, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26)),
-      const SizedBox(width: 8),
-      Text(text, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black45)),
-    ],
-  );
-
-  Widget _badge(String text, Color color, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: color, width: 2), boxShadow: [BoxShadow(color: color, offset: const Offset(2, 2))]),
-      child: Text(text, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5)),
     );
   }
 
   Widget _buildEmptyState(bool isDark) {
     return CPGlassCard(
-      isDark: isDark, padding: const EdgeInsets.all(48), borderRadius: 32,
+      isDark: isDark,
+      padding: const EdgeInsets.all(32),
+      borderRadius: 22,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.layers_clear_rounded, size: 64, color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1)),
-          const SizedBox(height: 24),
-          Text('Academic records are empty', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white.withValues(alpha:0.24) : Colors.black.withValues(alpha: 0.26))),
-          const SizedBox(height: 24),
-          CustomButton(text: 'Establish First Cohort', onPressed: () => _showCreateBatchSheet(context)),
+          Icon(Icons.layers_clear_rounded, size: 58, color: isDark ? Colors.white24 : Colors.black26),
+          const SizedBox(height: 14),
+          Text(
+            'No batches created yet',
+            style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white70 : Colors.black54),
+          ),
+          const SizedBox(height: 14),
+          CustomButton(text: 'Create New Batch', onPressed: () => _showCreateBatchSheet(context)),
         ],
       ),
     );
-  }
-
-  String _buildTiming(Map<String, dynamic> batchData) {
-    final start = (batchData['start_time'] ?? '').toString();
-    final end = (batchData['end_time'] ?? '').toString();
-    if (start.isEmpty && end.isEmpty) return '';
-    final days = (batchData['days_of_week'] as List?) ?? const [];
-    final dayLabel = days.isNotEmpty ? _dayName((days.first as num).toInt()) : '';
-    final time = [start, end].where((item) => item.isNotEmpty).join(' - ');
-    return dayLabel.isEmpty ? time : '$dayLabel • $time';
-  }
-
-  String _dayName(int value) {
-    const map = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return (value >= 0 && value < map.length) ? map[value] : '';
   }
 
   Future<void> _toggleBatchStatus(Map<String, dynamic> batch) async {
     final isActive = (batch['is_active'] ?? batch['isActive']) == true;
     try {
       await _adminRepo.toggleBatchStatus(batchId: (batch['id'] ?? '').toString(), isActive: !isActive);
-      if (mounted) CPToast.success(context, !isActive ? 'Cohort live! 🚀' : 'Cohort paused');
+      if (!mounted) return;
+      CPToast.success(context, !isActive ? 'Batch resumed' : 'Batch suspended');
       _loadData();
-    } catch (_) {
-      if (mounted) CPToast.error(context, 'Update failed');
+    } catch (e) {
+      if (!mounted) return;
+      CPToast.error(context, 'Failed to update status: $e');
     }
   }
 
-  void _showCreateBatchSheet(BuildContext context) {
+  Future<void> _confirmDelete(Map<String, dynamic> batch) async {
+    final name = (batch['name'] ?? 'this batch').toString();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete Batch', style: GoogleFonts.inter(fontWeight: FontWeight.w800)),
+        content: Text('Delete "$name" permanently?', style: GoogleFonts.inter()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+    try {
+      await _adminRepo.deleteBatch((batch['id'] ?? '').toString());
+      if (!mounted) return;
+      CPToast.success(context, 'Batch deleted');
+      _loadData();
+    } catch (e) {
+      if (!mounted) return;
+      CPToast.error(context, 'Delete failed: $e');
+    }
+  }
+
+  Future<void> _showMigrateSheet(Map<String, dynamic> sourceBatch) async {
+    String? targetBatchId;
+    final sourceId = (sourceBatch['id'] ?? '').toString();
+    final candidates = _batches.where((b) => (b['id'] ?? '').toString() != sourceId).toList();
+    if (candidates.isEmpty) {
+      CPToast.warning(context, 'Create another batch first for migration');
+      return;
+    }
+
+    final shouldMigrate = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setS) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFFEEEDED),
+              border: Border(top: BorderSide(color: Color(0xFF0D1282), width: 3), left: BorderSide(color: Color(0xFF0D1282), width: 3), right: BorderSide(color: Color(0xFF0D1282), width: 3)),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Promote / Migrate Students', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: targetBatchId,
+                  decoration: const InputDecoration(labelText: 'Target batch'),
+                  items: candidates
+                      .map((b) => DropdownMenuItem(
+                            value: (b['id'] ?? '').toString(),
+                            child: Text((b['name'] ?? 'Batch').toString()),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setS(() => targetBatchId = v),
+                ),
+                const SizedBox(height: 14),
+                CustomButton(
+                  text: 'Migrate Now',
+                  onPressed: () {
+                    if (targetBatchId == null || targetBatchId!.isEmpty) {
+                      CPToast.warning(ctx, 'Choose target batch');
+                      return;
+                    }
+                    Navigator.pop(ctx, true);
+                  },
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+
+    if (shouldMigrate != true || targetBatchId == null || targetBatchId!.isEmpty) return;
+
+    try {
+      final result = await _adminRepo.migrateBatchStudents(
+        sourceBatchId: sourceId,
+        targetBatchId: targetBatchId!,
+      );
+      if (!mounted) return;
+      CPToast.success(context, 'Migrated ${result['migrated_count'] ?? 0} students');
+      _loadData();
+    } catch (e) {
+      if (!mounted) return;
+      CPToast.error(context, 'Migration failed: $e');
+    }
+  }
+
+  Future<void> _showCreateBatchSheet(BuildContext context) async {
     final nameCtrl = TextEditingController();
     final subjectCtrl = TextEditingController();
-    final maxStudentsCtrl = TextEditingController(text: '60');
+    final capacityCtrl = TextEditingController(text: '60');
     final feeCtrl = TextEditingController();
-    String? selectedTeacherId;
-    final isDark = CT.isDark(context);
+    final descCtrl = TextEditingController();
+    final roomCtrl = TextEditingController();
 
-    showModalBottomSheet(
+    DateTime? startDate;
+    DateTime? endDate;
+    final selectedTeacherIds = <String>{};
+    final selectedDays = <int>{1, 3, 5};
+
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return StatefulBuilder(builder: (ctx, setSheetState) {
-          return CPGlassCard(
-            isDark: isDark, borderRadius: 32,
-            padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(ctx).viewInsets.bottom + 32),
+        return StatefulBuilder(builder: (ctx, setSheet) {
+          Future<void> pickDate(bool isStart) async {
+            final picked = await showDatePicker(
+              context: ctx,
+              initialDate: DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            if (picked == null) return;
+            setSheet(() {
+              if (isStart) {
+                startDate = picked;
+              } else {
+                endDate = picked;
+              }
+            });
+          }
+
+          return Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFFEEEDED),
+              border: Border(top: BorderSide(color: Color(0xFF0D1282), width: 3), left: BorderSide(color: Color(0xFF0D1282), width: 3), right: BorderSide(color: Color(0xFF0D1282), width: 3)),
+            ),
+            padding: EdgeInsets.fromLTRB(16, 14, 16, MediaQuery.of(ctx).viewInsets.bottom + 20),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Center(child: Container(width: 44, height: 4, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)))),
-                  const SizedBox(height: 32),
-                  Text('Cohort Genesis', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.6)),
-                  Text('Initialize a new academic grouping.', style: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 32),
-                  _sheetField('PROGRAM NAME', 'e.g. Foundation Plus A', nameCtrl, Icons.layers_rounded, isDark),
-                  const SizedBox(height: 20),
-                  _sheetField('DISCIPLINE', 'e.g. Physics & Logic', subjectCtrl, Icons.auto_awesome_rounded, isDark),
-                  const SizedBox(height: 20),
+                  Text('Create New Batch', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))),
+                  const SizedBox(height: 14),
+                  _field(nameCtrl, 'Batch Name'),
+                  const SizedBox(height: 10),
+                  _field(subjectCtrl, 'Class / Subject'),
+                  const SizedBox(height: 10),
+                  _field(capacityCtrl, 'Enrollment Limit', keyboardType: TextInputType.number),
+                  const SizedBox(height: 10),
+                  _field(feeCtrl, 'Monthly Fee', keyboardType: TextInputType.number),
+                  const SizedBox(height: 10),
+                  _field(roomCtrl, 'Room (optional)'),
+                  const SizedBox(height: 10),
+                  _field(descCtrl, 'Description', maxLines: 3),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
-                      Expanded(child: _sheetField('ENROLLMENT LIMIT', '60', maxStudentsCtrl, Icons.group_rounded, isDark, type: TextInputType.number)),
-                      const SizedBox(width: 16),
-                      Expanded(child: _sheetField('PROGRAM FEE', '0', feeCtrl, Icons.payments_rounded, isDark, type: TextInputType.number)),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => pickDate(true),
+                          child: Text(startDate == null ? 'Start Date' : startDate!.toIso8601String().substring(0, 10)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => pickDate(false),
+                          child: Text(endDate == null ? 'End Date' : endDate!.toIso8601String().substring(0, 10)),
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  Text('LEAD SCHOLAR / FACULTY', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 1)),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))]),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: selectedTeacherId, dropdownColor: const Color(0xFFEEEDED),
-                        hint: Text('Select Faculty', style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF0D1282), fontWeight: FontWeight.w600)),
-                        isExpanded: true, icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF0D1282)),
-                        items: _teachers.map((t) {
-                          final u = t['user'] is Map ? t['user'] as Map : {};
-                          return DropdownMenuItem(value: t['id'].toString(), child: Text(t['name'] ?? u['name'] ?? 'Faculty', style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF0D1282), fontWeight: FontWeight.w700)));
-                        }).toList(),
-                        onChanged: (v) => setSheetState(() => selectedTeacherId = v),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                  CustomButton(
-                    text: 'Initialize Program',
-                    icon: Icons.rocket_launch_rounded,
-                    onPressed: () async {
-                      if (nameCtrl.text.isEmpty || subjectCtrl.text.isEmpty) { CPToast.warning(ctx, 'Complete mandatory fields'); return; }
-                        try {
-                          await _adminRepo.createBatch({
-                            'name': nameCtrl.text, 'subject': subjectCtrl.text, 
-                            'capacity': int.tryParse(maxStudentsCtrl.text) ?? 60,
-                            'fee': double.tryParse(feeCtrl.text) ?? 0,
-                            'teacher_id': selectedTeacherId
+                  const SizedBox(height: 12),
+                  Text('Faculty assignment (multiple)', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _teachers.map((teacher) {
+                      final id = (teacher['id'] ?? '').toString();
+                      final isSelected = selectedTeacherIds.contains(id);
+                      final name = (teacher['name'] ?? 'Teacher').toString();
+                      return FilterChip(
+                        label: Text(name),
+                        selected: isSelected,
+                        onSelected: (value) {
+                          setSheet(() {
+                            if (value) {
+                              selectedTeacherIds.add(id);
+                            } else {
+                              selectedTeacherIds.remove(id);
+                            }
                           });
-                          if (ctx.mounted) { 
-                            Navigator.pop(ctx); 
-                            CPToast.success(context, 'Cohort initialized! 🚀'); 
-                          }
-                          _loadData();
-                        } catch (_) { 
-                          if (ctx.mounted) CPToast.error(ctx, 'Initialization failed'); 
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Class Days', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'
+                    ].asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final day = entry.value;
+                      final selected = selectedDays.contains(idx);
+                      return FilterChip(
+                        label: Text(day),
+                        selected: selected,
+                        onSelected: (value) {
+                          setSheet(() {
+                            if (value) {
+                              selectedDays.add(idx);
+                            } else {
+                              selectedDays.remove(idx);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  CustomButton(
+                    text: 'Create Batch',
+                    onPressed: () async {
+                      if (nameCtrl.text.trim().isEmpty) {
+                        CPToast.warning(ctx, 'Batch name is required');
+                        return;
+                      }
+                      if (subjectCtrl.text.trim().isEmpty) {
+                        CPToast.warning(ctx, 'Class/Subject is required');
+                        return;
+                      }
+
+                      try {
+                        final teacherIds = selectedTeacherIds.toList();
+                        final created = await _adminRepo.createBatch({
+                          'name': nameCtrl.text.trim(),
+                          'subject': subjectCtrl.text.trim(),
+                          'capacity': int.tryParse(capacityCtrl.text.trim()) ?? 60,
+                          'room': roomCtrl.text.trim().isEmpty ? null : roomCtrl.text.trim(),
+                          'start_date': startDate?.toIso8601String(),
+                          'end_date': endDate?.toIso8601String(),
+                          'days_of_week': selectedDays.toList()..sort(),
+                          'teacher_id': teacherIds.isNotEmpty ? teacherIds.first : null,
+                          'teacher_ids': teacherIds,
+                          'description': descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
+                        });
+
+                        final batchId = (created['id'] ?? '').toString();
+                        final monthlyFee = double.tryParse(feeCtrl.text.trim()) ?? 0;
+                        if (batchId.isNotEmpty && monthlyFee > 0) {
+                          await _adminRepo.defineFeeStructure({
+                            'batch_id': batchId,
+                            'monthly_fee': monthlyFee,
+                            'admission_fee': 0,
+                            'exam_fee': 0,
+                            'late_fee_amount': 0,
+                            'late_after_day': 10,
+                            'grace_days': 0,
+                          });
                         }
+
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (!mounted) return;
+                        HapticFeedback.mediumImpact();
+                        CPToast.success(context, 'Batch created successfully');
+                        _loadData();
+                      } catch (e) {
+                        if (ctx.mounted) {
+                          CPToast.error(ctx, 'Create failed: $e');
+                        }
+                      }
                     },
                   ),
                 ],
@@ -364,25 +694,22 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
     );
   }
 
-  Widget _sheetField(String label, String hint, TextEditingController ctrl, IconData icon, bool isDark, {TextInputType type = TextInputType.text}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 1)),
-        const SizedBox(height: 10),
-        Container(
-          height: 54,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))]),
-          child: Row(
-            children: [
-              Icon(icon, size: 18, color: const Color(0xFF0D1282)),
-              const SizedBox(width: 12),
-              Expanded(child: TextField(controller: ctrl, keyboardType: type, style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF0D1282), fontWeight: FontWeight.w700), decoration: InputDecoration(hintText: hint, hintStyle: GoogleFonts.inter(color: const Color(0xFF0D1282).withValues(alpha: 0.5), fontSize: 13), border: InputBorder.none))),
-            ],
-          ),
-        ),
-      ],
+  Widget _field(
+    TextEditingController controller,
+    String hint, {
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 }

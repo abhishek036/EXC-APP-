@@ -241,6 +241,25 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch batch details');
   }
 
+  Future<Map<String, dynamic>> getBatchMeta(String batchId) async {
+    final response = await _api.dio.get('batches/$batchId/meta');
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch batch metadata');
+  }
+
+  Future<Map<String, dynamic>> updateBatchMeta({
+    required String batchId,
+    required Map<String, dynamic> data,
+  }) async {
+    final response = await _api.dio.put('batches/$batchId/meta', data: data);
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update batch metadata');
+  }
+
   Future<Map<String, dynamic>> createBatch(Map<String, dynamic> data) async {
     final response = await _api.dio.post('batches', data: data);
     if (response.statusCode == 201 || response.statusCode == 200) {
@@ -274,6 +293,61 @@ class AdminRepository {
       return Map<String, dynamic>.from(response.data['data'] as Map);
     }
     throw Exception(response.data['message'] ?? 'Failed to update batch');
+  }
+
+  Future<void> deleteBatch(String batchId) async {
+    final response = await _api.dio.delete('batches/$batchId');
+    if (response.statusCode == 200 || response.statusCode == 204) return;
+    throw Exception(response.data['message'] ?? 'Failed to delete batch');
+  }
+
+  Future<Map<String, dynamic>> migrateBatchStudents({
+    required String sourceBatchId,
+    required String targetBatchId,
+    bool deactivateSource = true,
+    bool activateTarget = true,
+  }) async {
+    final response = await _api.dio.post(
+      'batches/$sourceBatchId/migrate',
+      data: {
+        'target_batch_id': targetBatchId,
+        'deactivate_source': deactivateSource,
+        'activate_target': activateTarget,
+      },
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to migrate students');
+  }
+
+  Future<List<Map<String, dynamic>>> getBatchTimetable(String batchId) async {
+    final response = await _api.dio.get('timetable/batch/$batchId');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch batch timetable');
+  }
+
+  Future<List<Map<String, dynamic>>> getLecturesByBatch(String batchId) async {
+    final response = await _api.dio.get('lectures/batch/$batchId');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch batch lectures');
+  }
+
+  Future<List<Map<String, dynamic>>> getQuizzes({String? batchId}) async {
+    final response = await _api.dio.get(
+      'quizzes',
+      queryParameters: {
+        if (batchId != null && batchId.isNotEmpty) 'batch_id': batchId,
+      },
+    );
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch quizzes');
   }
 
   // ── Teachers ──────────────────────────────────────────

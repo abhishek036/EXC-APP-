@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { BatchController } from './batch.controller';
 import { validate } from '../../middleware/validate.middleware';
-import { createBatchSchema, updateBatchSchema, addStudentsToBatchSchema } from './batch.validator';
+import { createBatchSchema, updateBatchSchema, addStudentsToBatchSchema, updateBatchMetaSchema, migrateBatchStudentsSchema } from './batch.validator';
 import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
 import { tenantMiddleware } from '../../middleware/tenant.middleware';
 
@@ -19,7 +19,15 @@ router.get('/:id', requireRole('admin', 'teacher'), batchController.getById);
 
 router.put('/:id', requireRole('admin'), validate(updateBatchSchema), batchController.update);
 
+router.delete('/:id', requireRole('admin'), batchController.delete);
+
 router.patch('/:id/status', requireRole('admin'), batchController.toggleStatus);
+
+router.get('/:id/meta', requireRole('admin', 'teacher'), batchController.getMeta);
+
+router.put('/:id/meta', requireRole('admin'), validate(updateBatchMetaSchema), batchController.updateMeta);
+
+router.post('/:id/migrate', requireRole('admin'), validate(migrateBatchStudentsSchema), batchController.migrateStudents);
 
 router.get('/:id/students', requireRole('admin', 'teacher'), batchController.getStudents);
 

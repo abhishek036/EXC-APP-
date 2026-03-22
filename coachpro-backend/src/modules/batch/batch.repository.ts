@@ -79,6 +79,10 @@ export class BatchRepository {
     });
   }
 
+  async deleteBatch(batchId: string) {
+    return prisma.batch.delete({ where: { id: batchId } });
+  }
+
   async toggleStatus(batchId: string, isActive: boolean) {
     return prisma.batch.update({
       where: { id: batchId },
@@ -100,5 +104,19 @@ export class BatchRepository {
       where: { student_id_batch_id: { student_id: studentId, batch_id: batchId } },
       data: { is_active: false, left_date: new Date() }
     });
+  }
+
+  async addStudentsToBatch(studentIds: string[], batchId: string, instituteId: string) {
+    const results = await Promise.all(
+      studentIds.map((studentId) =>
+        prisma.studentBatch.upsert({
+          where: { student_id_batch_id: { student_id: studentId, batch_id: batchId } },
+          update: { is_active: true, left_date: null },
+          create: { student_id: studentId, batch_id: batchId, institute_id: instituteId },
+        })
+      )
+    );
+
+    return results;
   }
 }
