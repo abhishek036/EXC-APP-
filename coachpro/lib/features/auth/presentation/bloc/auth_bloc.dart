@@ -128,7 +128,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         await _fetchProfileAndEmit(emit);
       } catch (e) {
         debugPrint('Auth Refresh Failed: $e');
-        // If it's a 401 error, the interceptor will handle it, but we can also check here
+        final isUnauthorized =
+            e is DioException &&
+            (e.response?.statusCode == 401 ||
+                (e.error?.toString().toLowerCase().contains('session expired') ?? false));
+
+        if (isUnauthorized) {
+          await _storage.clearAll();
+          emit(const AuthUnauthenticated());
+        }
       }
     }
   }
