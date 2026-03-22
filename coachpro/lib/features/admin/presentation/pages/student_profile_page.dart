@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
@@ -30,6 +31,8 @@ class _StudentProfilePageState extends State<StudentProfilePage>
   List<Map<String, dynamic>> _studentBatchData = [];
   bool _loading = true;
   bool _loadFailed = false;
+  String _loadErrorSummary = 'Unknown error';
+  String _loadErrorDetails = '';
   bool _editMode = false;
   bool _saving = false;
   bool _deleting = false;
@@ -130,6 +133,8 @@ class _StudentProfilePageState extends State<StudentProfilePage>
     setState(() {
       _loading = true;
       _loadFailed = false;
+      _loadErrorSummary = 'Unknown error';
+      _loadErrorDetails = '';
     });
     try {
       final studentResult = await _adminRepo.getStudentById(widget.studentId);
@@ -144,8 +149,7 @@ class _StudentProfilePageState extends State<StudentProfilePage>
           .catchError((_) => <String, dynamic>{'attendancePercent': 76});
       if (mounted) {
         final attData = attendanceResult;
-        final attPct = (attData['attendancePercent'] as num?)?.toInt()
-            ?? (attData['percentage'] as num?)?.toInt() ?? 0;
+        final attPct = _toInt(attData['attendancePercent'] ?? attData['percentage']);
         final studentMap = Map<String, dynamic>.from(studentResult);
         studentMap['attendancePercent'] = attPct;
         _populateControllers(studentMap);
@@ -175,6 +179,7 @@ class _StudentProfilePageState extends State<StudentProfilePage>
     } catch (error, stackTrace) {
       debugPrint('StudentProfilePage _loadAll failed for ${widget.studentId}: $error');
       debugPrint(stackTrace.toString());
+      final parsed = _parseLoadError(error);
       if (mounted) {
         setState(() {
           _student = null;
@@ -184,9 +189,55 @@ class _StudentProfilePageState extends State<StudentProfilePage>
           _examResults = [];
           _loading = false;
           _loadFailed = true;
+          _loadErrorSummary = parsed.$1;
+          _loadErrorDetails = parsed.$2;
         });
       }
     }
+  }
+
+  (String, String) _parseLoadError(Object error) {
+    if (error is DioException) {
+      final status = error.response?.statusCode;
+      final endpoint = error.requestOptions.uri.toString();
+      String message = 'Request failed';
+      final responseData = error.response?.data;
+      if (responseData is Map) {
+        final err = responseData['error'];
+        if (err is Map && err['message'] != null) {
+          message = err['message'].toString();
+        } else if (responseData['message'] != null) {
+          message = responseData['message'].toString();
+        }
+      } else if (error.message != null && error.message!.trim().isNotEmpty) {
+        message = error.message!;
+      }
+
+      final summary = status != null ? 'HTTP $status • $message' : message;
+      final details = [
+        if (status != null) 'status=$status',
+        'endpoint=$endpoint',
+        'message=$message',
+      ].join('\n');
+      return (summary, details);
+    }
+
+    final message = error.toString();
+    return (message, 'message=$message');
+  }
+
+  double _toDouble(dynamic value, {double fallback = 0}) {
+    if (value == null) return fallback;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final cleaned = value.trim().replaceAll(',', '');
+      return double.tryParse(cleaned) ?? fallback;
+    }
+    return fallback;
+  }
+
+  int _toInt(dynamic value, {int fallback = 0}) {
+    return _toDouble(value, fallback: fallback.toDouble()).toInt();
   }
 
   Future<void> _saveChanges() async {
@@ -340,15 +391,59 @@ class _StudentProfilePageState extends State<StudentProfilePage>
         appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0,
           leading: CPPressable(onTap: () => context.pop(),
             child: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Color(0xFF0A0C1E)))) ,
-        body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.cloud_off_rounded, size: 64, color: const Color(0xFFD71313).withValues(alpha: 0.3)),
-          const SizedBox(height: 16),
-          Text('Unable to load student', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text('Check the connection and retry.', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF8F97B8))),
-          const SizedBox(height: 16),
-          CPPressable(onTap: _loadAll, child: Text('Retry', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)))),
-        ])),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.cloud_off_rounded, size: 64, color: const Color(0xFFD71313).withValues(alpha: 0.3)),
+              const SizedBox(height: 16),
+              Text('Unable to load student', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Text(_loadErrorSummary, textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF8F97B8))),
+              if (_loadErrorDetails.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE3E4EE)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Error details', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
+                      const SizedBox(height: 6),
+                      SelectableText(
+                        _loadErrorDetails,
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF374151), height: 1.35),
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: CPPressable(
+                          onTap: () async {
+                            await Clipboard.setData(ClipboardData(text: _loadErrorDetails));
+                            if (mounted) {
+                              _showSnack('Error copied', const Color(0xFF16A34A));
+                            }
+                          },
+                          child: Text(
+                            'Copy details',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              CPPressable(onTap: _loadAll, child: Text('Retry', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)))),
+            ]),
+          ),
+        ),
       );
     }
 
@@ -373,7 +468,7 @@ class _StudentProfilePageState extends State<StudentProfilePage>
     final rollNumber = (s['student_code'] ?? s['rollNumber'] ?? '—').toString();
     final status = (s['status'] ?? 'active').toString();
     final feeStatus = (s['feeStatus'] ?? (s['fee_status'] ?? 'PENDING')).toString().toUpperCase();
-    final attendance = (s['attendancePercent'] as num?)?.toInt() ?? 0;
+    final attendance = _toInt(s['attendancePercent']);
     final initials = name.trim().split(' ').where((e) => e.isNotEmpty).map((e) => e[0]).take(2).join().toUpperCase();
     final phone = (s['phone'] ?? '').toString();
     final email = (s['email'] ?? '').toString();
@@ -669,10 +764,10 @@ class _StudentProfilePageState extends State<StudentProfilePage>
   Widget _buildFeesTab(String feeStatus, Color feeColor) {
     final totalPaid = _feeHistory.where((f) => (f['status'] as String?)?.toUpperCase() == 'PAID').length;
     final totalDue = _feeHistory.where((f) => (f['status'] as String?)?.toUpperCase() != 'PAID').length;
-    final totalAmount = _feeHistory.fold<double>(0, (sum, f) => sum + ((f['amount'] as num?)?.toDouble() ?? 0));
+    final totalAmount = _feeHistory.fold<double>(0, (sum, f) => sum + _toDouble(f['amount']));
     final paidAmount = _feeHistory
         .where((f) => (f['status'] as String?)?.toUpperCase() == 'PAID')
-        .fold<double>(0, (sum, f) => sum + ((f['amount'] as num?)?.toDouble() ?? 0));
+        .fold<double>(0, (sum, f) => sum + _toDouble(f['amount']));
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
@@ -700,7 +795,7 @@ class _StudentProfilePageState extends State<StudentProfilePage>
           ..._feeHistory.asMap().entries.map((entry) {
             final fee = entry.value;
             final month = (fee['month'] ?? fee['period'] ?? 'Month ${entry.key + 1}').toString();
-            final amount = (fee['amount'] as num?)?.toInt() ?? 0;
+            final amount = _toInt(fee['amount']);
             final st = (fee['status'] ?? 'PENDING').toString().toUpperCase();
             final stColor = st == 'PAID' ? const Color(0xFF16A34A)
                 : st == 'OVERDUE' ? const Color(0xFFD71313) : const Color(0xFFD97706);
@@ -757,8 +852,8 @@ class _StudentProfilePageState extends State<StudentProfilePage>
             final exam = entry.value;
             final examName = (exam['examName'] ?? 'Exam').toString();
             final subject = (exam['subject'] ?? '').toString();
-            final score = (exam['score'] as num?)?.toInt() ?? 0;
-            final total = (exam['totalMarks'] as num?)?.toInt() ?? 100;
+            final score = _toInt(exam['score']);
+            final total = _toInt(exam['totalMarks'], fallback: 100);
             final grade = (exam['grade'] ?? '').toString();
             final pct = total > 0 ? score / total : 0.0;
             final perfColor = pct >= 0.75 ? const Color(0xFF16A34A) : pct >= 0.5 ? const Color(0xFFD97706) : const Color(0xFFD71313);
