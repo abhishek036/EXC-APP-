@@ -27,7 +27,20 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
   final _filterColors = [AppColors.primary, AppColors.primary, AppColors.warning, AppColors.success, AppColors.accent];
 
   bool _loading = true;
+  bool _isSubmitting = false;
   List<Map<String, dynamic>> _items = [];
+
+  List<Map<String, dynamic>> _dedupeById(List<Map<String, dynamic>> items) {
+    final seen = <String>{};
+    final unique = <Map<String, dynamic>>[];
+    for (final item in items) {
+      final id = (item['id'] ?? '').toString();
+      if (id.isEmpty || seen.contains(id)) continue;
+      seen.add(id);
+      unique.add(item);
+    }
+    return unique;
+  }
 
   @override
   void initState() {
@@ -36,13 +49,14 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
   }
 
   Future<void> _loadAnnouncements() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     try {
       final filterValue = _filters[_selectedFilter];
       final data = await _adminRepo.getAnnouncements(category: filterValue == 'All' ? null : filterValue);
       if (!mounted) return;
       setState(() {
-        _items = data;
+        _items = _dedupeById(data);
         _loading = false;
       });
     } catch (_) {
@@ -91,7 +105,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                         onTap: () => _showAddAnnouncementSheet(context),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
+                          decoration: BoxDecoration(color: const Color(0xFFE3D465), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
                           child: Row(
                             children: [
                               const Icon(Icons.add_alert_rounded, size: 20, color: Color(0xFF0D1282)),
@@ -194,6 +208,15 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                             Text(dateStr, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black38)),
                                             const SizedBox(width: 12),
                                             CPPressable(
+                                              onTap: () => _showEditAnnouncementSheet(announcement),
+                                              child: Container(
+                                                padding: const EdgeInsets.all(6),
+                                                decoration: BoxDecoration(color: const Color(0xFFE3D465), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
+                                                child: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF0D1282)),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            CPPressable(
                                               onTap: () => _deleteAnnouncement((announcement['id'] ?? '').toString()),
                                               child: Container(
                                                 padding: const EdgeInsets.all(6),
@@ -227,6 +250,95 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showEditAnnouncementSheet(Map<String, dynamic> announcement) async {
+    HapticFeedback.lightImpact();
+    final id = (announcement['id'] ?? '').toString();
+    if (id.isEmpty) return;
+    final titleCtrl = TextEditingController(text: (announcement['title'] ?? '').toString());
+    final bodyCtrl = TextEditingController(text: (announcement['body'] ?? '').toString());
+    String category = (announcement['category'] ?? 'Academic').toString();
+    bool pin = announcement['pinned'] == true;
+    final isDark = CT.isDark(context);
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSS) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Edit Broadcast', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy)),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: titleCtrl,
+                    decoration: const InputDecoration(labelText: 'Title'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: bodyCtrl,
+                    maxLines: 4,
+                    decoration: const InputDecoration(labelText: 'Body'),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: category,
+                    items: ['Academic', 'Fee', 'Holiday', 'Event']
+                        .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+                        .toList(),
+                    onChanged: (value) => setSS(() => category = value ?? 'Academic'),
+                    decoration: const InputDecoration(labelText: 'Category'),
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    value: pin,
+                    onChanged: (value) => setSS(() => pin = value),
+                    title: const Text('Pin this announcement'),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting
+                          ? null
+                          : () async {
+                              if (titleCtrl.text.trim().isEmpty || bodyCtrl.text.trim().isEmpty) return;
+                              setState(() => _isSubmitting = true);
+                              try {
+                                await _adminRepo.updateAnnouncement(
+                                  id: id,
+                                  title: titleCtrl.text.trim(),
+                                  body: bodyCtrl.text.trim(),
+                                  category: category,
+                                  pinned: pin,
+                                );
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                await _loadAnnouncements();
+                              } finally {
+                                if (mounted) setState(() => _isSubmitting = false);
+                              }
+                            },
+                      child: const Text('Save Changes'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -374,11 +486,13 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                   const SizedBox(height: 32),
                   CPPressable(
                     onTap: () async {
+                      if (_isSubmitting) return;
                       if (titleCtrl.text.trim().isEmpty || bodyCtrl.text.trim().isEmpty) {
                         CPToast.warning(ctx, 'Complete transmission data before executing.');
                         return;
                       }
                       HapticFeedback.heavyImpact();
+                      setState(() => _isSubmitting = true);
                       try {
                         await _adminRepo.createAnnouncement(
                           title: titleCtrl.text.trim(),
@@ -393,6 +507,8 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                         _loadAnnouncements();
                       } catch (_) {
                         if (ctx.mounted) CPToast.error(ctx, 'System malfunction during sync.');
+                      } finally {
+                        if (mounted) setState(() => _isSubmitting = false);
                       }
                     },
                     child: Container(

@@ -27,6 +27,15 @@ export class AnnouncementController {
     }
   };
 
+  update = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.service.update(req.params.id, req.instituteId!, req.body);
+      return sendResponse({ res, data, message: 'Announcement updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   remove = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.service.remove(req.params.id, req.instituteId!);

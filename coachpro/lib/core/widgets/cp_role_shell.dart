@@ -51,12 +51,28 @@ class _CPRoleShellState extends State<CPRoleShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: widget.navigationShell,
-      bottomNavigationBar: CPBottomNav(
-        currentIndex: _displayIndex,
-        onTap: _onTap,
-        items: widget.items,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        final router = GoRouter.of(context);
+        if (router.canPop()) {
+          router.pop();
+          return;
+        }
+        if (_displayIndex != 0) {
+          _onTap(0);
+          return;
+        }
+        SystemNavigator.pop();
+      },
+      child: Scaffold(
+        body: widget.navigationShell,
+        bottomNavigationBar: CPBottomNav(
+          currentIndex: _displayIndex,
+          onTap: _onTap,
+          items: widget.items,
+        ),
       ),
     );
   }

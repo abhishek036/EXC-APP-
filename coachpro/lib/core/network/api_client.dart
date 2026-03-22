@@ -145,6 +145,8 @@ class _AuthInterceptor extends Interceptor {
         }
       }
       // Refresh failed — session truly expired
+      await _storage.clearAll();
+      _client.clearAuthToken();
       handler.reject(DioException(
         requestOptions: err.requestOptions,
         error: 'Session expired. Please login again.',

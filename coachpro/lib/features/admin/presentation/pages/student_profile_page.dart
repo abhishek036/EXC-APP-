@@ -27,6 +27,17 @@ class _StudentProfilePageState extends State<StudentProfilePage>
   List<Map<String, dynamic>> _examResults = [];
   // Raw batch data for assignment: [{id, name, ...}]
   List<Map<String, dynamic>> _allBatches = [];
+    List<Map<String, dynamic>> _dedupeBatchesById(List<Map<String, dynamic>> items) {
+      final seen = <String>{};
+      final unique = <Map<String, dynamic>>[];
+      for (final item in items) {
+        final id = (item['id'] ?? '').toString();
+        if (id.isEmpty || seen.contains(id)) continue;
+        seen.add(id);
+        unique.add(item);
+      }
+      return unique;
+    }
   // Student's current batch assignments: [{id, name}]
   List<Map<String, dynamic>> _studentBatchData = [];
   bool _loading = true;
@@ -166,7 +177,7 @@ class _StudentProfilePageState extends State<StudentProfilePage>
         try { allBatches = await _adminRepo.getBatches(); } catch (_) {}
         setState(() {
           _student = studentMap;
-          _studentBatchData = rawBatches;
+          _studentBatchData = _dedupeBatchesById(rawBatches);
           _allBatches = allBatches;
           _feeHistory = feesResult;
           _examResults = examsResult
@@ -342,7 +353,12 @@ class _StudentProfilePageState extends State<StudentProfilePage>
       if (mounted) _showSnack('Removed from $batchName', const Color(0xFFF0DE36));
     } catch (_) {
       if (mounted) {
-        setState(() => _studentBatchData.add(batch));
+        setState(() {
+          final exists = _studentBatchData.any((item) => (item['id'] ?? '').toString() == batchId);
+          if (!exists) {
+            _studentBatchData.add(batch);
+          }
+        });
         _showSnack('Remove failed. Try again.', const Color(0xFFD71313));
       }
     }
@@ -364,7 +380,12 @@ class _StudentProfilePageState extends State<StudentProfilePage>
     if (picked == null || !mounted) return;
     final batchId = picked['id'].toString();
     final batchName = picked['name'].toString();
-    setState(() => _studentBatchData.add({'id': batchId, 'name': batchName}));
+    setState(() {
+      final exists = _studentBatchData.any((b) => (b['id'] ?? '').toString() == batchId);
+      if (!exists) {
+        _studentBatchData.add({'id': batchId, 'name': batchName});
+      }
+    });
     try {
       await _adminRepo.assignStudentToBatch(batchId: batchId, studentId: widget.studentId);
       if (mounted) _showSnack('Added to $batchName!', const Color(0xFFF0DE36));

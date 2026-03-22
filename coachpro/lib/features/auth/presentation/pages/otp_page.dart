@@ -59,14 +59,57 @@ class _OtpPageState extends State<OtpPage> {
   }
 
   void _onDigitChanged(String value, int index) {
-    if (value.isNotEmpty) {
-      if (index < 5) {
-        _focusNodes[index + 1].requestFocus();
-      } else {
-        _focusNodes[index].unfocus();
-        _verifyOtp();
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) {
+      setState(() {});
+      return;
+    }
+
+    if (digits.length > 1) {
+      _applyPastedOtp(digits, index);
+      return;
+    }
+
+    if (_controllers[index].text != digits) {
+      _controllers[index].text = digits;
+      _controllers[index].selection = TextSelection.fromPosition(
+        TextPosition(offset: _controllers[index].text.length),
+      );
+    }
+
+    if (index < 5) {
+      _focusNodes[index + 1].requestFocus();
+    } else {
+      _focusNodes[index].unfocus();
+      _verifyOtp();
+    }
+    setState(() {});
+  }
+
+  void _applyPastedOtp(String pastedText, int startIndex) {
+    final digits = pastedText.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return;
+
+    var writeIndex = startIndex;
+    for (var i = 0; i < digits.length && writeIndex < _controllers.length; i++) {
+      _controllers[writeIndex].text = digits[i];
+      writeIndex++;
+    }
+
+    for (var i = writeIndex; i < _controllers.length; i++) {
+      _controllers[i].clear();
+    }
+
+    if (_controllers.every((c) => c.text.isNotEmpty)) {
+      _focusNodes.last.unfocus();
+      _verifyOtp();
+    } else {
+      final nextEmpty = _controllers.indexWhere((c) => c.text.isEmpty);
+      if (nextEmpty >= 0) {
+        _focusNodes[nextEmpty].requestFocus();
       }
     }
+
     setState(() {});
   }
 
@@ -218,11 +261,9 @@ class _OtpPageState extends State<OtpPage> {
                                       focusNode: _focusNodes[i],
                                       keyboardType: TextInputType.number,
                                       textAlign: TextAlign.center,
-                                      maxLength: 1,
                                       enabled: !isLoading,
                                       style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E)),
                                       decoration: InputDecoration(
-                                        counterText: '',
                                         filled: true,
                                         fillColor: const Color(0xFFF4F5FA),
                                         contentPadding: EdgeInsets.zero,
@@ -230,7 +271,10 @@ class _OtpPageState extends State<OtpPage> {
                                         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE3E4EE), width: 1.5)),
                                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF0D1282), width: 2)),
                                       ),
-                                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(6),
+                                      ],
                                       onChanged: (v) => _onDigitChanged(v, i),
                                     ),
                                   ),

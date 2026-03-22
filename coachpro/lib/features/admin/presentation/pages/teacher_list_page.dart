@@ -23,6 +23,18 @@ class _TeacherListPageState extends State<TeacherListPage> {
   List<Map<String, dynamic>> _teachers = [];
   String _searchQuery = '';
 
+  List<Map<String, dynamic>> _dedupeTeachers(List<Map<String, dynamic>> items) {
+    final seen = <String>{};
+    final unique = <Map<String, dynamic>>[];
+    for (final item in items) {
+      final id = (item['id'] ?? '').toString();
+      if (id.isEmpty || seen.contains(id)) continue;
+      seen.add(id);
+      unique.add(item);
+    }
+    return unique;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -31,11 +43,12 @@ class _TeacherListPageState extends State<TeacherListPage> {
 
   Future<void> _loadTeachers() async {
     if (!mounted) return;
+    setState(() => _isLoading = true);
     try {
       final users = await _adminRepo.getTeachers();
       if (mounted) {
         setState(() {
-          _teachers = users;
+          _teachers = _dedupeTeachers(users);
           _isLoading = false;
         });
       }
@@ -79,14 +92,18 @@ class _TeacherListPageState extends State<TeacherListPage> {
                       ? const Center(child: CircularProgressIndicator(color: AppColors.elitePrimary))
                       : filtered.isEmpty
                           ? _buildEmptyState(isDark)
-                          : ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                              itemCount: filtered.length,
-                              physics: const BouncingScrollPhysics(),
-                              separatorBuilder: (context, index) => const SizedBox(height: 16),
-                              itemBuilder: (context, index) {
-                                return _buildTeacherCard(filtered[index], index, isDark);
-                              },
+                          : RefreshIndicator(
+                              onRefresh: _loadTeachers,
+                              color: AppColors.elitePrimary,
+                              child: ListView.separated(
+                                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                                itemCount: filtered.length,
+                                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                                separatorBuilder: (context, index) => const SizedBox(height: 16),
+                                itemBuilder: (context, index) {
+                                  return _buildTeacherCard(filtered[index], index, isDark);
+                                },
+                              ),
                             ),
                 ),
               ],
@@ -105,7 +122,13 @@ class _TeacherListPageState extends State<TeacherListPage> {
           CPPressable(onTap: () => context.pop(), child: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: isDark ? Colors.white : AppColors.deepNavy)),
           const SizedBox(width: 16),
           Expanded(child: Text('Team Management', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.8))),
-          _appBarAction(Icons.add_rounded, () => context.go('/admin/teachers/add'), isDark, primary: true),
+          _appBarAction(Icons.add_rounded, () async {
+            final created = await context.push('/admin/teachers/add');
+            if (!mounted) return;
+            if (created == true) {
+              await _loadTeachers();
+            }
+          }, isDark, primary: true),
         ],
       ),
     );
@@ -174,7 +197,10 @@ class _TeacherListPageState extends State<TeacherListPage> {
       },
       onTap: () {
         HapticFeedback.lightImpact();
-        context.go('/admin/teachers/$teacherId');
+        context.push('/admin/teachers/$teacherId').then((_) {
+          if (!mounted) return;
+          _loadTeachers();
+        });
       },
       child: CPGlassCard(
         isDark: isDark, padding: const EdgeInsets.all(16), borderRadius: 24,

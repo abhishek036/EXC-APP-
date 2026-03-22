@@ -25,6 +25,7 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
   final AdminRepository _adminRepo = sl<AdminRepository>();
 
   Future<void> _saveTeacher() async {
+    if (_isSaving) return;
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
@@ -60,7 +61,7 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: const Text('Teacher onboarding initiated!'), backgroundColor: CT.accent(context)),
         );
-        context.pop();
+        context.pop(true);
       }
     } on DioException catch (e) {
       if (mounted) {
@@ -139,20 +140,48 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
               
               const SizedBox(height: 40),
 
-              CPPressable(
-                onTap: _isSaving ? null : _saveTeacher,
-                child: Container(
-                  width: double.infinity,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0D1282),
-                    borderRadius: BorderRadius.circular(16),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 56,
+                      child: OutlinedButton(
+                        onPressed: _isSaving ? null : () => context.pop(),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF0D1282), width: 2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: Text(
+                          'CANCEL',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0D1282),
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                  alignment: Alignment.center,
-                  child: _isSaving 
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text('START ONBOARDING', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: CPPressable(
+                      onTap: _isSaving ? null : _saveTeacher,
+                      child: Container(
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0D1282),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        alignment: Alignment.center,
+                        child: _isSaving 
+                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Text('START ONBOARDING', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

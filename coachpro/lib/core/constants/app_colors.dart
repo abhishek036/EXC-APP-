@@ -38,10 +38,10 @@ class AppColors {
   static const Color electricBlue  = Color(0xFF0D1282); // Deep Blue
   static const Color royalIndigo   = Color(0xFF0D1282); // Deep Blue
   static const Color neonIndigo    = Color(0xFF0D1282); // Deep Blue
-  static const Color moltenAmber   = Color(0xFFF0DE36); // Accent Yellow
-  static const Color softAmber     = Color(0xFFF0DE36); // Accent Yellow
+  static const Color moltenAmber   = Color(0xFFE3D465); // Softer Accent Yellow
+  static const Color softAmber     = Color(0xFFE3D465); // Softer Accent Yellow
   static const Color coralRed      = Color(0xFFD71313); // Alert Red
-  static const Color mintGreen     = Color(0xFFF0DE36); // Reusing Yellow or keep Green? Keep Yellow for active logic. Wait, let's keep mint green as is for true success or map it to Yellow as requested by rules.
+  static const Color mintGreen     = Color(0xFF2FAE74); // Success Green
 
 
   // ═══════════════════════════════════════════════════════

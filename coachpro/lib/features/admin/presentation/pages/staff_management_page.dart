@@ -30,6 +30,18 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   List<Map<String, dynamic>> _staff = [];
   List<Map<String, dynamic>> _payroll = [];
 
+  List<Map<String, dynamic>> _uniqueById(List<Map<String, dynamic>> items) {
+    final seen = <String>{};
+    final unique = <Map<String, dynamic>>[];
+    for (final item in items) {
+      final id = (item['id'] ?? '').toString();
+      if (id.isEmpty || seen.contains(id)) continue;
+      seen.add(id);
+      unique.add(item);
+    }
+    return unique;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -46,7 +58,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       ]);
       if (!mounted) return;
       setState(() {
-        _staff = results[0];
+        _staff = _uniqueById(results[0]);
         _payroll = results[1];
         _loading = false;
       });
@@ -191,7 +203,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(color: active ? const Color(0xFFF0DE36) : const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: active ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))] : null),
+          decoration: BoxDecoration(color: active ? const Color(0xFFE3D465) : const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: active ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))] : null),
           alignment: Alignment.center,
           child: Text(title, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))),
         ),
@@ -231,6 +243,18 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                   Text('₹${NumberFormat('#,##,###').format(salary)}', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.mintGreen, letterSpacing: -0.5)),
                   const SizedBox(height: 6),
                   Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: AppColors.elitePrimary, width: 2), boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2))]), child: Text('ACTIVE', style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5))),
+                  const SizedBox(height: 8),
+                  CPPressable(
+                    onTap: () => _confirmDeleteStaff(staff),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEEDED),
+                        border: Border.all(color: const Color(0xFFD71313), width: 2),
+                      ),
+                      child: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFD71313)),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -238,6 +262,46 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         ).animate(delay: (i * 30).ms).fadeIn(duration: 500.ms).slideX(begin: 0.05);
       },
     );
+  }
+
+  Future<void> _confirmDeleteStaff(Map<String, dynamic> staff) async {
+    final staffId = (staff['id'] ?? '').toString();
+    final staffName = (staff['name'] ?? 'Employee').toString();
+    if (staffId.isEmpty) {
+      CPToast.error(context, 'Missing employee id');
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete Employee?', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))),
+        content: Text('Remove $staffName from employee records?', style: GoogleFonts.inter(fontSize: 14, color: Colors.black87)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.black54)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Delete', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: const Color(0xFFD71313))),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    try {
+      await _adminRepo.deleteStaff(staffId);
+      if (!mounted) return;
+      setState(() {
+        _staff.removeWhere((item) => (item['id'] ?? '').toString() == staffId);
+      });
+      CPToast.success(context, 'Employee deleted');
+    } catch (e) {
+      if (!mounted) return;
+      CPToast.error(context, 'Delete failed: $e');
+    }
   }
 
   Widget _buildPayrollList(bool isDark) {
@@ -288,10 +352,11 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     final phoneCtrl = TextEditingController();
     final salaryCtrl = TextEditingController();
     final isDark = CT.isDark(context);
+    var isSubmitting = false;
 
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => CPGlassCard(
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSS) => CPGlassCard(
         isDark: isDark, padding: EdgeInsets.fromLTRB(28, 16, 28, MediaQuery.of(ctx).viewInsets.bottom + 40), borderRadius: 40,
         child: Column(
           mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,27 +377,53 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
               Expanded(child: CustomTextField(label: 'Salary (₹)', hint: '0', controller: salaryCtrl, keyboardType: TextInputType.number, prefixIcon: Icons.payments_rounded)),
             ]),
             const SizedBox(height: 48),
-              CustomButton(text: 'Finalize Hiring', icon: Icons.verified_user_rounded, onPressed: () async {
-                if (nameCtrl.text.isEmpty || salaryCtrl.text.isEmpty) return;
-                try {
-                  await _adminRepo.createStaff(name: nameCtrl.text.trim(), role: roleCtrl.text.trim(), phone: phoneCtrl.text.trim(), salary: double.tryParse(salaryCtrl.text.trim()) ?? 0);
-                  if (ctx.mounted) { 
-                    Navigator.pop(ctx); 
-                    CPToast.success(ctx, 'Personnel added effectively'); 
-                    _loadData(); 
-                  }
-                } catch (_) { 
-                  if (ctx.mounted) CPToast.error(ctx, 'Hiring protocol failed'); 
-                }
-              }),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: 'Cancel',
+                    icon: Icons.close_rounded,
+                    isOutlined: true,
+                    onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: CustomButton(
+                    text: 'Finalize Hiring',
+                    icon: Icons.verified_user_rounded,
+                    isLoading: isSubmitting,
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            if (nameCtrl.text.isEmpty || salaryCtrl.text.isEmpty) return;
+                            setSS(() => isSubmitting = true);
+                            try {
+                              await _adminRepo.createStaff(name: nameCtrl.text.trim(), role: roleCtrl.text.trim(), phone: phoneCtrl.text.trim(), salary: double.tryParse(salaryCtrl.text.trim()) ?? 0);
+                              if (ctx.mounted) {
+                                Navigator.pop(ctx);
+                                CPToast.success(ctx, 'Personnel added effectively');
+                                _loadData();
+                              }
+                            } catch (_) {
+                              if (ctx.mounted) CPToast.error(ctx, 'Hiring protocol failed');
+                            } finally {
+                              if (ctx.mounted) setSS(() => isSubmitting = false);
+                            }
+                          },
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
-      ),
+      )),
     );
   }
 
   void _showAddPayrollSheet() {
-    String? sid; final amtCtrl = TextEditingController(); String type = 'Salary'; final isDark = CT.isDark(context);
+    String? sid; final amtCtrl = TextEditingController(); String type = 'Salary'; final isDark = CT.isDark(context); bool isSubmitting = false;
 
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
@@ -351,21 +442,47 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             const SizedBox(height: 24),
             CustomTextField(label: 'Disbursement Amount (₹)', hint: '0', controller: amtCtrl, keyboardType: TextInputType.number, prefixIcon: Icons.currency_rupee_rounded),
             const SizedBox(height: 32),
-            Row(children: ['Salary', 'Bonus', 'Advance'].map((opt) => Expanded(child: CPPressable(onTap: () { HapticFeedback.selectionClick(); setSS(() => type = opt); }, child: AnimatedContainer(duration: 250.ms, margin: const EdgeInsets.symmetric(horizontal: 4), padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(color: type == opt ? const Color(0xFFF0DE36) : const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: type == opt ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))] : []), child: Center(child: Text(opt.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5))))))).toList()),
+            Row(children: ['Salary', 'Bonus', 'Advance'].map((opt) => Expanded(child: CPPressable(onTap: () { HapticFeedback.selectionClick(); setSS(() => type = opt); }, child: AnimatedContainer(duration: 250.ms, margin: const EdgeInsets.symmetric(horizontal: 4), padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(color: type == opt ? const Color(0xFFE3D465) : const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: type == opt ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))] : []), child: Center(child: Text(opt.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5))))))).toList()),
             const SizedBox(height: 48),
-            CustomButton(text: 'Initiate Transfer', icon: Icons.bolt_rounded, onPressed: () async {
-              if (sid == null || amtCtrl.text.isEmpty) return;
-              try {
-                await _adminRepo.createPayrollRecord(staffId: sid!, amount: double.tryParse(amtCtrl.text.trim()) ?? 0, type: type, month: DateFormat('MMMM').format(DateTime.now()), date: DateTime.now());
-                if (ctx.mounted) { 
-                  Navigator.pop(ctx); 
-                  CPToast.success(ctx, 'Assets successfully dished out'); 
-                  _loadData(); 
-                }
-              } catch (_) { 
-                if (ctx.mounted) CPToast.error(ctx, 'Protocol failure'); 
-              }
-            }),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: 'Cancel',
+                    icon: Icons.close_rounded,
+                    isOutlined: true,
+                    onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: CustomButton(
+                    text: 'Initiate Transfer',
+                    icon: Icons.bolt_rounded,
+                    isLoading: isSubmitting,
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            if (sid == null || amtCtrl.text.isEmpty) return;
+                            setSS(() => isSubmitting = true);
+                            try {
+                              await _adminRepo.createPayrollRecord(staffId: sid!, amount: double.tryParse(amtCtrl.text.trim()) ?? 0, type: type, month: DateFormat('MMMM').format(DateTime.now()), date: DateTime.now());
+                              if (ctx.mounted) {
+                                Navigator.pop(ctx);
+                                CPToast.success(ctx, 'Assets successfully dished out');
+                                _loadData();
+                              }
+                            } catch (_) {
+                              if (ctx.mounted) CPToast.error(ctx, 'Protocol failure');
+                            } finally {
+                              if (ctx.mounted) setSS(() => isSubmitting = false);
+                            }
+                          },
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       )),

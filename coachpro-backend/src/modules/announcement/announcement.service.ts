@@ -1,5 +1,5 @@
 import { ApiError } from '../../middleware/error.middleware';
-import { CreateAnnouncementInput } from './announcement.validator';
+import { CreateAnnouncementInput, UpdateAnnouncementInput } from './announcement.validator';
 import { AnnouncementRepository } from './announcement.repository';
 
 export class AnnouncementService {
@@ -24,6 +24,14 @@ export class AnnouncementService {
 
   async create(instituteId: string, userId: string, data: CreateAnnouncementInput) {
     return this.repo.create(instituteId, userId, data);
+  }
+
+  async update(id: string, instituteId: string, data: UpdateAnnouncementInput) {
+    const exists = await this.repo.list(instituteId);
+    if (!exists.some((item) => item.id === id)) {
+      throw new ApiError('Announcement not found', 404, 'NOT_FOUND');
+    }
+    return this.repo.update(id, instituteId, data);
   }
 
   async remove(id: string, instituteId: string) {

@@ -167,6 +167,53 @@ class AppRouter {
         navigatorKey: _rootKey,
         initialLocation: '/splash',
         refreshListenable: _AuthNotifier(authBloc),
+        errorPageBuilder: (context, state) => _page(
+          state,
+          Scaffold(
+            backgroundColor: const Color(0xFFEEEDED),
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/login');
+                        }
+                      },
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0D1282)),
+                    ),
+                    const SizedBox(height: 24),
+                    Text('Page not found', style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Route: ${state.uri}',
+                      style: GoogleFonts.inter(fontSize: 13, color: Colors.black54),
+                    ),
+                    const Spacer(),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => context.go('/login'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0D1282),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Go to Login'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
         redirect: (BuildContext context, GoRouterState state) {
           final authState = authBloc.state;
           final location = state.matchedLocation;

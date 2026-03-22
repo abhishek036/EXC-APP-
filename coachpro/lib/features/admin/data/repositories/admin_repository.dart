@@ -501,6 +501,26 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to create announcement');
   }
 
+  Future<Map<String, dynamic>> updateAnnouncement({
+    required String id,
+    String? title,
+    String? body,
+    String? category,
+    bool? pinned,
+  }) async {
+    final payload = <String, dynamic>{
+      if (title != null) 'title': title,
+      if (body != null) 'body': body,
+      if (category != null) 'category': category,
+      if (pinned != null) 'pinned': pinned,
+    };
+    final response = await _api.dio.put('announcements/$id', data: payload);
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update announcement');
+  }
+
   Future<void> deleteAnnouncement(String id) async {
     final response = await _api.dio.delete('announcements/$id');
     if (response.statusCode == 200) return;

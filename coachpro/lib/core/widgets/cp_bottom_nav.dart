@@ -77,7 +77,7 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
-    final activeColor = isDark ? const Color(0xFFF0DE36) : const Color(0xFF0D1282);
+    final activeColor = isDark ? const Color(0xFFE3D465) : const Color(0xFF0D1282);
     final inactiveColor = isDark ? const Color(0xFFEEEDED) : const Color(0xFF0D1282);
 
     return GestureDetector(
@@ -122,7 +122,7 @@ class _NavItem extends StatelessWidget {
                 width: 24,
                 height: 3,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0DE36), // Yellow Indicator
+                  color: const Color(0xFFE3D465), // Yellow Indicator
                   borderRadius: BorderRadius.circular(1.5),
                 ),
               ),

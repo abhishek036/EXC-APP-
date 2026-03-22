@@ -21,9 +21,22 @@ class LeadsPage extends StatefulWidget {
 class _LeadsPageState extends State<LeadsPage> {
   final _adminRepo = sl<AdminRepository>();
   bool _isLoading = true;
+  bool _isSubmitting = false;
   List<Map<String, dynamic>> _leads = [];
   String _activeTab = 'New';
   final _tabs = ['New', 'Follow Up', 'Trial', 'Converted'];
+
+  List<Map<String, dynamic>> _dedupeById(List<Map<String, dynamic>> items) {
+    final seen = <String>{};
+    final unique = <Map<String, dynamic>>[];
+    for (final item in items) {
+      final id = (item['id'] ?? '').toString();
+      if (id.isEmpty || seen.contains(id)) continue;
+      seen.add(id);
+      unique.add(item);
+    }
+    return unique;
+  }
 
   Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
 
@@ -34,11 +47,13 @@ class _LeadsPageState extends State<LeadsPage> {
   }
 
   Future<void> _loadLeads() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
     try {
       final data = await _adminRepo.getLeads();
       if (mounted) {
         setState(() {
-          _leads = data;
+          _leads = _dedupeById(data);
           _isLoading = false;
         });
       }
@@ -103,12 +118,18 @@ class _LeadsPageState extends State<LeadsPage> {
               const SizedBox(height: 32),
               CPPressable(
                 onTap: () async {
+                  if (_isSubmitting) return;
                   if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
                   HapticFeedback.mediumImpact();
-                  Navigator.pop(ctx);
-                  setState(() => _isLoading = true);
-                  await _adminRepo.createLead(name: nameCtrl.text.trim(), phone: phoneCtrl.text.trim());
-                  _loadLeads();
+                  setState(() => _isSubmitting = true);
+                  try {
+                    await _adminRepo.createLead(name: nameCtrl.text.trim(), phone: phoneCtrl.text.trim());
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
+                    await _loadLeads();
+                  } finally {
+                    if (mounted) setState(() => _isSubmitting = false);
+                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -150,9 +171,95 @@ class _LeadsPageState extends State<LeadsPage> {
   }
 
   Future<void> _updateLeadStatus(String id, String newStatus) async {
+    if (id.isEmpty) return;
     setState(() => _isLoading = true);
     await _adminRepo.updateLeadStatus(leadId: id, status: newStatus);
     _loadLeads();
+  }
+
+  Future<void> _editLead(Map<String, dynamic> lead) async {
+    final leadId = (lead['id'] ?? '').toString();
+    if (leadId.isEmpty) return;
+    final nameCtrl = TextEditingController(text: (lead['name'] ?? '').toString());
+    final phoneCtrl = TextEditingController(text: (lead['phone'] ?? '').toString());
+    final isDark = CT.isDark(context);
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Edit Lead', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy)),
+              const SizedBox(height: 16),
+              _buildTextField(nameCtrl, 'Enter full name', Icons.person_outline_rounded, isDark),
+              const SizedBox(height: 12),
+              _buildTextField(phoneCtrl, 'Enter 10-digit number', Icons.phone_outlined, isDark, isNumber: true),
+              const SizedBox(height: 20),
+              CPPressable(
+                onTap: () async {
+                  if (_isSubmitting) return;
+                  if (nameCtrl.text.trim().isEmpty || phoneCtrl.text.trim().isEmpty) return;
+                  setState(() => _isSubmitting = true);
+                  try {
+                    await _adminRepo.updateLead(leadId, {
+                      'name': nameCtrl.text.trim(),
+                      'phone': phoneCtrl.text.trim(),
+                    });
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
+                    await _loadLeads();
+                  } finally {
+                    if (mounted) setState(() => _isSubmitting = false);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(color: AppColors.electricBlue, borderRadius: BorderRadius.circular(14)),
+                  alignment: Alignment.center,
+                  child: Text('Save Changes', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteLead(Map<String, dynamic> lead) async {
+    final leadId = (lead['id'] ?? '').toString();
+    if (leadId.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete Lead?', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))),
+        content: Text('This will remove ${(lead['name'] ?? 'this lead')} permanently.', style: GoogleFonts.inter(fontSize: 14)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Color(0xFFD71313)))),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _isLoading = true);
+    try {
+      await _adminRepo.deleteLead(leadId);
+    } finally {
+      if (mounted) {
+        await _loadLeads();
+      }
+    }
   }
 
   @override
@@ -269,68 +376,106 @@ class _LeadsPageState extends State<LeadsPage> {
                                 ],
                               ),
                             ).animate().fadeIn()
-                          : ListView.builder(
-                              padding: const EdgeInsets.all(24),
-                              itemCount: currentLeads.length,
-                              itemBuilder: (context, index) {
-                                final lead = currentLeads[index];
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  child: CPGlassCard(
-                                    isDark: isDark,
-                                    padding: const EdgeInsets.all(20),
-                                    borderRadius: 24,
-                                    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(16),
-                                          decoration: BoxDecoration(color: AppColors.electricBlue.withValues(alpha: 0.1), shape: BoxShape.circle),
-                                          child: const Icon(Icons.person_outline_rounded, color: AppColors.electricBlue, size: 28),
-                                        ),
-                                        const SizedBox(width: 20),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text((lead['name'] ?? 'Unknown').toString(), style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
-                                              const SizedBox(height: 6),
-                                              Row(
-                                                children: [
-                                                  Icon(Icons.phone_enabled_rounded, size: 12, color: isDark ? Colors.white54 : Colors.black54),
-                                                  const SizedBox(width: 6),
-                                                  Text((lead['phone'] ?? 'No Phone').toString(), style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black87)),
-                                                ],
-                                              ),
-                                            ],
+                          : RefreshIndicator(
+                              onRefresh: _loadLeads,
+                              color: AppColors.electricBlue,
+                              child: ListView.builder(
+                                padding: const EdgeInsets.all(24),
+                                itemCount: currentLeads.length,
+                                itemBuilder: (context, index) {
+                                  final lead = currentLeads[index];
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    child: CPGlassCard(
+                                      isDark: isDark,
+                                      padding: const EdgeInsets.all(20),
+                                      borderRadius: 24,
+                                      border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(color: AppColors.electricBlue.withValues(alpha: 0.1), shape: BoxShape.circle),
+                                            child: const Icon(Icons.person_outline_rounded, color: AppColors.electricBlue, size: 28),
                                           ),
-                                        ),
-                                        PopupMenuButton<String>(
-                                          color: isDark ? AppColors.eliteDarkBg : Colors.white,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12))),
-                                          icon: Icon(Icons.more_vert_rounded, color: isDark ? Colors.white54 : Colors.black54),
-                                          onSelected: (value) => _updateLeadStatus((lead['id'] ?? '').toString(), value),
-                                          itemBuilder: (context) {
-                                            return _tabs
-                                                .where((tabName) => tabName != lead['status'])
-                                                .map((tabName) => PopupMenuItem(
-                                                      value: tabName,
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(Icons.fast_forward_rounded, size: 16, color: isDark ? Colors.white54 : Colors.black54),
-                                                          const SizedBox(width: 12),
-                                                          Text('Move to $tabName', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColors.deepNavy)),
-                                                        ],
-                                                      ),
-                                                    ))
-                                                .toList();
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ).animate().fadeIn(delay: (30 * index).ms).slideX(begin: 0.1, delay: (30 * index).ms),
-                                );
-                              },
+                                          const SizedBox(width: 20),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text((lead['name'] ?? 'Unknown').toString(), style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
+                                                const SizedBox(height: 6),
+                                                Row(
+                                                  children: [
+                                                    Icon(Icons.phone_enabled_rounded, size: 12, color: isDark ? Colors.white54 : Colors.black54),
+                                                    const SizedBox(width: 6),
+                                                    Text((lead['phone'] ?? 'No Phone').toString(), style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black87)),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          PopupMenuButton<String>(
+                                            color: isDark ? AppColors.eliteDarkBg : Colors.white,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12))),
+                                            icon: Icon(Icons.more_vert_rounded, color: isDark ? Colors.white54 : Colors.black54),
+                                            onSelected: (value) {
+                                              if (value == 'edit') {
+                                                _editLead(lead);
+                                                return;
+                                              }
+                                              if (value == 'delete') {
+                                                _deleteLead(lead);
+                                                return;
+                                              }
+                                              _updateLeadStatus((lead['id'] ?? '').toString(), value);
+                                            },
+                                            itemBuilder: (context) {
+                                              final statusItems = _tabs
+                                                  .where((tabName) => tabName != lead['status'])
+                                                  .map((tabName) => PopupMenuItem<String>(
+                                                        value: tabName,
+                                                        child: Row(
+                                                          children: [
+                                                            Icon(Icons.fast_forward_rounded, size: 16, color: isDark ? Colors.white54 : Colors.black54),
+                                                            const SizedBox(width: 12),
+                                                            Text('Move to $tabName', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColors.deepNavy)),
+                                                          ],
+                                                        ),
+                                                      ))
+                                                  .toList();
+                                              return [
+                                                ...statusItems,
+                                                const PopupMenuDivider(),
+                                                PopupMenuItem<String>(
+                                                  value: 'edit',
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(Icons.edit_outlined, size: 16, color: isDark ? Colors.white54 : Colors.black54),
+                                                      const SizedBox(width: 12),
+                                                      Text('Edit', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColors.deepNavy)),
+                                                    ],
+                                                  ),
+                                                ),
+                                                PopupMenuItem<String>(
+                                                  value: 'delete',
+                                                  child: Row(
+                                                    children: [
+                                                      const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFD71313)),
+                                                      const SizedBox(width: 12),
+                                                      Text('Delete', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFFD71313))),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ];
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ).animate().fadeIn(delay: (30 * index).ms).slideX(begin: 0.1, delay: (30 * index).ms),
+                                  );
+                                },
+                              ),
                             ),
                 ),
               ],

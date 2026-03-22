@@ -1,5 +1,5 @@
 import { prisma } from '../../server';
-import { CreateAnnouncementInput } from './announcement.validator';
+import { CreateAnnouncementInput, UpdateAnnouncementInput } from './announcement.validator';
 
 export class AnnouncementRepository {
   async list(instituteId: string, category?: string) {
@@ -25,6 +25,18 @@ export class AnnouncementRepository {
         target_role: data.category ?? 'Academic',
         send_whatsapp: data.pinned ?? false,
         created_by_id: userId,
+      },
+    });
+  }
+
+  async update(id: string, instituteId: string, data: UpdateAnnouncementInput) {
+    return prisma.announcement.update({
+      where: { id, institute_id: instituteId },
+      data: {
+        ...(data.title != null ? { title: data.title } : {}),
+        ...(data.body != null ? { body: data.body } : {}),
+        ...(data.category != null ? { target_role: data.category } : {}),
+        ...(data.pinned != null ? { send_whatsapp: data.pinned } : {}),
       },
     });
   }

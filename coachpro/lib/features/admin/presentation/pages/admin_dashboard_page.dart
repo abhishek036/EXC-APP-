@@ -227,15 +227,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     const SizedBox(height: 40),
                     _buildOverdueBanner(isDark),
                     const SizedBox(height: 16),
-                    _buildSectionHeader("Academic Flow", () => context.go('/admin/attendance'), isDark),
+                    _buildSectionHeader("Academic Flow", () => context.push('/admin/attendance'), isDark),
                     const SizedBox(height: 16),
                     _buildTodaysClasses(isDark),
                     const SizedBox(height: 40),
-                    _buildSectionHeader("Revenue Stream", () => context.go('/admin/fees'), isDark),
+                    _buildSectionHeader("Revenue Stream", () => context.push('/admin/fees'), isDark),
                     const SizedBox(height: 16),
                     _buildRecentPayments(isDark),
                     const SizedBox(height: 40),
-                    _buildSectionHeader("Activity Timeline", () => context.go('/admin/audit-logs'), isDark),
+                    _buildSectionHeader("Activity Timeline", () => context.push('/admin/audit-logs'), isDark),
                     const SizedBox(height: 16),
                     _buildActivityTimeline(isDark),
                     const SizedBox(height: 48),
@@ -263,7 +263,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         child: Column(
           children: [
             CPPressable(
-              onTap: () { Navigator.pop(context); context.go('/admin/profile'); },
+              onTap: () { Navigator.pop(context); context.push('/admin/profile'); },
               child: Container(
                 color: Colors.transparent,
                 padding: const EdgeInsets.all(24.0),
@@ -306,9 +306,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                  ),
                );
             }),
-            _drawerItem(Icons.settings_rounded, 'App Settings', () { Navigator.pop(context); context.go('/admin/settings'); }),
-            _drawerItem(Icons.headset_mic_rounded, 'Support & Help', () { Navigator.pop(context); context.go('/admin/support'); }),
-            _drawerItem(Icons.bolt_rounded, 'Quick Shortcuts', () { Navigator.pop(context); context.go('/admin/shortcuts'); }),
+            _drawerItem(Icons.settings_rounded, 'App Settings', () { Navigator.pop(context); context.push('/admin/settings'); }),
+            _drawerItem(Icons.headset_mic_rounded, 'Support & Help', () { Navigator.pop(context); context.push('/admin/notifications'); }),
+            _drawerItem(Icons.bolt_rounded, 'Quick Shortcuts', () { Navigator.pop(context); context.push('/admin/auto-notifications'); }),
             const Spacer(),
             const Divider(color: AppColors.elitePrimary, height: 1),
             _drawerItem(Icons.logout_rounded, 'Sign Out', () async {
@@ -373,7 +373,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
             ),
             CPPressable(
-              onTap: () => context.go('/admin/profile'),
+              onTap: () => context.push('/admin/profile'),
               child: Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF0D1282), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))]),
@@ -392,7 +392,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
             _appBarAction(Icons.search_rounded, () { HapticFeedback.mediumImpact(); GlobalSearchOverlay.show(context); }, isDark),
             const SizedBox(width: 8),
-            _appBarAction(Icons.notifications_none_rounded, () { HapticFeedback.mediumImpact(); context.go('/admin/notifications'); }, isDark, badge: _unreadNotifications > 0),
+            _appBarAction(Icons.notifications_none_rounded, () { HapticFeedback.mediumImpact(); context.push('/admin/notifications'); }, isDark, badge: _unreadNotifications > 0),
           ],
         ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);
       },
@@ -404,7 +404,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       onTap: onTap,
       child: Container(
         width: 44, height: 44,
-        decoration: const BoxDecoration(color: AppColors.eliteLightBg, shape: BoxShape.circle),
+        decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.08) : AppColors.eliteLightBg, shape: BoxShape.circle),
         child: Stack(
           alignment: Alignment.center,
           children: [
@@ -484,7 +484,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       width: 160,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
       ),
@@ -525,7 +525,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Expanded(
               flex: 62,
               child: CPPressable(
-                onTap: () => context.go('/admin/add-student'),
+                onTap: () => context.push('/admin/add-student'),
                 child: Container(
                   height: 88,
                   padding: const EdgeInsets.all(16),
@@ -562,12 +562,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Expanded(
               flex: 38,
               child: CPPressable(
-                onTap: () => context.go('/admin/fees'),
+                onTap: () => context.push('/admin/fees'),
                 child: Container(
                   height: 88,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
                   ),
@@ -591,12 +591,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Expanded(
               flex: 38,
               child: CPPressable(
-                onTap: () => context.go('/admin/attendance'),
+                onTap: () => context.push('/admin/attendance'),
                 child: Container(
                   height: 88,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
                   ),
@@ -616,12 +616,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Expanded(
               flex: 62,
               child: CPPressable(
-                onTap: () => context.go('/admin/announcements'),
+                onTap: () => context.push('/admin/announcements'),
                 child: Container(
                   height: 88,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
                   ),
@@ -679,11 +679,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         final m = modules[i];
         final col = m['color'] as Color;
         return CPPressable(
-          onTap: () => context.go(m['route'] as String),
+          onTap: () => context.push(m['route'] as String),
           child: Container(
             padding: const EdgeInsets.all(14), // Reduced from 16
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
             ),
@@ -793,7 +793,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Text('$_overdueCount Overdue Alerts', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.error, letterSpacing: -0.2)),
             Text('${_formatCurrency(_totalOverdue)} total overdue amount', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600)),
           ])),
-          CPPressable(onTap: () => context.go('/admin/fees'), child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), decoration: BoxDecoration(gradient: LinearGradient(colors: [AppColors.error, AppColors.error.withValues(alpha: 0.8)]), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: AppColors.error.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))]), child: Text('RESOLVE', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)))),
+          CPPressable(onTap: () => context.push('/admin/fees'), child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), decoration: BoxDecoration(gradient: LinearGradient(colors: [AppColors.error, AppColors.error.withValues(alpha: 0.8)]), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: AppColors.error.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))]), child: Text('RESOLVE', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)))),
         ],
       ),
     ).animate().shake(delay: 1.seconds);
@@ -880,7 +880,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader("Financial Pulse", () => context.go('/admin/fees'), isDark),
+        _buildSectionHeader("Financial Pulse", () => context.push('/admin/fees'), isDark),
         const SizedBox(height: 16),
         CPGlassCard(
           isDark: isDark,

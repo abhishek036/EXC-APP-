@@ -379,7 +379,7 @@ class _ExamManagementPageState extends State<ExamManagementPage> with SingleTick
             icon: Icons.edit_note_rounded,
             onPressed: () {
               Navigator.pop(ctx);
-              context.go('/admin/exams/bulk-results', extra: exam);
+              context.push('/admin/exams/bulk-results', extra: exam);
             },
           ),
           const SizedBox(height: 12),

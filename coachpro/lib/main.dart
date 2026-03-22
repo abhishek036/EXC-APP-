@@ -46,6 +46,11 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  await SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: [SystemUiOverlay.top],
+  );
+
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -124,6 +129,10 @@ class _CoachProAppState extends State<CoachProApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: [SystemUiOverlay.top],
+      );
       // Quietly refresh auth state when app comes back to foreground
       _authBloc.add(const AuthRefreshRequested());
       _startAuthSyncTimer();

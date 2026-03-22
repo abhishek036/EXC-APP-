@@ -39,6 +39,17 @@ class _StudentListPageState extends State<StudentListPage> {
 
   static const _statusFilters = ['All', 'Fee Due', 'Overdue', 'Active', 'Inactive'];
 
+  List<_Student> _dedupeStudents(List<_Student> items) {
+    final seen = <String>{};
+    final unique = <_Student>[];
+    for (final item in items) {
+      if (item.docId.isEmpty || seen.contains(item.docId)) continue;
+      seen.add(item.docId);
+      unique.add(item);
+    }
+    return unique;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -68,7 +79,7 @@ class _StudentListPageState extends State<StudentListPage> {
           .toList();
         final batchNames = rawBatches.map((b) => (b['name'] ?? 'Batch').toString()).toList();
         setState(() {
-          _students = students;
+          _students = _dedupeStudents(students);
           _batchRaw = rawBatches;
           _batches = ['All', ...batchNames];
           _loadingStudents = false;
@@ -199,7 +210,13 @@ class _StudentListPageState extends State<StudentListPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFEEEDED),
       floatingActionButton: _selectMode ? null : FloatingActionButton(
-        onPressed: () => context.go('/admin/add-student'),
+        onPressed: () async {
+          final created = await context.push('/admin/add-student');
+          if (!mounted) return;
+          if (created == true) {
+            await _loadAll();
+          }
+        },
         backgroundColor: const Color(0xFF0D1282),
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
       ),
@@ -264,6 +281,26 @@ class _StudentListPageState extends State<StudentListPage> {
       color: const Color(0xFFEEEDED),
       child: Row(
         children: [
+          CPPressable(
+            onTap: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/admin');
+              }
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              margin: const EdgeInsets.only(right: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEEDED),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF0D1282), width: 1.5),
+              ),
+              child: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: Color(0xFF0D1282)),
+            ),
+          ),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Students', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282), letterSpacing: -0.5)),
@@ -516,7 +553,13 @@ class _StudentListPageState extends State<StudentListPage> {
           const SizedBox(height: 24),
           if (noStudentsAtAll)
             CPPressable(
-              onTap: () => context.go('/admin/add-student'),
+              onTap: () async {
+                final created = await context.push('/admin/add-student');
+                if (!context.mounted) return;
+                if (created == true) {
+                  await _loadAll();
+                }
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                 decoration: BoxDecoration(
@@ -621,7 +664,10 @@ class _StudentListPageState extends State<StudentListPage> {
       onTap: () {
         if (_selectMode) { _toggleSelect(student.docId); return; }
         HapticFeedback.lightImpact();
-        context.go('/admin/students/${student.docId}');
+        context.push('/admin/students/${student.docId}').then((_) {
+          if (!mounted) return;
+          _loadAll();
+        });
       },
       onLongPress: () { if (!_selectMode) { setState(() => _selectMode = true); _toggleSelect(student.docId); } },
       child: AnimatedContainer(
