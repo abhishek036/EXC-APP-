@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/services/app_update_service.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/theme/theme_aware.dart';
 class ForceUpdatePage extends StatelessWidget {
-  const ForceUpdatePage({super.key});
+  final String latestVersion;
+  final String minSupportedVersion;
+  final String storeUrl;
+
+  const ForceUpdatePage({
+    super.key,
+    this.latestVersion = '',
+    this.minSupportedVersion = '',
+    this.storeUrl = '',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +70,7 @@ class ForceUpdatePage extends StatelessWidget {
               const SizedBox(height: 16),
               
               Text(
-                'We have added new features and fixed bugs to make your experience smoother.\nPlease update Excellence Academy to the latest version.',
+                'We have added new features and fixed bugs to make your experience smoother.\nPlease update Excellence Academy to continue using the app.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.dmSans(
                   fontSize: 15,
@@ -67,14 +78,33 @@ class ForceUpdatePage extends StatelessWidget {
                   height: 1.5,
                 ),
               ).animate(delay: 300.ms).fadeIn(),
+
+              if (latestVersion.isNotEmpty || minSupportedVersion.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  [
+                    if (latestVersion.isNotEmpty) 'Latest: v$latestVersion',
+                    if (minSupportedVersion.isNotEmpty) 'Minimum supported: v$minSupportedVersion',
+                  ].join(' • '),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 12,
+                    color: CT.textS(context),
+                  ),
+                ),
+              ],
               
               const Spacer(),
               
               CustomButton(
                 text: 'Update Now',
                 icon: Icons.update,
-                onPressed: () {
-                  // E.g. url_launcher to Play Store or App Store
+                onPressed: () async {
+                  final launched = await sl<AppUpdateService>().openStore(storeUrl);
+                  if (!context.mounted || launched) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Store link is not configured yet. Please contact support.')),
+                  );
                 },
               ).animate(delay: 500.ms).fadeIn().slideY(begin: 0.5, end: 0),
               

@@ -328,7 +328,14 @@ class AppRouter {
           GoRoute(
             path: '/update',
             name: 'force-update',
-            pageBuilder: (c, s) => _page(s, const ForceUpdatePage()),
+            pageBuilder: (c, s) => _page(
+              s,
+              ForceUpdatePage(
+                latestVersion: s.uri.queryParameters['latest'] ?? '',
+                minSupportedVersion: s.uri.queryParameters['min'] ?? '',
+                storeUrl: s.uri.queryParameters['storeUrl'] ?? '',
+              ),
+            ),
           ),
 
           // ── Admin Shell ─────────────────────────────────────────

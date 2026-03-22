@@ -29,6 +29,7 @@ import certificateRoutes from './modules/certificate/certificate.routes';
 import timetableRoutes from './modules/timetable/timetable.routes';
 import auditLogRoutes from './modules/audit-log/audit-log.routes';
 import whatsappRoutes from './modules/whatsapp/whatsapp.routes';
+import appUpdateRoutes from './modules/app-update/app-update.routes';
 
 const app: Express = express();
 app.set('trust proxy', true); // Trust proxy chain (Azure/App Gateway/CDN)
@@ -106,6 +107,7 @@ app.use('/api/certificates', certificateRoutes);
 app.use('/api/timetable', timetableRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/app-update', appUpdateRoutes);
 
 // 404 Catcher
 app.all('*', (req: Request, res: Response, next: NextFunction) => {

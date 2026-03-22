@@ -68,4 +68,7 @@ class ApiEndpoints {
 
   // Student-specific notifications (backend: /api/students/me/notifications)
   static const String studentNotificationsMe = 'students/me/notifications';
+
+  // App Update
+  static const String appUpdatePolicy = 'app-update/policy';
 }

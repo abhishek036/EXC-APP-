@@ -16,6 +16,18 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
+      - key: APP_MIN_VERSION_ANDROID
+        value: 1.0.0
+      - key: APP_LATEST_VERSION_ANDROID
+        value: 1.0.0
+      - key: APP_STORE_URL_ANDROID
+        value: https://play.google.com/store/apps/details?id=com.coachpro.app
+      - key: APP_MIN_VERSION_IOS
+        value: 1.0.0
+      - key: APP_LATEST_VERSION_IOS
+        value: 1.0.0
+      - key: APP_STORE_URL_IOS
+        value: https://apps.apple.com/app/id0000000000
 
 databases:
   - name: coachpro-db
