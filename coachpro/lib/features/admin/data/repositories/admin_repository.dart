@@ -375,6 +375,14 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch teacher details');
   }
 
+  Future<Map<String, dynamic>> getTeacherProfileDashboard(String teacherId) async {
+    final response = await _api.dio.get('teachers/$teacherId/profile-dashboard');
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch teacher profile dashboard');
+  }
+
   Future<Map<String, dynamic>> updateTeacher(String teacherId, Map<String, dynamic> data) async {
     final response = await _api.dio.put('teachers/$teacherId', data: data);
     if (response.statusCode == 200) {
@@ -389,6 +397,42 @@ class AdminRepository {
       return Map<String, dynamic>.from(response.data['data'] as Map);
     }
     throw Exception(response.data['message'] ?? 'Failed to toggle teacher status');
+  }
+
+  Future<Map<String, dynamic>> updateTeacherSettings({
+    required String teacherId,
+    required Map<String, dynamic> permissions,
+    num? salary,
+    num? revenueShare,
+  }) async {
+    final payload = <String, dynamic>{
+      'permissions': permissions,
+      if (salary != null) 'salary': salary,
+      if (revenueShare != null) 'revenue_share': revenueShare,
+    };
+    final response = await _api.dio.put('teachers/$teacherId/settings', data: payload);
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update teacher settings');
+  }
+
+  Future<Map<String, dynamic>> addTeacherFeedback({
+    required String teacherId,
+    required num rating,
+    String? comment,
+    String? studentName,
+  }) async {
+    final payload = <String, dynamic>{
+      'rating': rating,
+      if (comment != null && comment.trim().isNotEmpty) 'comment': comment.trim(),
+      if (studentName != null && studentName.trim().isNotEmpty) 'student_name': studentName.trim(),
+    };
+    final response = await _api.dio.post('teachers/$teacherId/feedback', data: payload);
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to add teacher feedback');
   }
 
   Future<void> deleteTeacher(String teacherId) async {

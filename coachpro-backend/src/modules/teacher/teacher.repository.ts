@@ -38,6 +38,11 @@ export class TeacherRepository {
   async createTeacherWithUser(instituteId: string, data: CreateTeacherInput, passwordHash?: string) {
      if (!data.phone) throw new Error('Phone is required for Teacher creation');
 
+     const normalizedSubjects = Array.from(new Set([
+       ...(data.subjects ?? []),
+       ...(data.subject ? [data.subject] : []),
+     ].map((item) => item.trim()).filter((item) => item.length > 0)));
+
      return prisma.teacher.create({
          data: {
              institute_id: instituteId,
@@ -45,15 +50,38 @@ export class TeacherRepository {
              name: data.name,
              email: data.email,
              qualification: data.qualification,
-             subjects: data.subjects || [],
+             subjects: normalizedSubjects,
          }
      });
   }
 
   async updateTeacher(teacherId: string, instituteId: string, data: UpdateTeacherInput) {
+    const patch = (data ?? {}) as NonNullable<UpdateTeacherInput>;
+
+    const updateData: Record<string, unknown> = {
+      name: patch.name,
+      phone: patch.phone,
+      email: patch.email,
+      qualification: patch.qualification,
+      is_active: (patch as any).is_active,
+    };
+
+    const normalizedSubjects = Array.from(new Set([
+      ...((patch.subjects ?? []) as string[]),
+      ...(patch.subject ? [patch.subject] : []),
+    ].map((item) => item.trim()).filter((item) => item.length > 0)));
+
+    if (normalizedSubjects.length > 0) {
+      updateData['subjects'] = normalizedSubjects;
+    }
+
+    Object.keys(updateData).forEach((key) => {
+      if (updateData[key] === undefined) delete updateData[key];
+    });
+
     return prisma.teacher.update({
       where: { id: teacherId },
-      data: data as any
+      data: updateData as any
     });
   }
 

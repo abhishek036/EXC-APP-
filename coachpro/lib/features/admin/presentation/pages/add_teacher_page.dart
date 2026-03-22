@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/app_dimensions.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
@@ -30,13 +29,27 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
     setState(() => _isSaving = true);
 
     try {
+      final subjects = _subjectsCtrl.text
+          .split(',')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+
       final payload = {
         'name': _nameCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
-        'subject': _subjectsCtrl.text.trim(),
-        'salary': _salaryCtrl.text.trim(),
-        'revenue_share': _revenueShareCtrl.text.trim(),
+        if (_subjectsCtrl.text.trim().isNotEmpty) 'subject': _subjectsCtrl.text.trim(),
+        if (subjects.isNotEmpty) 'subjects': subjects,
+        if (_salaryCtrl.text.trim().isNotEmpty) 'salary': double.tryParse(_salaryCtrl.text.trim()) ?? _salaryCtrl.text.trim(),
+        if (_revenueShareCtrl.text.trim().isNotEmpty) 'revenue_share': double.tryParse(_revenueShareCtrl.text.trim()) ?? _revenueShareCtrl.text.trim(),
+        'permissions': {
+          'can_edit_attendance': true,
+          'can_see_fee_data': false,
+          'can_upload_study_material': true,
+          'can_create_exams': false,
+          'can_manage_students': false,
+        },
       };
 
       payload.removeWhere((key, value) => (value is String && value.isEmpty));

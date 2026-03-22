@@ -158,7 +158,14 @@ class _TeacherListPageState extends State<TeacherListPage> {
     final teacherId = teacher['id']?.toString() ?? '';
     final displayName = (teacher['name'] ?? user['name'] ?? 'Faculty Member').toString();
     final displayPhone = (teacher['phone'] ?? user['phone'] ?? '--').toString();
-    final subject = (teacher['subject'] ?? 'Unspecified Subject').toString();
+    final subjects = ((teacher['subjects'] as List?) ?? const [])
+      .map((item) => item.toString())
+      .where((item) => item.isNotEmpty)
+      .toList();
+    final subject = subjects.isNotEmpty
+      ? subjects.take(2).join(', ')
+      : (teacher['subject']?.toString().isNotEmpty == true ? teacher['subject'].toString() : 'Unspecified Subject');
+    final isActive = (teacher['is_active'] ?? true) == true;
 
     return CPPressable(
       onLongPress: () {
@@ -193,6 +200,18 @@ class _TeacherListPageState extends State<TeacherListPage> {
                       Icon(Icons.phone_iphone_rounded, size: 12, color: const Color(0xFF0D1282).withValues(alpha: 0.5)),
                       const SizedBox(width: 6),
                       Text(displayPhone, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF0D1282), fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isActive ? const Color(0xFFF0DE36) : const Color(0xFFD71313),
+                          border: Border.all(color: const Color(0xFF0D1282), width: 1.5),
+                        ),
+                        child: Text(
+                          isActive ? 'ACTIVE' : 'INACTIVE',
+                          style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282)),
+                        ),
+                      ),
                     ],
                   ),
                 ],

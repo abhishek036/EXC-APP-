@@ -38,6 +38,27 @@ export class TeacherController {
     } catch (error) { next(error); }
   };
 
+  getProfileDashboard = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.teacherService.getTeacherProfileDashboard(req.params.id, req.instituteId!);
+      return sendResponse({ res, data, message: 'Teacher profile dashboard fetched successfully' });
+    } catch (error) { next(error); }
+  };
+
+  updateSettings = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.teacherService.updateTeacherSettings(req.params.id, req.instituteId!, req.body);
+      return sendResponse({ res, data, message: 'Teacher settings updated successfully' });
+    } catch (error) { next(error); }
+  };
+
+  addFeedback = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.teacherService.addTeacherFeedback(req.params.id, req.instituteId!, req.body);
+      return sendResponse({ res, data, message: 'Teacher feedback recorded successfully', statusCode: 201 });
+    } catch (error) { next(error); }
+  };
+
   update = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.teacherService.updateTeacher(req.params.id, req.instituteId!, req.body);

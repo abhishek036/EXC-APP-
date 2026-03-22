@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { TeacherController } from './teacher.controller';
 import { validate } from '../../middleware/validate.middleware';
-import { createTeacherSchema, updateTeacherSchema } from './teacher.validator';
+import { createTeacherSchema, updateTeacherSchema, updateTeacherSettingsSchema, addTeacherFeedbackSchema } from './teacher.validator';
 import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
 import { tenantMiddleware } from '../../middleware/tenant.middleware';
 
@@ -22,7 +22,10 @@ router.get('/me/schedule/today', requireRole('teacher'), teacherController.getTo
 router.get('/', requireRole('admin'), teacherController.list);
 router.post('/', requireRole('admin'), validate(createTeacherSchema), teacherController.create);
 router.get('/:id', requireRole('admin', 'teacher'), teacherController.getById);
+router.get('/:id/profile-dashboard', requireRole('admin', 'teacher'), teacherController.getProfileDashboard);
 router.put('/:id', requireRole('admin'), validate(updateTeacherSchema), teacherController.update);
+router.put('/:id/settings', requireRole('admin'), validate(updateTeacherSettingsSchema), teacherController.updateSettings);
+router.post('/:id/feedback', requireRole('admin', 'teacher'), validate(addTeacherFeedbackSchema), teacherController.addFeedback);
 router.patch('/:id/status', requireRole('admin'), teacherController.toggleStatus);
 router.delete('/:id', requireRole('admin'), teacherController.remove);
 
