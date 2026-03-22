@@ -31,7 +31,7 @@ import auditLogRoutes from './modules/audit-log/audit-log.routes';
 import whatsappRoutes from './modules/whatsapp/whatsapp.routes';
 
 const app: Express = express();
-app.set('trust proxy', 1); // Trust first proxy (Azure App Service)
+app.set('trust proxy', true); // Trust proxy chain (Azure/App Gateway/CDN)
 
 // Security Middleware
 app.use(helmet({
@@ -56,6 +56,15 @@ const authLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false,
+  keyGenerator: (req) => {
+    const raw = String(req.ip || req.socket.remoteAddress || 'unknown').replace(/^::ffff:/, '');
+    // Some proxies can pass IPv4 with port (e.g. 10.224.173.29:65509)
+    if (raw.includes('.') && raw.includes(':')) {
+      return raw.substring(0, raw.lastIndexOf(':'));
+    }
+    return raw;
+  },
 });
 
 // Parsing & Logging Middleware

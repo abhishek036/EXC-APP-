@@ -1,10 +1,20 @@
 import { prisma } from '../../server';
 
 export class AuthRepository {
+    private _phoneVariants(phone: string) {
+        const base = (phone || '').trim();
+        const variants = new Set<string>();
+        if (!base) return [];
+
+        variants.add(base);
+        if (base.startsWith('+91')) variants.add(base.substring(3));
+        if (base.length === 10) variants.add(`+91${base}`);
+
+        return Array.from(variants);
+    }
+
   async findUserByPhone(phone: string) {
-    const phonesToSearch = [phone];
-    if (phone.startsWith('+91')) phonesToSearch.push(phone.substring(3));
-    if (phone.length === 10) phonesToSearch.push(`+91${phone}`);
+        const phonesToSearch = this._phoneVariants(phone);
 
     return prisma.user.findFirst({
         where: { phone: { in: phonesToSearch }, is_active: true },
@@ -13,9 +23,10 @@ export class AuthRepository {
   }
 
   async saveOtp(phone: string, otp: string, purpose: string, expiresAt: Date) {
+        const phonesToSearch = this._phoneVariants(phone);
       // Invalidate existing OTPs for this phone + purpose
       await prisma.otpCode.updateMany({
-         where: { phone, purpose, used_at: null, expires_at: { gt: new Date() } },
+            where: { phone: { in: phonesToSearch }, purpose, used_at: null, expires_at: { gt: new Date() } },
          data: { used_at: new Date() } // Mark unused as "used" to invalidate
       });
 
@@ -30,16 +41,18 @@ export class AuthRepository {
   }
 
   async verifyOtp(phone: string, otp: string, purpose: string) {
+      const phonesToSearch = this._phoneVariants(phone);
       const validOtp = await prisma.otpCode.findFirst({
           where: {
-              phone,
-              code: otp,
+              phone: { in: phonesToSearch },
+              code: otp.trim(),
               purpose,
               used_at: null,
               expires_at: {
                   gt: new Date()
               }
-          }
+          },
+          orderBy: { created_at: 'desc' },
       });
 
       if (validOtp) {
