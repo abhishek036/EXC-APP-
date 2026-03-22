@@ -6,11 +6,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/services/api_auth_service.dart';
 import '../../../../core/widgets/cp_pressable.dart';
+import '../../../../core/utils/role_prefix.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/domain/entities/user_entity.dart';
 import '../../../auth/data/models/user_model.dart';
@@ -44,7 +44,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
     _nameCtrl    = TextEditingController(text: _user?.name ?? '');
     _phoneCtrl   = TextEditingController(text: _user?.phone ?? '');
-    _emailCtrl   = TextEditingController(text: '');
+    _emailCtrl   = TextEditingController(text: _user?.email ?? '');
     _dobCtrl     = TextEditingController(text: '');
     _addressCtrl = TextEditingController(text: '');
   }
@@ -126,8 +126,51 @@ class _ProfilePageState extends State<ProfilePage> {
         final user = authState is AuthAuthenticated ? authState.user : null;
         final role = user?.role ?? AppRole.admin;
         final isAdmin = role == AppRole.admin;
-        final isTeacher = role == AppRole.teacher;
         final displayName = user?.name ?? _user?.name ?? 'Admin User';
+        final roleLabel = switch (role) {
+          AppRole.admin => 'Administrator',
+          AppRole.teacher => 'Faculty',
+          AppRole.student => 'Student',
+          AppRole.parent => 'Parent',
+        };
+        final profileStats = switch (role) {
+          AppRole.admin => [
+            _stat('450', 'Students', const Color(0xFF0D1282)),
+            _statDivider(),
+            _stat('12', 'Teachers', const Color(0xFFF5D90A)),
+            _statDivider(),
+            _stat('8', 'Batches', const Color(0xFF4C6EF5)),
+            _statDivider(),
+            _stat('₹12L', 'Revenue', const Color(0xFF16A34A)),
+          ],
+          AppRole.teacher => [
+            _stat('18', 'Classes', const Color(0xFF0D1282)),
+            _statDivider(),
+            _stat('126', 'Students', const Color(0xFFF5D90A)),
+            _statDivider(),
+            _stat('7', 'Pending', const Color(0xFF4C6EF5)),
+            _statDivider(),
+            _stat('92%', 'Attendance', const Color(0xFF16A34A)),
+          ],
+          AppRole.parent => [
+            _stat('2', 'Children', const Color(0xFF0D1282)),
+            _statDivider(),
+            _stat('96%', 'Attendance', const Color(0xFFF5D90A)),
+            _statDivider(),
+            _stat('3', 'Pending', const Color(0xFF4C6EF5)),
+            _statDivider(),
+            _stat('1', 'Fee Due', const Color(0xFFD71313)),
+          ],
+          AppRole.student => [
+            _stat('88%', 'Attendance', const Color(0xFF0D1282)),
+            _statDivider(),
+            _stat('12', 'Tests', const Color(0xFFF5D90A)),
+            _statDivider(),
+            _stat('#5', 'Rank', const Color(0xFF4C6EF5)),
+            _statDivider(),
+            _stat('15d', 'Streak', const Color(0xFFD71313)),
+          ],
+        };
         final initials = displayName.trim().isEmpty ? 'A'
             : displayName.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase();
 
@@ -213,7 +256,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         Text(displayName,
                           style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
                         const SizedBox(height: 4),
-                        Text(isAdmin ? 'Administrator' : isTeacher ? 'Faculty' : 'Student',
+                        Text(roleLabel,
                           style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.white.withValues(alpha: 0.7))),
                         const SizedBox(height: 4),
                         Text(isAdmin ? 'ADM-001' : 'USR-001',
@@ -236,23 +279,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
                     ),
-                    child: Row(children: isAdmin ? [
-                      _stat('450', 'Students', const Color(0xFF0D1282)),
-                      _statDivider(),
-                      _stat('12', 'Teachers', const Color(0xFFF5D90A)),
-                      _statDivider(),
-                      _stat('8', 'Batches', const Color(0xFF4C6EF5)),
-                      _statDivider(),
-                      _stat('₹12L', 'Revenue', const Color(0xFF16A34A)),
-                    ] : [
-                      _stat('88%', 'Attendance', const Color(0xFF0D1282)),
-                      _statDivider(),
-                      _stat('12', 'Tests', const Color(0xFFF5D90A)),
-                      _statDivider(),
-                      _stat('#5', 'Rank', const Color(0xFF4C6EF5)),
-                      _statDivider(),
-                      _stat('15d', 'Streak', const Color(0xFFD71313)),
-                    ]),
+                    child: Row(children: profileStats),
                   ),
                 ).animate(delay: 100.ms).fadeIn().slideY(begin: 0.05),
 
@@ -263,8 +290,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   _editableField(label: 'Full Name', icon: Icons.person_rounded, controller: _nameCtrl, editing: _editMode),
                   _editableField(label: 'Phone', icon: Icons.phone_android_rounded, controller: _phoneCtrl, editing: _editMode, editable: false, type: TextInputType.phone),
                   _editableField(label: 'Email', icon: Icons.email_rounded, controller: _emailCtrl, editing: _editMode, type: TextInputType.emailAddress),
-                  _editableField(label: 'Date of Birth', icon: Icons.cake_rounded, controller: _dobCtrl, editing: _editMode),
-                  _editableField(label: 'Address', icon: Icons.home_rounded, controller: _addressCtrl, editing: _editMode),
+                  _editableField(label: 'Date of Birth', icon: Icons.cake_rounded, controller: _dobCtrl, editing: _editMode, editable: false),
+                  _editableField(label: 'Address', icon: Icons.home_rounded, controller: _addressCtrl, editing: _editMode, editable: false),
                 ]).animate(delay: 150.ms).fadeIn().slideY(begin: 0.05),
 
                 const SizedBox(height: 20),
@@ -280,12 +307,22 @@ class _ProfilePageState extends State<ProfilePage> {
                 if (isAdmin) const SizedBox(height: 20),
 
                 // ── Quick Actions ────────────────────────────
-                _section('Quick Links', [
-                  _quickRow(context, Icons.people_rounded, 'Manage Students', '/admin/students'),
-                  _quickRow(context, Icons.class_rounded, 'Manage Batches', '/admin/batches'),
-                  _quickRow(context, Icons.bar_chart_rounded, 'Admin Reports', '/admin/reports'),
-                  _quickRow(context, Icons.settings_rounded, 'App Settings', '/admin/settings'),
-                ]).animate(delay: 250.ms).fadeIn().slideY(begin: 0.05),
+                _section(
+                  isAdmin ? 'Quick Links' : 'Account Shortcuts',
+                  isAdmin
+                      ? [
+                          _quickRow(context, Icons.people_rounded, 'Manage Students', '/admin/students'),
+                          _quickRow(context, Icons.class_rounded, 'Manage Batches', '/admin/batches'),
+                          _quickRow(context, Icons.bar_chart_rounded, 'Admin Reports', '/admin/reports'),
+                          _quickRow(context, Icons.settings_rounded, 'App Settings', '/admin/settings'),
+                        ]
+                      : [
+                          _quickRow(context, Icons.person_outline_rounded, 'Edit Profile', '${context.rolePrefix}/profile'),
+                          _quickRow(context, Icons.settings_rounded, 'Settings', '${context.rolePrefix}/settings'),
+                          _quickRow(context, Icons.notifications_outlined, 'Notification Settings', '${context.rolePrefix}/notification-settings'),
+                          _quickRow(context, Icons.lock_reset_rounded, 'Change Password', '/change-password'),
+                        ],
+                ).animate(delay: 250.ms).fadeIn().slideY(begin: 0.05),
 
                 // ── Save Button ──────────────────────────────
                 if (_editMode) ...[

@@ -111,6 +111,14 @@ export class AuthController {
       const userId = req.user!.userId;
       const role = req.user!.role;
       const { name, email, phone } = req.body;
+
+      if (email != null) {
+        const trimmedEmail = String(email).trim();
+        if (trimmedEmail.length > 0 && !/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+          return next({ message: 'Enter a valid email address', status: 400 });
+        }
+      }
+
       const data = await this.authService.updateMe(userId, role, { name, email, phone });
       return sendResponse({ res, data, message: 'Profile updated successfully' });
     } catch (error) {
