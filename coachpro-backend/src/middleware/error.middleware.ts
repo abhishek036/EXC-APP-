@@ -43,7 +43,15 @@ export const errorHandler = (
     code = err.code;
     message = err.message;
     fields = err.fields;
+  } else if (err?.message) {
+    // Preserve non-operational error message so debugging is possible from client logs.
+    message = err.message;
   }
+
+  console.error(
+    `[ERROR] ${req.method} ${req.originalUrl} -> ${statusCode} ${code}: ${message}`,
+    err,
+  );
 
   // Prisma Error Handling (Optional: Add specific Prisma error codes)
   if (err.name === 'PrismaClientKnownRequestError') {

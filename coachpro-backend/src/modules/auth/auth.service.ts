@@ -185,7 +185,12 @@ export class AuthService {
     const refreshExpiresInMs = this._refreshExpiryMs();
     await this.authRepository.storeRefreshToken(user.id, refreshHash, new Date(Date.now() + refreshExpiresInMs));
 
-     const profile = await this.getUserProfile(user.id);
+         let profile: { name?: string } | null = null;
+         try {
+             profile = await this.getUserProfile(user.id);
+         } catch (e: any) {
+             console.error('[AUTH] Profile fetch failed after OTP verify:', e?.message || e);
+         }
 
      return {
          user: { id: user.id, role: user.role, instituteId: user.institute_id, name: profile?.name },
@@ -228,7 +233,12 @@ export class AuthService {
     const refreshExpiresInMs = this._refreshExpiryMs();
     await this.authRepository.storeRefreshToken(user.id, refreshHash, new Date(Date.now() + refreshExpiresInMs));
 
-      const profile = await this.getUserProfile(user.id);
+            let profile: { name?: string } | null = null;
+            try {
+                profile = await this.getUserProfile(user.id);
+            } catch (e: any) {
+                console.error('[AUTH] Profile fetch failed after password login:', e?.message || e);
+            }
 
       return {
           user: { id: user.id, role: user.role, instituteId: user.institute_id, name: profile?.name },
