@@ -60,6 +60,14 @@ class TeacherRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch schedule');
   }
 
+  Future<Map<String, dynamic>> getBatchExecutionSummary(String batchId) async {
+    final response = await _api.dio.get('teachers/me/batches/$batchId/execution');
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch batch execution summary');
+  }
+
   // ── Attendance ───────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getBatchStudents(String batchId) async {
     final response = await _api.dio.get('batches/$batchId/students');

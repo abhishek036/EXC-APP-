@@ -21,9 +21,10 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   bool _loading = true;
   String? _error;
   Map<String, dynamic>? _batch;
+  Map<String, dynamic> _execution = {};
   List<Map<String, dynamic>> _students = [];
   List<Map<String, dynamic>> _doubts = [];
-  final Set<String> _completedTopics = {'Projectile Motion'};
+  final Set<String> _completedTopicIds = {};
 
   @override
   void initState() {
@@ -37,16 +38,43 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       _error = null;
     });
     try {
-      final batches = await _repo.getMyBatches();
+      final batchesFuture = _repo.getMyBatches();
+      final studentsFuture = _repo.getBatchStudents(widget.batchId);
+      final executionFuture = _repo.getBatchExecutionSummary(widget.batchId);
+
+      final batches = await batchesFuture;
+      final students = await studentsFuture;
+      final execution = await executionFuture;
+
       final selected = batches.where((b) => (b['id'] ?? '').toString() == widget.batchId).cast<Map<String, dynamic>>().toList();
-      final batch = selected.isNotEmpty ? selected.first : <String, dynamic>{};
-      final students = await _repo.getBatchStudents(widget.batchId);
-      final doubts = await _repo.getPendingDoubts();
+      final fallbackBatch = selected.isNotEmpty ? selected.first : <String, dynamic>{};
+      final batch = Map<String, dynamic>.from((execution['batch'] as Map?) ?? fallbackBatch);
+
+      final pendingDoubts = (((execution['doubts'] as Map?)?['pending_items']) as List? ?? const [])
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+
+      final topics = (((execution['syllabus'] as Map?)?['topics']) as List? ?? const [])
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+
+      final completedTopicIds = topics
+          .where((topic) => _toNum(topic['completion_percent']) >= 100)
+          .map((topic) => (topic['id'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toSet();
+
       if (!mounted) return;
       setState(() {
         _batch = batch;
+        _execution = execution;
         _students = students;
-        _doubts = doubts.where((d) => ((d['batch'] as Map?)?['id'] ?? '').toString() == widget.batchId).cast<Map<String, dynamic>>().toList();
+        _doubts = pendingDoubts;
+        _completedTopicIds
+          ..clear()
+          ..addAll(completedTopicIds);
         _loading = false;
       });
     } catch (e) {
@@ -103,7 +131,11 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   Widget _overviewTab() {
     final subject = (_batch?['subject'] ?? 'Subject').toString();
     final nextClass = (_batch?['start_time'] ?? '--').toString();
-    const progress = 62;
+    final overview = Map<String, dynamic>.from((_execution['overview'] as Map?) ?? const {});
+    final progress = _toNum(overview['teaching_progress_percent']).round();
+    final lastLecture = Map<String, dynamic>.from((overview['last_lecture'] as Map?) ?? const {});
+    final lastLectureSummary = (lastLecture['title'] ?? lastLecture['description'] ?? 'No lecture summary yet').toString();
+    final studentsCount = _toNum(_batch?['student_count']).toInt();
 
     return ListView(
       padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
@@ -111,9 +143,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         _card(child: Text('Batch Info', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context)))),
         const SizedBox(height: 10),
         _infoCard('Your Subject', subject),
-        _infoCard('Total Students', '${_students.length}'),
+        _infoCard('Total Students', '${studentsCount > 0 ? studentsCount : _students.length}'),
         _infoCard('Teaching Progress', '$progress%'),
-        _infoCard('Last Lecture Summary', 'Projectile Motion numericals + doubts recap'),
+        _infoCard('Last Lecture Summary', lastLectureSummary),
         _infoCard('Upcoming Class', nextClass),
       ],
     );
@@ -151,6 +183,17 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   Widget _lecturesPane() {
+    final topics = (((_execution['syllabus'] as Map?)?['topics']) as List? ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+
+    final selectedTopic = topics.isNotEmpty ? topics.first : null;
+    final selectedTopicName = selectedTopic == null
+        ? 'N/A'
+        : ((selectedTopic['topic_name'] ?? 'Topic').toString());
+    final selectedTopicCompletion = selectedTopic == null ? 0 : _toNum(selectedTopic['completion_percent']).round();
+
     return ListView(
       padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
       children: [
@@ -160,28 +203,32 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
             children: [
               Text('Syllabus Tracker', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
               const SizedBox(height: 8),
-              ...[
-                'Physics',
-                'Mechanics',
-                'Kinematics',
-                'Projectile Motion',
-              ].map((topic) {
-                final completed = _completedTopics.contains(topic);
+              if (topics.isEmpty)
+                Text('No syllabus topics configured for this batch yet.', style: GoogleFonts.dmSans(color: CT.textM(context)))
+              else
+              ...topics.map((topic) {
+                final topicId = (topic['id'] ?? '').toString();
+                final chapter = (topic['chapter_name'] ?? '').toString();
+                final topicName = (topic['topic_name'] ?? 'Topic').toString();
+                final completed = _completedTopicIds.contains(topicId);
+                final completion = _toNum(topic['completion_percent']).round();
                 return CheckboxListTile(
                   value: completed,
                   dense: true,
                   onChanged: (v) {
+                    if (topicId.isEmpty) return;
                     setState(() {
                       if (v == true) {
-                        _completedTopics.add(topic);
+                        _completedTopicIds.add(topicId);
                       } else {
-                        _completedTopics.remove(topic);
+                        _completedTopicIds.remove(topicId);
                       }
                     });
                   },
                   activeColor: const Color(0xFF0D1282),
                   checkColor: const Color(0xFFEEEDED),
-                  title: Text(topic, style: GoogleFonts.dmSans(color: CT.textH(context))),
+                  title: Text(chapter.isEmpty ? topicName : '$chapter → $topicName', style: GoogleFonts.dmSans(color: CT.textH(context))),
+                  subtitle: Text('Class completion: $completion%', style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context))),
                   secondary: completed ? const Icon(Icons.check_circle, color: Color(0xFF0D1282), size: 18) : null,
                   contentPadding: EdgeInsets.zero,
                 );
@@ -198,8 +245,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               const SizedBox(height: 8),
               _miniLine('YouTube Link', 'https://youtu.be/...'),
               _miniLine('Views', '126'),
-              _miniLine('Completion', '67%'),
-              _miniLine('Linked Topic', 'Projectile Motion'),
+              _miniLine('Completion', '$selectedTopicCompletion%'),
+              _miniLine('Linked Topic', selectedTopicName),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -236,15 +283,20 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   Widget _assignmentsPane() => ListView(
         padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
         children: [
-          _card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Assignments', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
-            const SizedBox(height: 8),
-            _miniLine('Pending Evaluation', '11'),
-            _miniLine('Late Submissions', '4'),
-            _miniLine('Deadline', 'Tomorrow 11:59 PM'),
-            const SizedBox(height: 8),
-            Text('Grading UX: left submission + right marks/remarks, swipe next student without reload.', style: GoogleFonts.dmSans(color: CT.textM(context))),
-          ])),
+          Builder(builder: (context) {
+            final assignments = Map<String, dynamic>.from((_execution['assignments'] as Map?) ?? const {});
+            final pending = _toNum(assignments['pending_evaluation_count']).toInt();
+            final late = _toNum(assignments['late_submissions_count']).toInt();
+            return _card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Assignments', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
+              const SizedBox(height: 8),
+              _miniLine('Pending Evaluation', '$pending'),
+              _miniLine('Late Submissions', '$late'),
+              _miniLine('Deadline', 'Configured per assignment'),
+              const SizedBox(height: 8),
+              Text('Grading UX: left submission + right marks/remarks, swipe next student without reload.', style: GoogleFonts.dmSans(color: CT.textM(context))),
+            ]));
+          }),
         ],
       );
 
@@ -282,17 +334,38 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   Widget _testsTab() => ListView(
         padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
         children: [
-          _infoCard('Average Score', '68%'),
-          _infoCard('Topper', 'Riya S. (94%)'),
-          _infoCard('Weak Students', '5 students'),
+          Builder(builder: (context) {
+            final tests = Map<String, dynamic>.from((_execution['tests'] as Map?) ?? const {});
+            final avg = _toNum(tests['avg_score']);
+            final topper = Map<String, dynamic>.from((tests['topper'] as Map?) ?? const {});
+            final topperName = (topper['student_name'] ?? 'N/A').toString();
+            final topperScore = _toNum(topper['score']).toInt();
+            final weak = ((tests['weak_students'] as List?) ?? const []).length;
+
+            return Column(
+              children: [
+                _infoCard('Average Score', avg.toStringAsFixed(1)),
+                _infoCard('Topper', '$topperName ($topperScore)'),
+                _infoCard('Weak Students', '$weak students'),
+              ],
+            );
+          }),
         ],
       );
 
   Widget _attendanceTab() => ListView(
         padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
         children: [
-          _infoCard('Today Attendance', '${_students.isEmpty ? 0 : (_students.length - 2)}/${_students.length} present'),
-          _infoCard('Low Attendance', '4 students highlighted'),
+          Builder(builder: (context) {
+            final attendance = Map<String, dynamic>.from((_execution['attendance'] as Map?) ?? const {});
+            final low = ((attendance['low_attendance_students'] as List?) ?? const []).length;
+            return Column(
+              children: [
+                _infoCard('Today Attendance', 'Mark in attendance tab'),
+                _infoCard('Low Attendance', '$low students highlighted'),
+              ],
+            );
+          }),
           _infoCard('Quick Notify', 'Enabled for low attendance'),
         ],
       );
@@ -304,7 +377,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         ..._doubts.map((d) {
           final student = ((d['student'] as Map?)?['name'] ?? 'Student').toString();
           final question = (d['question_text'] ?? '').toString();
-          final topic = (d['topic'] ?? 'Topic').toString();
+          final topic = (d['topic'] ?? (_batch?['subject'] ?? 'Topic')).toString();
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
@@ -330,6 +403,12 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         }),
       ],
     );
+  }
+
+  num _toNum(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value;
+    return num.tryParse(value.toString()) ?? 0;
   }
 
   Widget _card({required Widget child}) => Container(

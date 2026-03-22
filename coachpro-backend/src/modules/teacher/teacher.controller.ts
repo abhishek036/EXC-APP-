@@ -113,6 +113,8 @@ export class TeacherController {
       const [
         batches,
         pendingDoubts,
+        assignmentsToReview,
+        testsToReview,
         weeklyAttendanceSessions,
         upcomingExams,
         recentQuizzes
@@ -125,6 +127,25 @@ export class TeacherController {
         // Pending doubts assigned to me
         prisma.doubt.count({
           where: { assigned_to_id: teacherId, institute_id: instituteId, status: 'pending' }
+        }),
+        prisma.assignment.count({
+          where: {
+            teacher_id: teacherId,
+            institute_id: instituteId,
+            due_date: {
+              lte: new Date(),
+              gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+            },
+          },
+        }),
+        prisma.quizAttempt.count({
+          where: {
+            institute_id: instituteId,
+            submitted_at: { not: null },
+            quiz: {
+              teacher_id: teacherId,
+            },
+          },
         }),
         // Classes taken this week
         prisma.attendanceSession.count({
@@ -174,6 +195,8 @@ export class TeacherController {
             total_batches: batches.length,
             total_students: totalStudentsAcrossBatches,
             pending_doubts: pendingDoubts,
+            assignments_to_review: assignmentsToReview,
+            tests_to_review: testsToReview,
             classes_this_week: weeklyAttendanceSessions,
             upcoming_exams_count: upcomingExams.length,
           },
@@ -196,6 +219,250 @@ export class TeacherController {
           }))
         },
         message: 'Teacher dashboard fetched'
+      });
+    } catch (error) { next(error); }
+  };
+
+  getBatchExecutionSummary = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const teacher = await prisma.teacher.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! }
+      });
+      if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
+
+      const batchId = req.params.batchId;
+      const instituteId = req.instituteId!;
+
+      const batch = await prisma.batch.findFirst({
+        where: {
+          id: batchId,
+          institute_id: instituteId,
+          teacher_id: teacher.id,
+          is_active: true,
+        },
+        include: {
+          _count: {
+            select: {
+              student_batches: { where: { is_active: true } },
+            },
+          },
+        },
+      });
+      if (!batch) throw new ApiError('Batch not found for this teacher', 404, 'NOT_FOUND');
+
+      const activeLinks = await prisma.studentBatch.findMany({
+        where: { batch_id: batchId, institute_id: instituteId, is_active: true },
+        select: { student_id: true, student: { select: { id: true, name: true } } },
+      });
+      const studentIds = activeLinks.map((s) => s.student_id);
+
+      const [
+        topics,
+        progressRows,
+        lastLecture,
+        assignments,
+        pendingDoubts,
+        quizzes,
+        attempts,
+        attendanceRecords,
+      ] = await Promise.all([
+        prisma.syllabusTopic.findMany({
+          where: { batch_id: batchId, institute_id: instituteId },
+          orderBy: [{ chapter_name: 'asc' }, { order_index: 'asc' }],
+          select: { id: true, chapter_name: true, topic_name: true, subject: true },
+        }),
+        prisma.studentSyllabusProgress.findMany({
+          where: {
+            institute_id: instituteId,
+            is_completed: true,
+            topic: { batch_id: batchId },
+            ...(studentIds.length > 0 ? { student_id: { in: studentIds } } : {}),
+          },
+          select: { topic_id: true, student_id: true },
+        }),
+        prisma.lecture.findFirst({
+          where: { institute_id: instituteId, batch_id: batchId },
+          orderBy: [{ scheduled_at: 'desc' }, { created_at: 'desc' }],
+          select: { title: true, subject: true, description: true, scheduled_at: true },
+        }),
+        prisma.assignment.findMany({
+          where: { institute_id: instituteId, batch_id: batchId },
+          orderBy: { created_at: 'desc' },
+          take: 20,
+          select: { id: true, title: true, due_date: true, created_at: true },
+        }),
+        prisma.doubt.findMany({
+          where: { institute_id: instituteId, batch_id: batchId, assigned_to_id: teacher.id, status: 'pending' },
+          orderBy: { created_at: 'desc' },
+          take: 30,
+          select: {
+            id: true,
+            question_text: true,
+            question_img: true,
+            status: true,
+            created_at: true,
+            student: { select: { id: true, name: true } },
+          },
+        }),
+        prisma.quiz.findMany({
+          where: { institute_id: instituteId, batch_id: batchId, teacher_id: teacher.id },
+          orderBy: { created_at: 'desc' },
+          select: { id: true, title: true, subject: true, created_at: true, is_published: true },
+        }),
+        prisma.quizAttempt.findMany({
+          where: {
+            institute_id: instituteId,
+            quiz: { batch_id: batchId, teacher_id: teacher.id },
+            submitted_at: { not: null },
+          },
+          select: {
+            obtained_marks: true,
+            total_marks: true,
+            student_id: true,
+            student: { select: { id: true, name: true } },
+            quiz: { select: { id: true, title: true } },
+          },
+        }),
+        prisma.attendanceRecord.findMany({
+          where: {
+            institute_id: instituteId,
+            session: { batch_id: batchId },
+            ...(studentIds.length > 0 ? { student_id: { in: studentIds } } : {}),
+          },
+          select: { student_id: true, status: true },
+        }),
+      ]);
+
+      const totalStudents = studentIds.length;
+      const totalTopics = topics.length;
+
+      const byTopic = new Map<string, Set<string>>();
+      for (const row of progressRows) {
+        const set = byTopic.get(row.topic_id) ?? new Set<string>();
+        set.add(row.student_id);
+        byTopic.set(row.topic_id, set);
+      }
+
+      const syllabusTopics = topics.map((topic) => {
+        const completedStudents = byTopic.get(topic.id)?.size ?? 0;
+        const completionPct = totalStudents > 0 ? Math.round((completedStudents / totalStudents) * 100) : 0;
+        return {
+          id: topic.id,
+          chapter_name: topic.chapter_name,
+          topic_name: topic.topic_name,
+          subject: topic.subject,
+          completed_students: completedStudents,
+          completion_percent: completionPct,
+        };
+      });
+
+      const overallProgress = totalTopics > 0
+        ? Math.round(syllabusTopics.reduce((sum, topic) => sum + topic.completion_percent, 0) / totalTopics)
+        : 0;
+
+      const totalAttempts = attempts.length;
+      const avgScore = totalAttempts > 0
+        ? Number((attempts.reduce((sum, a) => sum + (a.obtained_marks ?? 0), 0) / totalAttempts).toFixed(2))
+        : 0;
+
+      let topper: { student_id: string; student_name: string; score: number; quiz_title: string } | null = null;
+      for (const attempt of attempts) {
+        const score = attempt.obtained_marks ?? 0;
+        if (!topper || score > topper.score) {
+          topper = {
+            student_id: attempt.student_id,
+            student_name: attempt.student.name,
+            score,
+            quiz_title: attempt.quiz.title,
+          };
+        }
+      }
+
+      const studentQuizAgg = new Map<string, { name: string; totalPct: number; count: number }>();
+      for (const attempt of attempts) {
+        const total = attempt.total_marks ?? 0;
+        if (total <= 0) continue;
+        const pct = ((attempt.obtained_marks ?? 0) / total) * 100;
+        const current = studentQuizAgg.get(attempt.student_id) ?? { name: attempt.student.name, totalPct: 0, count: 0 };
+        current.totalPct += pct;
+        current.count += 1;
+        studentQuizAgg.set(attempt.student_id, current);
+      }
+      const weakStudentsByTest = Array.from(studentQuizAgg.entries())
+        .map(([studentId, agg]) => ({
+          student_id: studentId,
+          student_name: agg.name,
+          average_percent: agg.count > 0 ? Number((agg.totalPct / agg.count).toFixed(2)) : 0,
+        }))
+        .filter((row) => row.average_percent < 40)
+        .sort((a, b) => a.average_percent - b.average_percent)
+        .slice(0, 10);
+
+      const attendanceAgg = new Map<string, { total: number; presentLike: number }>();
+      for (const record of attendanceRecords) {
+        const current = attendanceAgg.get(record.student_id) ?? { total: 0, presentLike: 0 };
+        current.total += 1;
+        if (record.status === 'present' || record.status === 'late') current.presentLike += 1;
+        attendanceAgg.set(record.student_id, current);
+      }
+      const lowAttendanceStudents = activeLinks
+        .map((link) => {
+          const agg = attendanceAgg.get(link.student_id) ?? { total: 0, presentLike: 0 };
+          const percent = agg.total > 0 ? Number(((agg.presentLike / agg.total) * 100).toFixed(2)) : 0;
+          return {
+            student_id: link.student.id,
+            student_name: link.student.name,
+            attendance_percent: percent,
+          };
+        })
+        .filter((row) => row.attendance_percent < 75)
+        .sort((a, b) => a.attendance_percent - b.attendance_percent)
+        .slice(0, 12);
+
+      const now = new Date();
+      const lateAssignmentsCount = assignments.filter((a) => !!a.due_date && a.due_date < now).length;
+
+      return sendResponse({
+        res,
+        data: {
+          batch: {
+            id: batch.id,
+            name: batch.name,
+            subject: batch.subject,
+            room: batch.room,
+            start_time: batch.start_time,
+            end_time: batch.end_time,
+            days_of_week: batch.days_of_week,
+            student_count: batch._count.student_batches,
+          },
+          overview: {
+            teaching_progress_percent: overallProgress,
+            total_topics: totalTopics,
+            last_lecture: lastLecture,
+            upcoming_class_time: batch.start_time,
+          },
+          syllabus: {
+            topics: syllabusTopics,
+          },
+          assignments: {
+            pending_evaluation_count: 0,
+            late_submissions_count: lateAssignmentsCount,
+          },
+          tests: {
+            total_quizzes: quizzes.length,
+            avg_score: avgScore,
+            topper,
+            weak_students: weakStudentsByTest,
+          },
+          attendance: {
+            low_attendance_students: lowAttendanceStudents,
+          },
+          doubts: {
+            pending_count: pendingDoubts.length,
+            pending_items: pendingDoubts,
+          },
+        },
+        message: 'Teacher batch execution summary fetched',
       });
     } catch (error) { next(error); }
   };
