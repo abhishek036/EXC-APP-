@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -45,6 +46,15 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
     }
   }
 
+  void _handleBack() {
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop();
+      return;
+    }
+    context.go('/teacher');
+  }
+
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF0D1282);
@@ -58,7 +68,7 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _handleBack,
         ),
         title: Text(
           'MY BATCHES',

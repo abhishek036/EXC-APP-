@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../features/teacher/data/repositories/teacher_repository.dart';
 import '../../../../core/di/injection_container.dart';
@@ -45,6 +46,15 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
     }
   }
 
+  void _handleBack() {
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop();
+      return;
+    }
+    context.go('/teacher');
+  }
+
   @override
   Widget build(BuildContext context) {
     const blue = Color(0xFF0D1282);
@@ -59,7 +69,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _handleBack,
         ),
       ),
       body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

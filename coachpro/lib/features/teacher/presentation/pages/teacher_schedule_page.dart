@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/di/injection_container.dart';
@@ -81,6 +82,15 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     }
   }
 
+  void _handleBack() {
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop();
+      return;
+    }
+    context.go('/teacher');
+  }
+
   @override
   Widget build(BuildContext context) {
     const blue = Color(0xFF0D1282);
@@ -94,7 +104,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _handleBack,
         ),
         title: Text('DAILY SCHEDULE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.2)),
       ),
@@ -196,9 +206,9 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     final endTime = scheduled != null
         ? scheduled.add(Duration(minutes: duration.toInt()))
         : null;
-    final end = endTime != null
-      ? '${endTime?.hour.toString().padLeft(2, '0')}:${endTime?.minute.toString().padLeft(2, '0')}'
-        : '--';
+    final end = endTime == null
+      ? '--'
+      : '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
 
     final batch = item['batch'] as Map?;
     final name = (batch?['name'] ?? item['name'] ?? item['batch_name'] ?? 'BATCH').toString().toUpperCase();

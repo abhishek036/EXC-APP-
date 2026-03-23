@@ -305,7 +305,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     final studentName = ((d['student'] as Map?)?['name'] ?? d['student_name'] ?? 'STUDENT').toString();
     final questionText = (d['question_text'] ?? d['question'] ?? '').toString();
     return InkWell(
-      onTap: () => context.push('/teacher/doubts'),
+      onTap: () => context.go('/teacher/doubts'),
       child: Container(
         width: 260,
         margin: const EdgeInsets.only(right: 16),
@@ -355,15 +355,15 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           _drawerTile(Icons.dashboard_rounded, 'DASHBOARD', blue, () => Navigator.pop(context)),
           _drawerTile(Icons.schedule_rounded, 'SCHEDULE', blue, () {
             Navigator.pop(context);
-            context.push('/teacher/schedule');
+            context.go('/teacher/schedule');
           }),
           _drawerTile(Icons.notifications_rounded, 'NOTICES', blue, () {
             Navigator.pop(context);
-            context.push('/teacher/notifications');
+            context.go('/teacher/notifications');
           }),
           _drawerTile(Icons.person_rounded, 'PROFILE', blue, () {
             Navigator.pop(context);
-            context.push('/teacher/profile');
+            context.go('/teacher/profile');
           }),
           const Spacer(),
           const Divider(thickness: 3, color: Colors.black),
