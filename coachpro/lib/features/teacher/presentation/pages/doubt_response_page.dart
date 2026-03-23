@@ -133,7 +133,11 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
 
   Widget _mediaBtn(IconData icon, String label, Color blue, Color surface) {
     return InkWell(
-      onTap: () {},
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$label support will be enabled soon')),
+        );
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(color: surface, border: Border.all(color: Colors.black, width: 2.5), borderRadius: BorderRadius.circular(12), boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(2, 2))]),

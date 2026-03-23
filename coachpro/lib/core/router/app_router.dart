@@ -22,6 +22,7 @@ import '../../features/admin/presentation/pages/add_student_page.dart';
 import '../../features/admin/presentation/pages/student_import_page.dart';
 import '../../features/teacher/presentation/pages/upload_material_page.dart';
 import '../../features/teacher/presentation/pages/create_quiz_page.dart';
+import '../../features/teacher/presentation/pages/attendance_marking_page.dart';
 import '../../features/teacher/presentation/pages/pending_doubts_page.dart';
 import '../../features/teacher/presentation/pages/doubt_response_page.dart';
 import '../../features/student/presentation/pages/quiz_taking_page.dart';
@@ -457,6 +458,7 @@ class AppRouter {
                   name: 'teacher-dashboard',
                   pageBuilder: (c, s) => _page(s, const TeacherDashboardPage()),
                   routes: [
+                    GoRoute(path: 'attendance', name: 'teacher-attendance', pageBuilder: (c, s) => _page(s, const AttendanceMarkingPage())),
                     GoRoute(path: 'upload-material', name: 'upload-material', pageBuilder: (c, s) => _page(s, const UploadMaterialPage())),
                     GoRoute(path: 'create-quiz', name: 'create-quiz', pageBuilder: (c, s) => _page(s, const CreateQuizPage())),
                     GoRoute(path: 'notifications', name: 'teacher-notifications', pageBuilder: (c, s) => _page(s, const NotificationsPage())),

@@ -169,6 +169,10 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
       backgroundColor: blue,
       appBar: AppBar(
         backgroundColor: blue,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text('ASSIGNMENT REVIEW', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: Colors.white)),
       ),
       body: _loading

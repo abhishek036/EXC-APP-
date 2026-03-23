@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../../data/repositories/teacher_repository.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
@@ -299,31 +300,34 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   Widget _doubtCard(Map<String, dynamic> d, Color blue, Color surface, Color yellow) {
     final studentName = ((d['student'] as Map?)?['name'] ?? d['student_name'] ?? 'STUDENT').toString();
     final questionText = (d['question_text'] ?? d['question'] ?? '').toString();
-    return Container(
-      width: 260,
-      margin: const EdgeInsets.only(right: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: surface,
-        border: Border.all(color: Colors.black, width: 3),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(4, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(radius: 12, backgroundColor: blue, child: Text(studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S', style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold))),
-              const SizedBox(width: 8),
-              Text(studentName.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w900, color: blue)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(questionText, style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.3, fontWeight: FontWeight.w600, color: blue.withValues(alpha: 0.8)), maxLines: 2, overflow: TextOverflow.ellipsis),
-          const Spacer(),
-          Text('ANSWER NOW →', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w900, color: blue)),
-        ],
+    return InkWell(
+      onTap: () => context.push('/teacher/doubts'),
+      child: Container(
+        width: 260,
+        margin: const EdgeInsets.only(right: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: surface,
+          border: Border.all(color: Colors.black, width: 3),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(4, 4))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(radius: 12, backgroundColor: blue, child: Text(studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S', style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold))),
+                const SizedBox(width: 8),
+                Text(studentName.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w900, color: blue)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(questionText, style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.3, fontWeight: FontWeight.w600, color: blue.withValues(alpha: 0.8)), maxLines: 2, overflow: TextOverflow.ellipsis),
+            const Spacer(),
+            Text('ANSWER NOW →', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w900, color: blue)),
+          ],
+        ),
       ),
     );
   }
@@ -345,15 +349,24 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
             ),
           ),
           _drawerTile(Icons.dashboard_rounded, 'DASHBOARD', blue, () => Navigator.pop(context)),
-          _drawerTile(Icons.schedule_rounded, 'SCHEDULE', blue, () {}),
-          _drawerTile(Icons.notifications_rounded, 'NOTICES', blue, () {}),
-          _drawerTile(Icons.person_rounded, 'PROFILE', blue, () {}),
+          _drawerTile(Icons.schedule_rounded, 'SCHEDULE', blue, () {
+            Navigator.pop(context);
+            context.push('/teacher/schedule');
+          }),
+          _drawerTile(Icons.notifications_rounded, 'NOTICES', blue, () {
+            Navigator.pop(context);
+            context.push('/teacher/notifications');
+          }),
+          _drawerTile(Icons.person_rounded, 'PROFILE', blue, () {
+            Navigator.pop(context);
+            context.push('/teacher/profile');
+          }),
           const Spacer(),
           const Divider(thickness: 3, color: Colors.black),
           _drawerTile(Icons.logout_rounded, 'SIGN OUT', const Color(0xFFD71313), () async {
             final storage = sl<SecureStorageService>();
             await storage.clearAll();
-            if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+            if (mounted) context.go('/login');
           }),
           const SizedBox(height: 40),
         ],
@@ -383,9 +396,9 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           children: [
             Text('COMMAND CENTER', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w900, color: blue, letterSpacing: 1)),
             const SizedBox(height: 24),
-            _actionTile('UP ATTENDANCE', Icons.check_circle_rounded, blue, () { Navigator.pop(ctx); Navigator.pushNamed(context, '/teacher/attendance'); }),
-            _actionTile('UP MATERIAL', Icons.cloud_upload_rounded, blue, () { Navigator.pop(ctx); Navigator.pushNamed(context, '/teacher/upload-material'); }),
-            _actionTile('CREATE QUIZ', Icons.quiz_rounded, blue, () { Navigator.pop(ctx); Navigator.pushNamed(context, '/teacher/create-quiz'); }),
+            _actionTile('UP ATTENDANCE', Icons.check_circle_rounded, blue, () { Navigator.pop(ctx); context.push('/teacher/attendance'); }),
+            _actionTile('UP MATERIAL', Icons.cloud_upload_rounded, blue, () { Navigator.pop(ctx); context.push('/teacher/upload-material'); }),
+            _actionTile('CREATE QUIZ', Icons.quiz_rounded, blue, () { Navigator.pop(ctx); context.push('/teacher/create-quiz'); }),
             const SizedBox(height: 20),
           ],
         ),

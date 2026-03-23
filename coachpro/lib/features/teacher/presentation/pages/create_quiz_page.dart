@@ -142,7 +142,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
         backgroundColor: blue,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text('CREATE QUIZ', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.0)),
