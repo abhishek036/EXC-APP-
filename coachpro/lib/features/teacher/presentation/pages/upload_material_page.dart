@@ -4,7 +4,23 @@ import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/teacher_repository.dart';
 
 class UploadMaterialPage extends StatefulWidget {
-  const UploadMaterialPage({super.key});
+  final String? initialBatchId;
+  final String? initialType;
+  final String? initialSubject;
+
+  const UploadMaterialPage({
+    super.key,
+    this.initialBatchId,
+    this.initialType,
+    this.initialSubject,
+  });
+
+  const UploadMaterialPage.withInitials({
+    super.key,
+    this.initialBatchId,
+    this.initialType,
+    this.initialSubject,
+  });
 
   @override
   State<UploadMaterialPage> createState() => _UploadMaterialPageState();
@@ -28,6 +44,12 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialType != null && widget.initialType!.trim().isNotEmpty) {
+      _selectedType = widget.initialType!.trim();
+    }
+    if (widget.initialSubject != null && widget.initialSubject!.trim().isNotEmpty) {
+      _selectedSubject = widget.initialSubject!.trim();
+    }
     _loadBatches();
   }
 
@@ -39,8 +61,13 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         _batches = b;
         _isLoadingBatches = false;
         if (b.isNotEmpty) {
-          _selectedBatchId = b.first['id']?.toString();
-          _selectedSubject = b.first['subject']?.toString() ?? 'General';
+          final pre = widget.initialBatchId;
+          final matched = (pre != null && pre.isNotEmpty)
+              ? b.where((item) => (item['id'] ?? '').toString() == pre).toList()
+              : const <Map<String, dynamic>>[];
+          final selected = matched.isNotEmpty ? matched.first : b.first;
+          _selectedBatchId = (selected['id'] ?? '').toString();
+          _selectedSubject = widget.initialSubject ?? selected['subject']?.toString() ?? 'General';
         }
       });
     } catch (e) {

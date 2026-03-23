@@ -7,7 +7,14 @@ import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/teacher_repository.dart';
 
 class CreateQuizPage extends StatefulWidget {
-  const CreateQuizPage({super.key});
+  final String? initialBatchId;
+  final String? initialSubject;
+
+  const CreateQuizPage({
+    super.key,
+    this.initialBatchId,
+    this.initialSubject,
+  });
 
   @override
   State<CreateQuizPage> createState() => _CreateQuizPageState();
@@ -30,6 +37,9 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialSubject != null && widget.initialSubject!.trim().isNotEmpty) {
+      _selectedSubject = widget.initialSubject!.trim();
+    }
     _loadBatches();
     _addEmptyQuestion();
   }
@@ -42,8 +52,13 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
         _batches = b;
         _isLoadingBatches = false;
         if (b.isNotEmpty) {
-          _selectedBatchId = b.first['id']?.toString();
-          _selectedSubject = b.first['subject']?.toString() ?? 'General';
+          final pre = widget.initialBatchId;
+          final matched = (pre != null && pre.isNotEmpty)
+              ? b.where((item) => (item['id'] ?? '').toString() == pre).toList()
+              : const <Map<String, dynamic>>[];
+          final selected = matched.isNotEmpty ? matched.first : b.first;
+          _selectedBatchId = (selected['id'] ?? '').toString();
+          _selectedSubject = widget.initialSubject ?? selected['subject']?.toString() ?? 'General';
         }
       });
     } catch (e) {

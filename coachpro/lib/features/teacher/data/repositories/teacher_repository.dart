@@ -109,10 +109,10 @@ class TeacherRepository {
     required String answer,
   }) async {
     final response = await _api.dio.put('doubts/$doubtId/answer', data: {
-      'answer': answer,
+      'answer_text': answer,
     });
     if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
     throw Exception(response.data['message'] ?? 'Failed to answer doubt');
   }
@@ -129,13 +129,13 @@ class TeacherRepository {
     final response = await _api.dio.post('content/notes', data: {
       'title': title,
       'subject': subject,
-      'type': type,
-      'batchId': batchId,
-      'fileUrl': fileUrl,
+      'file_type': type,
+      'batch_id': batchId,
+      'file_url': fileUrl,
       'description': description,
     });
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
     throw Exception(response.data['message'] ?? 'Failed to upload material');
   }
@@ -148,15 +148,35 @@ class TeacherRepository {
     required int timeLimit,
     required List<Map<String, dynamic>> questions,
   }) async {
+    final normalizedQuestions = questions.map((item) {
+      final options = (item['options'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[];
+      final correctIdx = item['correct_option_index'] is int
+          ? item['correct_option_index'] as int
+          : int.tryParse(item['correct_option_index']?.toString() ?? '0') ?? 0;
+
+      const alpha = ['A', 'B', 'C', 'D'];
+      final correctOption = (correctIdx >= 0 && correctIdx < alpha.length) ? alpha[correctIdx] : 'A';
+
+      return <String, dynamic>{
+        'question_text': item['question_text']?.toString() ?? '',
+        'option_a': options.isNotEmpty ? options[0] : '',
+        'option_b': options.length > 1 ? options[1] : '',
+        'option_c': options.length > 2 ? options[2] : '',
+        'option_d': options.length > 3 ? options[3] : '',
+        'correct_option': correctOption,
+        'marks': item['marks'] ?? 1,
+      };
+    }).toList();
+
     final response = await _api.dio.post('quizzes', data: {
       'title': title,
       'subject': subject,
-      'batchId': batchId,
-      'timeLimit': timeLimit,
-      'questions': questions,
+      'batch_id': batchId,
+      'time_limit_min': timeLimit,
+      'questions': normalizedQuestions,
     });
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
     throw Exception(response.data['message'] ?? 'Failed to create quiz');
   }
@@ -168,6 +188,50 @@ class TeacherRepository {
       return _extractList(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch results');
+  }
+
+  Future<List<Map<String, dynamic>>> getAssignments({String? batchId}) async {
+    final response = await _api.dio.get(
+      'content/assignments',
+      queryParameters: {
+        if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
+      },
+    );
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch assignments');
+  }
+
+  Future<List<Map<String, dynamic>>> getAssignmentSubmissions(String assignmentId) async {
+    final response = await _api.dio.get('content/assignments/$assignmentId/submissions');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch assignment submissions');
+  }
+
+  Future<Map<String, dynamic>> reviewAssignmentSubmission({
+    required String submissionId,
+    required String status,
+    num? marksObtained,
+    String? remarks,
+  }) async {
+    final payload = <String, dynamic>{
+      'status': status,
+      'marks_obtained': marksObtained,
+      'remarks': remarks?.trim(),
+    };
+    payload.removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+
+    final response = await _api.dio.patch(
+      'content/assignments/submissions/$submissionId/review',
+      data: payload,
+    );
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to review submission');
   }
 
   // ── Weekly Stats ─────────────────────────────────────────

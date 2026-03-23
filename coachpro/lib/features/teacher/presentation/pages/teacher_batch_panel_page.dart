@@ -4,8 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/teacher_repository.dart';
+import 'assignment_review_page.dart';
 import 'attendance_marking_page.dart';
 import 'quiz_results_page.dart';
+import 'upload_material_page.dart';
 
 class TeacherBatchPanelPage extends StatefulWidget {
   final String batchId;
@@ -26,6 +28,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   List<Map<String, dynamic>> _students = [];
   List<Map<String, dynamic>> _doubts = [];
   final Set<String> _completedTopicIds = {};
+  String _studentFilter = 'all';
+  bool _isReplying = false;
 
   @override
   void initState() {
@@ -346,6 +350,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   Widget _simpleListPane(String title, Color bg, Color yellow, Color blue) {
+    final contentType = title.toLowerCase() == 'notes' ? 'note' : 'video';
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -357,7 +362,22 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(title.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
-                  _ActionBtn(label: 'ADD NEW', icon: Icons.add, blue: blue, yellow: yellow, onPressed: () {}),
+                  _ActionBtn(
+                    label: 'ADD NEW',
+                    icon: Icons.add,
+                    blue: blue,
+                    yellow: yellow,
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UploadMaterialPage.withInitials(
+                          initialBatchId: widget.batchId,
+                          initialType: contentType,
+                          initialSubject: (_batch?['subject'] ?? '').toString(),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -380,6 +400,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   Widget _assignmentsPane(Color bg, Color yellow, Color blue) {
     final assignments = Map<String, dynamic>.from((_execution['assignments'] as Map?) ?? const {});
     final pending = _toNum(assignments['pending_evaluation_count']).toInt();
+    final late = _toNum(assignments['late_submissions_count']).toInt();
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -392,7 +413,22 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('ASSIGNMENTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
-                  _ActionBtn(label: 'NEW', icon: Icons.add, blue: blue, yellow: yellow, onPressed: () {}),
+                  _ActionBtn(
+                    label: 'NEW',
+                    icon: Icons.add,
+                    blue: blue,
+                    yellow: yellow,
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UploadMaterialPage.withInitials(
+                          initialBatchId: widget.batchId,
+                          initialType: 'assignment',
+                          initialSubject: (_batch?['subject'] ?? '').toString(),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -409,6 +445,27 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                   ],
                 ),
               ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('LATE SUBMISSIONS: $late', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 11, color: blue.withValues(alpha: 0.7))),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => AssignmentReviewPage(batchId: widget.batchId)),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: blue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      side: BorderSide(color: blue, width: 2),
+                    ),
+                    child: Text('REVIEW NOW', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 11)),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -417,37 +474,89 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   Widget _studentsTab(Color bg, Color yellow, Color blue) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: _students.length,
-      itemBuilder: (context, index) {
-        final s = _students[index];
-        final name = (s['name'] ?? 'Student').toString();
-        return _PremiumCard(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Row(
+    final attendance = Map<String, dynamic>.from((_execution['attendance'] as Map?) ?? const {});
+    final tests = Map<String, dynamic>.from((_execution['tests'] as Map?) ?? const {});
+    final lowAttendanceIds = (((attendance['low_attendance_students'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((e) => (e['student_id'] ?? '').toString())
+            .where((e) => e.isNotEmpty))
+        .toSet();
+    final weakIds = (((tests['weak_students'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((e) => (e['student_id'] ?? '').toString())
+            .where((e) => e.isNotEmpty))
+        .toSet();
+    final pendingWorkIds = (_doubts
+            .map((e) => ((e['student'] as Map?)?['id'] ?? '').toString())
+            .where((e) => e.isNotEmpty))
+        .toSet();
+
+    final filtered = _students.where((s) {
+      final id = (s['id'] ?? '').toString();
+      if (_studentFilter == 'low_attendance') return lowAttendanceIds.contains(id);
+      if (_studentFilter == 'weak') return weakIds.contains(id);
+      if (_studentFilter == 'pending_work') return pendingWorkIds.contains(id);
+      return true;
+    }).toList();
+
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-               Container(
-                 width: 40, height: 40,
-                 decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(4)),
-                 alignment: Alignment.center,
-                 child: Text(name.isNotEmpty ? name[0] : 'S', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
-               ),
-               const SizedBox(width: 16),
-               Expanded(
-                 child: Column(
-                   crossAxisAlignment: CrossAxisAlignment.start,
-                   children: [
-                     Text(name.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14, color: blue)),
-                     Text('RANK: #${index + 1} • ATTN: 92%', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 10, color: blue.withValues(alpha: 0.5))),
-                   ],
-                 ),
-               ),
-               Icon(Icons.more_vert_rounded, color: blue),
+              _filterChip('ALL', 'all', blue, yellow),
+              _filterChip('LOW ATTN', 'low_attendance', blue, yellow),
+              _filterChip('WEAK', 'weak', blue, yellow),
+              _filterChip('PENDING', 'pending_work', blue, yellow),
             ],
           ),
-        );
-      },
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: filtered.length,
+            itemBuilder: (context, index) {
+              final s = filtered[index];
+              final name = (s['name'] ?? 'Student').toString();
+              final id = (s['id'] ?? '').toString();
+              final tag = lowAttendanceIds.contains(id)
+                  ? 'LOW ATTN'
+                  : weakIds.contains(id)
+                      ? 'WEAK'
+                      : pendingWorkIds.contains(id)
+                          ? 'PENDING'
+                          : 'OK';
+              return _PremiumCard(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                     Container(
+                       width: 40, height: 40,
+                       decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(4)),
+                       alignment: Alignment.center,
+                       child: Text(name.isNotEmpty ? name[0] : 'S', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
+                     ),
+                     const SizedBox(width: 16),
+                     Expanded(
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           Text(name.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14, color: blue)),
+                           Text('STATUS: $tag', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 10, color: blue.withValues(alpha: 0.5))),
+                         ],
+                       ),
+                     ),
+                     Icon(Icons.more_vert_rounded, color: blue),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -555,7 +664,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                   const SizedBox(height: 12),
                   Text(question, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 14, color: blue)),
                   const SizedBox(height: 16),
-                  _ActionBtn(label: 'RESPOND', icon: Icons.reply, blue: blue, yellow: yellow, onPressed: () {}),
+                  _ActionBtn(label: 'RESPOND', icon: Icons.reply, blue: blue, yellow: yellow, onPressed: () => _openReplySheet(d, blue, yellow)),
                 ],
               ),
             );
@@ -568,6 +677,89 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     if (value == null) return 0;
     if (value is num) return value;
     return num.tryParse(value.toString()) ?? 0;
+  }
+
+  Widget _filterChip(String label, String value, Color blue, Color yellow) {
+    final selected = _studentFilter == value;
+    return InkWell(
+      onTap: () => setState(() => _studentFilter = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? yellow : Colors.white,
+          border: Border.all(color: blue, width: 2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue)),
+      ),
+    );
+  }
+
+  Future<void> _openReplySheet(Map<String, dynamic> doubt, Color blue, Color yellow) async {
+    final ctrl = TextEditingController();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEEEDED),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border.all(color: blue, width: 2),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('RESPOND TO DOUBT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: ctrl,
+                minLines: 3,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  hintText: 'Type answer...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isReplying
+                      ? null
+                      : () async {
+                          await _submitDoubtReply(doubt, ctrl.text.trim());
+                          if (ctx.mounted) Navigator.pop(ctx);
+                        },
+                  style: ElevatedButton.styleFrom(backgroundColor: yellow, foregroundColor: blue),
+                  child: Text(_isReplying ? 'SAVING...' : 'SEND'),
+                ),
+              )
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _submitDoubtReply(Map<String, dynamic> doubt, String answer) async {
+    final doubtId = (doubt['id'] ?? '').toString();
+    if (doubtId.isEmpty || answer.isEmpty) return;
+    setState(() => _isReplying = true);
+    try {
+      await _teacherRepo.answerDoubt(doubtId: doubtId, answer: answer);
+      if (!mounted) return;
+      setState(() => _doubts.removeWhere((item) => (item['id'] ?? '').toString() == doubtId));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Doubt resolved')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+    } finally {
+      if (mounted) setState(() => _isReplying = false);
+    }
   }
 }
 

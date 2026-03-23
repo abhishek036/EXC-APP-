@@ -136,7 +136,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
         Row(children: [
           Expanded(child: _btn('REPLY', () => _openReplySheet(d), yellow, blue, true)),
           const SizedBox(width: 12),
-          Expanded(child: _btn('VIEW IMAGE', () {}, surface, blue, false)),
+          Expanded(child: _btn('VIEW IMAGE', () => _openImagePreview(d), surface, blue, false)),
         ]),
       ]),
     ).animate().fadeIn().slideX(begin: 0.05);
@@ -227,6 +227,46 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
     } finally {
       if (mounted) setState(() => _isReplying = false);
     }
+  }
+
+  Future<void> _openImagePreview(Map<String, dynamic> doubt) async {
+    final imageUrl = (doubt['image_url'] ?? doubt['attachment_url'] ?? '').toString().trim();
+    if (imageUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No image attached')));
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          constraints: const BoxConstraints(maxHeight: 560),
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ),
+              Expanded(
+                child: InteractiveViewer(
+                  minScale: 0.8,
+                  maxScale: 4,
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, error, stackTrace) => const Center(child: Text('Failed to load image')),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildEmptyState(Color blue, Color yellow) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [

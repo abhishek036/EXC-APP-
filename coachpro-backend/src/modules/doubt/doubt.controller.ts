@@ -5,7 +5,8 @@ import { sendResponse } from '../../utils/response';
 export class DoubtController {
   static async listDoubts(req: Request, res: Response, next: NextFunction) {
     try {
-      const doubts = await DoubtService.listDoubts(req.user!.userId, req.instituteId!, req.user!.role);
+      const status = typeof req.query.status === 'string' ? req.query.status : undefined;
+      const doubts = await DoubtService.listDoubts(req.user!.userId, req.instituteId!, req.user!.role, status);
       return sendResponse({ res, data: doubts });
     } catch (error) {
       next(error);

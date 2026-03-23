@@ -24,6 +24,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   StreamSubscription<Map<String, dynamic>>? _syncSub;
   
   Map<String, dynamic>? _dashboardData;
+  List<Map<String, dynamic>> _pendingDoubts = [];
   bool _isLoading = true;
   String? _error;
 
@@ -59,10 +60,16 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       _error = null;
     });
     try {
-      final data = await _teacherRepo.getDashboardStats();
+      final results = await Future.wait([
+        _teacherRepo.getDashboardStats(),
+        _teacherRepo.getPendingDoubts(),
+      ]);
+      final data = Map<String, dynamic>.from(results[0] as Map<String, dynamic>);
+      final doubts = List<Map<String, dynamic>>.from(results[1] as List<Map<String, dynamic>>);
       if (!mounted) return;
       setState(() {
         _dashboardData = data;
+        _pendingDoubts = doubts;
         _isLoading = false;
       });
     } catch (e) {
@@ -272,7 +279,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   );
 
   Widget _buildDoubtsSection(Color blue, Color surface, Color yellow) {
-    final doubts = _dashboardData?['doubts'] as List? ?? [];
+    final doubts = _pendingDoubts;
     if (doubts.isEmpty) return _emptyStatus('CLEAN SLATE! NO DOUBTS.', blue, surface);
 
     return SizedBox(
@@ -282,7 +289,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         clipBehavior: Clip.none,
         itemCount: doubts.length,
         itemBuilder: (context, i) {
-          final d = doubts[i] as Map<String, dynamic>;
+          final d = doubts[i];
           return _doubtCard(d, blue, surface, yellow);
         },
       ),
@@ -290,6 +297,8 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   }
 
   Widget _doubtCard(Map<String, dynamic> d, Color blue, Color surface, Color yellow) {
+    final studentName = ((d['student'] as Map?)?['name'] ?? d['student_name'] ?? 'STUDENT').toString();
+    final questionText = (d['question_text'] ?? d['question'] ?? '').toString();
     return Container(
       width: 260,
       margin: const EdgeInsets.only(right: 16),
@@ -305,13 +314,13 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         children: [
           Row(
             children: [
-              CircleAvatar(radius: 12, backgroundColor: blue, child: Text((d['student_name'] ?? 'S')[0], style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold))),
+              CircleAvatar(radius: 12, backgroundColor: blue, child: Text(studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S', style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold))),
               const SizedBox(width: 8),
-              Text(d['student_name'] ?? 'STUDENT', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w900, color: blue)),
+              Text(studentName.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w900, color: blue)),
             ],
           ),
           const SizedBox(height: 12),
-          Text(d['question_text'] ?? '', style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.3, fontWeight: FontWeight.w600, color: blue.withValues(alpha: 0.8)), maxLines: 2, overflow: TextOverflow.ellipsis),
+          Text(questionText, style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.3, fontWeight: FontWeight.w600, color: blue.withValues(alpha: 0.8)), maxLines: 2, overflow: TextOverflow.ellipsis),
           const Spacer(),
           Text('ANSWER NOW →', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w900, color: blue)),
         ],

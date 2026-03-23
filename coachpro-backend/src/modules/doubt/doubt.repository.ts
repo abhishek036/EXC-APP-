@@ -22,11 +22,12 @@ export class DoubtRepository {
     });
   }
 
-  static async listForTeacher(teacherId: string, instituteId: string) {
+  static async listForTeacher(teacherId: string, instituteId: string, status?: string) {
     return prisma.doubt.findMany({
       where: {
         assigned_to_id: teacherId,
         institute_id: instituteId,
+        ...(status ? { status } : {}),
       },
       include: {
         batch: { select: { name: true } },
@@ -39,11 +40,11 @@ export class DoubtRepository {
     });
   }
 
-  static async listAllPending(instituteId: string) {
+  static async listAllPending(instituteId: string, status?: string) {
     return prisma.doubt.findMany({
       where: {
          institute_id: instituteId,
-         status: 'pending'
+         ...(status ? { status } : { status: 'pending' }),
       },
       include: {
         batch: { select: { name: true, teacher_id: true } },
