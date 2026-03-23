@@ -29,7 +29,7 @@ Teacher UI must:
 
 1. Home
 2. My Batches
-3. Doubts 🔥 (NEW - critical)
+3. Doubts 🔥 (Global Doubt Inbox across assigned batches)
 4. Schedule 🔥
 5. Profile / More
 
@@ -127,6 +127,64 @@ Physics
 * Notes
 * Assignments
 * Materials
+
+## 📁 MATERIALS (STATIC RESOURCES)
+
+Definition:
+
+* Materials = static learning files/resources (PDFs, slide decks, datasets, images, media files).
+* Lectures = time-based teaching sessions with schedule/attendance context.
+* Notes = teacher-authored textual/class-summary content.
+
+Teacher actions:
+
+* Upload single file
+* Bulk upload
+* Create folders/subfolders
+* Move/organize items
+* Rename
+* Delete
+* Versioning (new version on same material id)
+* Set visibility/publish date
+* Attach metadata/tags
+* Enforce file type + size limits
+* Download
+
+UI/UX behavior:
+
+* Folder tree (left) + content pane (right)
+* List/Grid toggle
+* Search + filter by tag/type/date
+* Batch actions (move/delete/tag/visibility)
+* Inline preview (PDF/image/video when supported)
+* Upload progress + validation errors per file
+
+Material item example fields:
+
+* id
+* title
+* description
+* type
+* fileUrl
+* size
+* uploadedBy
+* uploadedAt
+* version
+* visibility
+* tags
+
+Backend/API + permission requirements:
+
+* Endpoints: upload, bulk-upload, download, list, move, rename, delete, version-create
+* Storage quota checks per institute/batch
+* Access control: teacher can manage materials only for assigned batches
+* Audit logs for upload/move/rename/delete/visibility changes
+
+Integration points:
+
+* Assignment attachments
+* Classroom share in live/post-class flow
+* LMS export
 
 ---
 
@@ -266,7 +324,23 @@ Teacher can:
 
 👉 This was missing earlier → now core feature
 
-## Global Doubt Inbox
+## Global Doubt Inbox (Top-level "Doubts" navigation)
+
+Scope:
+
+* Shows doubts across ALL batches assigned to the teacher.
+* Includes optional batch filter (All Batches + per-batch filter).
+* Fast triage view for cross-batch pending doubts.
+
+## Batch Doubts (Teacher Batch Panel → "Doubts" tab)
+
+* Same doubt objects, but pre-filtered to the currently opened batch.
+* Use this when resolving doubts in batch context alongside attendance/tests/students.
+
+Terminology rule:
+
+* "Doubts" in global navigation = Global Doubt Inbox.
+* "Doubts" inside Teacher Batch Panel = Batch-scoped doubts view.
 
 Each card:
 
@@ -338,8 +412,20 @@ Inside batch:
 Teacher CANNOT:
 
 * Manage fees
-* Add/remove students globally
-* Change batch structure
+* Add/remove students globally (outside assigned batches)
+
+Teacher & Batch permission matrix (explicit):
+
+* Add student to assigned batch: ❌ Direct add not allowed, ✅ Request add allowed
+* Remove student from assigned batch: ❌ Direct remove not allowed, ✅ Request remove allowed
+* Add/remove students globally: ❌ Not allowed
+
+Change batch structure (granular):
+
+* Schedule (class timings) for assigned batch: ✅ Allowed
+* Syllabus/content for assigned batch: ✅ Allowed (teaching progress/content organization)
+* Student roster for assigned batch: ❌ Direct change not allowed (request workflow only)
+* Batch settings (name/capacity/fee/core policy): ❌ Not allowed
 
 ---
 

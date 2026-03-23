@@ -14,7 +14,21 @@ export class LectureRepository {
     });
   }
 
-  static async listByBatch(batchId: string, instituteId: string) {
+  static async listByBatch(
+    batchId: string,
+    instituteId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      title: string | null;
+      scheduled_at: Date | null;
+      duration_minutes?: number | null;
+      created_at: Date | null;
+      teacher_id: string | null;
+      batch_id: string;
+      is_active: boolean | null;
+    }>
+  > {
     try {
       return await prisma.lecture.findMany({
         where: {

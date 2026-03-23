@@ -34,6 +34,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   List<Map<String, dynamic>> _doubts = [];
   final Set<String> _completedTopicIds = {};
   final Set<String> _manualWeakIds = {};
+  final Set<String> _removedWeakIds = {};
   String _studentFilter = 'all';
   bool _isReplying = false;
 
@@ -493,7 +494,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
             .map((e) => (e['student_id'] ?? '').toString())
             .where((e) => e.isNotEmpty))
         .toSet();
-    final effectiveWeakIds = {...weakIds, ..._manualWeakIds};
+    final effectiveWeakIds = ({...weakIds, ..._manualWeakIds}..removeAll(_removedWeakIds));
     final pendingWorkIds = (_doubts
             .map((e) => ((e['student'] as Map?)?['id'] ?? '').toString())
             .where((e) => e.isNotEmpty))
@@ -569,12 +570,18 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                            return;
                          }
                          if (value == 'mark_weak') {
-                           setState(() => _manualWeakIds.add(id));
+                           setState(() {
+                             _manualWeakIds.add(id);
+                             _removedWeakIds.remove(id);
+                           });
                            _showActionSnack('${name.toUpperCase()} marked as WEAK');
                            return;
                          }
                          if (value == 'remove_weak') {
-                           setState(() => _manualWeakIds.remove(id));
+                           setState(() {
+                             _manualWeakIds.remove(id);
+                             _removedWeakIds.add(id);
+                           });
                            _showActionSnack('${name.toUpperCase()} removed from WEAK');
                            return;
                          }

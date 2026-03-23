@@ -24,6 +24,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   StreamSubscription<Map<String, dynamic>>? _syncSub;
   Timer? _pollingTimer;
+  bool _isLoadInFlight = false;
   
   Map<String, dynamic>? _dashboardData;
   List<Map<String, dynamic>> _pendingDoubts = [];
@@ -41,7 +42,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   void _startAutoRefresh() {
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 20), (_) {
-      if (!mounted) return;
+      if (!mounted || _isLoadInFlight) return;
       _loadDashboard();
     });
   }
@@ -60,7 +61,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           reason.contains('schedule') ||
           reason.contains('lecture') ||
           reason.contains('attendance');
-      if (shouldRefresh) {
+      if (shouldRefresh && !_isLoadInFlight) {
         _loadDashboard();
       }
     });
@@ -74,7 +75,8 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   }
 
   Future<void> _loadDashboard() async {
-    if (!mounted) return;
+    if (!mounted || _isLoadInFlight) return;
+    _isLoadInFlight = true;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -98,6 +100,8 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         _error = e.toString();
         _isLoading = false;
       });
+    } finally {
+      _isLoadInFlight = false;
     }
   }
 

@@ -494,7 +494,9 @@ class AppRouter {
                           'attendance': 4,
                           'doubts': 5,
                         };
-                        final tabIndex = tabMap[tabQuery] ?? int.tryParse(tabQuery) ?? 0;
+                        final rawTabIndex = tabMap[tabQuery] ?? int.tryParse(tabQuery) ?? 0;
+                        final maxIndex = tabMap.length - 1;
+                        final tabIndex = rawTabIndex.clamp(0, maxIndex).toInt();
                         return _page(
                           s,
                           TeacherBatchPanelPage(

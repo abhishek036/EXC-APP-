@@ -245,13 +245,13 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
   }
 
   Future<void> _openImagePreview(Map<String, dynamic> doubt) async {
-    final imageUrl = (
-      doubt['question_img'] ??
-      doubt['answer_img'] ??
-      doubt['image_url'] ??
-      doubt['attachment_url'] ??
-      ''
-    ).toString().trim();
+    final imageCandidates = [
+      doubt['question_img'],
+      doubt['answer_img'],
+      doubt['image_url'],
+      doubt['attachment_url'],
+    ].map((value) => (value ?? '').toString().trim()).toList();
+    final imageUrl = imageCandidates.firstWhere((value) => value.isNotEmpty, orElse: () => '');
     if (imageUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No image attached')));
       return;

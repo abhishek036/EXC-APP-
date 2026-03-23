@@ -43,21 +43,27 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
       if (!mounted) return;
       setState(() {
         _batches = batches;
-        if (batches.isNotEmpty) {
-          _selectedBatchId = (batches.first['id'] ?? batches.first['batch_id'] ?? '').toString();
+        if (batches.isEmpty) {
+          _selectedBatchId = null;
+        } else {
+          final firstValid = batches
+              .map((b) => (b['id'] ?? b['batch_id'] ?? '').toString())
+              .firstWhere((id) => id.isNotEmpty, orElse: () => '');
+          _selectedBatchId = firstValid.isNotEmpty ? firstValid : null;
         }
       });
-      if (_selectedBatchId != null && _selectedBatchId!.isNotEmpty) {
+      if (_safeSelectedBatchId != null) {
         await _loadStudents();
       }
     } catch (_) {}
   }
 
   Future<void> _loadStudents() async {
-    if (!mounted || _selectedBatchId == null) return;
+    final batchId = _safeSelectedBatchId;
+    if (!mounted || batchId == null) return;
     setState(() => _isLoading = true);
     try {
-      final data = await _teacherRepo.getBatchStudents(_selectedBatchId!);
+      final data = await _teacherRepo.getBatchStudents(batchId);
       if (!mounted) return;
       setState(() {
         _students = data.map((e) => _AttStudent.fromMap(e)).toList();
@@ -73,7 +79,8 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
   int get _lateCount => _students.where((s) => s.status == 'L').length;
 
   Future<void> _submitAttendance(String teacherUid) async {
-    if (_selectedBatchId == null || _selectedBatchId!.isEmpty) {
+    final batchId = _safeSelectedBatchId;
+    if (batchId == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a batch first')));
       return;
     }
@@ -87,7 +94,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
       final records = _students.map((s) => {'student_id': s.id, 'status': statusMap[s.status] ?? 'present'}).toList();
 
       await _teacherRepo.markAttendance(
-        batchId: _selectedBatchId!,
+        batchId: batchId,
         sessionDate: sessionDate,
         records: records,
       );

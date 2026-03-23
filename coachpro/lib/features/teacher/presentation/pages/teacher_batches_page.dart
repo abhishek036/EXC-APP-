@@ -280,7 +280,7 @@ class _BatchCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.fiber_manual_record_rounded, size: 12, color: statusText == 'ONGOING' ? const Color(0xFF0D1282) : AppColors.coralRed),
+                      Icon(Icons.fiber_manual_record_rounded, size: 12, color: statusText == 'ONGOING' ? blue : AppColors.coralRed),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(

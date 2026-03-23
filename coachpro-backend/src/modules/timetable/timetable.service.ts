@@ -2,6 +2,8 @@ import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
 
 export class TimetableService {
+  private readonly logger = console;
+
   private isMissingLectureDurationColumn(error: unknown): boolean {
     const code = (error as any)?.code;
     const column = (error as any)?.meta?.column;
@@ -140,7 +142,8 @@ export class TimetableService {
       });
     } catch (error) {
       if (!this.isMissingLectureDurationColumn(error)) throw error;
-      return prisma.lecture.create({
+      this.logger.warn('[TimetableService] lectures.duration_minutes column missing; using scheduleLecture fallback create path');
+      const createdLecture = await prisma.lecture.create({
         data: {
           institute_id: instituteId,
           batch_id: data.batchId,
@@ -156,6 +159,10 @@ export class TimetableService {
           teacher_id: true,
         },
       });
+      return {
+        ...createdLecture,
+        duration_minutes: data.duration ?? null,
+      };
     }
   }
 

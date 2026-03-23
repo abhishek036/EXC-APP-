@@ -146,14 +146,29 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       return value;
     }
     if (value.contains('.')) {
-      return 'https://$value';
+      final candidate = 'https://$value';
+      final uri = Uri.tryParse(candidate);
+      final host = uri?.host ?? '';
+      if (!_hasPlausibleDomainHost(host)) return null;
+      return candidate;
     }
     return null;
   }
 
+  bool _hasPlausibleDomainHost(String host) {
+    final parts = host.toLowerCase().split('.').where((part) => part.isNotEmpty).toList();
+    if (parts.length < 2) return false;
+    final tld = parts.last;
+    final tldValid = RegExp(r'^[a-z]{2,}$').hasMatch(tld);
+    return tldValid;
+  }
+
   bool _isValidHttpUrl(String value) {
     final uri = Uri.tryParse(value);
-    return uri != null && (uri.scheme == 'http' || uri.scheme == 'https') && (uri.host.isNotEmpty);
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty &&
+        _hasPlausibleDomainHost(uri.host);
   }
 
   @override
