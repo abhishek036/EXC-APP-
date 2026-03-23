@@ -462,7 +462,6 @@ class AppRouter {
                     GoRoute(path: 'upload-material', name: 'upload-material', pageBuilder: (c, s) => _page(s, const UploadMaterialPage())),
                     GoRoute(path: 'create-quiz', name: 'create-quiz', pageBuilder: (c, s) => _page(s, const CreateQuizPage())),
                     GoRoute(path: 'notifications', name: 'teacher-notifications', pageBuilder: (c, s) => _page(s, const NotificationsPage())),
-                    GoRoute(path: 'profile', name: 'teacher-profile', pageBuilder: (c, s) => _page(s, const ProfilePage())),
                     GoRoute(path: 'announcements', name: 'teacher-announcements', pageBuilder: (c, s) => _page(s, const AnnouncementsPage())),
                     GoRoute(path: 'chat-list', name: 'teacher-chat-list', pageBuilder: (c, s) => _page(s, const ChatListPage()), routes: [
                       GoRoute(path: 'chat/:id', name: 'teacher-chat', pageBuilder: (c, s) => _page(s, ChatPage(batchId: s.pathParameters['id'] ?? ''))),
@@ -472,14 +471,6 @@ class AppRouter {
                     GoRoute(path: 'video-lectures', name: 'teacher-video-lectures', pageBuilder: (c, s) => _page(s, const VideoLecturesPage())),
                     GoRoute(path: 'notification-settings', name: 'teacher-notification-settings', pageBuilder: (c, s) => _page(s, const NotificationSettingsPage())),
                     GoRoute(path: 'language', name: 'teacher-language', pageBuilder: (c, s) => _page(s, const LanguageSelectionPage())),
-                    GoRoute(
-                      path: 'batches',
-                      name: 'teacher-batches',
-                      pageBuilder: (c, s) => _page(s, const TeacherBatchesPage()),
-                      routes: [
-                        GoRoute(path: ':id', name: 'teacher-batch-detail', pageBuilder: (c, s) => _page(s, TeacherBatchPanelPage(batchId: s.pathParameters['id'] ?? ''))),
-                      ],
-                    ),
                   ],
                 ),
               ]),

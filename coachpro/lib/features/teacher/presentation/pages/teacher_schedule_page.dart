@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
+import '../../../../core/widgets/cp_role_shell.dart';
 import '../../data/repositories/teacher_repository.dart';
 
 class TeacherSchedulePage extends StatefulWidget {
@@ -88,7 +88,11 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       nav.pop();
       return;
     }
-    context.go('/teacher');
+    final shellBack = CPRoleShellBack.maybeOf(context);
+    if (shellBack != null) {
+      shellBack.goBack();
+      return;
+    }
   }
 
   @override
@@ -203,9 +207,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         ? '${scheduled.hour.toString().padLeft(2, '0')}:${scheduled.minute.toString().padLeft(2, '0')}'
         : '--';
     final duration = (item['duration_minutes'] ?? 60) as num;
-    final endTime = scheduled != null
-        ? scheduled.add(Duration(minutes: duration.toInt()))
-        : null;
+    final endTime = scheduled?.add(Duration(minutes: duration.toInt()));
     final end = endTime == null
       ? '--'
       : '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';

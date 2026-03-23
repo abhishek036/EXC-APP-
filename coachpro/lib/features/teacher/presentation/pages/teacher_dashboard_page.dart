@@ -238,7 +238,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   Widget _scheduleCard(Map<String, dynamic> b, Color blue, Color surface, Color yellow) {
     final batchId = (b['id'] ?? '').toString();
     return InkWell(
-      onTap: batchId.isEmpty ? null : () => context.push('/teacher/batches/$batchId'),
+      onTap: batchId.isEmpty ? null : () => context.go('/teacher/batches/$batchId'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(20),

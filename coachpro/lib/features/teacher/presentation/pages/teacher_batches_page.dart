@@ -5,8 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/widgets/cp_role_shell.dart';
 import '../../data/repositories/teacher_repository.dart';
-import 'teacher_batch_panel_page.dart';
 
 class TeacherBatchesPage extends StatefulWidget {
   const TeacherBatchesPage({super.key});
@@ -20,6 +20,7 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
   List<Map<String, dynamic>> _batches = [];
   bool _isLoading = true;
   String? _error;
+  String _query = '';
 
   @override
   void initState() {
@@ -52,7 +53,11 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
       nav.pop();
       return;
     }
-    context.go('/teacher');
+    final shellBack = CPRoleShellBack.maybeOf(context);
+    if (shellBack != null) {
+      shellBack.goBack();
+      return;
+    }
   }
 
   @override
@@ -60,6 +65,14 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
     const primaryBlue = Color(0xFF0D1282);
     const surfaceWhite = Color(0xFFEEEDED);
     const accentYellow = Color(0xFFF0DE36);
+
+    final visibleBatches = _batches.where((b) {
+      if (_query.trim().isEmpty) return true;
+      final q = _query.trim().toLowerCase();
+      final name = (b['name'] ?? '').toString().toLowerCase();
+      final subject = (b['subject'] ?? '').toString().toLowerCase();
+      return name.contains(q) || subject.contains(q);
+    }).toList();
 
     return Scaffold(
       backgroundColor: primaryBlue,
@@ -108,22 +121,51 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
                       color: accentYellow,
                       backgroundColor: primaryBlue,
                       onRefresh: _loadBatches,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(20),
-                        itemCount: _batches.length,
-                        itemBuilder: (ctx, i) {
-                          final b = _batches[i];
-                          return _BatchCard(
-                            batch: b,
-                            index: i,
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TeacherBatchPanelPage(batchId: (b['id'] ?? '').toString()))),
-                            blue: primaryBlue,
-                            yellow: accentYellow,
-                            white: surfaceWhite,
-                          );
-                        },
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                        children: [
+                          _searchBar(primaryBlue, surfaceWhite),
+                          const SizedBox(height: 14),
+                          ...visibleBatches.asMap().entries.map((entry) {
+                            final i = entry.key;
+                            final b = entry.value;
+                            return _BatchCard(
+                              batch: b,
+                              index: i,
+                              onTap: () {
+                                final id = (b['id'] ?? '').toString();
+                                if (id.isEmpty) return;
+                                context.go('/teacher/batches/$id');
+                              },
+                              blue: primaryBlue,
+                              yellow: accentYellow,
+                              white: surfaceWhite,
+                            );
+                          }),
+                        ],
                       ),
                     ),
+    );
+  }
+
+  Widget _searchBar(Color blue, Color surface) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: surface.withValues(alpha: 0.35), width: 2),
+      ),
+      child: TextField(
+        onChanged: (v) => setState(() => _query = v),
+        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+        decoration: InputDecoration(
+          hintText: 'Search for batches',
+          hintStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.45)),
+          prefixIcon: Icon(Icons.search_rounded, color: blue.withValues(alpha: 0.55)),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        ),
+      ),
     );
   }
 }
@@ -144,69 +186,135 @@ class _BatchCard extends StatelessWidget {
     final subject = (batch['subject'] ?? 'General').toString().toUpperCase();
     final schedule = '${batch['start_time'] ?? '--'} - ${batch['end_time'] ?? '--'}';
     final studentCount = (batch['student_count'] ?? batch['enrolled_count'] ?? 0).toString();
+    final statusText = (batch['is_active'] == false) ? 'INACTIVE' : 'ONGOING';
+    final startDate = (batch['start_date'] ?? '').toString();
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 14),
       child: InkWell(
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
             color: white,
             border: Border.all(color: blue, width: 2.5),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(color: blue, offset: const Offset(5, 5))],
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [BoxShadow(color: blue.withValues(alpha: 0.35), offset: const Offset(5, 5))],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                height: 128,
                 decoration: BoxDecoration(
-                  color: blue,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+                  color: yellow,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.school_rounded, size: 18, color: Colors.white),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(name, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5))),
-                    Icon(Icons.arrow_forward_ios_rounded, size: 12, color: yellow),
-                  ],
+                child: Center(
+                  child: Text(
+                    subject,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 32,
+                      color: blue,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(subject, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: blue)),
-                          const SizedBox(height: 4),
-                          Row(
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 30, color: blue),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: blue.withValues(alpha: 0.4), width: 2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text('TEACHER', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue.withValues(alpha: 0.7))),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.menu_book_rounded, size: 18, color: blue.withValues(alpha: 0.75)),
+                        const SizedBox(width: 8),
+                        Text(subject, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 14, color: blue.withValues(alpha: 0.85))),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(Icons.fiber_manual_record_rounded, size: 12, color: statusText == 'ONGOING' ? const Color(0xFF0D1282) : AppColors.coralRed),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '$statusText  |  $schedule${startDate.isNotEmpty ? '  |  Started: $startDate' : ''}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 12, color: blue.withValues(alpha: 0.65)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: yellow,
+                              border: Border.all(color: blue, width: 2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text('MANAGE BATCH', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14, color: blue)),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: white,
+                            border: Border.all(color: blue, width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(Icons.arrow_forward_ios_rounded, size: 18, color: blue),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: white,
+                            border: Border.all(color: blue, width: 2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
                             children: [
-                              Icon(Icons.timer_rounded, size: 14, color: blue.withValues(alpha: 0.5)),
-                              const SizedBox(width: 6),
-                              Text(schedule, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 12, color: blue.withValues(alpha: 0.6))),
+                              Text(studentCount, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
+                              Text('STUD', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 9, color: blue.withValues(alpha: 0.7))),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: yellow,
-                        border: Border.all(color: blue, width: 2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(studentCount, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
-                          Text('STUDENTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 8, color: blue)),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

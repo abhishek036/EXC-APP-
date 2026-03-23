@@ -10,6 +10,7 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/services/api_auth_service.dart';
 import '../../../../core/widgets/cp_pressable.dart';
+import '../../../../core/widgets/cp_role_shell.dart';
 import '../../../../core/utils/role_prefix.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/domain/entities/user_entity.dart';
@@ -34,6 +35,51 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController _addressCtrl;
 
   UserModel? _user;
+
+  void _handleBack() {
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop();
+      return;
+    }
+    final shellBack = CPRoleShellBack.maybeOf(context);
+    if (shellBack != null) {
+      shellBack.goBack();
+    }
+  }
+
+  void _showImageOptions() {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded),
+              title: Text('Take Photo', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Camera option selected')));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: Text('Choose from Gallery', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gallery option selected')));
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -184,7 +230,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 pinned: true,
                 backgroundColor: const Color(0xFF0D1282),
                 leading: CPPressable(
-                  onTap: () => context.pop(),
+                  onTap: _handleBack,
                   child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
                 ),
                 actions: [
@@ -237,14 +283,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           if (_editMode)
                             CPPressable(
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                  content: Text('Photo upload coming soon!', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
-                                  backgroundColor: const Color(0xFF0D1282),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ));
-                              },
+                              onTap: _showImageOptions,
                               child: Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: const BoxDecoration(color: Color(0xFFF0DE36), shape: BoxShape.circle),
@@ -311,16 +350,16 @@ class _ProfilePageState extends State<ProfilePage> {
                   isAdmin ? 'Quick Links' : 'Account Shortcuts',
                   isAdmin
                       ? [
-                          _quickRow(context, Icons.people_rounded, 'Manage Students', '/admin/students'),
-                          _quickRow(context, Icons.class_rounded, 'Manage Batches', '/admin/batches'),
-                          _quickRow(context, Icons.bar_chart_rounded, 'Admin Reports', '/admin/reports'),
-                          _quickRow(context, Icons.settings_rounded, 'App Settings', '/admin/settings'),
+                          _quickRow(context, Icons.people_rounded, 'Manage Students', route: '/admin/students'),
+                          _quickRow(context, Icons.class_rounded, 'Manage Batches', route: '/admin/batches'),
+                          _quickRow(context, Icons.bar_chart_rounded, 'Admin Reports', route: '/admin/reports'),
+                          _quickRow(context, Icons.settings_rounded, 'App Settings', route: '/admin/settings'),
                         ]
                       : [
-                          _quickRow(context, Icons.person_outline_rounded, 'Edit Profile', '${context.rolePrefix}/profile'),
-                          _quickRow(context, Icons.settings_rounded, 'Settings', '${context.rolePrefix}/settings'),
-                          _quickRow(context, Icons.notifications_outlined, 'Notification Settings', '${context.rolePrefix}/notification-settings'),
-                          _quickRow(context, Icons.lock_reset_rounded, 'Change Password', '/change-password'),
+                          _quickRow(context, Icons.person_outline_rounded, 'Edit Profile', onTap: () => setState(() => _editMode = true)),
+                          _quickRow(context, Icons.settings_rounded, 'Settings', route: role == AppRole.teacher ? '/teacher/profile/settings' : '${context.rolePrefix}/settings'),
+                          _quickRow(context, Icons.notifications_outlined, 'Notification Settings', route: '${context.rolePrefix}/notification-settings'),
+                          _quickRow(context, Icons.lock_reset_rounded, 'Change Password', route: '/change-password'),
                         ],
                 ).animate(delay: 250.ms).fadeIn().slideY(begin: 0.05),
 
@@ -442,8 +481,16 @@ class _ProfilePageState extends State<ProfilePage> {
     ]),
   );
 
-  Widget _quickRow(BuildContext context, IconData icon, String label, String route) => CPPressable(
-    onTap: () { context.pop(); context.go(route); },
+  Widget _quickRow(BuildContext context, IconData icon, String label, {String? route, VoidCallback? onTap}) => CPPressable(
+    onTap: () {
+      if (onTap != null) {
+        onTap();
+        return;
+      }
+      if (route != null && route.isNotEmpty) {
+        context.go(route);
+      }
+    },
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(children: [

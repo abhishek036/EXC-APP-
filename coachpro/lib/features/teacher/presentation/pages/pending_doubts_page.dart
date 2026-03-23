@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../features/teacher/data/repositories/teacher_repository.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/widgets/cp_role_shell.dart';
 
 class PendingDoubtsPage extends StatefulWidget {
   const PendingDoubtsPage({super.key});
@@ -52,7 +52,11 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
       nav.pop();
       return;
     }
-    context.go('/teacher');
+    final shellBack = CPRoleShellBack.maybeOf(context);
+    if (shellBack != null) {
+      shellBack.goBack();
+      return;
+    }
   }
 
   @override
@@ -240,7 +244,13 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
   }
 
   Future<void> _openImagePreview(Map<String, dynamic> doubt) async {
-    final imageUrl = (doubt['image_url'] ?? doubt['attachment_url'] ?? '').toString().trim();
+    final imageUrl = (
+      doubt['question_img'] ??
+      doubt['answer_img'] ??
+      doubt['image_url'] ??
+      doubt['attachment_url'] ??
+      ''
+    ).toString().trim();
     if (imageUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No image attached')));
       return;
