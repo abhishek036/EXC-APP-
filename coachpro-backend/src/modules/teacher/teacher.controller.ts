@@ -3,6 +3,7 @@ import { TeacherService } from './teacher.service';
 import { sendResponse } from '../../utils/response';
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
+import { emitBatchSync } from '../../config/socket';
 
 export class TeacherController {
   private teacherService: TeacherService;
@@ -565,5 +566,66 @@ export class TeacherController {
 
         return sendResponse({ res, data: schedule, message: 'Today schedule fetched' });
       } catch (error) { next(error); }
+  };
+
+  updateSyllabusTopicStatus = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const teacher = await prisma.teacher.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! }
+      });
+      if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
+
+      const { batchId, topicId } = req.params;
+      const { is_completed } = req.body;
+      const instituteId = req.instituteId!;
+
+      // 1. Verify batch belongs to teacher
+      const batch = await prisma.batch.findFirst({
+        where: { id: batchId, teacher_id: teacher.id, institute_id: instituteId }
+      });
+      if (!batch) throw new ApiError('Batch not found or unauthorized', 404, 'NOT_FOUND');
+
+      // 2. Get all students in the batch
+      const studentBatches = await prisma.studentBatch.findMany({
+        where: { batch_id: batchId, institute_id: instituteId, is_active: true },
+        select: { student_id: true }
+      });
+      const studentIds = studentBatches.map(sb => sb.student_id);
+
+      // 3. Update or create progress for each student
+      if (is_completed) {
+        // Mark as completed for all students
+        await Promise.all(studentIds.map(studentId => 
+          prisma.studentSyllabusProgress.upsert({
+            where: { student_id_topic_id: { student_id: studentId, topic_id: topicId } },
+            update: { is_completed: true, completed_at: new Date() },
+            create: { 
+              student_id: studentId, 
+              topic_id: topicId, 
+              institute_id: instituteId, 
+              is_completed: true, 
+              completed_at: new Date() 
+            }
+          })
+        ));
+      } else {
+        // Mark as not completed for all students
+        await prisma.studentSyllabusProgress.updateMany({
+          where: { 
+            topic_id: topicId, 
+            student_id: { in: studentIds },
+            institute_id: instituteId 
+          },
+          data: { is_completed: false, completed_at: null }
+        });
+      }
+
+        emitBatchSync(instituteId, batchId, 'syllabus_topic_status_changed', {
+          topic_id: topicId,
+          is_completed: !!is_completed,
+        });
+
+      return sendResponse({ res, data: { success: true }, message: `Topic status updated for ${studentIds.length} students` });
+    } catch (error) { next(error); }
   };
 }

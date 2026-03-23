@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AttendanceService } from './attendance.service';
 import { sendResponse } from '../../utils/response';
 import { ApiError } from '../../middleware/error.middleware';
+import { emitBatchSync } from '../../config/socket';
 
 export class AttendanceController {
   private service: AttendanceService;
@@ -13,6 +14,11 @@ export class AttendanceController {
   mark = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.service.markSession(req.instituteId!, req.user!.userId, req.body);
+      if (req.body?.batch_id) {
+        emitBatchSync(req.instituteId!, req.body.batch_id, 'attendance_marked', {
+          session_id: (data as any)?.session_id,
+        });
+      }
       return sendResponse({ res, data, message: 'Attendance marked successfully' });
     } catch (e) { next(e); }
   }

@@ -1,24 +1,28 @@
-import 'dart:ui';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_dimensions.dart';
-import '../../../../core/widgets/cp_pressable.dart';
-import 'package:go_router/go_router.dart';
-import '../../../../core/theme/theme_aware.dart';
-
-import '../../../../features/teacher/data/repositories/teacher_repository.dart';
+import '../../data/repositories/teacher_repository.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
+import '../../../../core/services/secure_storage_service.dart';
+import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class TeacherDashboardPage extends StatefulWidget {
   const TeacherDashboardPage({super.key});
+
   @override
   State<TeacherDashboardPage> createState() => _TeacherDashboardPageState();
 }
 
 class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   final _teacherRepo = sl<TeacherRepository>();
+  final _realtime = sl<RealtimeSyncService>();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  StreamSubscription<Map<String, dynamic>>? _syncSub;
+  
   Map<String, dynamic>? _dashboardData;
   bool _isLoading = true;
   String? _error;
@@ -27,713 +31,396 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   void initState() {
     super.initState();
     _loadDashboard();
+    _initRealtime();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final type = (event['type'] ?? '').toString();
+      if (type == 'dashboard_sync' || type == 'batch_sync') {
+        _loadDashboard();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadDashboard() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
       final data = await _teacherRepo.getDashboardStats();
+      if (!mounted) return;
       setState(() {
         _dashboardData = data;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
       });
     }
   }
+
   String get _greeting {
     final h = DateTime.now().hour;
-    if (h < 12) return 'Good Morning,';
-    if (h < 17) return 'Good Afternoon,';
-    return 'Good Evening,';
-  }
-
-  String _nextClassCountdown() {
-    final batches = (_dashboardData?['batches'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
-    if (batches.isEmpty) return 'No class scheduled today';
-
-    DateTime? nextTime;
-    Map<String, dynamic>? nextBatch;
-    final now = DateTime.now();
-
-    for (final batch in batches) {
-      final raw = (batch['start_time'] ?? '').toString().trim();
-      if (raw.isEmpty) continue;
-      final parsed = _parseLocalTime(raw);
-      if (parsed == null) continue;
-      if (parsed.isAfter(now) && (nextTime == null || parsed.isBefore(nextTime))) {
-        nextTime = parsed;
-        nextBatch = batch;
-      }
-    }
-
-    if (nextTime == null || nextBatch == null) return 'All classes completed for today';
-    final diff = nextTime.difference(now);
-    final hours = diff.inHours;
-    final minutes = diff.inMinutes % 60;
-    final batchName = (nextBatch['name'] ?? 'Next class').toString();
-    return '$batchName starts in ${hours}h ${minutes}m';
-  }
-
-  DateTime? _parseLocalTime(String value) {
-    final match = RegExp(r'^(\d{1,2}):(\d{2})\s*([APap][Mm])?$').firstMatch(value);
-    if (match == null) return null;
-    var hour = int.tryParse(match.group(1) ?? '0') ?? 0;
-    final minute = int.tryParse(match.group(2) ?? '0') ?? 0;
-    final meridiem = (match.group(3) ?? '').toUpperCase();
-    if (meridiem == 'PM' && hour < 12) hour += 12;
-    if (meridiem == 'AM' && hour == 12) hour = 0;
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day, hour, minute);
+    if (h < 12) return 'GOOD MORNING';
+    if (h < 17) return 'GOOD AFTERNOON';
+    return 'GOOD EVENING';
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = CT.isDark(context);
+    const blue = Color(0xFF0D1282);
+    const surface = Color(0xFFEEEDED);
+    const yellow = Color(0xFFF0DE36);
+
     return Scaffold(
-      backgroundColor: CT.bg(context),
+      key: _scaffoldKey,
+      backgroundColor: blue,
+      drawer: _buildDrawer(blue, surface, yellow),
       floatingActionButton: FloatingActionButton(
         onPressed: _showQuickActionMenu,
-        backgroundColor: const Color(0xFF0D1282),
-        foregroundColor: const Color(0xFFEEEDED),
-        child: const Icon(Icons.add_rounded),
+        backgroundColor: yellow,
+        foregroundColor: blue,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.black, width: 3)),
+        child: const Icon(Icons.add_rounded, size: 32),
       ),
       body: SafeArea(
         child: RefreshIndicator(
+          color: yellow,
+          backgroundColor: blue,
           onRefresh: _loadDashboard,
           child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: yellow))
             : _error != null
-              ? Center(child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, color: AppColors.error, size: 48),
-                    const SizedBox(height: 16),
-                    Text('Failed to load dashboard', style: GoogleFonts.sora(fontSize: 18, color: CT.textH(context))),
-                    const SizedBox(height: 8),
-                    Text(_error!, style: GoogleFonts.dmSans(color: CT.textM(context))),
-                    const SizedBox(height: 24),
-                    ElevatedButton(onPressed: _loadDashboard, child: const Text('Retry')),
-                  ],
-                ))
-              : RefreshIndicator(
-                  onRefresh: _loadDashboard,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: AppDimensions.md),
-                        _buildAppBar(isDark),
-                        const SizedBox(height: AppDimensions.lg),
-                        _buildQuickStats(isDark),
-                        const SizedBox(height: AppDimensions.lg),
-                        _buildNextClassCard(),
-                        const SizedBox(height: AppDimensions.lg),
-                        _buildTodaySchedule(isDark),
-                        const SizedBox(height: AppDimensions.lg),
-                        _buildPendingTasks(),
-                        const SizedBox(height: AppDimensions.lg),
-                        _buildPendingDoubts(isDark),
-                        const SizedBox(height: AppDimensions.lg),
-                        _buildQuickActions(isDark),
-                        const SizedBox(height: 100),
-                      ],
-                    ),
-                  ),
-                ),
+              ? _buildErrorState(blue, surface, yellow)
+              : _buildContent(blue, surface, yellow),
         ),
       ),
     );
   }
 
-  Widget _buildAppBar(bool isDark) {
+  Widget _buildErrorState(Color blue, Color surface, Color yellow) {
+    return Center(child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.error_outline_rounded, color: Colors.white, size: 48),
+        const SizedBox(height: 16),
+        Text('FAILED TO LOAD', style: GoogleFonts.plusJakartaSans(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1)),
+        const SizedBox(height: 24),
+        _ActionBtn('RETRY', _loadDashboard, yellow, blue),
+      ],
+    ));
+  }
+
+  Widget _buildContent(Color blue, Color surface, Color yellow) {
+    final authState = context.read<AuthBloc>().state;
+    final userName = _dashboardData?['teacher']?['name']?.toString().toUpperCase() ?? (authState is AuthAuthenticated ? authState.user.name.toUpperCase() : 'TEACHER');
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(userName, blue, yellow),
+          const SizedBox(height: 32),
+          _buildSummaryStats(blue, surface, yellow),
+          const SizedBox(height: 32),
+          _sectionLabel('TODAY\'S BATTLES', yellow),
+          const SizedBox(height: 16),
+          _buildScheduleList(blue, surface, yellow),
+          const SizedBox(height: 32),
+          _sectionLabel('DOUBTS ALERTS', yellow),
+          const SizedBox(height: 16),
+          _buildDoubtsSection(blue, surface, yellow),
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(String name, Color blue, Color yellow) {
     return Row(
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.glassBorder),
-          ),
-          child: Center(
-            child: Icon(Icons.person, color: AppColors.primary, size: 20),
+        GestureDetector(
+          onTap: () => _scaffoldKey.currentState?.openDrawer(),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 2.5), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.menu_rounded, color: Colors.black, size: 24),
           ),
         ),
-        const SizedBox(width: AppDimensions.sm),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_greeting, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: CT.textS(context))),
-              const SizedBox(height: 2),
-              Text('${_dashboardData?['teacher']?['name'] ?? 'Alex Jensen'}', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -0.5)),
+              Text(_greeting, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: yellow.withValues(alpha: 0.8), letterSpacing: 1)),
+              Text(name, style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
             ],
           ),
         ),
-        CPPressable(
-          onTap: () => context.go('/teacher/notifications'),
-          child: Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.glassWhiteCard : AppColors.frostBlue,
-              shape: BoxShape.circle,
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(Icons.notifications_outlined, size: 20, color: CT.textH(context)),
-                Positioned(
-                  top: 10, right: 10,
-                  child: Container(
-                    width: 8, height: 8,
-                    decoration: BoxDecoration(
-                      color: AppColors.elitePrimary,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: CT.bg(context), width: 1.5),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        _circleBtn(Icons.notifications_none_rounded, yellow),
       ],
-    ).animate().fadeIn(duration: 500.ms);
+    ).animate().fadeIn().slideY(begin: -0.1);
   }
 
-  Widget _glassContainer({required Widget child, bool isDark = true, EdgeInsetsGeometry? padding}) {
-    if (!isDark) {
-      return Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: AppDimensions.shadowSm(false),
-        ),
-        child: child,
-      );
-    }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: AppColors.glassWhiteCard,
-            border: Border.all(color: AppColors.glassBorder),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: child,
-        ),
-      ),
+  Widget _circleBtn(IconData icon, Color yellow) => Container(
+    padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(color: yellow, shape: BoxShape.circle, border: Border.all(color: Colors.black, width: 2.5)),
+    child: Icon(icon, color: Colors.black, size: 22),
+  );
+
+  Widget _sectionLabel(String text, Color yellow) => Text(text, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: yellow, letterSpacing: 2));
+
+  Widget _buildSummaryStats(Color blue, Color surface, Color yellow) {
+    final stats = _dashboardData?['stats'] ?? {};
+    return Row(
+      children: [
+        _statCard('STUDENTS', '${stats['total_students'] ?? 0}', blue, surface, yellow),
+        const SizedBox(width: 16),
+        _statCard('BATCHES', '${stats['total_batches'] ?? 0}', blue, surface, yellow),
+      ],
     );
   }
 
-  Widget _buildQuickStats(bool isDark) {
-    final stats = _dashboardData?['stats'] ?? {};
-    final activeStudents = stats['total_students'] ?? 142;
-    final activeBatches = stats['total_batches'] ?? 5;
-    final avgProgress = '78%';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Overview", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -0.5)),
-        const SizedBox(height: AppDimensions.md),
-        Row(
-          children: [
-            // Active Students Card
-            Expanded(
-              child: _glassContainer(
-                isDark: isDark,
-                padding: const EdgeInsets.all(AppDimensions.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Active Students', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: CT.textS(context))),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text('$activeStudents', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -1)),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: AppColors.mintGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                          child: Text('+12%', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mintGreen)),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: AppDimensions.md),
-            // Active Batches Card (Elite Gradient)
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(AppDimensions.md),
-                decoration: BoxDecoration(
-                  gradient: AppColors.premiumEliteGradient,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.elitePrimary.withValues(alpha: 0.2)),
-                  boxShadow: [
-                    BoxShadow(color: AppColors.elitePurple.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5)),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Active Batches', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white70)),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text('$activeBatches', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: -1)),
-                        const SizedBox(width: 8),
-                      ],
-                    ),
-                  ],
-                ),
-              ).animate().shimmer(duration: 2000.ms, color: Colors.white24),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppDimensions.md),
-        // Progress Card
-        _glassContainer(
-          isDark: isDark,
-          padding: const EdgeInsets.all(AppDimensions.md),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Avg. Student Progress', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: CT.textS(context))),
-                  Text(avgProgress, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.elitePrimary)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                height: 8,
-                width: double.infinity,
-                decoration: BoxDecoration(color: isDark ? const Color(0xFF1E293B) : AppColors.frostBlue, borderRadius: BorderRadius.circular(4)),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: 0.78,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: AppColors.premiumEliteGradient,
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.4), blurRadius: 10)],
-                    ),
-                  ),
-                ),
-              )
-            ],
-          ),
-        ),
-      ],
-    ).animate(delay: 100.ms).fadeIn(duration: 500.ms);
-  }
-
-  Widget _buildTodaySchedule(bool isDark) {
-    final batches = _dashboardData?['batches'] as List? ?? [];
-    if (batches.isEmpty) {
-       return Column(
+  Widget _statCard(String label, String val, Color blue, Color surface, Color yellow) => Expanded(
+    child: Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border.all(color: Colors.black, width: 3),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(5, 5))],
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionHeader("Your classes today"),
-          const SizedBox(height: AppDimensions.md),
-          Container(
-            padding: const EdgeInsets.all(AppDimensions.lg),
-            decoration: CT.cardDecor(context),
-            child: Center(child: Text('No classes scheduled for today', style: GoogleFonts.dmSans(color: CT.textM(context)))),
-          ),
-        ],
-      );
-    }
-
-    // Sort batches by start_time to find current/next
-    batches.sort((a, b) => (a['start_time'] ?? '').compareTo(b['start_time'] ?? ''));
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text("Upcoming Classes", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -0.5)),
-            CPPressable(child: Text('See all', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.elitePrimary))),
-          ],
-        ),
-        const SizedBox(height: AppDimensions.md),
-        ...batches.take(3).map((b) {
-          final subject = b['subject'] ?? 'Subject';
-          final name = b['name'] ?? 'Batch';
-          final startTime = b['start_time'] ?? '10:00 AM';
-          final platform = b['room'] ?? 'Zoom';
-
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-            child: CPPressable(
-              child: _glassContainer(
-                isDark: isDark,
-                padding: const EdgeInsets.all(AppDimensions.md),
-                child: Row(
-                  children: [
-                    // Date block
-                    Container(
-                      width: 50,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : AppColors.frostBlue,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('TUE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: CT.textS(context))),
-                          Text('14', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: AppDimensions.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('$subject $name', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Icon(Icons.schedule, size: 12, color: CT.textS(context)),
-                              const SizedBox(width: 4),
-                              Text(startTime, style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context))),
-                              const SizedBox(width: 12),
-                              Icon(Icons.videocam_outlined, size: 12, color: CT.textS(context)),
-                              const SizedBox(width: 4),
-                              Text(platform, style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context))),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Avatars
-                    SizedBox(
-                      width: 60,
-                      height: 32,
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            right: 24,
-                            child: CircleAvatar(radius: 16, backgroundColor: CT.bg(context), child: CircleAvatar(radius: 14, backgroundColor: Colors.blue.withValues(alpha: 0.2), child: Text('A', style: TextStyle(fontSize: 10, color: Colors.blue)))),
-                          ),
-                          Positioned(
-                            right: 12,
-                            child: CircleAvatar(radius: 16, backgroundColor: CT.bg(context), child: CircleAvatar(radius: 14, backgroundColor: Colors.green.withValues(alpha: 0.2), child: Text('B', style: TextStyle(fontSize: 10, color: Colors.green)))),
-                          ),
-                          Positioned(
-                            right: 0,
-                            child: CircleAvatar(
-                              radius: 16,
-                              backgroundColor: CT.bg(context),
-                              child: Container(
-                                width: 28, height: 28,
-                                decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF1E293B)),
-                                child: Center(child: Text('+5', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white))),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
-      ],
-    ).animate(delay: 200.ms).fadeIn(duration: 500.ms);
-  }
-
-  Widget _sectionHeader(String title) {
-    return Text(title, style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w600, color: CT.textH(context)));
-  }
-
-  Widget _buildNextClassCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0DE36).withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF0DE36)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.alarm_rounded, color: Color(0xFF0D1282)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              _nextClassCountdown(),
-              style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282)),
-            ),
-          ),
+          Text(val, style: GoogleFonts.jetBrainsMono(fontSize: 32, fontWeight: FontWeight.w900, color: blue)),
+          const SizedBox(height: 4),
+          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.5))),
         ],
       ),
-    ).animate(delay: 140.ms).fadeIn(duration: 350.ms);
-  }
+    ),
+  );
 
-  Widget _buildPendingTasks() {
-    final stats = _dashboardData?['stats'] ?? {};
-    final doubts = (stats['pending_doubts'] ?? 0).toString();
-    final assignments = (stats['assignments_to_review'] ?? 0).toString();
-    final tests = (stats['tests_to_review'] ?? 0).toString();
-
-    Widget taskChip(String value, String label, Color color) {
-      return Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: color.withValues(alpha: 0.22)),
-          ),
-          child: Column(
-            children: [
-              Text(value, style: GoogleFonts.sora(fontWeight: FontWeight.w800, fontSize: 16, color: color)),
-              const SizedBox(height: 2),
-              Text(label, textAlign: TextAlign.center, style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: CT.textM(context))),
-            ],
-          ),
-        ),
-      );
-    }
+  Widget _buildScheduleList(Color blue, Color surface, Color yellow) {
+    final batches = _dashboardData?['batches'] as List? ?? [];
+    if (batches.isEmpty) return _emptyStatus('NO CLASSES TODAY', blue, surface);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader('Pending Tasks'),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            taskChip(doubts, 'Doubts pending', const Color(0xFF0D1282)),
-            const SizedBox(width: 8),
-            taskChip(assignments, 'Assignments to check', const Color(0xFFD71313)),
-            const SizedBox(width: 8),
-            taskChip(tests, 'Tests to review', const Color(0xFFF0DE36)),
-          ],
-        ),
-      ],
-    ).animate(delay: 220.ms).fadeIn(duration: 350.ms);
-  }
-
-  Widget _buildQuickActions(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: CT.cardDecor(context),
-      child: Row(
-        children: [
-          const Icon(Icons.touch_app_rounded, color: Color(0xFF0D1282), size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Quick actions moved to the + button for 2-click execution.',
-              style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textH(context)),
-            ),
-          ),
-        ],
-      ),
-    ).animate(delay: 400.ms).fadeIn(duration: 500.ms);
-  }
-
-  Future<void> _showQuickActionMenu() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: CT.card(context),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (ctx) {
-        Widget actionTile(IconData icon, String label, String route) {
-          return CPPressable(
-            onTap: () {
-              Navigator.pop(ctx);
-              context.go(route);
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEEEDED),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF0D1282).withValues(alpha: 0.14)),
-              ),
-              child: Row(
-                children: [
-                  Icon(icon, color: const Color(0xFF0D1282), size: 18),
-                  const SizedBox(width: 10),
-                  Text(label, style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Quick Actions', style: GoogleFonts.sora(fontWeight: FontWeight.w800, color: CT.textH(context))),
-              const SizedBox(height: 12),
-              actionTile(Icons.fact_check_outlined, 'Take Attendance', '/teacher/attendance'),
-              actionTile(Icons.ondemand_video_outlined, 'Upload Lecture', '/teacher/upload-material'),
-              actionTile(Icons.assignment_outlined, 'Add Assignment', '/teacher/upload-material'),
-              actionTile(Icons.quiz_outlined, 'Create Test', '/teacher/create-quiz'),
-            ],
-          ),
-        );
-      },
+      children: batches.map((b) => _scheduleCard(b, blue, surface, yellow)).toList(),
     );
   }
 
-  Widget _buildPendingDoubts(bool isDark) {
-    final stats = _dashboardData?['stats'] ?? {};
-    final count = stats['pending_doubts'] ?? 0;
-    
-    // Parse real doubts from API
-    List<dynamic> rawDoubts = _dashboardData?['doubts'] ?? [];
-    List<Map<String, dynamic>> doubts = rawDoubts.map((e) => e as Map<String, dynamic>).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-               children: [
-                 Text("Pending Doubts", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -0.5)),
-                 if (count > 0) ...[
-                   const SizedBox(width: 8),
-                   Container(
-                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                     decoration: BoxDecoration(color: AppColors.elitePrimary, borderRadius: BorderRadius.circular(10)),
-                     child: Text('$count New', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
-                   ),
-                 ],
-               ],
-            )
-          ],
-        ),
-        const SizedBox(height: AppDimensions.md),
-        if (doubts.isEmpty)
-          _glassContainer(
-            isDark: isDark,
-            padding: const EdgeInsets.all(AppDimensions.lg),
-            child: Row(
+  Widget _scheduleCard(Map<String, dynamic> b, Color blue, Color surface, Color yellow) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border.all(color: Colors.black, width: 3),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: yellow, offset: const Offset(4, 4))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(8)),
+            child: Text((b['start_time'] ?? '10:00 AM').toString().split(' ')[0], style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.w900)),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.check_circle_outline, color: AppColors.success, size: 28),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("All caught up!", style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context))),
-                      const SizedBox(height: 4),
-                      Text("No pending doubts to resolve at the moment.", style: GoogleFonts.inter(fontSize: 12, color: CT.textS(context))),
-                    ],
-                  ),
-                ),
+                Text(b['name'] ?? 'BATCH', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w900, color: blue)),
+                Text(b['subject'] ?? 'SUBJECT', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.6))),
               ],
             ),
-          )
-        else
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: doubts.map((d) {
-                final studentName = d['student_name'] ?? 'Student';
-                final msg = d['question_text'] ?? '';
-                final timeRaw = d['created_at'];
-                String timeStr = 'Recently';
-                if (timeRaw != null) {
-                  final t = DateTime.tryParse(timeRaw.toString());
-                  if (t != null) {
-                    final diff = DateTime.now().difference(t);
-                    if (diff.inHours > 0) {
-                      timeStr = '${diff.inHours}h ago';
-                    } else if (diff.inMinutes > 0) {
-                      timeStr = '${diff.inMinutes}m ago';
-                    }
-                  }
-                }
-                return Padding(
-                  padding: const EdgeInsets.only(right: AppDimensions.sm),
-                  child: CPPressable(
-                    onTap: () => context.go('/teacher/doubts'),
-                    child: _glassContainer(
-                      isDark: isDark,
-                      padding: const EdgeInsets.all(AppDimensions.md),
-                      child: SizedBox(
-                        width: 240,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    CircleAvatar(radius: 12, backgroundColor: AppColors.primary.withValues(alpha: 0.1), child: Text(studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S', style: TextStyle(fontSize: 10, color: AppColors.primary))),
-                                    const SizedBox(width: 8),
-                                    Text(studentName, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: CT.textH(context))),
-                                  ],
-                                ),
-                                Text(timeStr, style: GoogleFonts.inter(fontSize: 10, color: CT.textS(context))),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(msg, style: GoogleFonts.inter(fontSize: 13, color: CT.textS(context), height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
-                            const SizedBox(height: 16),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(color: AppColors.elitePrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                              child: Center(child: Text("Answer Now", style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.elitePrimary))),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
           ),
-      ],
-    ).animate(delay: 400.ms).fadeIn(duration: 500.ms);
+          const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.black),
+        ],
+      ),
+    );
   }
 
-  // Weekly stats and exams sections removed to fit premium layout purity, 
-  // but can be safely added back below actions.
+  Widget _emptyStatus(String msg, Color blue, Color surface) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(32),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.05),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 2),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Center(child: Text(msg, style: GoogleFonts.plusJakartaSans(color: Colors.white30, fontWeight: FontWeight.w900, fontSize: 14))),
+  );
+
+  Widget _buildDoubtsSection(Color blue, Color surface, Color yellow) {
+    final doubts = _dashboardData?['doubts'] as List? ?? [];
+    if (doubts.isEmpty) return _emptyStatus('CLEAN SLATE! NO DOUBTS.', blue, surface);
+
+    return SizedBox(
+      height: 160,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        itemCount: doubts.length,
+        itemBuilder: (context, i) {
+          final d = doubts[i] as Map<String, dynamic>;
+          return _doubtCard(d, blue, surface, yellow);
+        },
+      ),
+    );
+  }
+
+  Widget _doubtCard(Map<String, dynamic> d, Color blue, Color surface, Color yellow) {
+    return Container(
+      width: 260,
+      margin: const EdgeInsets.only(right: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border.all(color: Colors.black, width: 3),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(4, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(radius: 12, backgroundColor: blue, child: Text((d['student_name'] ?? 'S')[0], style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold))),
+              const SizedBox(width: 8),
+              Text(d['student_name'] ?? 'STUDENT', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w900, color: blue)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(d['question_text'] ?? '', style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.3, fontWeight: FontWeight.w600, color: blue.withValues(alpha: 0.8)), maxLines: 2, overflow: TextOverflow.ellipsis),
+          const Spacer(),
+          Text('ANSWER NOW →', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w900, color: blue)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawer(Color blue, Color surface, Color yellow) {
+    return Drawer(
+      backgroundColor: surface,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
+            color: blue,
+            child: Row(
+              children: [
+                Container(width: 60, height: 60, decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 3), shape: BoxShape.circle), alignment: Alignment.center, child: const Icon(Icons.person_rounded, size: 32)),
+                const SizedBox(width: 16),
+                Expanded(child: Text('FACULTY\nPANEL', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1))),
+              ],
+            ),
+          ),
+          _drawerTile(Icons.dashboard_rounded, 'DASHBOARD', blue, () => Navigator.pop(context)),
+          _drawerTile(Icons.schedule_rounded, 'SCHEDULE', blue, () {}),
+          _drawerTile(Icons.notifications_rounded, 'NOTICES', blue, () {}),
+          _drawerTile(Icons.person_rounded, 'PROFILE', blue, () {}),
+          const Spacer(),
+          const Divider(thickness: 3, color: Colors.black),
+          _drawerTile(Icons.logout_rounded, 'SIGN OUT', const Color(0xFFD71313), () async {
+            final storage = sl<SecureStorageService>();
+            await storage.clearAll();
+            if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+          }),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _drawerTile(IconData icon, String label, Color color, VoidCallback onTap) => ListTile(
+    leading: Icon(icon, color: color, size: 28),
+    title: Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: color, fontSize: 16)),
+    onTap: onTap,
+  );
+
+  void _showQuickActionMenu() {
+    const blue = Color(0xFF0D1282);
+    const surface = Color(0xFFEEEDED);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(color: surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24)), border: Border.all(color: Colors.black, width: 4)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('COMMAND CENTER', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w900, color: blue, letterSpacing: 1)),
+            const SizedBox(height: 24),
+            _actionTile('UP ATTENDANCE', Icons.check_circle_rounded, blue, () { Navigator.pop(ctx); Navigator.pushNamed(context, '/teacher/attendance'); }),
+            _actionTile('UP MATERIAL', Icons.cloud_upload_rounded, blue, () { Navigator.pop(ctx); Navigator.pushNamed(context, '/teacher/upload-material'); }),
+            _actionTile('CREATE QUIZ', Icons.quiz_rounded, blue, () { Navigator.pop(ctx); Navigator.pushNamed(context, '/teacher/create-quiz'); }),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _actionTile(String label, IconData icon, Color blue, VoidCallback onTap) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black, width: 2.5), borderRadius: BorderRadius.circular(12), boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(4, 4))]),
+        child: Row(
+          children: [
+            Icon(icon, color: blue),
+            const SizedBox(width: 16),
+            Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
+            const Spacer(),
+            const Icon(Icons.arrow_forward_rounded, size: 18),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _ActionBtn extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final Color bg;
+  final Color fg;
+  const _ActionBtn(this.label, this.onTap, this.bg, this.fg);
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        decoration: BoxDecoration(color: bg, border: Border.all(color: Colors.black, width: 3), borderRadius: BorderRadius.circular(12), boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(4, 4))]),
+        child: Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: fg)),
+      ),
+    );
+  }
 }

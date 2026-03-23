@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
-import '../../../admin/data/repositories/admin_repository.dart';
-import '../../../../core/widgets/custom_button.dart';
-import '../../../../core/theme/theme_aware.dart';
-import '../../../../core/widgets/cp_pressable.dart';
+import '../../../../features/teacher/data/repositories/teacher_repository.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class AttendanceMarkingPage extends StatefulWidget {
@@ -21,7 +16,7 @@ class AttendanceMarkingPage extends StatefulWidget {
 }
 
 class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
-  final AdminRepository _adminRepo = sl<AdminRepository>();
+  final TeacherRepository _teacherRepo = sl<TeacherRepository>();
 
   bool _notifyParents = true;
   bool _isSubmitting = false;
@@ -38,7 +33,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
 
   Future<void> _loadBatches() async {
     try {
-      final batches = await _adminRepo.getBatches();
+      final batches = await _teacherRepo.getMyBatches();
       if (!mounted) return;
       setState(() {
         _batches = batches;
@@ -46,18 +41,20 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
           _selectedBatchId = (batches.first['id'] ?? batches.first['batch_id'] ?? '').toString();
         }
       });
+      if (_selectedBatchId != null && _selectedBatchId!.isNotEmpty) {
+        await _loadStudents();
+      }
     } catch (_) {}
-    await _loadStudents();
   }
 
   Future<void> _loadStudents() async {
-    if (!mounted) return;
+    if (!mounted || _selectedBatchId == null) return;
     setState(() => _isLoading = true);
     try {
-      final data = await _adminRepo.getStudents(batchId: _selectedBatchId);
+      final data = await _teacherRepo.getBatchStudents(_selectedBatchId!);
       if (!mounted) return;
       setState(() {
-        _students = data.map(_AttStudent.fromMap).toList();
+        _students = data.map((e) => _AttStudent.fromMap(e)).toList();
         _isLoading = false;
       });
     } catch (_) {
@@ -71,9 +68,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
 
   Future<void> _submitAttendance(String teacherUid) async {
     if (_selectedBatchId == null || _selectedBatchId!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a batch first')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a batch first')));
       return;
     }
     setState(() => _isSubmitting = true);
@@ -83,25 +78,20 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
     const statusMap = {'P': 'present', 'A': 'absent', 'L': 'late', 'Lv': 'excused'};
 
     try {
-      final records = _students
-          .map((s) => {'student_id': s.id, 'status': statusMap[s.status] ?? 'present'})
-          .toList();
+      final records = _students.map((s) => {'student_id': s.id, 'status': statusMap[s.status] ?? 'present'}).toList();
 
-      await _adminRepo.markAttendance(
+      await _teacherRepo.markAttendance(
         batchId: _selectedBatchId!,
         sessionDate: sessionDate,
         records: records,
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Attendance submitted successfully')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attendance submitted successfully')));
+      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to submit: ${e.toString().split(':').last.trim()}')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to submit: ${e.toString().split(':').last.trim()}')));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -109,167 +99,43 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
 
   @override
   Widget build(BuildContext context) {
+    const blue = Color(0xFF0D1282);
+    const surface = Color(0xFFEEEDED);
+    const yellow = Color(0xFFF0DE36);
+
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
         final teacherUid = authState is AuthAuthenticated ? authState.user.id : '';
 
         return Scaffold(
-          backgroundColor: CT.bg(context),
-          appBar: AppBar(title: Text('Mark Attendance', style: GoogleFonts.sora(fontWeight: FontWeight.w600))),
+          backgroundColor: blue,
+          appBar: AppBar(
+            backgroundColor: blue,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              'ATTENDANCE',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.0),
+            ),
+          ),
           body: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: CT.card(context),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: CT.textM(context)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.class_outlined, size: 18, color: AppColors.primary),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _batches.isEmpty
-                                ? Text('Loading batches...', style: GoogleFonts.sora(fontSize: 14, color: CT.textM(context)))
-                                : DropdownButton<String>(
-                                    value: _selectedBatchId,
-                                    isExpanded: true,
-                                    underline: const SizedBox.shrink(),
-                                    style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context)),
-                                    items: _batches.map((b) {
-                                      final id = (b['id'] ?? b['batch_id'] ?? '').toString();
-                                      final name = (b['name'] ?? 'Batch').toString();
-                                      return DropdownMenuItem<String>(value: id, child: Text(name));
-                                    }).toList(),
-                                    onChanged: (val) {
-                                      if (val == null || val == _selectedBatchId) return;
-                                      setState(() {
-                                        _selectedBatchId = val;
-                                        _students = [];
-                                      });
-                                      _loadStudents();
-                                    },
-                                  ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.primary),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-                          style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _summaryChip('Present: $_presentCount', AppColors.present),
-                        const SizedBox(width: 8),
-                        _summaryChip('Absent: $_absentCount', AppColors.absent),
-                        const SizedBox(width: 8),
-                        _summaryChip('Late: $_lateCount', AppColors.late),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => setState(() {
-                              for (final s in _students) {
-                                s.status = 'P';
-                              }
-                            }),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.success),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            child: Text('✓ Mark All Present', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.success)),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => setState(() {
-                              for (final s in _students) {
-                                s.status = 'A';
-                              }
-                            }),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.error),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            child: Text('✗ Mark All Absent', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.error)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ),
+              _buildControlPanel(blue, surface, yellow),
               Expanded(
-                child: _students.isEmpty
-                    ? Center(
-                        child: _isLoading
-                            ? const CircularProgressIndicator()
-                            : Text('No students found in this batch', style: GoogleFonts.dmSans(color: CT.textS(context))),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH, vertical: 8),
-                        itemCount: _students.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (_, i) => _studentRow(_students[i], i),
-                      ),
-              ),
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                decoration: BoxDecoration(
-                  color: CT.card(context),
-                  boxShadow: [BoxShadow(color: CT.textH(context).withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, -4))],
-                ),
-                child: SafeArea(
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: Checkbox(
-                              value: _notifyParents,
-                              onChanged: (v) => setState(() => _notifyParents = v ?? true),
-                              activeColor: AppColors.primary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                            ),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: yellow))
+                    : _students.isEmpty
+                        ? Center(child: _PremiumCard(child: Text('NO STUDENTS FOUND', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue))))
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            itemCount: _students.length,
+                            itemBuilder: (ctx, i) => _studentRow(_students[i], i, blue, surface, yellow),
                           ),
-                          const SizedBox(width: 8),
-                          Text('Notify parents of absent students via WhatsApp', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context))),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      CustomButton(
-                        text: 'Submit Attendance',
-                        icon: Icons.check,
-                        isLoading: _isSubmitting,
-                        onPressed: _isSubmitting || teacherUid.isEmpty ? null : () => _submitAttendance(teacherUid),
-                      ),
-                    ],
-                  ),
-                ),
               ),
+              _buildBottomBar(teacherUid, blue, surface, yellow),
             ],
           ),
         );
@@ -277,91 +143,249 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
     );
   }
 
-  Widget _summaryChip(String text, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(100)),
-        child: Text(text, style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
-      );
-
-  Widget _studentRow(_AttStudent student, int index) {
-    final attColor = student.attPct >= 80
-        ? AppColors.success
-        : student.attPct >= 70
-            ? AppColors.warning
-            : AppColors.error;
-
+  Widget _buildControlPanel(Color blue, Color surface, Color yellow) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: CT.cardDecor(context, radius: 14),
-      child: Row(
+      margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border.all(color: blue, width: 2.5),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
+      ),
+      child: Column(
         children: [
-          Text((index + 1).toString().padLeft(2, '0'), style: GoogleFonts.sora(fontSize: 12, color: CT.textM(context), fontWeight: FontWeight.w600)),
-          const SizedBox(width: 10),
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-            child: Text(student.name.isEmpty ? 'S' : student.name[0], style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary)),
+          Row(
+            children: [
+              const Icon(Icons.people_alt_rounded, color: Color(0xFF0D1282)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _batches.isEmpty
+                    ? Text('LOADING BATCHES...', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12))
+                    : DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedBatchId,
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF0D1282)),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: blue),
+                          items: _batches.map((b) {
+                            final id = (b['id'] ?? b['batch_id'] ?? '').toString();
+                            final name = (b['name'] ?? 'Batch').toString().toUpperCase();
+                            return DropdownMenuItem<String>(value: id, child: Text(name));
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val == null || val == _selectedBatchId) return;
+                            setState(() {
+                              _selectedBatchId = val;
+                              _students = [];
+                            });
+                            _loadStudents();
+                          },
+                        ),
+                      ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(student.name, style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Row(
-                  children: [
-                    Text(student.id, style: GoogleFonts.dmSans(fontSize: 10, color: CT.textM(context))),
-                    const SizedBox(width: 6),
-                    Text('${student.attPct}% Att.', style: GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.w600, color: attColor)),
-                  ],
-                ),
-              ],
-            ),
+          const Divider(height: 24, thickness: 1.5, color: Color(0xFF0D1282)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  _SummaryCount(label: 'P', count: _presentCount, color: AppColors.mintGreen, blue: blue),
+                  const SizedBox(width: 8),
+                  _SummaryCount(label: 'A', count: _absentCount, color: AppColors.coralRed, blue: blue),
+                  const SizedBox(width: 8),
+                  _SummaryCount(label: 'L', count: _lateCount, color: Color(0xFFC0A000), blue: blue),
+                ],
+              ),
+              _ActionBtn(
+                label: 'ALL PRESENT',
+                icon: Icons.check_circle_outline,
+                blue: blue,
+                yellow: yellow,
+                onPressed: () => setState(() {
+                  for (var s in _students) {
+                    s.status = 'P';
+                  }
+                }),
+              ),
+            ],
           ),
-          ..._buildToggles(student),
         ],
       ),
-    ).animate(delay: Duration(milliseconds: 30 * index)).fadeIn(duration: 300.ms);
+    );
   }
 
-  List<Widget> _buildToggles(_AttStudent student) {
-    final options = [
-      ('P', AppColors.present),
-      ('A', AppColors.absent),
-      ('L', AppColors.late),
-      ('Lv', const Color(0xFF9CA3AF)),
-    ];
-
-    return options.map((option) {
-      final selected = student.status == option.$1;
-      return CPPressable(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          setState(() => student.status = option.$1);
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: 30,
-          height: 30,
-          margin: const EdgeInsets.only(left: 4),
-          decoration: BoxDecoration(
-            color: selected ? option.$2 : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: selected ? option.$2 : CT.textM(context), width: 1.5),
+  Widget _studentRow(_AttStudent student, int index, Color blue, Color surface, Color yellow) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border.all(color: blue, width: 2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32, height: 32,
+            decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(4)),
+            alignment: Alignment.center,
+            child: Text('${index + 1}', style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
           ),
-          child: Center(
+          const SizedBox(width: 12),
+          Expanded(
             child: Text(
-              option.$1,
-              style: GoogleFonts.dmSans(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: selected ? Colors.white : CT.textM(context),
-              ),
+              student.name.toUpperCase(),
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 13, color: blue),
+              maxLines: 1, overflow: TextOverflow.ellipsis,
             ),
           ),
+          _StatusToggle(status: 'P', current: student.status, color: AppColors.mintGreen, blue: blue, onTap: () => setState(() => student.status = 'P')),
+          const SizedBox(width: 6),
+          _StatusToggle(status: 'A', current: student.status, color: AppColors.coralRed, blue: blue, onTap: () => setState(() => student.status = 'A')),
+          const SizedBox(width: 6),
+          _StatusToggle(status: 'L', current: student.status, color: yellow, blue: blue, onTap: () => setState(() => student.status = 'L')),
+        ],
+      ),
+    ).animate(delay: Duration(milliseconds: 30 * index)).fadeIn(duration: 300.ms).slideX(begin: 0.1);
+  }
+
+  Widget _buildBottomBar(String teacherUid, Color blue, Color surface, Color yellow) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border(top: BorderSide(color: blue, width: 3)),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Checkbox(
+                  value: _notifyParents,
+                  onChanged: (v) => setState(() => _notifyParents = v ?? true),
+                  activeColor: blue,
+                  checkColor: yellow,
+                ),
+                Expanded(child: Text('SEND WHATSAPP ALERTS TO ABSENTEES', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue))),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _isSubmitting || teacherUid.isEmpty ? null : () => _submitAttendance(teacherUid),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: blue,
+                  foregroundColor: yellow,
+                  elevation: 0,
+                  side: BorderSide(color: blue, width: 2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: _isSubmitting
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text('SUBMIT ATTENDANCE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16)),
+              ),
+            ),
+          ],
         ),
-      );
-    }).toList();
+      ),
+    );
+  }
+}
+
+class _SummaryCount extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+  final Color blue;
+  const _SummaryCount({required this.label, required this.count, required this.color, required this.blue});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue.withValues(alpha: 0.5))),
+        Text('$count', style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w900, fontSize: 16, color: color)),
+      ],
+    );
+  }
+}
+
+class _StatusToggle extends StatelessWidget {
+  final String status;
+  final String current;
+  final Color color;
+  final Color blue;
+  final VoidCallback onTap;
+
+  const _StatusToggle({required this.status, required this.current, required this.color, required this.blue, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final active = status == current;
+    return InkWell(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: 150.ms,
+        width: 32, height: 32,
+        decoration: BoxDecoration(
+          color: active ? color : Colors.transparent,
+          border: Border.all(color: blue, width: 2),
+          borderRadius: BorderRadius.circular(4),
+          boxShadow: active ? [BoxShadow(color: blue, offset: const Offset(2, 2))] : [],
+        ),
+        alignment: Alignment.center,
+        child: Text(status, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12, color: active ? (status == 'L' ? blue : Colors.white) : blue.withValues(alpha: 0.4))),
+      ),
+    );
+  }
+}
+
+class _PremiumCard extends StatelessWidget {
+  final Widget child;
+  const _PremiumCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    const blue = Color(0xFF0D1282);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Color(0xFFEEEDED), border: Border.all(color: blue, width: 2.5), borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: blue, offset: Offset(4, 4))]),
+      child: child,
+    );
+  }
+}
+
+class _ActionBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color blue;
+  final Color yellow;
+  final VoidCallback onPressed;
+
+  const _ActionBtn({required this.label, required this.icon, required this.blue, required this.yellow, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(6)),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: blue),
+            const SizedBox(width: 6),
+            Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue)),
+          ],
+        ),
+      ),
+    );
   }
 }
 

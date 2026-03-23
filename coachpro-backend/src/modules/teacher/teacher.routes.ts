@@ -18,6 +18,7 @@ router.get('/me/stats/weekly', requireRole('teacher'), teacherController.getWeek
 router.get('/me/batches', requireRole('teacher'), teacherController.getMyBatches);
 router.get('/me/batches/:batchId/execution', requireRole('teacher'), teacherController.getBatchExecutionSummary);
 router.get('/me/schedule/today', requireRole('teacher'), teacherController.getTodaySchedule);
+router.post('/me/batches/:batchId/topics/:topicId/status', requireRole('teacher'), teacherController.updateSyllabusTopicStatus);
 
 // ── Admin management routes ────────────────────────────────
 router.get('/', requireRole('admin'), teacherController.list);

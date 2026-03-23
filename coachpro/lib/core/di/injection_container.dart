@@ -9,6 +9,7 @@ import '../services/push_notification_service.dart';
 import '../services/auto_notification_service.dart';
 import '../services/data_export_service.dart';
 import '../services/app_update_service.dart';
+import '../services/realtime_sync_service.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/admin/data/repositories/admin_repository.dart';
 import '../../features/student/data/repositories/student_repository.dart';
@@ -59,6 +60,10 @@ Future<void> initDependencies() async {
 
   sl.registerLazySingleton<AppUpdateService>(
     () => AppUpdateService(),
+  );
+
+  sl.registerLazySingleton<RealtimeSyncService>(
+    () => RealtimeSyncService(),
   );
 
   sl.registerLazySingleton<AdminRepository>(

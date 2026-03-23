@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -14,6 +16,7 @@ import '../../../../features/shared/presentation/widgets/global_search_overlay.d
 import '../../../../core/theme/theme_aware.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/services/secure_storage_service.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -26,7 +29,9 @@ class AdminDashboardPage extends StatefulWidget {
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   final _adminRepo = sl<AdminRepository>();
+  final _realtime = sl<RealtimeSyncService>();
   final _scaffoldKey = GlobalKey<ScaffoldState>(); // ← Fix for hamburger
+  StreamSubscription<Map<String, dynamic>>? _syncSub;
   bool _loading = true;
   String _error = '';
   final int _unreadNotifications = 0;
@@ -54,6 +59,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   void initState() {
     super.initState();
     _loadDashboard();
+    _initRealtime();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final type = (event['type'] ?? '').toString();
+      if (type == 'dashboard_sync' || type == 'batch_sync') {
+        _loadDashboard();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncSub?.cancel();
+    super.dispose();
   }
 
   String _formatCurrency(double amount) {

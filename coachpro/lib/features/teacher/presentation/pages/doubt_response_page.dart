@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_dimensions.dart';
-import '../../../../core/widgets/custom_button.dart';
-import '../../../../core/widgets/custom_text_field.dart';
-import '../../../../core/theme/theme_aware.dart';
 
 import '../../../../features/teacher/data/repositories/teacher_repository.dart';
 import '../../../../core/di/injection_container.dart';
-import 'package:go_router/go_router.dart';
 
 class DoubtResponsePage extends StatefulWidget {
   final Map<String, dynamic> doubt;
@@ -31,10 +25,13 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
     setState(() => _isSubmitting = true);
     try {
       await _teacherRepo.answerDoubt(
-        doubtId: widget.doubt['id'],
+        doubtId: widget.doubt['id']?.toString() ?? '',
         answer: answer,
       );
-      if (mounted) context.pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Doubt marked as resolved!')));
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -45,91 +42,126 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
 
   @override
   Widget build(BuildContext context) {
+    const blue = Color(0xFF0D1282);
+    const surface = Color(0xFFEEEDED);
+    const yellow = Color(0xFFF0DE36);
+
     final d = widget.doubt;
-    final subject = d['subject'] ?? 'Subject';
-    final studentName = (d['student'] as Map?)?['name'] ?? 'Student';
-    final batchName = (d['batch'] as Map?)?['name'] ?? 'Batch';
-    final question = d['question_text'] ?? '';
-    final color = _getSubjectColor(subject);
+    final subject = d['subject']?.toString().toUpperCase() ?? 'GENERAL';
+    final studentName = (d['student'] as Map?)?['name']?.toString().toUpperCase() ?? 'STUDENT';
+    final batchName = (d['batch'] as Map?)?['name']?.toString().toUpperCase() ?? 'BATCH';
+    final question = d['question_text']?.toString() ?? '';
 
     return Scaffold(
-      backgroundColor: CT.bg(context),
+      backgroundColor: blue,
       appBar: AppBar(
-        title: Text('Resolve Doubt', style: GoogleFonts.sora(fontWeight: FontWeight.w600)),
+        backgroundColor: blue,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text('RESOLVE DOUBT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.2)),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+        padding: const EdgeInsets.all(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // The Question
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: CT.cardDecor(context),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
-                  child: Text(subject, style: GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.w800, color: color, letterSpacing: 0.5)),
-                ),
-              ]),
-              const SizedBox(height: 12),
-              Text(question, style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600, height: 1.4, color: CT.textH(context))),
-              const SizedBox(height: 14),
-              Row(children: [
-                CircleAvatar(radius: 14, backgroundColor: AppColors.primary.withValues(alpha: 0.1), child: Text(studentName[0], style: GoogleFonts.sora(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary))),
-                const SizedBox(width: 8),
-                Expanded(child: Text('$studentName • $batchName', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context), fontWeight: FontWeight.w600))),
-              ]),
-            ]),
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
-          const SizedBox(height: 32),
-
-          // The Response Input
-          Text('Your Response', style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
-          const SizedBox(height: 12),
-          CustomTextField(
-            controller: _answerController,
-            hint: 'Type your explanation here...',
-            maxLines: 8,
-          ).animate(delay: 100.ms).fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
-          const SizedBox(height: 20),
-
-          // Media attachments
-          Row(children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.camera_alt_outlined),
-                label: Text('Camera', style: GoogleFonts.sora(fontWeight: FontWeight.w600)),
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3))),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.mic_none_outlined),
-                label: Text('Voice Note', style: GoogleFonts.sora(fontWeight: FontWeight.w600)),
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3))),
-              ),
-            ),
-          ]).animate(delay: 200.ms).fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
-
+          _buildQuestionCard(subject, question, studentName, batchName, blue, surface, yellow),
           const SizedBox(height: 40),
-          CustomButton(
-            text: _isSubmitting ? 'Submitting...' : 'Mark as Resolved', 
-            onPressed: _isSubmitting ? null : _submitAnswer
-          ).animate(delay: 300.ms).fadeIn(duration: 400.ms),
+          _inputLabel('YOUR SOLUTION/EXPLANATION', Colors.white.withValues(alpha: 0.5)),
+          const SizedBox(height: 12),
+          _buildTextField(_answerController, 'TYPE YOUR ANSWER HERE...', blue),
+          const SizedBox(height: 32),
+          _buildMediaActions(blue, surface, yellow),
+          const SizedBox(height: 48),
+          _buildSubmitBtn(blue, surface, yellow),
         ]),
       ),
     );
   }
 
-  Color _getSubjectColor(String s) {
-    s = s.toLowerCase();
-    if (s.contains('physics')) return AppColors.physics;
-    if (s.contains('chem')) return AppColors.chemistry;
-    if (s.contains('math')) return AppColors.mathematics;
-    return CT.accent(context);
+  Widget _buildQuestionCard(String subject, String question, String student, String batch, Color blue, Color surface, Color yellow) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border.all(color: Colors.black, width: 3),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(5, 5))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(4)),
+          child: Text(subject, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
+        ),
+        const SizedBox(height: 16),
+        Text(question, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, height: 1.3, color: blue)),
+        const SizedBox(height: 20),
+        Row(children: [
+          Container(width: 32, height: 32, decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 2), shape: BoxShape.circle), alignment: Alignment.center, child: Text(student[0], style: const TextStyle(fontWeight: FontWeight.w900))),
+          const SizedBox(width: 12),
+          Expanded(child: Text('$student • $batch', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.7)))),
+        ]),
+      ]),
+    ).animate().fadeIn().slideY(begin: 0.1);
+  }
+
+  Widget _inputLabel(String label, Color color) => Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w900, color: color, letterSpacing: 1));
+
+  Widget _buildTextField(TextEditingController ctrl, String hint, Color blue) => TextField(
+    controller: ctrl,
+    maxLines: 8,
+    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue),
+    decoration: InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.all(20),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 2.5)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 3)),
+    ),
+  );
+
+  Widget _buildMediaActions(Color blue, Color surface, Color yellow) {
+    return Row(children: [
+      Expanded(child: _mediaBtn(Icons.camera_alt_rounded, 'CAMERA', blue, surface)),
+      const SizedBox(width: 16),
+      Expanded(child: _mediaBtn(Icons.mic_rounded, 'VOICE', blue, surface)),
+    ]);
+  }
+
+  Widget _mediaBtn(IconData icon, String label, Color blue, Color surface) {
+    return InkWell(
+      onTap: () {},
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(color: surface, border: Border.all(color: Colors.black, width: 2.5), borderRadius: BorderRadius.circular(12), boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(2, 2))]),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, color: blue, size: 20),
+          const SizedBox(width: 8),
+          Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue, fontSize: 11)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildSubmitBtn(Color blue, Color surface, Color yellow) {
+    return SizedBox(
+      width: double.infinity,
+      height: 60,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: yellow,
+          foregroundColor: blue,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.black, width: 3)),
+        ),
+        onPressed: _isSubmitting ? null : _submitAnswer,
+        child: _isSubmitting 
+            ? const CircularProgressIndicator() 
+            : Text('MARK AS RESOLVED', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
+      ),
+    );
   }
 }

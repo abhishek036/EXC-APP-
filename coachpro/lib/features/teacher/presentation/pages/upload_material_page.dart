@@ -1,139 +1,255 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_dimensions.dart';
-import '../../../../core/widgets/custom_button.dart';
-import '../../../../core/widgets/custom_text_field.dart';
-import '../../../../core/theme/theme_aware.dart';
-import '../../../../core/widgets/cp_pressable.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../data/repositories/teacher_repository.dart';
 
 class UploadMaterialPage extends StatefulWidget {
   const UploadMaterialPage({super.key});
+
   @override
   State<UploadMaterialPage> createState() => _UploadMaterialPageState();
 }
 
 class _UploadMaterialPageState extends State<UploadMaterialPage> {
-  int _selectedType = 0; // 0: Notes, 1: Assignment, 2: Video Link
-  final _types = ['Notes', 'Assignment', 'Video Link'];
+  final _repo = sl<TeacherRepository>();
+  
+  String _selectedType = 'note'; // note, assignment, video
+  String? _selectedBatchId;
+  String? _selectedSubject;
+  List<Map<String, dynamic>> _batches = [];
+  bool _isLoadingBatches = true;
+
+  final TextEditingController _titleCtrl = TextEditingController();
+  final TextEditingController _descCtrl = TextEditingController();
+  final TextEditingController _linkCtrl = TextEditingController();
+  
+  bool _isUploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBatches();
+  }
+
+  Future<void> _loadBatches() async {
+    try {
+      final b = await _repo.getMyBatches();
+      if (!mounted) return;
+      setState(() {
+        _batches = b;
+        _isLoadingBatches = false;
+        if (b.isNotEmpty) {
+          _selectedBatchId = b.first['id']?.toString();
+          _selectedSubject = b.first['subject']?.toString() ?? 'General';
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoadingBatches = false);
+    }
+  }
+
+  Future<void> _handleUpload() async {
+    if (_titleCtrl.text.isEmpty || _selectedBatchId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Title and Batch are required.')));
+      return;
+    }
+
+    setState(() => _isUploading = true);
+    try {
+      await _repo.uploadMaterial(
+        batchId: _selectedBatchId,
+        subject: _selectedSubject ?? 'General',
+        title: _titleCtrl.text.trim(),
+        description: _descCtrl.text.trim(),
+        type: _selectedType,
+        fileUrl: _linkCtrl.text.trim(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Material Uploaded Successfully!')));
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    const blue = Color(0xFF0D1282);
+    const surface = Color(0xFFEEEDED);
+    const yellow = Color(0xFFF0DE36);
+
     return Scaffold(
-      backgroundColor: CT.bg(context),
-      appBar: AppBar(title: Text('Upload Material', style: GoogleFonts.sora(fontWeight: FontWeight.w600))),
+      backgroundColor: blue,
+      appBar: AppBar(
+        backgroundColor: blue,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text('UPLOAD CONTENT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.2)),
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Segmented Control
-          Container(
-            height: 44,
-            decoration: BoxDecoration(color: CT.textM(context), borderRadius: BorderRadius.circular(12)),
-            child: Row(
-              children: List.generate(_types.length, (i) => Expanded(
-                child: CPPressable(
-                  onTap: () => setState(() => _selectedType = i),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: _selectedType == i ? CT.bg(context) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: _selectedType == i ? [BoxShadow(color: CT.textH(context).withValues(alpha: 0.05), blurRadius: 4)] : [],
-                    ),
-                    child: Center(child: Text(_types[i], style: GoogleFonts.dmSans(fontSize: 13, fontWeight: _selectedType == i ? FontWeight.w800 : FontWeight.w600, color: _selectedType == i ? CT.textH(context) : CT.textS(context)))),
-                  ),
-                ),
-              )),
-            ),
-          ).animate().fadeIn(duration: 400.ms),
-          const SizedBox(height: 24),
-
-          // Form fields
-          const CustomTextField(
-            label: 'Title',
-            hint: 'e.g. Laws of Motion - Lecture 2',
-            prefixIcon: Icons.title,
-          ).animate(delay: 100.ms).fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
-          const SizedBox(height: 16),
-          
-          Row(children: [
-            Expanded(child: _dropdownField('Select Batch', 'JEE Batch A')),
-            const SizedBox(width: 16),
-            Expanded(child: _dropdownField('Subject', 'Physics')),
-          ]).animate(delay: 200.ms).fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
-          const SizedBox(height: 16),
-
-          if (_selectedType == 1) ...[ // Assignment specific
-            const CustomTextField(
-              label: 'Due Date',
-              hint: 'Select due date & time',
-              prefixIcon: Icons.calendar_today_outlined,
-            ).animate().fadeIn(duration: 300.ms),
-            const SizedBox(height: 16),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildTypeSelector(blue, surface, yellow),
+            const SizedBox(height: 32),
+            _buildFormCard(blue, surface, yellow),
+            const SizedBox(height: 40),
+            _buildUploadBtn(blue, surface, yellow),
           ],
-
-          if (_selectedType == 2) ...[ // Video Link
-            const CustomTextField(
-              label: 'Video Link',
-              hint: 'Paste YouTube or Drive link here',
-              prefixIcon: Icons.link,
-            ).animate().fadeIn(duration: 300.ms),
-          ] else ...[ // File upload area for Notes/Assignment
-            Container(
-              width: double.infinity,
-              height: 160,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5, style: BorderStyle.none), // In a real app use a dotted border package
-              ),
-              child: Stack(children: [
-                Positioned.fill(child: CustomPaint(painter: _DashedBorderPainter())),
-                Center(
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Container(padding: EdgeInsets.all(12), decoration: BoxDecoration(color: CT.card(context), shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.1), blurRadius: 10)]), child: Icon(Icons.cloud_upload_outlined, color: AppColors.primary, size: 28)),
-                    const SizedBox(height: 16),
-                    Text('Tap to upload file or drag & drop', style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary)),
-                    const SizedBox(height: 4),
-                    Text('PDF, DOC, PPT (Max 20MB)', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context))),
-                  ]),
-                ),
-              ]),
-            ).animate(delay: 300.ms).fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
-          ],
-
-          const SizedBox(height: 40),
-          CustomButton(text: 'Publish ${_types[_selectedType]}', icon: Icons.send, onPressed: () {}).animate(delay: 400.ms).fadeIn(duration: 400.ms),
-        ]),
+        ),
       ),
     );
   }
 
-  Widget _dropdownField(String label, String value) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    decoration: BoxDecoration(color: CT.card(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: CT.textM(context))),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context), fontWeight: FontWeight.w600)),
-      const SizedBox(height: 4),
-      Row(children: [
-        Expanded(child: Text(value, style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context)))),
-        Icon(Icons.keyboard_arrow_down, size: 20, color: CT.textM(context)),
-      ]),
-    ]),
-  );
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rRect = RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, size.width, size.height), const Radius.circular(16));
-    
-    // Simple dash logic (for a real app, use path_drawing package)
-    final dashPaint = Paint()..color = AppColors.primary.withValues(alpha: 0.4)..strokeWidth = 1.5..style = PaintingStyle.stroke;
-    canvas.drawRRect(rRect, dashPaint); // Placeholder for actual dashed effect
+  Widget _buildTypeSelector(Color blue, Color surface, Color yellow) {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white24, width: 2)),
+      child: Row(
+        children: [
+          _typeBtn('note', 'NOTES', Icons.description_rounded, blue, yellow),
+          _typeBtn('assignment', 'TASK', Icons.assignment_rounded, blue, yellow),
+          _typeBtn('video', 'VIDEO', Icons.play_circle_fill_rounded, blue, yellow),
+        ],
+      ),
+    );
   }
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+
+  Widget _typeBtn(String type, String label, IconData icon, Color blue, Color yellow) {
+    final isSel = _selectedType == type;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedType = type),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(color: isSel ? yellow : Colors.transparent, borderRadius: BorderRadius.circular(8), border: isSel ? Border.all(color: Colors.black, width: 2) : null),
+          child: Column(
+            children: [
+              Icon(icon, color: isSel ? blue : Colors.white, size: 20),
+              const SizedBox(height: 4),
+              Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: isSel ? blue : Colors.white, letterSpacing: 1)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormCard(Color blue, Color surface, Color yellow) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border.all(color: Colors.black, width: 3),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(5, 5))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _inputLabel('CONTENT TITLE', blue),
+          _textField(_titleCtrl, 'e.g. ORGANIC CHEMISTRY NOTES - VOL 2', blue),
+          const SizedBox(height: 24),
+          _inputLabel('TARGET BATCH', blue),
+          _buildBatchDropdown(blue),
+          const SizedBox(height: 24),
+          _inputLabel('DESCRIPTION', blue),
+          _textField(_descCtrl, 'Brief about what you are sharing...', blue, maxLines: 3),
+          const SizedBox(height: 24),
+          _selectedType == 'video' ? _inputLabel('VIDEO LINK (Youtube/Drive)', blue) : _inputLabel('ATTACHMENT LINK', blue),
+          _textField(_linkCtrl, 'https://...', blue),
+          if (_selectedType != 'video') ...[
+            const SizedBox(height: 24),
+            _buildFileDropzone(blue, yellow),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _inputLabel(String label, Color blue) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.5), letterSpacing: 1)));
+
+  Widget _textField(TextEditingController ctrl, String hint, Color blue, {int maxLines = 1}) => TextField(
+    controller: ctrl,
+    maxLines: maxLines,
+    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue),
+    decoration: InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black, width: 2)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black, width: 2.5)),
+    ),
+  );
+
+  Widget _buildBatchDropdown(Color blue) {
+    if (_isLoadingBatches) return const CircularProgressIndicator();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black, width: 2), borderRadius: BorderRadius.circular(8)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedBatchId,
+          isExpanded: true,
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue),
+          onChanged: (val) {
+             final b = _batches.firstWhere((element) => element['id']?.toString() == val);
+             setState(() {
+               _selectedBatchId = val;
+                _selectedSubject = b['subject']?.toString() ?? 'General';
+             });
+          },
+          items: _batches.map((b) => DropdownMenuItem(value: b['id']?.toString(), child: Text(b['name']?.toString() ?? 'BATCH', overflow: TextOverflow.ellipsis))).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFileDropzone(Color blue, Color yellow) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: blue.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: blue.withValues(alpha: 0.2), width: 2, style: BorderStyle.solid),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.cloud_upload_outlined, color: blue, size: 32),
+          const SizedBox(height: 12),
+          Text('UPLOAD FILE', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: blue)),
+          Text('(MAX 10MB)', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.5))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUploadBtn(Color blue, Color surface, Color yellow) {
+    return SizedBox(
+      width: double.infinity,
+      height: 60,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: yellow,
+          foregroundColor: blue,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.black, width: 3)),
+        ),
+        onPressed: _isUploading ? null : _handleUpload,
+        child: _isUploading 
+          ? const CircularProgressIndicator() 
+          : Text('UPLOAD CONTENT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
+      ),
+    );
+  }
 }

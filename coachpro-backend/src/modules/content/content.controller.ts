@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ContentService } from './content.service';
 import { sendResponse } from '../../utils/response';
 import { prisma } from '../../server';
+import { emitBatchSync, emitInstituteDashboardSync } from '../../config/socket';
 
 export class ContentController {
   private service: ContentService;
@@ -29,6 +30,9 @@ export class ContentController {
   createAssignment = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.service.createAssignment(req.instituteId!, req.user!.userId, req.body);
+      emitBatchSync(req.instituteId!, req.body.batch_id, 'assignment_created', {
+        assignment_id: (data as any)?.id,
+      });
       return sendResponse({ res, data, message: 'Assignment uploaded successfully', statusCode: 201 });
     } catch (e) { next(e); }
   }
@@ -60,6 +64,18 @@ export class ContentController {
         student.id,
         req.body,
       );
+
+      const assignment = await prisma.assignment.findFirst({
+        where: { id: req.params.assignmentId, institute_id: req.instituteId! },
+        select: { batch_id: true },
+      });
+      if (assignment?.batch_id) {
+        emitBatchSync(req.instituteId!, assignment.batch_id, 'assignment_submitted', {
+          assignment_id: req.params.assignmentId,
+          student_id: student.id,
+        });
+      }
+
       return sendResponse({ res, data, message: 'Assignment submitted successfully', statusCode: 201 });
     } catch (e) { next(e); }
   }
@@ -79,6 +95,18 @@ export class ContentController {
         req.user!.userId,
         req.body,
       );
+
+      const submission = await prisma.assignmentSubmission.findFirst({
+        where: { id: req.params.submissionId, institute_id: req.instituteId! },
+        include: { assignment: { select: { id: true, batch_id: true } } },
+      });
+      if (submission?.assignment?.batch_id) {
+        emitBatchSync(req.instituteId!, submission.assignment.batch_id, 'assignment_reviewed', {
+          assignment_id: submission.assignment.id,
+          submission_id: req.params.submissionId,
+        });
+      }
+
       return sendResponse({ res, data, message: 'Assignment submission reviewed successfully' });
     } catch (e) { next(e); }
   }
@@ -88,6 +116,13 @@ export class ContentController {
     try {
       // Typically student_id is req.user.userId, but checking logic depends on the specific user schema implementation
       const data = await this.service.askDoubt(req.instituteId!, req.user!.userId, req.body);
+      if (req.body.batch_id) {
+        emitBatchSync(req.instituteId!, req.body.batch_id, 'doubt_created', {
+          doubt_id: (data as any)?.id,
+        });
+      } else {
+        emitInstituteDashboardSync(req.instituteId!, 'doubt_created');
+      }
       return sendResponse({ res, data, message: 'Doubt submitted successfully', statusCode: 201 });
     } catch (e) { next(e); }
   }
@@ -95,6 +130,17 @@ export class ContentController {
   respondDoubt = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.service.respondToDoubt(req.params.doubtId, req.instituteId!, req.user!.userId, req.body);
+      const doubt = await prisma.doubt.findFirst({
+        where: { id: req.params.doubtId, institute_id: req.instituteId! },
+        select: { batch_id: true },
+      });
+      if (doubt?.batch_id) {
+        emitBatchSync(req.instituteId!, doubt.batch_id, 'doubt_responded', {
+          doubt_id: req.params.doubtId,
+        });
+      } else {
+        emitInstituteDashboardSync(req.instituteId!, 'doubt_responded', { doubt_id: req.params.doubtId });
+      }
       return sendResponse({ res, data, message: 'Doubt answer submitted successfully' });
     } catch (e) { next(e); }
   }

@@ -189,4 +189,19 @@ class TeacherRepository {
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch exams');
   }
+
+  // ── Syllabus ─────────────────────────────────────────────
+  Future<void> updateSyllabusTopicStatus({
+    required String batchId,
+    required String topicId,
+    required bool isCompleted,
+  }) async {
+    final response = await _api.dio.post(
+      'teachers/me/batches/$batchId/topics/$topicId/status',
+      data: {'is_completed': isCompleted},
+    );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception(response.data['message'] ?? 'Failed to update topic status');
+    }
+  }
 }

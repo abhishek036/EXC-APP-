@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
-import '../../../../core/theme/theme_aware.dart';
 import '../../data/repositories/teacher_repository.dart';
+import 'attendance_marking_page.dart';
+import 'quiz_results_page.dart';
 
 class TeacherBatchPanelPage extends StatefulWidget {
   final String batchId;
@@ -16,7 +17,7 @@ class TeacherBatchPanelPage extends StatefulWidget {
 }
 
 class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
-  final _repo = sl<TeacherRepository>();
+  final _teacherRepo = sl<TeacherRepository>();
 
   bool _loading = true;
   String? _error;
@@ -33,20 +34,21 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final batchesFuture = _repo.getMyBatches();
-      final studentsFuture = _repo.getBatchStudents(widget.batchId);
-      final executionFuture = _repo.getBatchExecutionSummary(widget.batchId);
+      final batchesFuture = _teacherRepo.getMyBatches();
+      final studentsFuture = _teacherRepo.getBatchStudents(widget.batchId);
+      final executionFuture = _teacherRepo.getBatchExecutionSummary(widget.batchId);
 
       final batches = await batchesFuture;
       final students = await studentsFuture;
       final execution = await executionFuture;
 
-      final selected = batches.where((b) => (b['id'] ?? '').toString() == widget.batchId).cast<Map<String, dynamic>>().toList();
+      final selected = batches.where((b) => (b['id'] ?? '').toString() == widget.batchId).toList();
       final fallbackBatch = selected.isNotEmpty ? selected.first : <String, dynamic>{};
       final batch = Map<String, dynamic>.from((execution['batch'] as Map?) ?? fallbackBatch);
 
@@ -88,92 +90,174 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Force Neo-Brutalist Colors
+    const primaryBlue = Color(0xFF0D1282);
+    const surfaceWhite = Color(0xFFEEEDED);
+    const accentYellow = Color(0xFFF0DE36);
+    
     final name = (_batch?['name'] ?? 'Batch Panel').toString();
+    
     return DefaultTabController(
       length: 6,
       child: Scaffold(
-        backgroundColor: CT.bg(context),
+        backgroundColor: primaryBlue,
         appBar: AppBar(
-          title: Text(name, style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
+          backgroundColor: primaryBlue,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            name.toUpperCase(),
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w900,
+              fontSize: 20,
+              color: Colors.white,
+              letterSpacing: 1.0,
+            ),
+          ),
           bottom: TabBar(
             isScrollable: true,
-            labelColor: const Color(0xFF0D1282),
-            unselectedLabelColor: CT.textM(context),
-            indicatorColor: const Color(0xFF0D1282),
+            indicatorColor: accentYellow,
+            indicatorWeight: 4,
+            labelColor: accentYellow,
+            unselectedLabelColor: Colors.white.withValues(alpha: 0.6),
+            labelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 13),
+            unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13),
             tabs: const [
-              Tab(text: 'Overview'),
-              Tab(text: 'Content'),
-              Tab(text: 'Students'),
-              Tab(text: 'Tests'),
-              Tab(text: 'Attendance'),
-              Tab(text: 'Doubts'),
+              Tab(text: 'OVERVIEW'),
+              Tab(text: 'CONTENT'),
+              Tab(text: 'STUDENTS'),
+              Tab(text: 'TESTS'),
+              Tab(text: 'ATTENDANCE'),
+              Tab(text: 'DOUBTS'),
             ],
           ),
         ),
         body: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: accentYellow))
             : _error != null
-                ? Center(child: Text(_error!, style: GoogleFonts.dmSans(color: CT.textM(context))))
+                ? Center(child: _PremiumCard(
+                    child: Text(_error!, style: GoogleFonts.plusJakartaSans(color: AppColors.coralRed, fontWeight: FontWeight.bold)),
+                  ))
                 : TabBarView(
                     children: [
-                      _overviewTab(),
-                      _contentTab(),
-                      _studentsTab(),
-                      _testsTab(),
-                      _attendanceTab(),
-                      _doubtsTab(),
+                      _overviewTab(surfaceWhite, accentYellow, primaryBlue),
+                      _contentTab(surfaceWhite, accentYellow, primaryBlue),
+                      _studentsTab(surfaceWhite, accentYellow, primaryBlue),
+                      _testsTab(surfaceWhite, accentYellow, primaryBlue),
+                      _attendanceTab(surfaceWhite, accentYellow, primaryBlue),
+                      _doubtsTab(surfaceWhite, accentYellow, primaryBlue),
                     ],
                   ),
       ),
     );
   }
 
-  Widget _overviewTab() {
+  Widget _overviewTab(Color bg, Color yellow, Color blue) {
     final subject = (_batch?['subject'] ?? 'Subject').toString();
-    final nextClass = (_batch?['start_time'] ?? '--').toString();
     final overview = Map<String, dynamic>.from((_execution['overview'] as Map?) ?? const {});
     final progress = _toNum(overview['teaching_progress_percent']).round();
     final lastLecture = Map<String, dynamic>.from((overview['last_lecture'] as Map?) ?? const {});
-    final lastLectureSummary = (lastLecture['title'] ?? lastLecture['description'] ?? 'No lecture summary yet').toString();
-    final studentsCount = _toNum(_batch?['student_count']).toInt();
+    final lastLectureSummary = (lastLecture['title'] ?? 'No lecture yet').toString();
+    final studentCount = _students.length;
 
     return ListView(
-      padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+      padding: const EdgeInsets.all(20),
       children: [
-        _card(child: Text('Batch Info', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context)))),
-        const SizedBox(height: 10),
-        _infoCard('Your Subject', subject),
-        _infoCard('Total Students', '${studentsCount > 0 ? studentsCount : _students.length}'),
-        _infoCard('Teaching Progress', '$progress%'),
-        _infoCard('Last Lecture Summary', lastLectureSummary),
-        _infoCard('Upcoming Class', nextClass),
+        _PremiumCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('STATUS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue, fontSize: 12, letterSpacing: 1)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(4)),
+                    child: Text('ACTIVE', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(subject.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 24, color: blue, height: 1.1)),
+              const SizedBox(height: 8),
+              Text('SYLLABUS PROGRESS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 12, color: blue.withValues(alpha: 0.6))),
+              const SizedBox(height: 8),
+              Stack(
+                children: [
+                  Container(height: 12, decoration: BoxDecoration(color: blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2), border: Border.all(color: blue, width: 2))),
+                  FractionallySizedBox(
+                    widthFactor: progress / 100,
+                    child: Container(height: 12, decoration: BoxDecoration(color: yellow, borderRadius: BorderRadius.circular(1), border: Border.all(color: blue, width: 1))),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('$progress% Completed', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 13, color: blue)),
+                  Text('Target: 100%', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 11, color: blue.withValues(alpha: 0.5))),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(child: _StatBox(label: 'STUDENTS', value: '$studentCount', icon: Icons.people_outline, blue: blue, yellow: yellow)),
+            const SizedBox(width: 16),
+            Expanded(child: _StatBox(label: 'DOUBTS', value: '${_doubts.length}', icon: Icons.help_outline, blue: blue, yellow: yellow)),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _PremiumCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('LATEST LECTURE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue, fontSize: 12, letterSpacing: 1)),
+              const SizedBox(height: 12),
+              Text(lastLectureSummary, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16, color: blue)),
+              const SizedBox(height: 8),
+              Text('Uploaded yesterday • 84% student reach', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, fontSize: 12, color: blue.withValues(alpha: 0.6))),
+            ],
+          ),
+        ),
       ],
     );
   }
 
-  Widget _contentTab() {
+  Widget _contentTab(Color bg, Color yellow, Color blue) {
     return DefaultTabController(
       length: 4,
       child: Column(
         children: [
-          const TabBar(
-            labelColor: Color(0xFF0D1282),
-            unselectedLabelColor: Color(0xFF6B7280),
-            indicatorColor: Color(0xFF0D1282),
-            tabs: [
-              Tab(text: 'Lectures'),
-              Tab(text: 'Notes'),
-              Tab(text: 'Assignments'),
-              Tab(text: 'Materials'),
-            ],
+          Container(
+            color: blue.withValues(alpha: 0.5),
+            child: TabBar(
+              indicatorColor: yellow,
+              labelColor: yellow,
+              unselectedLabelColor: Colors.white70,
+              labelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 11),
+              tabs: const [
+                Tab(text: 'LECTURES'),
+                Tab(text: 'NOTES'),
+                Tab(text: 'ASSIGNMENTS'),
+                Tab(text: 'SCHEDULES'),
+              ],
+            ),
           ),
           Expanded(
             child: TabBarView(
               children: [
-                _lecturesPane(),
-                _notesPane(),
-                _assignmentsPane(),
-                _materialsPane(),
+                _lecturesPane(bg, yellow, blue),
+                _simpleListPane('Notes', bg, yellow, blue),
+                _assignmentsPane(bg, yellow, blue),
+                _simpleListPane('Materials', bg, yellow, blue),
               ],
             ),
           ),
@@ -182,84 +266,78 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     );
   }
 
-  Widget _lecturesPane() {
+  Widget _lecturesPane(Color bg, Color yellow, Color blue) {
     final topics = (((_execution['syllabus'] as Map?)?['topics']) as List? ?? const [])
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList();
 
-    final selectedTopic = topics.isNotEmpty ? topics.first : null;
-    final selectedTopicName = selectedTopic == null
-        ? 'N/A'
-        : ((selectedTopic['topic_name'] ?? 'Topic').toString());
-    final selectedTopicCompletion = selectedTopic == null ? 0 : _toNum(selectedTopic['completion_percent']).round();
-
     return ListView(
-      padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+      padding: const EdgeInsets.all(20),
       children: [
-        _card(
+        _PremiumCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Syllabus Tracker', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
-              const SizedBox(height: 8),
+              Text('SYLLABUS TRACKER', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
+              const SizedBox(height: 16),
               if (topics.isEmpty)
-                Text('No syllabus topics configured for this batch yet.', style: GoogleFonts.dmSans(color: CT.textM(context)))
+                Text('No topics configured.', style: GoogleFonts.plusJakartaSans(color: blue.withValues(alpha: 0.5)))
               else
-              ...topics.map((topic) {
-                final topicId = (topic['id'] ?? '').toString();
-                final chapter = (topic['chapter_name'] ?? '').toString();
-                final topicName = (topic['topic_name'] ?? 'Topic').toString();
-                final completed = _completedTopicIds.contains(topicId);
-                final completion = _toNum(topic['completion_percent']).round();
-                return CheckboxListTile(
-                  value: completed,
-                  dense: true,
-                  onChanged: (v) {
-                    if (topicId.isEmpty) return;
-                    setState(() {
-                      if (v == true) {
-                        _completedTopicIds.add(topicId);
-                      } else {
-                        _completedTopicIds.remove(topicId);
-                      }
-                    });
-                  },
-                  activeColor: const Color(0xFF0D1282),
-                  checkColor: const Color(0xFFEEEDED),
-                  title: Text(chapter.isEmpty ? topicName : '$chapter → $topicName', style: GoogleFonts.dmSans(color: CT.textH(context))),
-                  subtitle: Text('Class completion: $completion%', style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context))),
-                  secondary: completed ? const Icon(Icons.check_circle, color: Color(0xFF0D1282), size: 18) : null,
-                  contentPadding: EdgeInsets.zero,
-                );
-              }),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        _card(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Lecture Execution', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
-              const SizedBox(height: 8),
-              _miniLine('YouTube Link', 'https://youtu.be/...'),
-              _miniLine('Views', '126'),
-              _miniLine('Completion', '$selectedTopicCompletion%'),
-              _miniLine('Linked Topic', selectedTopicName),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  _chip('Start Class', bg: const Color(0xFF0D1282), fg: const Color(0xFFEEEDED)),
-                  _chip('Mark Complete', bg: const Color(0xFFF0DE36), fg: const Color(0xFF0D1282)),
-                  _chip('Edit', bg: const Color(0xFFEEEDED), fg: const Color(0xFF0D1282), bordered: true),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text('Live Class System', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
-              const SizedBox(height: 6),
-              Text('Pre-class: Start Class • During: Focus mode (student count/chat/mute) • Post: upload recording + add notes', style: GoogleFonts.dmSans(color: CT.textM(context))),
+                ...topics.map((topic) {
+                  final topicId = (topic['id'] ?? '').toString();
+                  final chapter = (topic['chapter_name'] ?? '').toString();
+                  final topicName = (topic['topic_name'] ?? 'Topic').toString();
+                  final completed = _completedTopicIds.contains(topicId);
+                  
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: completed ? yellow.withValues(alpha: 0.1) : Colors.transparent,
+                      border: Border.all(color: blue, width: 1.5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: CheckboxListTile(
+                      value: completed,
+                      dense: true,
+                      onChanged: (v) async {
+                        if (v == null) return;
+                        try {
+                          setState(() {
+                            if (v) {
+                              _completedTopicIds.add(topicId);
+                            } else {
+                              _completedTopicIds.remove(topicId);
+                            }
+                          });
+                          await _teacherRepo.updateSyllabusTopicStatus(
+                            batchId: widget.batchId,
+                            topicId: topicId,
+                            isCompleted: v,
+                          );
+                        } catch (e) {
+                          setState(() {
+                            if (v) {
+                              _completedTopicIds.remove(topicId);
+                            } else {
+                              _completedTopicIds.add(topicId);
+                            }
+                          });
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                        }
+                      },
+                      activeColor: blue,
+                      checkColor: yellow,
+                      title: Text(
+                        chapter.isEmpty ? topicName : '$chapter: $topicName',
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 14, color: blue),
+                      ),
+                      subtitle: Text('BATCH COMPLETION: ${_toNum(topic['completion_percent']).round()}%', 
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 10, color: blue.withValues(alpha: 0.6))),
+                    ),
+                  );
+                }),
             ],
           ),
         ),
@@ -267,63 +345,105 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     );
   }
 
-  Widget _notesPane() => ListView(
-        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-        children: [
-          _card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Notes', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
-            const SizedBox(height: 8),
-            _miniLine('Upload', 'PDF'),
-            _miniLine('Replace', 'Enabled'),
-            _miniLine('Downloads', '84'),
-          ])),
-        ],
-      );
+  Widget _simpleListPane(String title, Color bg, Color yellow, Color blue) {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        _PremiumCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(title.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
+                  _ActionBtn(label: 'ADD NEW', icon: Icons.add, blue: blue, yellow: yellow, onPressed: () {}),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.folder_open_rounded, size: 48, color: blue.withValues(alpha: 0.2)),
+                    const SizedBox(height: 12),
+                    Text('No $title uploaded yet', style: GoogleFonts.plusJakartaSans(color: blue.withValues(alpha: 0.4), fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
-  Widget _assignmentsPane() => ListView(
-        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-        children: [
-          Builder(builder: (context) {
-            final assignments = Map<String, dynamic>.from((_execution['assignments'] as Map?) ?? const {});
-            final pending = _toNum(assignments['pending_evaluation_count']).toInt();
-            final late = _toNum(assignments['late_submissions_count']).toInt();
-            return _card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Assignments', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
-              const SizedBox(height: 8),
-              _miniLine('Pending Evaluation', '$pending'),
-              _miniLine('Late Submissions', '$late'),
-              _miniLine('Deadline', 'Configured per assignment'),
-              const SizedBox(height: 8),
-              Text('Grading UX: left submission + right marks/remarks, swipe next student without reload.', style: GoogleFonts.dmSans(color: CT.textM(context))),
-            ]));
-          }),
-        ],
-      );
+  Widget _assignmentsPane(Color bg, Color yellow, Color blue) {
+    final assignments = Map<String, dynamic>.from((_execution['assignments'] as Map?) ?? const {});
+    final pending = _toNum(assignments['pending_evaluation_count']).toInt();
 
-  Widget _materialsPane() => ListView(
-        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-        children: [
-          _card(child: Text('Upload and organize class materials quickly from this tab.', style: GoogleFonts.dmSans(color: CT.textH(context)))),
-        ],
-      );
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        _PremiumCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('ASSIGNMENTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
+                  _ActionBtn(label: 'NEW', icon: Icons.add, blue: blue, yellow: yellow, onPressed: () {}),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(8),
+                  boxShadow: [BoxShadow(color: blue, offset: const Offset(3, 3))]),
+                child: Row(
+                  children: [
+                    const Icon(Icons.pending_actions_rounded, color: Color(0xFF0D1282)),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text('$pending SUBMISSIONS NEED REVIEW', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12, color: blue))),
+                    Icon(Icons.arrow_forward_ios_rounded, size: 14, color: blue),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
-  Widget _studentsTab() {
+  Widget _studentsTab(Color bg, Color yellow, Color blue) {
     return ListView.builder(
-      padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+      padding: const EdgeInsets.all(20),
       itemCount: _students.length,
       itemBuilder: (context, index) {
         final s = _students[index];
         final name = (s['name'] ?? 'Student').toString();
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: CT.cardDecor(context),
+        return _PremiumCard(
+          margin: const EdgeInsets.only(bottom: 12),
           child: Row(
             children: [
-              Expanded(child: Text(name, style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w700, color: CT.textH(context)))),
-              Text('Attendance 84%', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context))),
-              const SizedBox(width: 8),
-              Text('Pending 1', style: GoogleFonts.dmSans(fontSize: 12, color: const Color(0xFFD71313))),
+               Container(
+                 width: 40, height: 40,
+                 decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(4)),
+                 alignment: Alignment.center,
+                 child: Text(name.isNotEmpty ? name[0] : 'S', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
+               ),
+               const SizedBox(width: 16),
+               Expanded(
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     Text(name.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14, color: blue)),
+                     Text('RANK: #${index + 1} • ATTN: 92%', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 10, color: blue.withValues(alpha: 0.5))),
+                   ],
+                 ),
+               ),
+               Icon(Icons.more_vert_rounded, color: blue),
             ],
           ),
         );
@@ -331,76 +451,115 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     );
   }
 
-  Widget _testsTab() => ListView(
-        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-        children: [
-          Builder(builder: (context) {
-            final tests = Map<String, dynamic>.from((_execution['tests'] as Map?) ?? const {});
-            final avg = _toNum(tests['avg_score']);
-            final topper = Map<String, dynamic>.from((tests['topper'] as Map?) ?? const {});
-            final topperName = (topper['student_name'] ?? 'N/A').toString();
-            final topperScore = _toNum(topper['score']).toInt();
-            final weak = ((tests['weak_students'] as List?) ?? const []).length;
+  Widget _testsTab(Color bg, Color yellow, Color blue) {
+    final tests = Map<String, dynamic>.from((_execution['tests'] as Map?) ?? const {});
+    final avg = _toNum(tests['avg_score']).toStringAsFixed(1);
+    final topper = Map<String, dynamic>.from((tests['topper'] as Map?) ?? const {});
 
-            return Column(
-              children: [
-                _infoCard('Average Score', avg.toStringAsFixed(1)),
-                _infoCard('Topper', '$topperName ($topperScore)'),
-                _infoCard('Weak Students', '$weak students'),
-              ],
-            );
-          }),
-        ],
-      );
-
-  Widget _attendanceTab() => ListView(
-        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-        children: [
-          Builder(builder: (context) {
-            final attendance = Map<String, dynamic>.from((_execution['attendance'] as Map?) ?? const {});
-            final low = ((attendance['low_attendance_students'] as List?) ?? const []).length;
-            return Column(
-              children: [
-                _infoCard('Today Attendance', 'Mark in attendance tab'),
-                _infoCard('Low Attendance', '$low students highlighted'),
-              ],
-            );
-          }),
-          _infoCard('Quick Notify', 'Enabled for low attendance'),
-        ],
-      );
-
-  Widget _doubtsTab() {
     return ListView(
-      padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+      padding: const EdgeInsets.all(20),
       children: [
-        ..._doubts.map((d) {
-          final student = ((d['student'] as Map?)?['name'] ?? 'Student').toString();
-          final question = (d['question_text'] ?? '').toString();
-          final topic = (d['topic'] ?? (_batch?['subject'] ?? 'Topic')).toString();
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: CT.cardDecor(context),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('$student • $topic', style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
-                const SizedBox(height: 6),
-                Text(question.isEmpty ? 'No question text' : question, style: GoogleFonts.dmSans(color: CT.textH(context))),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    _chip('Resolved', bg: const Color(0xFFEEEDED), fg: const Color(0xFF0D1282), bordered: true),
-                    _chip('Pending', bg: const Color(0xFFF0DE36), fg: const Color(0xFF0D1282)),
-                    _chip('Discuss in class', bg: const Color(0xFFD71313), fg: const Color(0xFFEEEDED)),
-                  ],
+        _PremiumCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('PERFORMANCE OVERVIEW', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
+              const SizedBox(height: 20),
+              _InfoRow(label: 'CLASS AVERAGE', value: '$avg%', blue: blue),
+              _InfoRow(label: 'BATCH TOPPER', value: (topper['student_name'] ?? 'N/A').toString().toUpperCase(), blue: blue),
+              _InfoRow(label: 'QUIZZES TAKEN', value: '${(tests['total_quizzes'] ?? 0)}', blue: blue),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizResultsPage())),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: yellow,
+                    foregroundColor: blue,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: blue, width: 2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text('VIEW DETAILED ANALYTICS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14)),
                 ),
-              ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _attendanceTab(Color bg, Color yellow, Color blue) {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        _PremiumCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('ATTENDANCE WORKFLOW', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
+              const SizedBox(height: 12),
+              Text('Track and mark attendance for your students daily.', style: GoogleFonts.plusJakartaSans(color: blue.withValues(alpha: 0.6), fontWeight: FontWeight.w600)),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceMarkingPage())),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: blue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: blue, width: 2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text('OPEN ATTENDANCE PORTAL', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _doubtsTab(Color bg, Color yellow, Color blue) {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        if (_doubts.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 100),
+              child: _PremiumCard(child: Text('NO PENDING DOUBTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue))),
             ),
-          );
-        }),
+          )
+        else
+          ..._doubts.map((d) {
+            final student = ((d['student'] as Map?)?['name'] ?? 'Student').toString();
+            final question = (d['question_text'] ?? '').toString();
+            return _PremiumCard(
+              margin: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(3)), child: Text('PENDING', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900))),
+                      const SizedBox(width: 8),
+                      Text(student.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12, color: blue)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(question, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 14, color: blue)),
+                  const SizedBox(height: 16),
+                  _ActionBtn(label: 'RESPOND', icon: Icons.reply, blue: blue, yellow: yellow, onPressed: () {}),
+                ],
+              ),
+            );
+          }),
       ],
     );
   }
@@ -410,42 +569,114 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     if (value is num) return value;
     return num.tryParse(value.toString()) ?? 0;
   }
+}
 
-  Widget _card({required Widget child}) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: CT.cardDecor(context),
-        child: child,
-      );
+class _PremiumCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets margin;
+  const _PremiumCard({required this.child, this.margin = EdgeInsets.zero});
 
-  Widget _infoCard(String label, String value) => Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: CT.cardDecor(context),
-        child: Row(
-          children: [
-            Expanded(child: Text(label, style: GoogleFonts.dmSans(color: CT.textM(context)))),
-            Text(value, style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w700, color: CT.textH(context))),
-          ],
-        ),
-      );
+  @override
+  Widget build(BuildContext context) {
+    const blue = Color(0xFF0D1282);
+    const surface = Color(0xFFEEEDED);
+    return Container(
+      margin: margin,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border.all(color: blue, width: 2.5),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(color: blue, offset: Offset(4, 4)),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
 
-  Widget _miniLine(String label, String value) => Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Row(
-          children: [
-            Expanded(child: Text(label, style: GoogleFonts.dmSans(color: CT.textM(context)))),
-            Text(value, style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, color: CT.textH(context))),
-          ],
-        ),
-      );
+class _StatBox extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color blue;
+  final Color yellow;
 
-  Widget _chip(String label, {required Color bg, required Color fg, bool bordered = false}) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+  const _StatBox({required this.label, required this.value, required this.icon, required this.blue, required this.yellow});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: blue, width: 2),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(3, 3))],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: blue, size: 24),
+          const SizedBox(height: 8),
+          Text(value, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 24, color: blue)),
+          Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 10, color: blue.withValues(alpha: 0.5))),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color blue;
+  const _InfoRow({required this.label, required this.value, required this.blue});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 12, color: blue.withValues(alpha: 0.6))),
+          Text(value, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 13, color: blue)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color blue;
+  final Color yellow;
+  final VoidCallback onPressed;
+
+  const _ActionBtn({required this.label, required this.icon, required this.blue, required this.yellow, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(999),
-          border: bordered ? Border.all(color: const Color(0xFF0D1282).withValues(alpha: 0.25)) : null,
+          color: yellow,
+          border: Border.all(color: blue, width: 2),
+          borderRadius: BorderRadius.circular(6),
         ),
-        child: Text(label, style: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 11, color: fg)),
-      );
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: blue),
+            const SizedBox(width: 8),
+            Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue)),
+          ],
+        ),
+      ),
+    );
+  }
 }
