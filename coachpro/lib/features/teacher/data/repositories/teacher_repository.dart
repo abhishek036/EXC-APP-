@@ -60,6 +60,68 @@ class TeacherRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch schedule');
   }
 
+  Future<List<Map<String, dynamic>>> getMyScheduleEntries({DateTime? date}) async {
+    final response = await _api.dio.get(
+      'timetable/teacher/me',
+      queryParameters: {
+        if (date != null)
+          'date': '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+      },
+    );
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch schedule entries');
+  }
+
+  Future<Map<String, dynamic>> createMyScheduleEntry({
+    required String batchId,
+    required String title,
+    required DateTime scheduledAt,
+    required int durationMinutes,
+  }) async {
+    final response = await _api.dio.post('timetable/teacher/me', data: {
+      'batch_id': batchId,
+      'title': title,
+      'scheduled_at': scheduledAt.toIso8601String(),
+      'duration_minutes': durationMinutes,
+    });
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to create schedule entry');
+  }
+
+  Future<Map<String, dynamic>> updateMyScheduleEntry({
+    required String lectureId,
+    String? batchId,
+    String? title,
+    DateTime? scheduledAt,
+    int? durationMinutes,
+  }) async {
+    final payload = <String, dynamic>{
+      'batch_id': batchId,
+      'title': title,
+      'scheduled_at': scheduledAt?.toIso8601String(),
+      'duration_minutes': durationMinutes,
+    };
+    payload.removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
+
+    final response = await _api.dio.put('timetable/teacher/me/$lectureId', data: payload);
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update schedule entry');
+  }
+
+  Future<void> deleteMyScheduleEntry(String lectureId) async {
+    final response = await _api.dio.delete('timetable/teacher/me/$lectureId');
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+    throw Exception(response.data['message'] ?? 'Failed to delete schedule entry');
+  }
+
   Future<Map<String, dynamic>> getBatchExecutionSummary(String batchId) async {
     final response = await _api.dio.get('teachers/me/batches/$batchId/execution');
     if (response.statusCode == 200) {

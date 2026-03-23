@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../data/repositories/teacher_repository.dart';
 
 class TeacherSchedulePage extends StatefulWidget {
@@ -14,15 +17,39 @@ class TeacherSchedulePage extends StatefulWidget {
 
 class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   final _repo = sl<TeacherRepository>();
+  final _realtime = sl<RealtimeSyncService>();
 
   bool _isLoading = true;
+  bool _isSaving = false;
   String? _error;
-  List<Map<String, dynamic>> _today = [];
+  DateTime _selectedDate = DateTime.now();
+  List<Map<String, dynamic>> _entries = [];
+  List<Map<String, dynamic>> _batches = [];
+  StreamSubscription<Map<String, dynamic>>? _syncSub;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _initRealtime();
+  }
+
+  @override
+  void dispose() {
+    _syncSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final reason = (event['reason'] ?? '').toString();
+      if (reason.startsWith('lecture_schedule_') || reason.contains('lecture_')) {
+        _load();
+      }
+    });
   }
 
   Future<void> _load() async {
@@ -32,10 +59,17 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       _error = null;
     });
     try {
-      final today = await _repo.getTodaySchedule();
+      final results = await Future.wait([
+        _repo.getMyScheduleEntries(date: _selectedDate),
+        _repo.getMyBatches(),
+      ]);
+
+      final entries = List<Map<String, dynamic>>.from(results[0] as List);
+      final batches = List<Map<String, dynamic>>.from(results[1] as List);
       if (!mounted) return;
       setState(() {
-        _today = today;
+        _entries = entries;
+        _batches = batches;
         _isLoading = false;
       });
     } catch (e) {
@@ -64,6 +98,14 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         ),
         title: Text('DAILY SCHEDULE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.2)),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _isSaving ? null : () => _openScheduleSheet(),
+        backgroundColor: yellow,
+        foregroundColor: blue,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.black, width: 3)),
+        child: const Icon(Icons.add_rounded, size: 32),
+      ),
       body: RefreshIndicator(
         color: yellow,
         backgroundColor: blue,
@@ -79,10 +121,10 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                       const SizedBox(height: 32),
                       _buildSectionTitle('TODAY\'S CLASSES', yellow),
                       const SizedBox(height: 16),
-                      if (_today.isEmpty)
+                      if (_entries.isEmpty)
                         _buildEmptyState(blue, surface)
                       else
-                        ..._today.asMap().entries.map((entry) => _buildClassCard(entry.value, entry.key, blue, surface, yellow)),
+                        ..._entries.asMap().entries.map((entry) => _buildClassCard(entry.value, entry.key, blue, surface, yellow)),
                       const SizedBox(height: 40),
                       _buildAlertsCard(blue, surface, yellow),
                     ],
@@ -92,8 +134,8 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   }
 
   Widget _buildWeekStrip(Color blue, Color surface, Color yellow) {
-    final now = DateTime.now();
-    final days = List.generate(7, (i) => now.add(Duration(days: i - now.weekday + 1)));
+    final base = _selectedDate;
+    final days = List.generate(7, (i) => base.add(Duration(days: i - base.weekday + 1)));
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -106,21 +148,27 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: days.map((d) {
-          final isToday = d.day == now.day && d.month == now.month;
+          final isSelected = d.year == _selectedDate.year && d.month == _selectedDate.month && d.day == _selectedDate.day;
           return Column(
             children: [
               Text(_dayShort(d.weekday), style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.5))),
               const SizedBox(height: 8),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: isToday ? yellow : Colors.transparent,
-                  border: isToday ? Border.all(color: Colors.black, width: 2) : null,
-                  borderRadius: BorderRadius.circular(8),
+              InkWell(
+                onTap: () {
+                  setState(() => _selectedDate = DateTime(d.year, d.month, d.day));
+                  _load();
+                },
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isSelected ? yellow : Colors.transparent,
+                    border: isSelected ? Border.all(color: Colors.black, width: 2) : null,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text('${d.day}', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: blue)),
                 ),
-                alignment: Alignment.center,
-                child: Text('${d.day}', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: blue)),
               ),
             ],
           );
@@ -140,48 +188,271 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   }
 
   Widget _buildClassCard(Map<String, dynamic> item, int index, Color blue, Color surface, Color yellow) {
-    final name = (item['name'] ?? item['batch_name'] ?? 'BATCH').toString().toUpperCase();
-    final subject = (item['subject'] ?? 'SUBJECT').toString().toUpperCase();
-    final start = (item['start_time'] ?? '--').toString();
-    final end = (item['end_time'] ?? '--').toString();
+    final scheduled = DateTime.tryParse((item['scheduled_at'] ?? '').toString());
+    final start = scheduled != null
+        ? '${scheduled.hour.toString().padLeft(2, '0')}:${scheduled.minute.toString().padLeft(2, '0')}'
+        : '--';
+    final duration = (item['duration_minutes'] ?? 60) as num;
+    final endTime = scheduled != null
+        ? scheduled.add(Duration(minutes: duration.toInt()))
+        : null;
+    final end = endTime != null
+      ? '${endTime?.hour.toString().padLeft(2, '0')}:${endTime?.minute.toString().padLeft(2, '0')}'
+        : '--';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: surface,
-        border: Border.all(color: Colors.black, width: 3),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(4, 4))],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 2), borderRadius: BorderRadius.circular(8)),
-            child: Text(start, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: blue)),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w900, color: blue)),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(subject, style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.5))),
-                    const SizedBox(width: 12),
-                    Text('$start - $end', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w800, color: blue.withValues(alpha: 0.5))),
-                  ],
-                ),
-              ],
+    final batch = item['batch'] as Map?;
+    final name = (batch?['name'] ?? item['name'] ?? item['batch_name'] ?? 'BATCH').toString().toUpperCase();
+    final subject = (batch?['subject'] ?? item['subject'] ?? 'SUBJECT').toString().toUpperCase();
+
+    return InkWell(
+      onTap: _isSaving ? null : () => _openScheduleSheet(item: item),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: surface,
+          border: Border.all(color: Colors.black, width: 3),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(4, 4))],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 2), borderRadius: BorderRadius.circular(8)),
+              child: Text(start, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: blue)),
             ),
-          ),
-          Icon(Icons.arrow_forward_rounded, color: blue, size: 20),
-        ],
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w900, color: blue)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(subject, style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.5))),
+                      const SizedBox(width: 12),
+                      Text('$start - $end', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w800, color: blue.withValues(alpha: 0.5))),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_rounded, color: blue, size: 20),
+          ],
+        ),
       ),
     ).animate(delay: (50 * index).ms).fadeIn().slideX(begin: 0.1);
+  }
+
+  Future<void> _openScheduleSheet({Map<String, dynamic>? item}) async {
+    final isEdit = item != null;
+    final titleCtrl = TextEditingController(text: (item?['title'] ?? '').toString());
+    final durationCtrl = TextEditingController(text: ((item?['duration_minutes'] ?? 60)).toString());
+    String? selectedBatchId = (item?['batch_id'] ?? '').toString();
+    if (selectedBatchId.isEmpty && _batches.isNotEmpty) {
+      selectedBatchId = (_batches.first['id'] ?? '').toString();
+    }
+    DateTime scheduledAt = DateTime.tryParse((item?['scheduled_at'] ?? '').toString()) ?? DateTime.now();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModal) {
+            return Container(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEEDED),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                border: Border.all(color: Colors.black, width: 2),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(isEdit ? 'EDIT SCHEDULE' : 'NEW SCHEDULE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: const Color(0xFF0D1282))),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: titleCtrl,
+                    decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedBatchId,
+                    decoration: const InputDecoration(labelText: 'Batch', border: OutlineInputBorder()),
+                    onChanged: (v) => setModal(() => selectedBatchId = v),
+                    items: _batches
+                        .map((b) => DropdownMenuItem<String>(
+                              value: (b['id'] ?? '').toString(),
+                              child: Text((b['name'] ?? 'Batch').toString()),
+                            ))
+                        .toList(),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: durationCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Duration (minutes)', border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            final date = await showDatePicker(
+                              context: ctx,
+                              initialDate: scheduledAt,
+                              firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (date == null) return;
+                            if (!ctx.mounted) return;
+                            final time = await showTimePicker(context: ctx, initialTime: TimeOfDay.fromDateTime(scheduledAt));
+                            if (time == null) return;
+                            setModal(() {
+                              scheduledAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                            });
+                          },
+                          child: Text('${scheduledAt.day.toString().padLeft(2, '0')}/${scheduledAt.month.toString().padLeft(2, '0')} ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      if (isEdit)
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _isSaving
+                                ? null
+                                : () async {
+                                      final lectureId = (item['id'] ?? '').toString();
+                                    if (lectureId.isEmpty) return;
+                                    await _deleteSchedule(lectureId);
+                                    if (ctx.mounted) Navigator.pop(ctx);
+                                  },
+                            child: const Text('DELETE'),
+                          ),
+                        ),
+                      if (isEdit) const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isSaving
+                              ? null
+                              : () async {
+                                  final title = titleCtrl.text.trim();
+                                  final duration = int.tryParse(durationCtrl.text.trim()) ?? 60;
+                                  if (title.isEmpty || selectedBatchId == null || selectedBatchId!.isEmpty) return;
+                                  if (isEdit) {
+                                    await _updateSchedule(
+                                          lectureId: (item['id'] ?? '').toString(),
+                                      batchId: selectedBatchId!,
+                                      title: title,
+                                      scheduledAt: scheduledAt,
+                                      durationMinutes: duration,
+                                    );
+                                  } else {
+                                    await _createSchedule(
+                                      batchId: selectedBatchId!,
+                                      title: title,
+                                      scheduledAt: scheduledAt,
+                                      durationMinutes: duration,
+                                    );
+                                  }
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                },
+                          child: Text(isEdit ? 'UPDATE' : 'CREATE'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+                );
+          },
+        );
+      },
+    );
+
+    titleCtrl.dispose();
+    durationCtrl.dispose();
+  }
+
+  Future<void> _createSchedule({
+    required String batchId,
+    required String title,
+    required DateTime scheduledAt,
+    required int durationMinutes,
+  }) async {
+    setState(() => _isSaving = true);
+    try {
+      await _repo.createMyScheduleEntry(
+        batchId: batchId,
+        title: title,
+        scheduledAt: scheduledAt,
+        durationMinutes: durationMinutes,
+      );
+      if (!mounted) return;
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule created')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _updateSchedule({
+    required String lectureId,
+    required String batchId,
+    required String title,
+    required DateTime scheduledAt,
+    required int durationMinutes,
+  }) async {
+    if (lectureId.isEmpty) return;
+    setState(() => _isSaving = true);
+    try {
+      await _repo.updateMyScheduleEntry(
+        lectureId: lectureId,
+        batchId: batchId,
+        title: title,
+        scheduledAt: scheduledAt,
+        durationMinutes: durationMinutes,
+      );
+      if (!mounted) return;
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule updated')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _deleteSchedule(String lectureId) async {
+    setState(() => _isSaving = true);
+    try {
+      await _repo.deleteMyScheduleEntry(lectureId);
+      if (!mounted) return;
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule deleted')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   Widget _buildAlertsCard(Color blue, Color surface, Color yellow) {
