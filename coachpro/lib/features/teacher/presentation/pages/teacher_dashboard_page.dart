@@ -236,34 +236,38 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   }
 
   Widget _scheduleCard(Map<String, dynamic> b, Color blue, Color surface, Color yellow) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: surface,
-        border: Border.all(color: Colors.black, width: 3),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: yellow, offset: const Offset(4, 4))],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(8)),
-            child: Text((b['start_time'] ?? '10:00 AM').toString().split(' ')[0], style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.w900)),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(b['name'] ?? 'BATCH', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w900, color: blue)),
-                Text(b['subject'] ?? 'SUBJECT', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.6))),
-              ],
+    final batchId = (b['id'] ?? '').toString();
+    return InkWell(
+      onTap: batchId.isEmpty ? null : () => context.push('/teacher/batches/$batchId'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: surface,
+          border: Border.all(color: Colors.black, width: 3),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: yellow, offset: const Offset(4, 4))],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(8)),
+              child: Text((b['start_time'] ?? '10:00 AM').toString().split(' ')[0], style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.w900)),
             ),
-          ),
-          const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.black),
-        ],
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(b['name'] ?? 'BATCH', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w900, color: blue)),
+                  Text(b['subject'] ?? 'SUBJECT', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.6))),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.black),
+          ],
+        ),
       ),
     );
   }

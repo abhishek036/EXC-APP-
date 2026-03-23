@@ -283,7 +283,7 @@ export class TeacherController {
         prisma.lecture.findFirst({
           where: { institute_id: instituteId, batch_id: batchId },
           orderBy: [{ scheduled_at: 'desc' }, { created_at: 'desc' }],
-          select: { title: true, subject: true, description: true, scheduled_at: true },
+          select: { title: true, description: true, scheduled_at: true },
         }),
         prisma.assignmentSubmission.findMany({
           where: {
@@ -454,7 +454,12 @@ export class TeacherController {
           overview: {
             teaching_progress_percent: overallProgress,
             total_topics: totalTopics,
-            last_lecture: lastLecture,
+            last_lecture: lastLecture
+              ? {
+                  ...lastLecture,
+                  subject: batch.subject,
+                }
+              : null,
             upcoming_class_time: batch.start_time,
           },
           syllabus: {
