@@ -1,6 +1,8 @@
 import { AttendanceRepository } from './attendance.repository';
 import { MarkAttendanceInput } from './attendance.validator';
 import { notificationQueue } from '../../jobs/queue';
+import { prisma } from '../../server';
+import { ApiError } from '../../middleware/error.middleware';
 
 export class AttendanceService {
   private repo: AttendanceRepository;
@@ -9,8 +11,20 @@ export class AttendanceService {
     this.repo = new AttendanceRepository();
   }
 
-  async markSession(instituteId: string, userId: string, data: MarkAttendanceInput) {
-     const session = await this.repo.markAttendance(instituteId, userId, data);
+  async markSession(instituteId: string, userId: string, role: string, data: MarkAttendanceInput) {
+     let teacherProfileId: string | null = null;
+     if (role === 'teacher') {
+       const teacher = await prisma.teacher.findFirst({
+         where: { user_id: userId, institute_id: instituteId },
+         select: { id: true },
+       });
+       if (!teacher) {
+         throw new ApiError('Teacher profile not found', 404, 'NOT_FOUND');
+       }
+       teacherProfileId = teacher.id;
+     }
+
+     const session = await this.repo.markAttendance(instituteId, userId, teacherProfileId, data);
      
      // Queue the background job for alerts (only if Redis is available)
      if (notificationQueue) {

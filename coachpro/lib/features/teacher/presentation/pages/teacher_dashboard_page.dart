@@ -23,6 +23,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   final _realtime = sl<RealtimeSyncService>();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   StreamSubscription<Map<String, dynamic>>? _syncSub;
+  Timer? _pollingTimer;
   
   Map<String, dynamic>? _dashboardData;
   List<Map<String, dynamic>> _pendingDoubts = [];
@@ -34,6 +35,15 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     super.initState();
     _loadDashboard();
     _initRealtime();
+    _startAutoRefresh();
+  }
+
+  void _startAutoRefresh() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      if (!mounted) return;
+      _loadDashboard();
+    });
   }
 
   Future<void> _initRealtime() async {
@@ -42,7 +52,15 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     _syncSub = _realtime.updates.listen((event) {
       if (!mounted) return;
       final type = (event['type'] ?? '').toString();
-      if (type == 'dashboard_sync' || type == 'batch_sync') {
+      final reason = (event['reason'] ?? '').toString().toLowerCase();
+      final shouldRefresh =
+          type == 'dashboard_sync' ||
+          type == 'batch_sync' ||
+          reason.contains('batch') ||
+          reason.contains('schedule') ||
+          reason.contains('lecture') ||
+          reason.contains('attendance');
+      if (shouldRefresh) {
         _loadDashboard();
       }
     });
@@ -51,6 +69,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   @override
   void dispose() {
     _syncSub?.cancel();
+    _pollingTimer?.cancel();
     super.dispose();
   }
 
@@ -140,6 +159,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     final userName = _dashboardData?['teacher']?['name']?.toString().toUpperCase() ?? (authState is AuthAuthenticated ? authState.user.name.toUpperCase() : 'TEACHER');
 
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,7 +168,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           const SizedBox(height: 32),
           _buildSummaryStats(blue, surface, yellow),
           const SizedBox(height: 32),
-          _sectionLabel('TODAY\'S BATTLES', yellow),
+          _sectionLabel('TODAY\'S BATCHES', yellow),
           const SizedBox(height: 16),
           _buildScheduleList(blue, surface, yellow),
           const SizedBox(height: 32),
@@ -182,6 +202,15 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
             ],
           ),
         ),
+        GestureDetector(
+          onTap: _loadDashboard,
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: yellow, shape: BoxShape.circle, border: Border.all(color: Colors.black, width: 2.5)),
+            child: const Icon(Icons.refresh_rounded, color: Colors.black, size: 22),
+          ),
+        ),
+        const SizedBox(width: 10),
         _circleBtn(Icons.notifications_none_rounded, yellow),
       ],
     ).animate().fadeIn().slideY(begin: -0.1);

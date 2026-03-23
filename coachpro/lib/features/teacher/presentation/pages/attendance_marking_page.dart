@@ -25,6 +25,12 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
   List<Map<String, dynamic>> _batches = [];
   String? _selectedBatchId;
 
+  String? get _safeSelectedBatchId {
+    if (_selectedBatchId == null || _selectedBatchId!.isEmpty) return null;
+    final hasSelected = _batches.any((b) => ((b['id'] ?? b['batch_id'] ?? '').toString() == _selectedBatchId));
+    return hasSelected ? _selectedBatchId : null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -164,7 +170,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
                     ? Text('LOADING BATCHES...', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12))
                     : DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: _selectedBatchId,
+                          value: _safeSelectedBatchId,
                           isExpanded: true,
                           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF0D1282)),
                           style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: blue),

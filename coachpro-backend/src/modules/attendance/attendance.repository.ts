@@ -3,7 +3,12 @@ import { MarkAttendanceInput } from './attendance.validator';
 import { Prisma } from '@prisma/client';
 
 export class AttendanceRepository {
-  async markAttendance(instituteId: string, teacherId: string, data: MarkAttendanceInput) {
+    async markAttendance(
+        instituteId: string,
+        actorUserId: string,
+        teacherProfileId: string | null,
+        data: MarkAttendanceInput,
+    ) {
      return prisma.$transaction(async (tx) => {
          // Find or create session
          const sessionDate = new Date(data.session_date);
@@ -16,15 +21,15 @@ export class AttendanceRepository {
                  }
              },
              update: {
-                 teacher_id: teacherId,
-                 submitted_at: new Date()
+                 submitted_at: new Date(),
+                 ...(teacherProfileId ? { teacher_id: teacherProfileId } : {}),
              },
              create: {
                  institute_id: instituteId,
                  batch_id: data.batch_id,
-                 teacher_id: teacherId,
                  session_date: sessionDate,
-                 submitted_at: new Date()
+                 submitted_at: new Date(),
+                 ...(teacherProfileId ? { teacher_id: teacherProfileId } : {}),
              }
          });
 
@@ -41,7 +46,7 @@ export class AttendanceRepository {
                  update: {
                      status: record.status,
                      correction_note: record.note,
-                     corrected_by_id: teacherId
+                     corrected_by_id: actorUserId,
                  },
                  create: {
                      institute_id: instituteId,

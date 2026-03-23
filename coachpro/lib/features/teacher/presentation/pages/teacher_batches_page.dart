@@ -129,13 +129,21 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
                           ...visibleBatches.asMap().entries.map((entry) {
                             final i = entry.key;
                             final b = entry.value;
+                            final id = (b['id'] ?? '').toString();
                             return _BatchCard(
                               batch: b,
                               index: i,
-                              onTap: () {
-                                final id = (b['id'] ?? '').toString();
+                              onManageTap: () {
                                 if (id.isEmpty) return;
-                                context.go('/teacher/batches/$id');
+                                context.go('/teacher/batches/$id?tab=overview');
+                              },
+                              onArrowTap: () {
+                                if (id.isEmpty) return;
+                                context.go('/teacher/batches/$id?tab=content');
+                              },
+                              onStudentsTap: () {
+                                if (id.isEmpty) return;
+                                context.go('/teacher/batches/$id?tab=students');
                               },
                               blue: primaryBlue,
                               yellow: accentYellow,
@@ -173,12 +181,23 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
 class _BatchCard extends StatelessWidget {
   final Map<String, dynamic> batch;
   final int index;
-  final VoidCallback onTap;
+  final VoidCallback onManageTap;
+  final VoidCallback onArrowTap;
+  final VoidCallback onStudentsTap;
   final Color blue;
   final Color yellow;
   final Color white;
 
-  const _BatchCard({required this.batch, required this.index, required this.onTap, required this.blue, required this.yellow, required this.white});
+  const _BatchCard({
+    required this.batch,
+    required this.index,
+    required this.onManageTap,
+    required this.onArrowTap,
+    required this.onStudentsTap,
+    required this.blue,
+    required this.yellow,
+    required this.white,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -191,19 +210,19 @@ class _BatchCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: white,
-            border: Border.all(color: blue, width: 2.5),
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [BoxShadow(color: blue.withValues(alpha: 0.35), offset: const Offset(5, 5))],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
+      child: Container(
+        decoration: BoxDecoration(
+          color: white,
+          border: Border.all(color: blue, width: 2.5),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: blue.withValues(alpha: 0.35), offset: const Offset(5, 5))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: onManageTap,
+              child: Container(
                 height: 128,
                 decoration: BoxDecoration(
                   color: yellow,
@@ -223,59 +242,62 @@ class _BatchCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 30, color: blue),
-                          ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 30, color: blue),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: blue.withValues(alpha: 0.4), width: 2),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text('TEACHER', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue.withValues(alpha: 0.7))),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: blue.withValues(alpha: 0.4), width: 2),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.menu_book_rounded, size: 18, color: blue.withValues(alpha: 0.75)),
-                        const SizedBox(width: 8),
-                        Text(subject, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 14, color: blue.withValues(alpha: 0.85))),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Icon(Icons.fiber_manual_record_rounded, size: 12, color: statusText == 'ONGOING' ? const Color(0xFF0D1282) : AppColors.coralRed),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            '$statusText  |  $schedule${startDate.isNotEmpty ? '  |  Started: $startDate' : ''}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 12, color: blue.withValues(alpha: 0.65)),
-                          ),
+                        child: Text('TEACHER', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue.withValues(alpha: 0.7))),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.menu_book_rounded, size: 18, color: blue.withValues(alpha: 0.75)),
+                      const SizedBox(width: 8),
+                      Text(subject, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 14, color: blue.withValues(alpha: 0.85))),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.fiber_manual_record_rounded, size: 12, color: statusText == 'ONGOING' ? const Color(0xFF0D1282) : AppColors.coralRed),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '$statusText  |  $schedule${startDate.isNotEmpty ? '  |  Started: $startDate' : ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 12, color: blue.withValues(alpha: 0.65)),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: onManageTap,
                           child: Container(
                             height: 46,
                             decoration: BoxDecoration(
@@ -287,8 +309,11 @@ class _BatchCard extends StatelessWidget {
                             child: Text('MANAGE BATCH', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14, color: blue)),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Container(
+                      ),
+                      const SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: onArrowTap,
+                        child: Container(
                           width: 46,
                           height: 46,
                           decoration: BoxDecoration(
@@ -299,8 +324,11 @@ class _BatchCard extends StatelessWidget {
                           alignment: Alignment.center,
                           child: Icon(Icons.arrow_forward_ios_rounded, size: 18, color: blue),
                         ),
-                        const SizedBox(width: 10),
-                        Container(
+                      ),
+                      const SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: onStudentsTap,
+                        child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                           decoration: BoxDecoration(
                             color: white,
@@ -314,13 +342,13 @@ class _BatchCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ).animate(delay: Duration(milliseconds: 50 * index)).fadeIn().slideX(begin: 0.1),
     );

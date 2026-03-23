@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const nullableOptionalString = () => z.preprocess((value) => value === null ? undefined : value, z.string().optional());
+const nullableOptionalUrl = () => z.preprocess((value) => value === null || value === '' ? undefined : value, z.string().url().optional());
 
 export const createBatchSchema = z.object({
   body: z.object({
@@ -37,15 +38,15 @@ export const addStudentsToBatchSchema = z.object({
 
 export const updateBatchMetaSchema = z.object({
   body: z.object({
-    description: z.string().max(2000).optional(),
-    cover_image_url: z.string().url().optional(),
-    teacher_ids: z.array(z.string().uuid()).optional(),
-    faqs: z.array(
+    description: z.preprocess((value) => value === null ? undefined : value, z.string().max(2000).optional()),
+    cover_image_url: nullableOptionalUrl(),
+    teacher_ids: z.preprocess((value) => value === null ? undefined : value, z.array(z.string().uuid()).optional()),
+    faqs: z.preprocess((value) => value === null ? undefined : value, z.array(
       z.object({
         question: z.string().min(1).max(300),
         answer: z.string().min(1).max(2000),
       })
-    ).optional(),
+    ).optional()),
   })
 });
 

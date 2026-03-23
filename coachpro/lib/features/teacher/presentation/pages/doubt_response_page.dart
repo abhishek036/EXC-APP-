@@ -81,6 +81,7 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
   }
 
   Widget _buildQuestionCard(String subject, String question, String student, String batch, Color blue, Color surface, Color yellow) {
+    final studentInitial = student.isNotEmpty ? student[0] : 'S';
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -99,7 +100,7 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
         Text(question, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, height: 1.3, color: blue)),
         const SizedBox(height: 20),
         Row(children: [
-          Container(width: 32, height: 32, decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 2), shape: BoxShape.circle), alignment: Alignment.center, child: Text(student[0], style: const TextStyle(fontWeight: FontWeight.w900))),
+          Container(width: 32, height: 32, decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 2), shape: BoxShape.circle), alignment: Alignment.center, child: Text(studentInitial, style: const TextStyle(fontWeight: FontWeight.w900))),
           const SizedBox(width: 12),
           Expanded(child: Text('$student • $batch', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.7)))),
         ]),

@@ -2,6 +2,12 @@ import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
 
 export class TimetableService {
+  private isMissingLectureDurationColumn(error: unknown): boolean {
+    const code = (error as any)?.code;
+    const column = (error as any)?.meta?.column;
+    return code === 'P2022' && typeof column === 'string' && column.includes('lectures.duration_minutes');
+  }
+
   private async assertBatchOwnedByTeacher(batchId: string, instituteId: string, teacherId: string) {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, institute_id: instituteId, teacher_id: teacherId, is_active: true },
@@ -17,19 +23,38 @@ export class TimetableService {
     const lectureStart = scheduledAt;
     const lectureEnd = new Date(lectureStart.getTime() + durationMinutes * 60000);
 
-    const candidates = await prisma.lecture.findMany({
-      where: {
-        institute_id: instituteId,
-        teacher_id: teacherId,
-        is_active: true,
-        ...(excludeLectureId ? { id: { not: excludeLectureId } } : {}),
-        scheduled_at: {
-          gte: new Date(lectureStart.getTime() - 240 * 60000),
-          lte: lectureEnd,
+    let candidates: Array<{ id: string; scheduled_at: Date | null; duration_minutes?: number | null }> = [];
+    try {
+      candidates = await prisma.lecture.findMany({
+        where: {
+          institute_id: instituteId,
+          teacher_id: teacherId,
+          is_active: true,
+          ...(excludeLectureId ? { id: { not: excludeLectureId } } : {}),
+          scheduled_at: {
+            gte: new Date(lectureStart.getTime() - 240 * 60000),
+            lte: lectureEnd,
+          },
         },
-      },
-      select: { id: true, scheduled_at: true, duration_minutes: true },
-    });
+        select: { id: true, scheduled_at: true, duration_minutes: true },
+      });
+    } catch (error) {
+      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      const fallback = await prisma.lecture.findMany({
+        where: {
+          institute_id: instituteId,
+          teacher_id: teacherId,
+          is_active: true,
+          ...(excludeLectureId ? { id: { not: excludeLectureId } } : {}),
+          scheduled_at: {
+            gte: new Date(lectureStart.getTime() - 240 * 60000),
+            lte: lectureEnd,
+          },
+        },
+        select: { id: true, scheduled_at: true },
+      });
+      candidates = fallback;
+    }
 
     for (const c of candidates) {
       if (!c.scheduled_at) continue;
@@ -50,16 +75,38 @@ export class TimetableService {
     const lectureEnd = new Date(lectureStart.getTime() + data.duration * 60000);
 
     // 1. Check teacher conflict with overlapping slots
-    const candidates = await prisma.lecture.findMany({
+    let candidates: Array<{ scheduled_at: Date | null; duration_minutes?: number | null }> = [];
+    try {
+      candidates = await prisma.lecture.findMany({
         where: {
-            institute_id: instituteId,
-            scheduled_at: { 
-                gte: new Date(lectureStart.getTime() - 240 * 60000), // Checked 4 hrs before
-                lte: lectureEnd 
-            },
-        teacher_id: data.teacherId,
-        }
-    });
+          institute_id: instituteId,
+          scheduled_at: {
+            gte: new Date(lectureStart.getTime() - 240 * 60000),
+            lte: lectureEnd,
+          },
+          teacher_id: data.teacherId,
+        },
+        select: {
+          scheduled_at: true,
+          duration_minutes: true,
+        },
+      });
+    } catch (error) {
+      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      candidates = await prisma.lecture.findMany({
+        where: {
+          institute_id: instituteId,
+          scheduled_at: {
+            gte: new Date(lectureStart.getTime() - 240 * 60000),
+            lte: lectureEnd,
+          },
+          teacher_id: data.teacherId,
+        },
+        select: {
+          scheduled_at: true,
+        },
+      });
+    }
 
     for (const c of candidates) {
         if (!c.scheduled_at) continue;
@@ -72,24 +119,44 @@ export class TimetableService {
     }
 
     // 2. Schedule
-    return prisma.lecture.create({
-      data: {
-        institute_id: instituteId,
-        batch_id: data.batchId,
-        teacher_id: data.teacherId,
-        title: `${data.subject} - ${data.batchId}`, // Adding a default title
-        scheduled_at: lectureStart,
-        duration_minutes: data.duration
-      },
-      select: {
-        id: true,
-        title: true,
-        scheduled_at: true,
-        duration_minutes: true,
-        batch_id: true,
-        teacher_id: true,
-      },
-    });
+    try {
+      return await prisma.lecture.create({
+        data: {
+          institute_id: instituteId,
+          batch_id: data.batchId,
+          teacher_id: data.teacherId,
+          title: `${data.subject} - ${data.batchId}`,
+          scheduled_at: lectureStart,
+          duration_minutes: data.duration,
+        },
+        select: {
+          id: true,
+          title: true,
+          scheduled_at: true,
+          duration_minutes: true,
+          batch_id: true,
+          teacher_id: true,
+        },
+      });
+    } catch (error) {
+      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      return prisma.lecture.create({
+        data: {
+          institute_id: instituteId,
+          batch_id: data.batchId,
+          teacher_id: data.teacherId,
+          title: `${data.subject} - ${data.batchId}`,
+          scheduled_at: lectureStart,
+        },
+        select: {
+          id: true,
+          title: true,
+          scheduled_at: true,
+          batch_id: true,
+          teacher_id: true,
+        },
+      });
+    }
   }
 
   async getTeacherScheduleByUser(userId: string, instituteId: string, date?: string) {
@@ -111,23 +178,43 @@ export class TimetableService {
       }
     }
 
-    return prisma.lecture.findMany({
-      where: {
-        institute_id: instituteId,
-        teacher_id: teacher.id,
-        is_active: true,
-        ...(start && end ? { scheduled_at: { gte: start, lte: end } } : {}),
-      },
-      select: {
-        id: true,
-        title: true,
-        scheduled_at: true,
-        duration_minutes: true,
-        batch_id: true,
-        batch: { select: { name: true, subject: true } },
-      },
-      orderBy: { scheduled_at: 'asc' },
-    });
+    try {
+      return await prisma.lecture.findMany({
+        where: {
+          institute_id: instituteId,
+          teacher_id: teacher.id,
+          is_active: true,
+          ...(start && end ? { scheduled_at: { gte: start, lte: end } } : {}),
+        },
+        select: {
+          id: true,
+          title: true,
+          scheduled_at: true,
+          duration_minutes: true,
+          batch_id: true,
+          batch: { select: { name: true, subject: true } },
+        },
+        orderBy: { scheduled_at: 'asc' },
+      });
+    } catch (error) {
+      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      return prisma.lecture.findMany({
+        where: {
+          institute_id: instituteId,
+          teacher_id: teacher.id,
+          is_active: true,
+          ...(start && end ? { scheduled_at: { gte: start, lte: end } } : {}),
+        },
+        select: {
+          id: true,
+          title: true,
+          scheduled_at: true,
+          batch_id: true,
+          batch: { select: { name: true, subject: true } },
+        },
+        orderBy: { scheduled_at: 'asc' },
+      });
+    }
   }
 
   async createTeacherScheduleByUser(
@@ -148,24 +235,44 @@ export class TimetableService {
     await this.assertBatchOwnedByTeacher(data.batch_id, instituteId, teacher.id);
     await this.checkTeacherLectureConflict(instituteId, teacher.id, scheduledAt, duration);
 
-    return prisma.lecture.create({
-      data: {
-        institute_id: instituteId,
-        batch_id: data.batch_id,
-        teacher_id: teacher.id,
-        title: data.title,
-        scheduled_at: scheduledAt,
-        duration_minutes: duration,
-        is_active: true,
-      },
-      select: {
-        id: true,
-        title: true,
-        scheduled_at: true,
-        duration_minutes: true,
-        batch_id: true,
-      },
-    });
+    try {
+      return await prisma.lecture.create({
+        data: {
+          institute_id: instituteId,
+          batch_id: data.batch_id,
+          teacher_id: teacher.id,
+          title: data.title,
+          scheduled_at: scheduledAt,
+          duration_minutes: duration,
+          is_active: true,
+        },
+        select: {
+          id: true,
+          title: true,
+          scheduled_at: true,
+          duration_minutes: true,
+          batch_id: true,
+        },
+      });
+    } catch (error) {
+      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      return prisma.lecture.create({
+        data: {
+          institute_id: instituteId,
+          batch_id: data.batch_id,
+          teacher_id: teacher.id,
+          title: data.title,
+          scheduled_at: scheduledAt,
+          is_active: true,
+        },
+        select: {
+          id: true,
+          title: true,
+          scheduled_at: true,
+          batch_id: true,
+        },
+      });
+    }
   }
 
   async updateTeacherScheduleByUser(
@@ -180,10 +287,19 @@ export class TimetableService {
     });
     if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
-    const current = await prisma.lecture.findFirst({
-      where: { id: lectureId, institute_id: instituteId, teacher_id: teacher.id, is_active: true },
-      select: { id: true, batch_id: true, scheduled_at: true, duration_minutes: true },
-    });
+    let current: { id: string; batch_id: string; scheduled_at: Date | null; duration_minutes?: number | null } | null = null;
+    try {
+      current = await prisma.lecture.findFirst({
+        where: { id: lectureId, institute_id: instituteId, teacher_id: teacher.id, is_active: true },
+        select: { id: true, batch_id: true, scheduled_at: true, duration_minutes: true },
+      });
+    } catch (error) {
+      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      current = await prisma.lecture.findFirst({
+        where: { id: lectureId, institute_id: instituteId, teacher_id: teacher.id, is_active: true },
+        select: { id: true, batch_id: true, scheduled_at: true },
+      });
+    }
     if (!current) throw new ApiError('Schedule item not found', 404, 'NOT_FOUND');
 
     const nextBatchId = data.batch_id ?? current.batch_id;
@@ -198,22 +314,40 @@ export class TimetableService {
 
     await this.checkTeacherLectureConflict(instituteId, teacher.id, nextScheduledAt, nextDuration, lectureId);
 
-    return prisma.lecture.update({
-      where: { id: lectureId },
-      data: {
-        batch_id: nextBatchId,
-        title: data.title,
-        scheduled_at: nextScheduledAt,
-        duration_minutes: nextDuration,
-      },
-      select: {
-        id: true,
-        title: true,
-        scheduled_at: true,
-        duration_minutes: true,
-        batch_id: true,
-      },
-    });
+    try {
+      return await prisma.lecture.update({
+        where: { id: lectureId },
+        data: {
+          batch_id: nextBatchId,
+          title: data.title,
+          scheduled_at: nextScheduledAt,
+          duration_minutes: nextDuration,
+        },
+        select: {
+          id: true,
+          title: true,
+          scheduled_at: true,
+          duration_minutes: true,
+          batch_id: true,
+        },
+      });
+    } catch (error) {
+      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      return prisma.lecture.update({
+        where: { id: lectureId },
+        data: {
+          batch_id: nextBatchId,
+          title: data.title,
+          scheduled_at: nextScheduledAt,
+        },
+        select: {
+          id: true,
+          title: true,
+          scheduled_at: true,
+          batch_id: true,
+        },
+      });
+    }
   }
 
   async deleteTeacherScheduleByUser(userId: string, instituteId: string, lectureId: string) {
@@ -252,34 +386,66 @@ export class TimetableService {
   }
 
   async getBatchTimetable(batchId: string, instituteId: string) {
-    return prisma.lecture.findMany({
-      where: { batch_id: batchId, institute_id: instituteId },
-      select: {
-        id: true,
-        title: true,
-        scheduled_at: true,
-        duration_minutes: true,
-        batch_id: true,
-        teacher_id: true,
-        teacher: { select: { name: true } },
-      },
-      orderBy: { scheduled_at: 'asc' }
-    });
+    try {
+      return await prisma.lecture.findMany({
+        where: { batch_id: batchId, institute_id: instituteId },
+        select: {
+          id: true,
+          title: true,
+          scheduled_at: true,
+          duration_minutes: true,
+          batch_id: true,
+          teacher_id: true,
+          teacher: { select: { name: true } },
+        },
+        orderBy: { scheduled_at: 'asc' }
+      });
+    } catch (error) {
+      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      return prisma.lecture.findMany({
+        where: { batch_id: batchId, institute_id: instituteId },
+        select: {
+          id: true,
+          title: true,
+          scheduled_at: true,
+          batch_id: true,
+          teacher_id: true,
+          teacher: { select: { name: true } },
+        },
+        orderBy: { scheduled_at: 'asc' }
+      });
+    }
   }
 
   async getTeacherTimetable(teacherId: string, instituteId: string) {
-    return prisma.lecture.findMany({
-      where: { teacher_id: teacherId, institute_id: instituteId },
-      select: {
-        id: true,
-        title: true,
-        scheduled_at: true,
-        duration_minutes: true,
-        batch_id: true,
-        teacher_id: true,
-        batch: { select: { name: true } },
-      },
-      orderBy: { scheduled_at: 'asc' }
-    });
+    try {
+      return await prisma.lecture.findMany({
+        where: { teacher_id: teacherId, institute_id: instituteId },
+        select: {
+          id: true,
+          title: true,
+          scheduled_at: true,
+          duration_minutes: true,
+          batch_id: true,
+          teacher_id: true,
+          batch: { select: { name: true } },
+        },
+        orderBy: { scheduled_at: 'asc' }
+      });
+    } catch (error) {
+      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      return prisma.lecture.findMany({
+        where: { teacher_id: teacherId, institute_id: instituteId },
+        select: {
+          id: true,
+          title: true,
+          scheduled_at: true,
+          batch_id: true,
+          teacher_id: true,
+          batch: { select: { name: true } },
+        },
+        orderBy: { scheduled_at: 'asc' }
+      });
+    }
   }
 }

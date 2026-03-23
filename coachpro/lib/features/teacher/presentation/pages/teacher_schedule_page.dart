@@ -361,6 +361,14 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                                   final title = titleCtrl.text.trim();
                                   final duration = int.tryParse(durationCtrl.text.trim()) ?? 60;
                                   if (title.isEmpty || selectedBatchId == null || selectedBatchId!.isEmpty) return;
+                                  if (duration <= 0) {
+                                    if (ctx.mounted) {
+                                      ScaffoldMessenger.of(ctx).showSnackBar(
+                                        const SnackBar(content: Text('Duration must be greater than 0 minutes')),
+                                      );
+                                    }
+                                    return;
+                                  }
                                   if (isEdit) {
                                     await _updateSchedule(
                                           lectureId: (item['id'] ?? '').toString(),

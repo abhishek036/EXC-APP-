@@ -13,7 +13,7 @@ export class AttendanceController {
 
   mark = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.service.markSession(req.instituteId!, req.user!.userId, req.body);
+      const data = await this.service.markSession(req.instituteId!, req.user!.userId, req.user!.role, req.body);
       if (req.body?.batch_id) {
         emitBatchSync(req.instituteId!, req.body.batch_id, 'attendance_marked', {
           session_id: (data as any)?.session_id,

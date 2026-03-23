@@ -118,6 +118,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
   Widget _buildDoubtCard(Map<String, dynamic> d, int i, Color blue, Color surface, Color yellow) {
     final subject = d['subject']?.toString().toUpperCase() ?? 'GENERAL';
     final studentName = (d['student'] as Map?)?['name']?.toString().toUpperCase() ?? 'STUDENT';
+    final studentInitial = studentName.isNotEmpty ? studentName[0] : 'S';
     final batchName = (d['batch'] as Map?)?['name']?.toString().toUpperCase() ?? 'BATCH';
     final question = d['question_text']?.toString() ?? '';
 
@@ -142,7 +143,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
         Text(question, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, height: 1.3, color: blue)),
         const SizedBox(height: 20),
         Row(children: [
-          Container(width: 32, height: 32, decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 2), shape: BoxShape.circle), alignment: Alignment.center, child: Text(studentName[0], style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13))),
+          Container(width: 32, height: 32, decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 2), shape: BoxShape.circle), alignment: Alignment.center, child: Text(studentInitial, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13))),
           const SizedBox(width: 12),
           Expanded(child: Text('$studentName • $batchName', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.7)))),
         ]),

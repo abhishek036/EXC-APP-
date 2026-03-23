@@ -481,7 +481,29 @@ class AppRouter {
                   name: 'teacher-batches-tab',
                   pageBuilder: (c, s) => _page(s, const TeacherBatchesPage()),
                   routes: [
-                    GoRoute(path: ':id', name: 'teacher-batch-detail-tab', pageBuilder: (c, s) => _page(s, TeacherBatchPanelPage(batchId: s.pathParameters['id'] ?? ''))),
+                    GoRoute(
+                      path: ':id',
+                      name: 'teacher-batch-detail-tab',
+                      pageBuilder: (c, s) {
+                        final tabQuery = (s.uri.queryParameters['tab'] ?? '').toLowerCase();
+                        final tabMap = <String, int>{
+                          'overview': 0,
+                          'content': 1,
+                          'students': 2,
+                          'tests': 3,
+                          'attendance': 4,
+                          'doubts': 5,
+                        };
+                        final tabIndex = tabMap[tabQuery] ?? int.tryParse(tabQuery) ?? 0;
+                        return _page(
+                          s,
+                          TeacherBatchPanelPage(
+                            batchId: s.pathParameters['id'] ?? '',
+                            initialTabIndex: tabIndex,
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ]),

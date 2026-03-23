@@ -11,8 +11,13 @@ import 'upload_material_page.dart';
 
 class TeacherBatchPanelPage extends StatefulWidget {
   final String batchId;
+  final int initialTabIndex;
 
-  const TeacherBatchPanelPage({super.key, required this.batchId});
+  const TeacherBatchPanelPage({
+    super.key,
+    required this.batchId,
+    this.initialTabIndex = 0,
+  });
 
   @override
   State<TeacherBatchPanelPage> createState() => _TeacherBatchPanelPageState();
@@ -28,6 +33,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   List<Map<String, dynamic>> _students = [];
   List<Map<String, dynamic>> _doubts = [];
   final Set<String> _completedTopicIds = {};
+  final Set<String> _manualWeakIds = {};
   String _studentFilter = 'all';
   bool _isReplying = false;
 
@@ -103,6 +109,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     
     return DefaultTabController(
       length: 6,
+      initialIndex: widget.initialTabIndex.clamp(0, 5),
       child: Scaffold(
         backgroundColor: primaryBlue,
         appBar: AppBar(
@@ -486,6 +493,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
             .map((e) => (e['student_id'] ?? '').toString())
             .where((e) => e.isNotEmpty))
         .toSet();
+    final effectiveWeakIds = {...weakIds, ..._manualWeakIds};
     final pendingWorkIds = (_doubts
             .map((e) => ((e['student'] as Map?)?['id'] ?? '').toString())
             .where((e) => e.isNotEmpty))
@@ -494,7 +502,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     final filtered = _students.where((s) {
       final id = (s['id'] ?? '').toString();
       if (_studentFilter == 'low_attendance') return lowAttendanceIds.contains(id);
-      if (_studentFilter == 'weak') return weakIds.contains(id);
+      if (_studentFilter == 'weak') return effectiveWeakIds.contains(id);
       if (_studentFilter == 'pending_work') return pendingWorkIds.contains(id);
       return true;
     }).toList();
@@ -524,7 +532,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               final id = (s['id'] ?? '').toString();
               final tag = lowAttendanceIds.contains(id)
                   ? 'LOW ATTN'
-                  : weakIds.contains(id)
+                  : effectiveWeakIds.contains(id)
                       ? 'WEAK'
                       : pendingWorkIds.contains(id)
                           ? 'PENDING'
@@ -549,7 +557,41 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                          ],
                        ),
                      ),
-                     Icon(Icons.more_vert_rounded, color: blue),
+                     PopupMenuButton<String>(
+                       icon: Icon(Icons.more_vert_rounded, color: blue),
+                       onSelected: (value) {
+                         if (value == 'view_profile') {
+                           _showStudentProfileDialog(s, blue, yellow);
+                           return;
+                         }
+                         if (value == 'view_attendance') {
+                           _showActionSnack('Attendance details opening soon');
+                           return;
+                         }
+                         if (value == 'mark_weak') {
+                           setState(() => _manualWeakIds.add(id));
+                           _showActionSnack('${name.toUpperCase()} marked as WEAK');
+                           return;
+                         }
+                         if (value == 'remove_weak') {
+                           setState(() => _manualWeakIds.remove(id));
+                           _showActionSnack('${name.toUpperCase()} removed from WEAK');
+                           return;
+                         }
+                         if (value == 'message_parent') {
+                           _showActionSnack('Parent communication shortcut coming soon');
+                         }
+                       },
+                       itemBuilder: (ctx) {
+                         final isWeak = effectiveWeakIds.contains(id);
+                         return [
+                           const PopupMenuItem(value: 'view_profile', child: Text('View Profile')),
+                           const PopupMenuItem(value: 'view_attendance', child: Text('View Attendance')),
+                           PopupMenuItem(value: isWeak ? 'remove_weak' : 'mark_weak', child: Text(isWeak ? 'Remove Weak Tag' : 'Mark as Weak')),
+                           const PopupMenuItem(value: 'message_parent', child: Text('Message Parent')),
+                         ];
+                       },
+                     ),
                   ],
                 ),
               );
@@ -557,6 +599,45 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showActionSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showStudentProfileDialog(Map<String, dynamic> student, Color blue, Color yellow) {
+    final name = (student['name'] ?? 'Student').toString();
+    final phone = (student['phone'] ?? 'N/A').toString();
+    final id = (student['id'] ?? '-').toString();
+    final status = (student['is_active'] == false) ? 'INACTIVE' : 'ACTIVE';
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFFEEEDED),
+        title: Text('STUDENT PROFILE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(name.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: blue)),
+            const SizedBox(height: 8),
+            Text('PHONE: $phone', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.8))),
+            const SizedBox(height: 6),
+            Text('STATUS: $status', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.8))),
+            const SizedBox(height: 6),
+            Text('ID: $id', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.65), fontSize: 12)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(foregroundColor: blue, backgroundColor: yellow),
+            child: Text('CLOSE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900)),
+          ),
+        ],
+      ),
     );
   }
 

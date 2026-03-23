@@ -34,6 +34,20 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
   final List<Map<String, dynamic>> _questions = [];
   bool _isPublishing = false;
 
+  String? get _safeSelectedBatchId {
+    if (_selectedBatchId == null || _selectedBatchId!.isEmpty) return null;
+    final hasSelected = _batches.any((b) => (b['id'] ?? '').toString() == _selectedBatchId);
+    return hasSelected ? _selectedBatchId : null;
+  }
+
+  Map<String, dynamic>? _findBatchById(String? id) {
+    if (id == null || id.isEmpty) return null;
+    for (final batch in _batches) {
+      if ((batch['id'] ?? '').toString() == id) return batch;
+    }
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -219,13 +233,16 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
       decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black, width: 2), borderRadius: BorderRadius.circular(8)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedBatchId,
+          value: _safeSelectedBatchId,
           isExpanded: true,
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue),
-          onChanged: (val) => setState(() {
-            _selectedBatchId = val;
-            _selectedSubject = _batches.firstWhere((b) => b['id']?.toString() == val, orElse: () => {})['subject']?.toString();
-          }),
+          onChanged: (val) {
+            final selectedBatch = _findBatchById(val);
+            setState(() {
+              _selectedBatchId = val;
+              _selectedSubject = selectedBatch?['subject']?.toString() ?? 'General';
+            });
+          },
           items: _batches.map((b) => DropdownMenuItem(value: b['id']?.toString(), child: Text(b['name']?.toString() ?? 'BATCH', overflow: TextOverflow.ellipsis))).toList(),
         ),
       ),

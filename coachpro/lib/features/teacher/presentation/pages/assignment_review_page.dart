@@ -27,6 +27,12 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
   List<Map<String, dynamic>> _submissions = [];
   int _index = 0;
 
+  String? get _safeSelectedAssignmentId {
+    if (_selectedAssignmentId == null || _selectedAssignmentId!.isEmpty) return null;
+    final hasSelected = _assignments.any((a) => (a['id'] ?? '').toString() == _selectedAssignmentId);
+    return hasSelected ? _selectedAssignmentId : null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -189,7 +195,7 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: _selectedAssignmentId,
+                      value: _safeSelectedAssignmentId,
                       isExpanded: true,
                       items: _assignments
                           .map((a) => DropdownMenuItem<String>(

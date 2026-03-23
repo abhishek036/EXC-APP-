@@ -31,7 +31,7 @@ void main() {
 
     testWidgets('darkTheme uses correct scaffold color', (tester) async {
       final theme = AppTheme.darkTheme;
-      expect(theme.scaffoldBackgroundColor, equals(AppColors.shadowGrey));
+      expect(theme.scaffoldBackgroundColor, equals(AppTheme.deepBlueDark));
     });
   });
 

@@ -41,6 +41,28 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   
   bool _isUploading = false;
 
+  String? get _safeSelectedBatchId {
+    if (_selectedBatchId == null || _selectedBatchId!.isEmpty) return null;
+    final hasSelected = _batches.any((b) => (b['id'] ?? '').toString() == _selectedBatchId);
+    return hasSelected ? _selectedBatchId : null;
+  }
+
+  Map<String, dynamic>? _findBatchById(String? id) {
+    if (id == null || id.isEmpty) return null;
+    for (final batch in _batches) {
+      if ((batch['id'] ?? '').toString() == id) return batch;
+    }
+    return null;
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    _linkCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +104,20 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       return;
     }
 
+    final rawLink = _linkCtrl.text.trim();
+    if (rawLink.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please provide a valid link.')));
+      return;
+    }
+
+    final normalizedLink = _normalizeUrl(rawLink);
+    if (normalizedLink == null || !_isValidHttpUrl(normalizedLink)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid link. Use full URL like https://example.com/file.pdf')),
+      );
+      return;
+    }
+
     setState(() => _isUploading = true);
     try {
       await _repo.uploadMaterial(
@@ -90,7 +126,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         title: _titleCtrl.text.trim(),
         description: _descCtrl.text.trim(),
         type: _selectedType,
-        fileUrl: _linkCtrl.text.trim(),
+        fileUrl: normalizedLink,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Material Uploaded Successfully!')));
@@ -101,6 +137,23 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
+  }
+
+  String? _normalizeUrl(String input) {
+    final value = input.trim();
+    if (value.isEmpty) return null;
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return value;
+    }
+    if (value.contains('.')) {
+      return 'https://$value';
+    }
+    return null;
+  }
+
+  bool _isValidHttpUrl(String value) {
+    final uri = Uri.tryParse(value);
+    return uri != null && (uri.scheme == 'http' || uri.scheme == 'https') && (uri.host.isNotEmpty);
   }
 
   @override
@@ -225,14 +278,14 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black, width: 2), borderRadius: BorderRadius.circular(8)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedBatchId,
+           value: _safeSelectedBatchId,
           isExpanded: true,
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue),
           onChanged: (val) {
-             final b = _batches.firstWhere((element) => element['id']?.toString() == val);
+             final b = _findBatchById(val);
              setState(() {
                _selectedBatchId = val;
-                _selectedSubject = b['subject']?.toString() ?? 'General';
+               _selectedSubject = b?['subject']?.toString() ?? 'General';
              });
           },
           items: _batches.map((b) => DropdownMenuItem(value: b['id']?.toString(), child: Text(b['name']?.toString() ?? 'BATCH', overflow: TextOverflow.ellipsis))).toList(),
