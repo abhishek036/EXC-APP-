@@ -5,6 +5,29 @@ export class TimetableService {
   private readonly logger = console;
   private static readonly UUID_REGEX = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$';
   private static readonly IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  private static isSchemaEnsured = false;
+
+  constructor() {
+    this.ensureSchema().catch((err) => this.logger.error('[TimetableService] Schema repair failed:', err));
+  }
+
+  private async ensureSchema() {
+    if (TimetableService.isSchemaEnsured) return;
+    try {
+      this.logger.log('[TimetableService] running schema repair check...');
+      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS subject VARCHAR(100);`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS link TEXT;`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS class_room VARCHAR(100);`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS description TEXT;`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS lecture_type VARCHAR(20);`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS duration_minutes INTEGER DEFAULT 60;`);
+      TimetableService.isSchemaEnsured = true;
+      this.logger.log('[TimetableService] schema repair finished');
+    } catch (e) {
+      this.logger.warn('[TimetableService] Schema repair partially failed (expected if columns exist):', (e as any)?.message);
+    }
+  }
 
   private getIstDayRangeUtc(year: number, month: number, day: number): { start: Date; end: Date } {
     const startUtc = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0) - TimetableService.IST_OFFSET_MS);
@@ -41,16 +64,13 @@ export class TimetableService {
     return schedules.filter((schedule) => this.toIstDateKey(schedule.scheduled_at) === requestedDateKey);
   }
 
-  private isMissingLectureDurationColumn(error: unknown): boolean {
+  private isMissingTimetableColumn(error: unknown): boolean {
     const code = (error as any)?.code;
     const column = (error as any)?.meta?.column;
     if (code !== 'P2022' || typeof column !== 'string') return false;
     const normalizedColumn = column.toLowerCase();
-    return (
-      normalizedColumn.includes('duration_minutes') ||
-      normalizedColumn.includes('lectures.duration_minutes') ||
-      normalizedColumn.includes('lecture.duration_minutes')
-    );
+    const problematicColumns = ['duration_minutes', 'subject', 'link', 'class_room', 'description', 'lecture_type', 'is_active'];
+    return problematicColumns.some(c => normalizedColumn.includes(c));
   }
 
   private async createLectureRaw(
@@ -378,7 +398,7 @@ export class TimetableService {
         select: { id: true, scheduled_at: true, duration_minutes: true },
       });
     } catch (error) {
-      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      if (!this.isMissingTimetableColumn(error)) throw error;
       const fallback = await prisma.lecture.findMany({
         where: {
           institute_id: instituteId,
@@ -431,7 +451,7 @@ export class TimetableService {
         },
       });
     } catch (error) {
-      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      if (!this.isMissingTimetableColumn(error)) throw error;
       candidates = await prisma.lecture.findMany({
         where: {
           institute_id: instituteId,
@@ -478,8 +498,8 @@ export class TimetableService {
         },
       });
     } catch (error) {
-      if (!this.isMissingLectureDurationColumn(error)) throw error;
-      this.logger.warn('[TimetableService] lectures.duration_minutes column missing; using scheduleLecture fallback create path');
+      if (!this.isMissingTimetableColumn(error)) throw error;
+      this.logger.warn('[TimetableService] lectures missing elective columns; using scheduleLecture fallback create path');
       return this.createLectureRaw(instituteId, data.batchId, data.teacherId, `${data.subject} - ${data.batchId}`, lectureStart, data.duration);
     }
   }
@@ -520,7 +540,7 @@ export class TimetableService {
         const schedules = await this.getTeacherScheduleRawFallback(instituteId, teacher.id, undefined, undefined, true);
         return this.filterSchedulesByIstDate(schedules, requestedDateKey);
       }
-      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      if (!this.isMissingTimetableColumn(error)) throw error;
 
       try {
         const schedules = await prisma.lecture.findMany({
@@ -588,8 +608,8 @@ export class TimetableService {
         },
       });
     } catch (error) {
-      if (!this.isMissingLectureDurationColumn(error)) throw error;
-      this.logger.warn('[TimetableService] lectures.duration_minutes column missing; using createTeacherScheduleByUser fallback create path');
+      if (!this.isMissingTimetableColumn(error)) throw error;
+      this.logger.warn('[TimetableService] lectures missing elective columns; using createTeacherScheduleByUser fallback create path');
       return this.createLectureRaw(instituteId, data.batch_id, teacher.id, data.title, scheduledAt, duration, (data as any).subject, (data as any).link, (data as any).class_room);
     }
   }
@@ -613,7 +633,7 @@ export class TimetableService {
         select: { id: true, batch_id: true, scheduled_at: true, duration_minutes: true },
       });
     } catch (error) {
-      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      if (!this.isMissingTimetableColumn(error)) throw error;
       current = await prisma.lecture.findFirst({
         where: { id: lectureId, institute_id: instituteId, teacher_id: teacher.id, is_active: true },
         select: { id: true, batch_id: true, scheduled_at: true },
@@ -651,8 +671,8 @@ export class TimetableService {
         },
       });
     } catch (error) {
-      if (!this.isMissingLectureDurationColumn(error)) throw error;
-      this.logger.warn('[TimetableService] lectures.duration_minutes column missing; using updateTeacherScheduleByUser fallback update path');
+      if (!this.isMissingTimetableColumn(error)) throw error;
+      this.logger.warn('[TimetableService] lectures missing elective columns; using updateTeacherScheduleByUser fallback update path');
       return this.updateLectureRaw(lectureId, nextBatchId, data.title, nextScheduledAt, nextDuration, (data as any).subject, (data as any).link, (data as any).class_room);
     }
   }
@@ -712,7 +732,7 @@ export class TimetableService {
         this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw batch timetable fallback query (with duration)');
         return this.getBatchTimetableRawFallback(batchId, instituteId, true);
       }
-      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      if (!this.isMissingTimetableColumn(error)) throw error;
 
       try {
         return await prisma.lecture.findMany({
@@ -757,7 +777,7 @@ export class TimetableService {
         this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw teacher timetable fallback query (with duration)');
         return this.getTeacherTimetableRawFallback(teacherId, instituteId, true);
       }
-      if (!this.isMissingLectureDurationColumn(error)) throw error;
+      if (!this.isMissingTimetableColumn(error)) throw error;
 
       try {
         return await prisma.lecture.findMany({
