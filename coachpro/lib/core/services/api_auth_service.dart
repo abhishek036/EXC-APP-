@@ -106,10 +106,11 @@ class ApiAuthService {
     String? phone,
   }) async {
     final payload = <String, dynamic>{
-      if (name != null) 'name': name,
-      if (email != null) 'email': email,
-      if (phone != null) 'phone': phone,
+      'name': name,
+      'email': email,
+      'phone': phone,
     };
+    payload.removeWhere((key, value) => value == null);
 
     if (payload.isEmpty) {
       return getProfile();

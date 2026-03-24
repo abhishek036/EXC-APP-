@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
@@ -157,9 +156,11 @@ class FeeReceiptGenerator {
     await file.writeAsBytes(await pdf.save());
 
     // Share PDF
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: 'Fee Receipt for $studentName ($batchName)',
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path)],
+        text: 'Fee Receipt for $studentName ($batchName)',
+      ),
     );
   }
 }

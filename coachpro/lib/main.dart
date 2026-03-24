@@ -48,7 +48,7 @@ Future<void> main() async {
 
   await SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.manual,
-    overlays: [SystemUiOverlay.top],
+    overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
   );
 
   ErrorWidget.builder = (FlutterErrorDetails details) {
@@ -131,7 +131,7 @@ class _CoachProAppState extends State<CoachProApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       SystemChrome.setEnabledSystemUIMode(
         SystemUiMode.manual,
-        overlays: [SystemUiOverlay.top],
+        overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
       );
       // Quietly refresh auth state when app comes back to foreground
       _authBloc.add(const AuthRefreshRequested());
@@ -166,6 +166,15 @@ class _CoachProAppState extends State<CoachProApp> with WidgetsBindingObserver {
                 themeMode: currentMode,
                 locale: currentLocale,
                 supportedLocales: AppLocales.supported,
+                builder: (context, child) {
+                  return SafeArea(
+                    top: false,
+                    left: false,
+                    right: false,
+                    bottom: true,
+                    child: child ?? const SizedBox.shrink(),
+                  );
+                },
                 routerConfig: _router,
               );
             },

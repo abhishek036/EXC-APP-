@@ -121,8 +121,8 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
     return ListView.separated(
       padding: const EdgeInsets.all(20),
       itemCount: 6,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (_, __) => const CPShimmer(width: double.infinity, height: 120, borderRadius: 20),
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      itemBuilder: (context, index) => const CPShimmer(width: double.infinity, height: 120, borderRadius: 20),
     );
   }
 
@@ -152,7 +152,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
       child: ListView.separated(
         padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 100),
         itemCount: _doubts.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 16),
+        separatorBuilder: (context, index) => const SizedBox(height: 16),
         itemBuilder: (context, i) {
           final doubt = _doubts[i];
           final question = (doubt['questionText'] ?? doubt['question_text'] ?? '').toString();

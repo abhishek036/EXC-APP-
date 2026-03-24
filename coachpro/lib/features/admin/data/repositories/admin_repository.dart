@@ -35,10 +35,12 @@ class AdminRepository {
     required String fileName,
     String? batchId,
   }) async {
-    final formData = FormData.fromMap({
+    final formMap = <String, dynamic>{
       'file': MultipartFile.fromBytes(bytes, filename: fileName),
-      if (batchId != null) 'batchId': batchId,
-    });
+      'batchId': batchId,
+    };
+    formMap.removeWhere((key, value) => value == null);
+    final formData = FormData.fromMap(formMap);
 
     final response = await _api.dio.post('students/import', data: formData);
     if (response.statusCode == 200) {
@@ -407,9 +409,10 @@ class AdminRepository {
   }) async {
     final payload = <String, dynamic>{
       'permissions': permissions,
-      if (salary != null) 'salary': salary,
-      if (revenueShare != null) 'revenue_share': revenueShare,
+      'salary': salary,
+      'revenue_share': revenueShare,
     };
+    payload.removeWhere((key, value) => value == null);
     final response = await _api.dio.put('teachers/$teacherId/settings', data: payload);
     if (response.statusCode == 200) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
@@ -509,11 +512,12 @@ class AdminRepository {
     bool? pinned,
   }) async {
     final payload = <String, dynamic>{
-      if (title != null) 'title': title,
-      if (body != null) 'body': body,
-      if (category != null) 'category': category,
-      if (pinned != null) 'pinned': pinned,
+      'title': title,
+      'body': body,
+      'category': category,
+      'pinned': pinned,
     };
+    payload.removeWhere((key, value) => value == null);
     final response = await _api.dio.put('announcements/$id', data: payload);
     if (response.statusCode == 200) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
@@ -601,13 +605,16 @@ class AdminRepository {
     num? maxMarks,
     String? remarks,
   }) async {
-    final response = await _api.dio.post('exams/results', data: {
+    final payload = <String, dynamic>{
       'examId': examId,
       'studentId': studentId,
       'score': score,
-      if (maxMarks != null) 'maxMarks': maxMarks,
-      if (remarks != null) 'remarks': remarks,
-    });
+      'maxMarks': maxMarks,
+      'remarks': remarks,
+    };
+    payload.removeWhere((key, value) => value == null);
+
+    final response = await _api.dio.post('exams/results', data: payload);
     if (response.statusCode == 201 || response.statusCode == 200) {
       return Map<String, dynamic>.from(response.data['data'] as Map);
     }

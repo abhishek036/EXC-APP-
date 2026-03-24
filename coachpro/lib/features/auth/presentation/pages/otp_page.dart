@@ -113,8 +113,8 @@ class _OtpPageState extends State<OtpPage> {
     setState(() {});
   }
 
-  void _handleKeyPress(RawKeyEvent event, int index) {
-    if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
+  void _handleKeyPress(KeyEvent event, int index) {
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
       if (_controllers[index].text.isEmpty && index > 0) {
         _focusNodes[index - 1].requestFocus();
         _controllers[index - 1].clear();
@@ -253,9 +253,9 @@ class _OtpPageState extends State<OtpPage> {
                               children: List.generate(6, (i) {
                                 return SizedBox(
                                   width: 44, height: 56,
-                                  child: RawKeyboardListener(
+                                  child: KeyboardListener(
                                     focusNode: FocusNode(),
-                                    onKey: (event) => _handleKeyPress(event, i),
+                                    onKeyEvent: (event) => _handleKeyPress(event, i),
                                     child: TextField(
                                       controller: _controllers[i],
                                       focusNode: _focusNodes[i],
