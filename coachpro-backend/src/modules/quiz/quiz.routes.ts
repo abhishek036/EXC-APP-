@@ -16,6 +16,7 @@ router.post('/', requireRole('admin', 'teacher'), validate(createQuizSchema), Qu
 router.get('/:id', requireRole('admin', 'teacher', 'student'), QuizController.getQuiz);
 router.put('/:id', requireRole('admin', 'teacher'), validate(updateQuizSchema), QuizController.updateQuiz);
 router.post('/:id/publish', requireRole('admin', 'teacher'), QuizController.publishQuiz);
+router.delete('/:id', requireRole('admin', 'teacher'), QuizController.deleteQuiz);
 
 // Student attempt routes
 router.get('/available', requireRole('student'), QuizController.getAvailableQuizzes);

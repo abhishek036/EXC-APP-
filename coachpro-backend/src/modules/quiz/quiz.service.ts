@@ -91,7 +91,32 @@ export class QuizService {
     if (!quiz) throw new Error('Quiz not found');
     if (quiz.is_published) throw new Error('Cannot edit a published quiz');
 
-    return QuizRepository.updateQuiz(id, instituteId, data);
+    const normalizedData: Prisma.QuizUncheckedUpdateInput = {
+      ...(data.batch_id ? { batch_id: data.batch_id } : {}),
+      ...(data.title ? { title: data.title } : {}),
+      ...(data.subject !== undefined ? { subject: data.subject } : {}),
+      ...(data.time_limit_min !== undefined ? { time_limit_min: data.time_limit_min } : {}),
+    };
+
+    const questions = Array.isArray(data.questions) ? data.questions : undefined;
+    if (!questions) {
+      await QuizRepository.updateQuiz(id, instituteId, normalizedData);
+      return QuizRepository.findQuizById(id, instituteId);
+    }
+
+    const formattedQuestions: Prisma.QuizQuestionUncheckedCreateWithoutQuizInput[] = questions.map((q: any, index: number) => ({
+      question_text: q.question_text,
+      image_url: q.image_url,
+      option_a: q.option_a,
+      option_b: q.option_b,
+      option_c: q.option_c,
+      option_d: q.option_d,
+      correct_option: q.correct_option,
+      marks: q.marks ?? 1,
+      order_index: q.order_index ?? index,
+    }));
+
+    return QuizRepository.updateQuizWithQuestions(id, instituteId, normalizedData, formattedQuestions);
   }
 
   static async publishQuiz(id: string, instituteId: string) {
@@ -174,5 +199,13 @@ export class QuizService {
        quiz,
        attempts
     };
+  }
+
+  static async deleteQuiz(id: string, instituteId: string) {
+    const quiz = await QuizRepository.findQuizById(id, instituteId);
+    if (!quiz) throw new Error('Quiz not found');
+
+    await QuizRepository.deleteQuiz(id, instituteId);
+    return { id };
   }
 }

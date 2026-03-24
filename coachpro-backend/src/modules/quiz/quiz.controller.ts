@@ -91,6 +91,15 @@ export class QuizController {
     }
   }
 
+  static async deleteQuiz(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await QuizService.deleteQuiz(req.params.id, req.instituteId!);
+      return sendResponse({ res, data, message: 'Quiz deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async startAttempt(req: Request, res: Response, next: NextFunction) {
     try {
       const attempt = await QuizService.startAttempt(req.params.id, req.user!.userId, req.instituteId!);

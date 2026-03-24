@@ -6,6 +6,7 @@ import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/teacher_repository.dart';
 import 'assignment_review_page.dart';
 import 'attendance_marking_page.dart';
+import 'create_quiz_page.dart';
 import 'quiz_results_page.dart';
 import 'upload_material_page.dart';
 
@@ -32,11 +33,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   Map<String, dynamic> _execution = {};
   List<Map<String, dynamic>> _students = [];
   List<Map<String, dynamic>> _doubts = [];
+  List<Map<String, dynamic>> _quizzes = [];
   final Set<String> _completedTopicIds = {};
   final Set<String> _manualWeakIds = {};
   final Set<String> _removedWeakIds = {};
   String _studentFilter = 'all';
   bool _isReplying = false;
+  bool _isDeletingQuiz = false;
 
   @override
   void initState() {
@@ -54,10 +57,12 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       final batchesFuture = _teacherRepo.getMyBatches();
       final studentsFuture = _teacherRepo.getBatchStudents(widget.batchId);
       final executionFuture = _teacherRepo.getBatchExecutionSummary(widget.batchId);
+      final quizzesFuture = _teacherRepo.getBatchQuizzes(widget.batchId);
 
       final batches = await batchesFuture;
       final students = await studentsFuture;
       final execution = await executionFuture;
+      final quizzes = await quizzesFuture;
 
       final selected = batches.where((b) => (b['id'] ?? '').toString() == widget.batchId).toList();
       final fallbackBatch = selected.isNotEmpty ? selected.first : <String, dynamic>{};
@@ -85,6 +90,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         _execution = execution;
         _students = students;
         _doubts = pendingDoubts;
+        _quizzes = quizzes;
         _completedTopicIds
           ..clear()
           ..addAll(completedTopicIds);
@@ -684,6 +690,150 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('QUIZ LIBRARY', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 14, letterSpacing: 1)),
+            _ActionBtn(
+              label: 'NEW QUIZ',
+              icon: Icons.add,
+              blue: blue,
+              yellow: yellow,
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CreateQuizPage(
+                      initialBatchId: widget.batchId,
+                      initialSubject: (_batch?['subject'] ?? '').toString(),
+                    ),
+                  ),
+                );
+                await _load();
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_quizzes.isEmpty)
+          _PremiumCard(
+            child: Text(
+              'NO QUIZZES CREATED FOR THIS BATCH YET',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.6)),
+            ),
+          )
+        else
+          ..._quizzes.map((quiz) {
+            final quizId = (quiz['id'] ?? '').toString();
+            final title = (quiz['title'] ?? 'QUIZ').toString().toUpperCase();
+            final subject = (quiz['subject'] ?? _batch?['subject'] ?? 'GENERAL').toString().toUpperCase();
+            final totalQuestions = ((quiz['questions'] as List?)?.length ?? _toNum((quiz['_count'] as Map?)?['questions']).toInt());
+            final timeLimit = _toNum(quiz['time_limit_min']).toInt();
+            final isPublished = quiz['is_published'] == true;
+
+            return _PremiumCard(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 15, color: blue),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isPublished ? blue : yellow,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: blue, width: 1.5),
+                        ),
+                        child: Text(
+                          isPublished ? 'PUBLISHED' : 'DRAFT',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 9,
+                            color: isPublished ? Colors.white : blue,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$subject • $totalQuestions QUESTIONS • ${timeLimit > 0 ? '$timeLimit MIN' : 'NO LIMIT'}',
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 11, color: blue.withValues(alpha: 0.6)),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: quizId.isEmpty
+                              ? null
+                              : () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => CreateQuizPage(
+                                        initialBatchId: widget.batchId,
+                                        initialSubject: (_batch?['subject'] ?? '').toString(),
+                                        quizId: quizId,
+                                      ),
+                                    ),
+                                  );
+                                  await _load();
+                                },
+                          style: OutlinedButton.styleFrom(side: BorderSide(color: blue, width: 2)),
+                          child: Text('EDIT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: (_isDeletingQuiz || quizId.isEmpty)
+                              ? null
+                              : () async {
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Delete Quiz?'),
+                                      content: const Text('This will remove the quiz and related attempts for this batch.'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                                        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirmed != true) return;
+
+                                  setState(() => _isDeletingQuiz = true);
+                                  try {
+                                    await _teacherRepo.deleteQuiz(quizId);
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quiz deleted')));
+                                    await _load();
+                                  } catch (e) {
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+                                  } finally {
+                                    if (mounted) setState(() => _isDeletingQuiz = false);
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.coralRed, foregroundColor: Colors.white),
+                          child: Text('DELETE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
       ],
     );
   }

@@ -9,11 +9,13 @@ import '../../data/repositories/teacher_repository.dart';
 class CreateQuizPage extends StatefulWidget {
   final String? initialBatchId;
   final String? initialSubject;
+  final String? quizId;
 
   const CreateQuizPage({
     super.key,
     this.initialBatchId,
     this.initialSubject,
+    this.quizId,
   });
 
   @override
@@ -33,6 +35,8 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
 
   final List<Map<String, dynamic>> _questions = [];
   bool _isPublishing = false;
+
+  bool get _isEditMode => widget.quizId != null && widget.quizId!.isNotEmpty;
 
   String? get _safeSelectedBatchId {
     if (_selectedBatchId == null || _selectedBatchId!.isEmpty) return null;
@@ -55,7 +59,9 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
       _selectedSubject = widget.initialSubject!.trim();
     }
     _loadBatches();
-    _addEmptyQuestion();
+    if (!_isEditMode) {
+      _addEmptyQuestion();
+    }
   }
 
   Future<void> _loadBatches() async {
@@ -75,9 +81,69 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           _selectedSubject = widget.initialSubject ?? selected['subject']?.toString() ?? 'General';
         }
       });
+
+      if (_isEditMode) {
+        await _loadQuizForEdit();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoadingBatches = false);
+    }
+  }
+
+  void _clearQuestions() {
+    for (final item in _questions) {
+      (item['question'] as TextEditingController).dispose();
+      for (final ctrl in (item['options'] as List<TextEditingController>)) {
+        ctrl.dispose();
+      }
+    }
+    _questions.clear();
+  }
+
+  Future<void> _loadQuizForEdit() async {
+    try {
+      final quiz = await _repo.getQuizById(widget.quizId!);
+      if (!mounted) return;
+
+      final questions = ((quiz['questions'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+
+      const optionToIndex = {'A': 0, 'B': 1, 'C': 2, 'D': 3};
+
+      _clearQuestions();
+      for (final question in questions) {
+        _questions.add({
+          'question': TextEditingController(text: (question['question_text'] ?? '').toString()),
+          'options': [
+            TextEditingController(text: (question['option_a'] ?? '').toString()),
+            TextEditingController(text: (question['option_b'] ?? '').toString()),
+            TextEditingController(text: (question['option_c'] ?? '').toString()),
+            TextEditingController(text: (question['option_d'] ?? '').toString()),
+          ],
+          'correct_index': optionToIndex[(question['correct_option'] ?? 'A').toString().toUpperCase()] ?? 0,
+          'marks': (question['marks'] ?? 1).toString(),
+        });
+      }
+
+      if (_questions.isEmpty) {
+        _addEmptyQuestion();
+      }
+
+      setState(() {
+        _titleCtrl.text = (quiz['title'] ?? '').toString();
+        _durationCtrl.text = (quiz['time_limit_min'] ?? 60).toString();
+        _selectedBatchId = (quiz['batch_id'] ?? _selectedBatchId ?? '').toString();
+        _selectedSubject = (quiz['subject'] ?? _selectedSubject ?? 'General').toString();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to load quiz for edit: $e')));
+      if (_questions.isEmpty) {
+        _addEmptyQuestion();
+      }
     }
   }
 
@@ -126,15 +192,26 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
 
     setState(() => _isPublishing = true);
     try {
-      await _repo.createQuiz(
-        title: title,
-        subject: _selectedSubject ?? 'General',
-        batchId: _selectedBatchId!,
-        timeLimit: duration,
-        questions: parsedQuestions,
-      );
+      if (_isEditMode) {
+        await _repo.updateQuiz(
+          quizId: widget.quizId!,
+          title: title,
+          subject: _selectedSubject ?? 'General',
+          batchId: _selectedBatchId!,
+          timeLimit: duration,
+          questions: parsedQuestions,
+        );
+      } else {
+        await _repo.createQuiz(
+          title: title,
+          subject: _selectedSubject ?? 'General',
+          batchId: _selectedBatchId!,
+          timeLimit: duration,
+          questions: parsedQuestions,
+        );
+      }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quiz Published Successfully!')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_isEditMode ? 'Quiz Updated Successfully!' : 'Quiz Published Successfully!')));
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
@@ -142,6 +219,14 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
     } finally {
       if (mounted) setState(() => _isPublishing = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _durationCtrl.dispose();
+    _clearQuestions();
+    super.dispose();
   }
 
   @override
@@ -159,7 +244,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('CREATE QUIZ', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.0)),
+        title: Text(_isEditMode ? 'EDIT QUIZ' : 'CREATE QUIZ', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.0)),
       ),
       body: Column(children: [
         Expanded(
@@ -267,7 +352,18 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(4)), child: Text('Q${index + 1}', style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.w900))),
-              if (_questions.length > 1) IconButton(icon: const Icon(Icons.delete_outline_rounded, color: AppColors.coralRed), onPressed: () => setState(() => _questions.removeAt(index))),
+              if (_questions.length > 1)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, color: AppColors.coralRed),
+                  onPressed: () {
+                    final removed = _questions.removeAt(index);
+                    (removed['question'] as TextEditingController).dispose();
+                    for (final ctrl in (removed['options'] as List<TextEditingController>)) {
+                      ctrl.dispose();
+                    }
+                    setState(() {});
+                  },
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -326,7 +422,9 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.black, width: 3)),
         ),
         onPressed: _isPublishing ? null : _publishQuiz,
-        child: _isPublishing ? const CircularProgressIndicator() : Text('PUBLISH QUIZ', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16)),
+        child: _isPublishing
+            ? const CircularProgressIndicator()
+            : Text(_isEditMode ? 'UPDATE QUIZ' : 'PUBLISH QUIZ', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16)),
       ),
     ),
   );

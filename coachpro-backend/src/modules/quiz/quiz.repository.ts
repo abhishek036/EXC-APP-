@@ -47,10 +47,67 @@ export class QuizRepository {
     });
   }
 
+  static async updateQuizWithQuestions(
+    id: string,
+    instituteId: string,
+    data: Prisma.QuizUncheckedUpdateInput,
+    questions: Prisma.QuizQuestionUncheckedCreateWithoutQuizInput[],
+  ) {
+    return prisma.$transaction(async (tx) => {
+      await tx.quiz.updateMany({
+        where: { id, institute_id: instituteId },
+        data,
+      });
+
+      await tx.quizQuestion.deleteMany({
+        where: { quiz_id: id },
+      });
+
+      if (questions.length > 0) {
+        await tx.quizQuestion.createMany({
+          data: questions.map((question) => ({
+            quiz_id: id,
+            question_text: question.question_text,
+            image_url: question.image_url,
+            option_a: question.option_a,
+            option_b: question.option_b,
+            option_c: question.option_c,
+            option_d: question.option_d,
+            correct_option: question.correct_option,
+            marks: question.marks,
+            order_index: question.order_index,
+          })),
+        });
+      }
+
+      return tx.quiz.findFirst({
+        where: { id, institute_id: instituteId },
+        include: {
+          questions: { orderBy: { order_index: 'asc' } },
+          batch: { select: { id: true, name: true, subject: true } },
+        },
+      });
+    });
+  }
+
   static async publishQuiz(id: string, instituteId: string) {
     return prisma.quiz.updateMany({
       where: { id, institute_id: instituteId },
       data: { is_published: true },
+    });
+  }
+
+  static async deleteQuiz(id: string, instituteId: string) {
+    return prisma.$transaction(async (tx) => {
+      await tx.quizAttempt.deleteMany({
+        where: { quiz_id: id, institute_id: instituteId },
+      });
+
+      await tx.quiz.deleteMany({
+        where: { id, institute_id: instituteId },
+      });
+
+      return { id };
     });
   }
 

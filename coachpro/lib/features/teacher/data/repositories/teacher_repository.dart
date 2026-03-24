@@ -274,6 +274,71 @@ class TeacherRepository {
     throw Exception(response.data['message'] ?? 'Failed to create quiz');
   }
 
+  Future<List<Map<String, dynamic>>> getBatchQuizzes(String batchId) async {
+    final response = await _api.dio.get('quizzes', queryParameters: {'batch_id': batchId});
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch quizzes');
+  }
+
+  Future<Map<String, dynamic>> getQuizById(String quizId) async {
+    final response = await _api.dio.get('quizzes/$quizId');
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch quiz');
+  }
+
+  Future<Map<String, dynamic>> updateQuiz({
+    required String quizId,
+    required String title,
+    required String subject,
+    required String batchId,
+    required int timeLimit,
+    required List<Map<String, dynamic>> questions,
+  }) async {
+    final normalizedQuestions = questions.map((item) {
+      final options = (item['options'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[];
+      final correctIdx = item['correct_option_index'] is int
+          ? item['correct_option_index'] as int
+          : int.tryParse(item['correct_option_index']?.toString() ?? '0') ?? 0;
+
+      const alpha = ['A', 'B', 'C', 'D'];
+      final correctOption = (correctIdx >= 0 && correctIdx < alpha.length) ? alpha[correctIdx] : 'A';
+
+      return <String, dynamic>{
+        'question_text': item['question_text']?.toString() ?? '',
+        'option_a': options.isNotEmpty ? options[0] : '',
+        'option_b': options.length > 1 ? options[1] : '',
+        'option_c': options.length > 2 ? options[2] : '',
+        'option_d': options.length > 3 ? options[3] : '',
+        'correct_option': correctOption,
+        'marks': item['marks'] ?? 1,
+      };
+    }).toList();
+
+    final response = await _api.dio.put('quizzes/$quizId', data: {
+      'title': title,
+      'subject': subject,
+      'batch_id': batchId,
+      'time_limit_min': timeLimit,
+      'questions': normalizedQuestions,
+    });
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update quiz');
+  }
+
+  Future<void> deleteQuiz(String quizId) async {
+    final response = await _api.dio.delete('quizzes/$quizId');
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+    throw Exception(response.data['message'] ?? 'Failed to delete quiz');
+  }
+
   // ── Quiz Results ─────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getQuizResults(String quizId) async {
     final response = await _api.dio.get('quizzes/$quizId/results');
