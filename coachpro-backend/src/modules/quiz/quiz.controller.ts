@@ -112,7 +112,7 @@ export class QuizController {
 
   static async getResult(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await QuizService.getStudentResult(req.params.id, req.user!.userId);
+      const result = await QuizService.getStudentResult(req.params.id, req.user!.userId, req.instituteId!);
       return sendResponse({ res, data: result });
     } catch (error) {
       next(error);

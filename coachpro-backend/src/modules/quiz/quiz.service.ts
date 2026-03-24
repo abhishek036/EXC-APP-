@@ -1,16 +1,42 @@
 import { QuizRepository } from './quiz.repository';
 import { Prisma } from '@prisma/client';
+import { prisma } from '../../server';
+import { ApiError } from '../../middleware/error.middleware';
 
 export class QuizService {
+  private static async resolveTeacherProfileId(userId: string, instituteId: string): Promise<string> {
+    const teacher = await prisma.teacher.findFirst({
+      where: { user_id: userId, institute_id: instituteId, is_active: true },
+      select: { id: true },
+    });
+    if (!teacher) {
+      throw new ApiError('Teacher profile not found for this account', 404, 'NOT_FOUND');
+    }
+    return teacher.id;
+  }
+
+  private static async resolveStudentProfileId(userId: string, instituteId: string): Promise<string> {
+    const student = await prisma.student.findFirst({
+      where: { user_id: userId, institute_id: instituteId, is_active: true },
+      select: { id: true },
+    });
+    if (!student) {
+      throw new ApiError('Student profile not found for this account', 404, 'NOT_FOUND');
+    }
+    return student.id;
+  }
+
   static async createQuiz(
     instituteId: string,
-    teacherId: string,
+    teacherUserId: string,
     batchId: string,
     title: string,
     subject?: string,
     timeLimitMin?: number,
     questions?: any[]
   ) {
+    const teacherId = await QuizService.resolveTeacherProfileId(teacherUserId, instituteId);
+
     const quizData: Prisma.QuizUncheckedCreateInput = {
       batch_id: batchId,
       institute_id: instituteId,
@@ -77,27 +103,31 @@ export class QuizService {
   }
 
   static async startAttempt(quizId: string, studentId: string, instituteId: string) {
+    const studentProfileId = await QuizService.resolveStudentProfileId(studentId, instituteId);
+
     const quiz = await QuizRepository.findQuizById(quizId, instituteId);
     if (!quiz) throw new Error('Quiz not found');
     if (!quiz.is_published) throw new Error('Quiz is not published yet');
 
-    const existingAttempt = await QuizRepository.findAttempt(quizId, studentId);
+    const existingAttempt = await QuizRepository.findAttempt(quizId, studentProfileId);
     if (existingAttempt) {
       return existingAttempt; // Resuming attempt
     }
 
     return QuizRepository.createAttempt({
       quiz_id: quizId,
-      student_id: studentId,
+      student_id: studentProfileId,
       institute_id: instituteId,
     });
   }
 
   static async submitQuiz(quizId: string, studentId: string, instituteId: string, answers: Record<string, string>) {
+    const studentProfileId = await QuizService.resolveStudentProfileId(studentId, instituteId);
+
     const quiz = await QuizRepository.findQuizById(quizId, instituteId);
     if (!quiz) throw new Error('Quiz not found');
 
-    const attempt = await QuizRepository.findAttempt(quizId, studentId);
+    const attempt = await QuizRepository.findAttempt(quizId, studentProfileId);
     if (!attempt) throw new Error('Quiz attempt not started');
     if (attempt.submitted_at) throw new Error('Quiz already submitted');
 
@@ -114,7 +144,7 @@ export class QuizService {
       }
     }
 
-    return QuizRepository.updateAttempt(quizId, studentId, {
+    return QuizRepository.updateAttempt(quizId, studentProfileId, {
       submitted_at: new Date(),
       total_marks: totalMarks,
       obtained_marks: obtainedMarks,
@@ -122,8 +152,10 @@ export class QuizService {
     });
   }
 
-  static async getStudentResult(quizId: string, studentId: string) {
-    const attempt = await QuizRepository.findAttempt(quizId, studentId);
+  static async getStudentResult(quizId: string, studentId: string, instituteId: string) {
+    const studentProfileId = await QuizService.resolveStudentProfileId(studentId, instituteId);
+
+    const attempt = await QuizRepository.findAttempt(quizId, studentProfileId);
     if (!attempt) throw new Error('Attempt not found');
     if (!attempt.submitted_at) throw new Error('Quiz not submitted yet');
     
