@@ -6,6 +6,21 @@ import '../../../../core/di/injection_container.dart';
 class TeacherRepository {
   final ApiClient _api = sl<ApiClient>();
 
+  String _dateKey(DateTime value) {
+    final local = value.toLocal();
+    final year = local.year.toString().padLeft(4, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  DateTime? _parseScheduleDate(dynamic raw) {
+    if (raw == null) return null;
+    final parsed = DateTime.tryParse(raw.toString());
+    if (parsed == null) return null;
+    return parsed;
+  }
+
   // ── Helper ───────────────────────────────────────────────
   List<Map<String, dynamic>> _extractList(dynamic responseData) {
     final payload = responseData is Map<String, dynamic>
@@ -69,7 +84,23 @@ class TeacherRepository {
       },
     );
     if (response.statusCode == 200) {
-      return _extractList(response.data);
+      final datedEntries = _extractList(response.data);
+      if (date == null || datedEntries.isNotEmpty) {
+        return datedEntries;
+      }
+
+      final allResponse = await _api.dio.get('timetable/teacher/me');
+      if (allResponse.statusCode != 200) {
+        return datedEntries;
+      }
+
+      final targetKey = _dateKey(date);
+      final allEntries = _extractList(allResponse.data);
+      return allEntries.where((entry) {
+        final parsed = _parseScheduleDate(entry['scheduled_at']);
+        if (parsed == null) return false;
+        return _dateKey(parsed) == targetKey;
+      }).toList();
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch schedule entries');
   }
