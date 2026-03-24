@@ -215,11 +215,35 @@ class StudentRepository {
   }
 
   // ── Notifications ────────────────────────────────────────
-  Future<List<Map<String, dynamic>>> getNotifications() async {
-    final response = await _api.dio.get('students/me/notifications');
+  Future<List<Map<String, dynamic>>> getNotifications({
+    int page = 1,
+    int perPage = 20,
+    String? type,
+    String readStatus = 'all',
+  }) async {
+    final response = await _api.dio.get('notifications', queryParameters: {
+      'page': page,
+      'perPage': perPage,
+      if (type != null && type.isNotEmpty) 'type': type,
+      'read_status': readStatus,
+    });
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch notifications');
+  }
+
+  Future<void> markNotificationRead(String notificationId, {bool read = true}) async {
+    final response = await _api.dio.patch('notifications/$notificationId/read', data: {
+      'read_status': read,
+    });
+    if (response.statusCode == 200) return;
+    throw Exception(response.data['message'] ?? 'Failed to update notification status');
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    final response = await _api.dio.patch('notifications/read-all');
+    if (response.statusCode == 200) return;
+    throw Exception(response.data['message'] ?? 'Failed to mark all notifications as read');
   }
 }

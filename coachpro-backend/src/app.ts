@@ -30,6 +30,7 @@ import timetableRoutes from './modules/timetable/timetable.routes';
 import auditLogRoutes from './modules/audit-log/audit-log.routes';
 import whatsappRoutes from './modules/whatsapp/whatsapp.routes';
 import appUpdateRoutes from './modules/app-update/app-update.routes';
+import notificationRoutes from './modules/notification/notification.routes';
 
 const app: Express = express();
 app.set('trust proxy', true); // Trust proxy chain (Azure/App Gateway/CDN)
@@ -108,6 +109,7 @@ app.use('/api/timetable', timetableRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/app-update', appUpdateRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 Catcher
 app.all('*', (req: Request, res: Response, next: NextFunction) => {

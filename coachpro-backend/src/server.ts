@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import http from 'http';
 import { initSocket } from './config/socket';
+import { initializeFirebaseAdmin } from './config/firebase-admin';
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ if (require.main === module) {
         try {
             await prisma.$connect();
             console.log('✅ Connected to database successfully');
+            initializeFirebaseAdmin();
             
             setupQueues();
 

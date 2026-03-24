@@ -531,6 +531,51 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to delete announcement');
   }
 
+  Future<Map<String, dynamic>> sendNotification({
+    required String title,
+    required String body,
+    required String type,
+    String? roleTarget,
+    String? userId,
+    String? instituteId,
+    Map<String, dynamic>? meta,
+  }) async {
+    final payload = <String, dynamic>{
+      'title': title,
+      'body': body,
+      'type': type,
+      'role_target': roleTarget,
+      'user_id': userId,
+      'institute_id': instituteId,
+      'meta': meta,
+    };
+    payload.removeWhere((key, value) => value == null);
+
+    final response = await _api.dio.post('notifications/send', data: payload);
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to send notification');
+  }
+
+  Future<void> triggerFeeReminders() async {
+    final response = await _api.dio.post('notifications/trigger/fee-reminders');
+    if (response.statusCode == 200) return;
+    throw Exception(response.data['message'] ?? 'Failed to trigger fee reminders');
+  }
+
+  Future<void> triggerClassReminders() async {
+    final response = await _api.dio.post('notifications/trigger/class-reminders');
+    if (response.statusCode == 200) return;
+    throw Exception(response.data['message'] ?? 'Failed to trigger class reminders');
+  }
+
+  Future<void> triggerDailyRevenueSummary() async {
+    final response = await _api.dio.post('notifications/trigger/daily-revenue-summary');
+    if (response.statusCode == 200) return;
+    throw Exception(response.data['message'] ?? 'Failed to trigger daily revenue summary');
+  }
+
   // ── Exams ───────────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getExams({String? status}) async {
     final response = await _api.dio.get(

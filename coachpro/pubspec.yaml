@@ -15,8 +15,10 @@ dependencies:
   cupertino_icons: ^1.0.8
   equatable: ^2.0.8
 
-    # ── Firebase ───────────────────────────────────────────
-    # Firebase dependencies removed
+  # ── Firebase ───────────────────────────────────────────
+  firebase_core: ^4.1.1
+  firebase_messaging: ^16.0.2
+  flutter_local_notifications: ^19.4.1
   
   # ── Navigation ───────────────────────────────────────────
   go_router: ^17.1.0

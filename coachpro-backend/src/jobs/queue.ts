@@ -2,6 +2,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import { redis } from '../config/redis';
 import { FeeHandler } from './handlers/fee.handler';
 import { AttendanceHandler } from './handlers/attendance.handler';
+import { NotificationHandler } from './handlers/notification.handler';
 
 // Only create queues if Redis is available
 export const notificationQueue = redis ? new Queue('notifications', { connection: redis as any }) : null;
@@ -25,6 +26,11 @@ export const setupQueues = () => {
                 break;
             case 'FEE_REMINDER':
                 // Individual fee reminder (if manually triggered)
+                await NotificationHandler.processFeeReminders();
+                break;
+            case 'RESULT_PUBLISHED':
+                // Payload-based immediate result notification (if needed)
+                // Current implementation sends directly from service layer.
                 break;
         }
     }, { connection: redis as any });
@@ -39,6 +45,13 @@ export const setupQueues = () => {
                 break;
             case 'DAILY_FEE_REMINDERS':
                 await FeeHandler.sendPendingFeeReminders();
+                await NotificationHandler.processFeeReminders();
+                break;
+            case 'CLASS_REMINDERS':
+                await NotificationHandler.processClassReminders();
+                break;
+            case 'DAILY_REVENUE_SUMMARY':
+                await NotificationHandler.processDailyRevenueSummary();
                 break;
         }
     }, { connection: redis as any });
@@ -61,5 +74,15 @@ const setupSchedules = async () => {
     // Daily at 09:00 AM
     await cronQueue.add('DAILY_FEE_REMINDERS', {}, {
         repeat: { pattern: '0 9 * * *' }
+    });
+
+    // Every 5 minutes for class reminders
+    await cronQueue.add('CLASS_REMINDERS', {}, {
+        repeat: { pattern: '*/5 * * * *' }
+    });
+
+    // Daily revenue summary at 09:30 PM
+    await cronQueue.add('DAILY_REVENUE_SUMMARY', {}, {
+        repeat: { pattern: '30 21 * * *' }
     });
 };

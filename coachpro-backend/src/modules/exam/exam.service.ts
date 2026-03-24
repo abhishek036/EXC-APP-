@@ -1,6 +1,8 @@
 import { ApiError } from '../../middleware/error.middleware';
 import { ExamRepository } from './exam.repository';
 import { CreateExamInput, SaveExamResultInput } from './exam.validator';
+import { NotificationService } from '../notification/notification.service';
+import { prisma } from '../../server';
 
 export class ExamService {
   private repo: ExamRepository;
@@ -63,6 +65,61 @@ export class ExamService {
   }
 
   async saveResult(instituteId: string, data: SaveExamResultInput) {
-    return this.repo.saveResult(instituteId, data);
+    const result = await this.repo.saveResult(instituteId, data);
+
+    const studentProfile = await prisma.student.findFirst({
+      where: { id: data.studentId, institute_id: instituteId },
+      select: {
+        user_id: true,
+        parent_students: {
+          include: {
+            parent: {
+              select: { user_id: true },
+            },
+          },
+        },
+      },
+    });
+
+    const examTitle = result.exam?.title ?? 'Exam';
+    const score = Number(result.marks_obtained ?? 0);
+    const total = Number(result.exam?.total_marks ?? 0);
+    const body = `Result published for ${examTitle}: ${score}/${total}.`;
+
+    if (studentProfile?.user_id) {
+      await NotificationService.sendNotificationToUser(studentProfile.user_id, {
+        title: 'Result Published',
+        body,
+        type: 'result',
+        role_target: 'student',
+        institute_id: instituteId,
+        meta: {
+          route: '/student/results',
+          exam_id: data.examId,
+          dedupe_key: `result:student:${data.examId}:${data.studentId}`,
+        },
+      });
+    }
+
+    const parentUserIds = (studentProfile?.parent_students ?? [])
+      .map((item) => item.parent.user_id)
+      .filter((value): value is string => Boolean(value));
+
+    for (const parentUserId of parentUserIds) {
+      await NotificationService.sendNotificationToUser(parentUserId, {
+        title: 'Result Published',
+        body,
+        type: 'result',
+        role_target: 'parent',
+        institute_id: instituteId,
+        meta: {
+          route: '/parent/results',
+          exam_id: data.examId,
+          dedupe_key: `result:parent:${parentUserId}:${data.examId}:${data.studentId}`,
+        },
+      });
+    }
+
+    return result;
   }
 }

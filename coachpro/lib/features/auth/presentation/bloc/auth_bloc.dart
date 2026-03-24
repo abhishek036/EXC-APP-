@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
 
+import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/push_notification_service.dart';
 import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/services/api_auth_service.dart';
 import '../../data/models/user_model.dart';
@@ -176,6 +178,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
 
     await _storage.saveUserJson(jsonEncode(user.toJson()));
+    await sl<PushNotificationService>().syncTokenRegistration();
     emit(AuthAuthenticated(user));
   }
 
@@ -236,6 +239,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await _storage.saveToken(token);
       if (refreshToken != null) await _storage.saveRefreshToken(refreshToken as String);      
       await _storage.saveUserJson(jsonEncode(user.toJson()));
+      await sl<PushNotificationService>().syncTokenRegistration();
       
       // New users go to profile completion; existing go straight to dashboard
       if (isNewUser) {

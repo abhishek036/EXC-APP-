@@ -9,6 +9,7 @@ import 'dart:async';
 import 'core/constants/app_colors.dart';
 import 'core/di/injection_container.dart';
 import 'core/router/app_router.dart';
+import 'core/services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/l10n/app_localizations.dart';
 import 'core/l10n/app_locales.dart';
@@ -22,6 +23,11 @@ Future<void> main() async {
 
   // Initialise dependency injection
   await initDependencies();
+
+  // Initialize Firebase push notifications (best effort)
+  try {
+    await sl<PushNotificationService>().initialize();
+  } catch (_) {}
 
   // Restore theme preference
   try {
@@ -100,6 +106,7 @@ class _CoachProAppState extends State<CoachProApp> with WidgetsBindingObserver {
   late final AuthBloc _authBloc;
   late final GoRouter _router;
   Timer? _authSyncTimer;
+  StreamSubscription<Map<String, dynamic>>? _notificationTapSub;
 
   @override
   void initState() {
@@ -110,12 +117,19 @@ class _CoachProAppState extends State<CoachProApp> with WidgetsBindingObserver {
     _authBloc = sl<AuthBloc>();
     _router = AppRouter.router(_authBloc);
     _startAuthSyncTimer();
+    _notificationTapSub = sl<PushNotificationService>().onNotificationTap.listen((payload) {
+      final route = payload['route']?.toString();
+      if (route != null && route.isNotEmpty) {
+        _router.go(route);
+      }
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _authSyncTimer?.cancel();
+    _notificationTapSub?.cancel();
     super.dispose();
   }
 

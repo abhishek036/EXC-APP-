@@ -1,9 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Notification category for filtering and routing.
+import '../di/injection_container.dart';
+import '../network/api_client.dart';
+import '../network/api_endpoints.dart';
+import 'secure_storage_service.dart';
+
 enum NotificationCategory {
   feeReminder,
   attendance,
@@ -16,7 +24,6 @@ enum NotificationCategory {
   system,
 }
 
-/// Represents a push notification payload.
 class PushNotification {
   final String id;
   final String title;
@@ -70,101 +77,198 @@ class PushNotification {
       );
 }
 
-/// FCM Push Notification Service.
-///
-/// In production, this would integrate with firebase_messaging package.
-/// Currently wraps local notification preferences and provides the API
-/// surface for when FCM is connected.
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  try {
+    await Firebase.initializeApp();
+  } catch (_) {}
+
+  final prefs = await SharedPreferences.getInstance();
+  final history = prefs.getStringList('notification_history') ?? <String>[];
+
+  history.insert(
+    0,
+    jsonEncode({
+      'id': message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      'title': message.notification?.title ?? message.data['title'] ?? 'Notification',
+      'body': message.notification?.body ?? message.data['body'] ?? '',
+      'type': message.data['type'] ?? 'system',
+      'route': message.data['route'],
+      'isRead': false,
+      'receivedAt': DateTime.now().toIso8601String(),
+    }),
+  );
+
+  if (history.length > 100) {
+    history.removeRange(100, history.length);
+  }
+
+  await prefs.setStringList('notification_history', history);
+}
+
 class PushNotificationService {
   PushNotificationService._();
   static final instance = PushNotificationService._();
 
-  final _notificationController = StreamController<PushNotification>.broadcast();
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
-  /// Stream of incoming notifications.
-  Stream<PushNotification> get onNotification => _notificationController.stream;
+  final StreamController<Map<String, dynamic>> _notificationController = StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _notificationTapController = StreamController<Map<String, dynamic>>.broadcast();
 
-  /// FCM device token (set after Firebase initialization).
+  Stream<Map<String, dynamic>> get onNotification => _notificationController.stream;
+  Stream<Map<String, dynamic>> get onNotificationTap => _notificationTapController.stream;
+
   String? _fcmToken;
+  bool _initialized = false;
+
   String? get fcmToken => _fcmToken;
 
-  /// Initialize FCM.
-  /// Call this after Firebase.initializeApp() in main().
   Future<void> initialize() async {
-    // TODO: Uncomment when firebase_messaging is added:
-    //
-    // final messaging = FirebaseMessaging.instance;
-    //
-    // // Request permission (iOS / Web)
-    // final settings = await messaging.requestPermission(
-    //   alert: true,
-    //   badge: true,
-    //   sound: true,
-    //   provisional: false,
-    // );
-    //
-    // if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-    //   _fcmToken = await messaging.getToken();
-    //   debugPrint('FCM Token: $_fcmToken');
-    //
-    //   // Listen for token refresh
-    //   messaging.onTokenRefresh.listen((token) {
-    //     _fcmToken = token;
-    //     _sendTokenToServer(token);
-    //   });
-    //
-    //   // Foreground messages
-    //   FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-    //
-    //   // Background/terminated tap handler
-    //   FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
-    //
-    //   // Check if app was opened via notification
-    //   final initialMessage = await messaging.getInitialMessage();
-    //   if (initialMessage != null) _handleNotificationTap(initialMessage);
-    // }
+    if (_initialized) return;
 
-    debugPrint('PushNotificationService initialized (FCM pending Firebase setup)');
+    try {
+      await Firebase.initializeApp();
+    } catch (error) {
+      debugPrint('Firebase initialize skipped/failure: $error');
+      return;
+    }
+
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
+    await _localNotifications.initialize(
+      const InitializationSettings(android: androidSettings, iOS: iosSettings),
+      onDidReceiveNotificationResponse: (details) {
+        final payload = details.payload;
+        if (payload == null || payload.isEmpty) return;
+        try {
+          final data = jsonDecode(payload) as Map<String, dynamic>;
+          _notificationTapController.add(data);
+        } catch (_) {}
+      },
+    );
+
+    final messaging = FirebaseMessaging.instance;
+    await messaging.requestPermission(alert: true, badge: true, sound: true, provisional: false);
+
+    _fcmToken = await messaging.getToken();
+    if (_fcmToken != null && _fcmToken!.isNotEmpty) {
+      await _registerCurrentToken();
+    }
+
+    messaging.onTokenRefresh.listen((token) async {
+      _fcmToken = token;
+      await _registerCurrentToken();
+    });
+
+    FirebaseMessaging.onMessage.listen((message) async {
+      final data = _normalizeMessage(message);
+      await _showLocalNotification(data);
+      await _storeNotification(data);
+      _notificationController.add(data);
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((message) async {
+      final data = _normalizeMessage(message);
+      await _storeNotification(data);
+      _notificationTapController.add(data);
+    });
+
+    final initialMessage = await messaging.getInitialMessage();
+    if (initialMessage != null) {
+      final data = _normalizeMessage(initialMessage);
+      await _storeNotification(data);
+      _notificationTapController.add(data);
+    }
+
+    _initialized = true;
+    debugPrint('PushNotificationService initialized with FCM');
   }
 
-  /// Register device token with backend.
-  Future<void> registerToken(String userId, String role) async {
-    if (_fcmToken == null) return;
-    // TODO: API call to register token:
-    // await apiClient.post('/notifications/register', data: {
-    //   'userId': userId,
-    //   'role': role,
-    //   'token': _fcmToken,
-    //   'platform': Platform.isIOS ? 'ios' : 'android',
-    // });
-    debugPrint('Token registered for $userId ($role)');
+  Future<void> _registerCurrentToken() async {
+    if (_fcmToken == null || _fcmToken!.isEmpty) return;
+
+    final storage = sl<SecureStorageService>();
+    final token = await storage.getToken();
+    final userJson = await storage.getUserJson();
+
+    if (token == null || token.isEmpty || userJson == null || userJson.isEmpty) {
+      return;
+    }
+
+    final api = sl<ApiClient>();
+
+    try {
+      await api.dio.post(
+        '${ApiEndpoints.notifications}/register-token',
+        data: {
+          'token': _fcmToken,
+          'platform': defaultTargetPlatform == TargetPlatform.iOS
+              ? 'ios'
+              : defaultTargetPlatform == TargetPlatform.android
+                  ? 'android'
+                  : 'web',
+        },
+      );
+    } catch (error) {
+      debugPrint('FCM token register failed: $error');
+    }
   }
 
-  /// Subscribe to topic-based notifications.
+  Future<void> unregisterToken() async {
+    if (_fcmToken == null || _fcmToken!.isEmpty) return;
+
+    try {
+      await sl<ApiClient>().dio.delete(
+        '${ApiEndpoints.notifications}/register-token',
+        data: {
+          'token': _fcmToken,
+        },
+      );
+    } catch (error) {
+      debugPrint('FCM token unregister failed: $error');
+    }
+  }
+
+  Future<void> syncTokenRegistration() async {
+    await _registerCurrentToken();
+  }
+
   Future<void> subscribeToTopic(String topic) async {
-    // TODO: await FirebaseMessaging.instance.subscribeToTopic(topic);
-    debugPrint('Subscribed to topic: $topic');
+    try {
+      await FirebaseMessaging.instance.subscribeToTopic(topic);
+    } catch (error) {
+      debugPrint('Topic subscribe failed: $error');
+    }
   }
 
-  /// Unsubscribe from a topic.
   Future<void> unsubscribeFromTopic(String topic) async {
-    // TODO: await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
-    debugPrint('Unsubscribed from topic: $topic');
+    try {
+      await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
+    } catch (error) {
+      debugPrint('Topic unsubscribe failed: $error');
+    }
   }
 
-  /// Get notification preferences.
   Future<Map<NotificationCategory, bool>> getPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    return {
-      for (final cat in NotificationCategory.values)
-        cat: prefs.getBool('notif_${cat.name}') ?? true,
-    };
+    final result = <NotificationCategory, bool>{};
+    for (final category in NotificationCategory.values) {
+      result[category] = prefs.getBool('notif_${category.name}') ?? true;
+    }
+    return result;
   }
 
-  /// Update notification preference for a category.
   Future<void> setPreference(NotificationCategory category, bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('notif_${category.name}', enabled);
+
     if (enabled) {
       await subscribeToTopic(category.name);
     } else {
@@ -172,51 +276,91 @@ class PushNotificationService {
     }
   }
 
-  /// Store notification locally for history.
-  // ignore: unused_element
-  Future<void> _storeNotification(PushNotification notification) async {
+  Future<List<Map<String, dynamic>>> getHistory() async {
     final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getStringList('notification_history') ?? [];
-    stored.insert(0, jsonEncode(notification.toJson()));
-    // Keep last 100 notifications
-    if (stored.length > 100) stored.removeRange(100, stored.length);
-    await prefs.setStringList('notification_history', stored);
+    final stored = prefs.getStringList('notification_history') ?? <String>[];
+    return stored.map((item) => jsonDecode(item) as Map<String, dynamic>).toList();
   }
 
-  /// Get stored notification history.
-  Future<List<PushNotification>> getHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getStringList('notification_history') ?? [];
-    return stored
-        .map((s) => PushNotification.fromJson(jsonDecode(s) as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// Get unread count.
   Future<int> getUnreadCount() async {
     final history = await getHistory();
-    return history.where((n) => !n.isRead).length;
+    return history.where((item) => item['isRead'] != true).length;
   }
 
-  /// Mark notification as read.
   Future<void> markAsRead(String notificationId) async {
     final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getStringList('notification_history') ?? [];
-    final updated = stored.map((s) {
-      final json = jsonDecode(s) as Map<String, dynamic>;
-      if (json['id'] == notificationId) json['isRead'] = true;
-      return jsonEncode(json);
+    final stored = prefs.getStringList('notification_history') ?? <String>[];
+
+    final updated = stored.map((item) {
+      final data = jsonDecode(item) as Map<String, dynamic>;
+      if (data['id'] == notificationId) {
+        data['isRead'] = true;
+      }
+      return jsonEncode(data);
     }).toList();
+
     await prefs.setStringList('notification_history', updated);
   }
 
-  /// Clear all notification history.
   Future<void> clearHistory() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('notification_history');
   }
 
+  Future<void> _showLocalNotification(Map<String, dynamic> data) async {
+    const androidDetails = AndroidNotificationDetails(
+      'coachpro_default_channel',
+      'CoachPro Notifications',
+      channelDescription: 'General notifications for CoachPro app',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+    );
+
+    const iosDetails = DarwinNotificationDetails();
+
+    final details = const NotificationDetails(android: androidDetails, iOS: iosDetails);
+
+    await _localNotifications.show(
+      data['id'].hashCode,
+      data['title']?.toString() ?? 'Notification',
+      data['body']?.toString() ?? '',
+      details,
+      payload: jsonEncode(data),
+    );
+  }
+
+  Future<void> _storeNotification(Map<String, dynamic> data) async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getStringList('notification_history') ?? <String>[];
+
+    final serializable = {
+      ...data,
+      'isRead': false,
+      'receivedAt': DateTime.now().toIso8601String(),
+    };
+
+    stored.insert(0, jsonEncode(serializable));
+    if (stored.length > 100) {
+      stored.removeRange(100, stored.length);
+    }
+
+    await prefs.setStringList('notification_history', stored);
+  }
+
+  Map<String, dynamic> _normalizeMessage(RemoteMessage message) {
+    return {
+      'id': message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      'title': message.notification?.title ?? message.data['title'] ?? 'Notification',
+      'body': message.notification?.body ?? message.data['body'] ?? '',
+      'type': message.data['type'] ?? 'system',
+      'route': message.data['route'],
+      ...message.data,
+    };
+  }
+
   void dispose() {
     _notificationController.close();
+    _notificationTapController.close();
   }
 }
