@@ -266,7 +266,9 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     if (selectedBatchId.isEmpty && _batches.isNotEmpty) {
       selectedBatchId = (_batches.first['id'] ?? '').toString();
     }
-    DateTime scheduledAt = DateTime.tryParse((item?['scheduled_at'] ?? '').toString()) ?? DateTime.now();
+    final now = DateTime.now();
+    DateTime scheduledAt = DateTime.tryParse((item?['scheduled_at'] ?? '').toString())
+      ?? DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, now.hour, now.minute);
 
     await showModalBottomSheet<void>(
       context: context,
@@ -369,23 +371,24 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                                     }
                                     return;
                                   }
+                                  bool success = false;
                                   if (isEdit) {
-                                    await _updateSchedule(
-                                          lectureId: (item['id'] ?? '').toString(),
+                                    success = await _updateSchedule(
+                                      lectureId: (item['id'] ?? '').toString(),
                                       batchId: selectedBatchId!,
                                       title: title,
                                       scheduledAt: scheduledAt,
                                       durationMinutes: duration,
                                     );
                                   } else {
-                                    await _createSchedule(
+                                    success = await _createSchedule(
                                       batchId: selectedBatchId!,
                                       title: title,
                                       scheduledAt: scheduledAt,
                                       durationMinutes: duration,
                                     );
                                   }
-                                  if (ctx.mounted) Navigator.pop(ctx);
+                                  if (success && ctx.mounted) Navigator.pop(ctx);
                                 },
                           child: Text(isEdit ? 'UPDATE' : 'CREATE'),
                         ),
@@ -404,7 +407,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     durationCtrl.dispose();
   }
 
-  Future<void> _createSchedule({
+  Future<bool> _createSchedule({
     required String batchId,
     required String title,
     required DateTime scheduledAt,
@@ -418,26 +421,28 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         scheduledAt: scheduledAt,
         durationMinutes: durationMinutes,
       );
-      if (!mounted) return;
+      if (!mounted) return true;
       await _load();
-      if (!mounted) return;
+      if (!mounted) return true;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule created')));
+      return true;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      return false;
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  Future<void> _updateSchedule({
+  Future<bool> _updateSchedule({
     required String lectureId,
     required String batchId,
     required String title,
     required DateTime scheduledAt,
     required int durationMinutes,
   }) async {
-    if (lectureId.isEmpty) return;
+    if (lectureId.isEmpty) return false;
     setState(() => _isSaving = true);
     try {
       await _repo.updateMyScheduleEntry(
@@ -447,29 +452,33 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         scheduledAt: scheduledAt,
         durationMinutes: durationMinutes,
       );
-      if (!mounted) return;
+      if (!mounted) return true;
       await _load();
-      if (!mounted) return;
+      if (!mounted) return true;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule updated')));
+      return true;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      return false;
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  Future<void> _deleteSchedule(String lectureId) async {
+  Future<bool> _deleteSchedule(String lectureId) async {
     setState(() => _isSaving = true);
     try {
       await _repo.deleteMyScheduleEntry(lectureId);
-      if (!mounted) return;
+      if (!mounted) return true;
       await _load();
-      if (!mounted) return;
+      if (!mounted) return true;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule deleted')));
+      return true;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      return false;
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
