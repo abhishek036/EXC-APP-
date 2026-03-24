@@ -24,24 +24,34 @@ export class TimetableService {
     title: string,
     scheduledAt: Date,
     duration: number = 60,
+    subject?: string,
+    link?: string,
+    classRoom?: string,
   ) {
     const rows = await prisma.$queryRawUnsafe<any[]>(
-      `INSERT INTO lectures (institute_id, batch_id, teacher_id, title, scheduled_at, is_active)
-       VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6)
-       RETURNING id::text, title, scheduled_at, batch_id::text`,
+      `INSERT INTO lectures (institute_id, batch_id, teacher_id, title, scheduled_at, is_active, duration_minutes, subject, link, class_room)
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id::text, title, scheduled_at, batch_id::text, duration_minutes, subject, link, class_room`,
       instituteId,
       batchId,
       teacherId,
       title,
       scheduledAt,
-      true
+      true,
+      duration,
+      subject || null,
+      link || null,
+      classRoom || null,
     );
     const row = rows[0];
     return {
       id: row.id,
       title: row.title,
       scheduled_at: row.scheduled_at,
-      duration_minutes: duration,
+      duration_minutes: row.duration_minutes ?? duration,
+      subject: row.subject,
+      link: row.link,
+      class_room: row.class_room,
       batch_id: row.batch_id,
       teacher_id: teacherId,
     };
@@ -53,23 +63,33 @@ export class TimetableService {
     title: string | undefined,
     scheduledAt: Date,
     duration: number,
+    subject?: string,
+    link?: string,
+    classRoom?: string,
   ) {
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `UPDATE lectures 
-       SET batch_id = $1::uuid, title = $2, scheduled_at = $3
-       WHERE id = $4::uuid
-       RETURNING id::text, title, scheduled_at, batch_id::text`,
+       SET batch_id = $1::uuid, title = $2, scheduled_at = $3, duration_minutes = $4, subject = $5, link = $6, class_room = $7
+       WHERE id = $8::uuid
+       RETURNING id::text, title, scheduled_at, batch_id::text, duration_minutes, subject, link, class_room`,
       batchId,
       title || '',
       scheduledAt,
-      lectureId
+      duration,
+      subject || null,
+      link || null,
+      classRoom || null,
+      lectureId,
     );
     const row = rows[0];
     return {
       id: row.id,
       title: row.title,
       scheduled_at: row.scheduled_at,
-      duration_minutes: duration,
+      duration_minutes: row.duration_minutes ?? duration,
+      subject: row.subject,
+      link: row.link,
+      class_room: row.class_room,
       batch_id: row.batch_id,
     };
   }
@@ -96,6 +116,9 @@ export class TimetableService {
       title: string | null;
       scheduled_at: Date | null;
       duration_minutes?: number | null;
+      subject?: string | null;
+      link?: string | null;
+      class_room?: string | null;
       batch_id: string | null;
       batch_name: string | null;
       batch_subject: string | null;
@@ -120,6 +143,9 @@ export class TimetableService {
           l.title,
           l.scheduled_at,
           ${durationSelect}
+          l.subject,
+          l.link,
+          l.class_room,
           l.batch_id::text AS batch_id,
           b.name AS batch_name,
           b.subject AS batch_subject
@@ -145,6 +171,9 @@ export class TimetableService {
           l.title,
           l.scheduled_at,
           ${durationSelect}
+          l.subject,
+          l.link,
+          l.class_room,
           l.batch_id::text AS batch_id,
           b.name AS batch_name,
           b.subject AS batch_subject
@@ -164,7 +193,10 @@ export class TimetableService {
       id: row.id,
       title: row.title,
       scheduled_at: row.scheduled_at,
-      duration_minutes: row.duration_minutes ?? null,
+      duration_minutes: row.duration_minutes ?? 60,
+      subject: row.subject ?? null,
+      link: row.link ?? null,
+      class_room: row.class_room ?? null,
       batch_id: row.batch_id,
       batch: {
         name: row.batch_name,
@@ -426,12 +458,20 @@ export class TimetableService {
     let start: Date | undefined;
     let end: Date | undefined;
     if (date) {
-      const parsed = new Date(date);
-      if (!isNaN(parsed.getTime())) {
-        start = new Date(parsed);
-        start.setHours(0, 0, 0, 0);
-        end = new Date(parsed);
-        end.setHours(23, 59, 59, 999);
+      const normalizedDate = date.trim();
+      const dateOnlyMatch = normalizedDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (dateOnlyMatch) {
+        const year = Number(dateOnlyMatch[1]);
+        const month = Number(dateOnlyMatch[2]);
+        const day = Number(dateOnlyMatch[3]);
+        start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+        end = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+      } else {
+        const parsed = new Date(normalizedDate);
+        if (!isNaN(parsed.getTime())) {
+          start = new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate(), 0, 0, 0, 0));
+          end = new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate(), 23, 59, 59, 999));
+        }
       }
     }
 
@@ -448,6 +488,9 @@ export class TimetableService {
           title: true,
           scheduled_at: true,
           duration_minutes: true,
+          subject: true,
+          link: true,
+          class_room: true,
           batch_id: true,
           batch: { select: { name: true, subject: true } },
         },
@@ -527,7 +570,7 @@ export class TimetableService {
     } catch (error) {
       if (!this.isMissingLectureDurationColumn(error)) throw error;
       this.logger.warn('[TimetableService] lectures.duration_minutes column missing; using createTeacherScheduleByUser fallback create path');
-      return this.createLectureRaw(instituteId, data.batch_id, teacher.id, data.title, scheduledAt, duration);
+      return this.createLectureRaw(instituteId, data.batch_id, teacher.id, data.title, scheduledAt, duration, (data as any).subject, (data as any).link, (data as any).class_room);
     }
   }
 
@@ -590,7 +633,7 @@ export class TimetableService {
     } catch (error) {
       if (!this.isMissingLectureDurationColumn(error)) throw error;
       this.logger.warn('[TimetableService] lectures.duration_minutes column missing; using updateTeacherScheduleByUser fallback update path');
-      return this.updateLectureRaw(lectureId, nextBatchId, data.title, nextScheduledAt, nextDuration);
+      return this.updateLectureRaw(lectureId, nextBatchId, data.title, nextScheduledAt, nextDuration, (data as any).subject, (data as any).link, (data as any).class_room);
     }
   }
 
