@@ -4,6 +4,42 @@ import { ApiError } from '../../middleware/error.middleware';
 export class TimetableService {
   private readonly logger = console;
   private static readonly UUID_REGEX = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$';
+  private static readonly IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+  private getIstDayRangeUtc(year: number, month: number, day: number): { start: Date; end: Date } {
+    const startUtc = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0) - TimetableService.IST_OFFSET_MS);
+    const endUtc = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999) - TimetableService.IST_OFFSET_MS);
+    return { start: startUtc, end: endUtc };
+  }
+
+  private toIstDateKey(value: Date | string | null | undefined): string | null {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    if (isNaN(date.getTime())) return null;
+    const istDate = new Date(date.getTime() + TimetableService.IST_OFFSET_MS);
+    const year = istDate.getUTCFullYear();
+    const month = String(istDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(istDate.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private normalizeRequestedDateKey(date?: string): string | undefined {
+    if (!date) return undefined;
+    const normalizedDate = date.trim();
+    const dateOnlyMatch = normalizedDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnlyMatch) return normalizedDate;
+    const parsed = new Date(normalizedDate);
+    if (isNaN(parsed.getTime())) return undefined;
+    return this.toIstDateKey(parsed) ?? undefined;
+  }
+
+  private filterSchedulesByIstDate<T extends { scheduled_at?: Date | string | null }>(
+    schedules: T[],
+    requestedDateKey?: string,
+  ): T[] {
+    if (!requestedDateKey) return schedules;
+    return schedules.filter((schedule) => this.toIstDateKey(schedule.scheduled_at) === requestedDateKey);
+  }
 
   private isMissingLectureDurationColumn(error: unknown): boolean {
     const code = (error as any)?.code;
@@ -455,33 +491,14 @@ export class TimetableService {
     });
     if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
-    let start: Date | undefined;
-    let end: Date | undefined;
-    if (date) {
-      const normalizedDate = date.trim();
-      const dateOnlyMatch = normalizedDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if (dateOnlyMatch) {
-        const year = Number(dateOnlyMatch[1]);
-        const month = Number(dateOnlyMatch[2]);
-        const day = Number(dateOnlyMatch[3]);
-        start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-        end = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
-      } else {
-        const parsed = new Date(normalizedDate);
-        if (!isNaN(parsed.getTime())) {
-          start = new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate(), 0, 0, 0, 0));
-          end = new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate(), 23, 59, 59, 999));
-        }
-      }
-    }
+    const requestedDateKey = this.normalizeRequestedDateKey(date);
 
     try {
-      return await prisma.lecture.findMany({
+      const schedules = await prisma.lecture.findMany({
         where: {
           institute_id: instituteId,
           teacher_id: teacher.id,
           is_active: true,
-          ...(start && end ? { scheduled_at: { gte: start, lte: end } } : {}),
         },
         select: {
           id: true,
@@ -496,20 +513,21 @@ export class TimetableService {
         },
         orderBy: { scheduled_at: 'asc' },
       });
+      return this.filterSchedulesByIstDate(schedules, requestedDateKey);
     } catch (error) {
       if (this.isInvalidLectureUuidData(error)) {
         this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw schedule fallback query (with duration)');
-        return this.getTeacherScheduleRawFallback(instituteId, teacher.id, start, end, true);
+        const schedules = await this.getTeacherScheduleRawFallback(instituteId, teacher.id, undefined, undefined, true);
+        return this.filterSchedulesByIstDate(schedules, requestedDateKey);
       }
       if (!this.isMissingLectureDurationColumn(error)) throw error;
 
       try {
-        return await prisma.lecture.findMany({
+        const schedules = await prisma.lecture.findMany({
           where: {
             institute_id: instituteId,
             teacher_id: teacher.id,
             is_active: true,
-            ...(start && end ? { scheduled_at: { gte: start, lte: end } } : {}),
           },
           select: {
             id: true,
@@ -520,10 +538,12 @@ export class TimetableService {
           },
           orderBy: { scheduled_at: 'asc' },
         });
+        return this.filterSchedulesByIstDate(schedules, requestedDateKey);
       } catch (fallbackError) {
         if (this.isInvalidLectureUuidData(fallbackError)) {
           this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw schedule fallback query (without duration column)');
-          return this.getTeacherScheduleRawFallback(instituteId, teacher.id, start, end, false);
+          const schedules = await this.getTeacherScheduleRawFallback(instituteId, teacher.id, undefined, undefined, false);
+          return this.filterSchedulesByIstDate(schedules, requestedDateKey);
         }
         throw fallbackError;
       }
