@@ -5,8 +5,8 @@ import { sendResponse } from '../../utils/response';
 export class QuizController {
   static async listQuizzes(req: Request, res: Response, next: NextFunction) {
     try {
-      const { batch_id } = req.query;
-      const quizzes = await QuizService.listQuizzes(req.instituteId!, batch_id as string);
+      const { batch_id, assessment_type } = req.query;
+      const quizzes = await QuizService.listQuizzes(req.instituteId!, batch_id as string, assessment_type as string);
       return sendResponse({ res, data: quizzes });
     } catch (error) {
       next(error);
@@ -48,7 +48,18 @@ export class QuizController {
 
   static async createQuiz(req: Request, res: Response, next: NextFunction) {
     try {
-      const { batch_id, title, subject, time_limit_min, questions } = req.body;
+      const {
+        batch_id,
+        title,
+        subject,
+        time_limit_min,
+        questions,
+        assessment_type,
+        scheduled_at,
+        negative_marking,
+        allow_retry,
+        show_instant_result,
+      } = req.body;
       const quiz = await QuizService.createQuiz(
         req.instituteId!,
         req.user!.userId,
@@ -56,7 +67,12 @@ export class QuizController {
         title,
         subject,
         time_limit_min,
-        questions
+        questions,
+        assessment_type,
+        scheduled_at,
+        negative_marking,
+        allow_retry,
+        show_instant_result,
       );
       return sendResponse({ res, data: quiz, message: 'Quiz created successfully', statusCode: 201 });
     } catch (error) {

@@ -33,17 +33,30 @@ export class QuizService {
     title: string,
     subject?: string,
     timeLimitMin?: number,
-    questions?: any[]
+    questions?: any[],
+    assessmentType: 'QUIZ' | 'TEST' = 'QUIZ',
+    scheduledAt?: string,
+    negativeMarking?: number,
+    allowRetry?: boolean,
+    showInstantResult?: boolean,
   ) {
     const teacherId = await QuizService.resolveTeacherProfileId(teacherUserId, instituteId);
+
+    const defaultAllowRetry = assessmentType === 'QUIZ';
+    const defaultShowInstantResult = assessmentType === 'QUIZ';
 
     const quizData: Prisma.QuizUncheckedCreateInput = {
       batch_id: batchId,
       institute_id: instituteId,
       teacher_id: teacherId,
+      assessment_type: assessmentType,
       title,
       subject,
       time_limit_min: timeLimitMin,
+      scheduled_at: scheduledAt ? new Date(scheduledAt) : undefined,
+      negative_marking: negativeMarking,
+      allow_retry: allowRetry ?? defaultAllowRetry,
+      show_instant_result: showInstantResult ?? defaultShowInstantResult,
       is_published: false,
     };
 
@@ -62,8 +75,11 @@ export class QuizService {
     return QuizRepository.createQuiz(quizData, formattedQuestions);
   }
 
-  static async listQuizzes(instituteId: string, batchId?: string) {
-    const filter = batchId ? { batch_id: batchId } : {};
+  static async listQuizzes(instituteId: string, batchId?: string, assessmentType?: string) {
+    const filter = {
+      ...(batchId ? { batch_id: batchId } : {}),
+      ...(assessmentType ? { assessment_type: assessmentType.toUpperCase() } : {}),
+    };
     return QuizRepository.listQuizzes(instituteId, filter);
   }
 
@@ -93,9 +109,14 @@ export class QuizService {
 
     const normalizedData: Prisma.QuizUncheckedUpdateInput = {
       ...(data.batch_id ? { batch_id: data.batch_id } : {}),
+      ...(data.assessment_type ? { assessment_type: data.assessment_type } : {}),
       ...(data.title ? { title: data.title } : {}),
       ...(data.subject !== undefined ? { subject: data.subject } : {}),
       ...(data.time_limit_min !== undefined ? { time_limit_min: data.time_limit_min } : {}),
+      ...(data.scheduled_at !== undefined ? { scheduled_at: data.scheduled_at ? new Date(data.scheduled_at) : null } : {}),
+      ...(data.negative_marking !== undefined ? { negative_marking: data.negative_marking } : {}),
+      ...(data.allow_retry !== undefined ? { allow_retry: data.allow_retry } : {}),
+      ...(data.show_instant_result !== undefined ? { show_instant_result: data.show_instant_result } : {}),
     };
 
     const questions = Array.isArray(data.questions) ? data.questions : undefined;
@@ -136,7 +157,18 @@ export class QuizService {
 
     const existingAttempt = await QuizRepository.findAttempt(quizId, studentProfileId);
     if (existingAttempt) {
-      return existingAttempt; // Resuming attempt
+      if ((quiz.assessment_type ?? 'QUIZ') === 'TEST') {
+        if (existingAttempt.submitted_at) {
+          throw new Error('One attempt only for this test');
+        }
+        return existingAttempt;
+      }
+
+      const allowRetry = quiz.allow_retry ?? true;
+      if (existingAttempt.submitted_at && allowRetry) {
+        return QuizRepository.resetAttemptForRetry(quizId, studentProfileId);
+      }
+      return existingAttempt;
     }
 
     return QuizRepository.createAttempt({

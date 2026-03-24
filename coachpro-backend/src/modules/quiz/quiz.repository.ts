@@ -35,6 +35,7 @@ export class QuizRepository {
       where: { institute_id: instituteId, ...filter },
       include: {
         batch: { select: { name: true } },
+        _count: { select: { questions: true } },
       },
       orderBy: { created_at: 'desc' },
     });
@@ -127,6 +128,20 @@ export class QuizRepository {
   static async findAttempt(quizId: string, studentId: string) {
     return prisma.quizAttempt.findUnique({
       where: { quiz_id_student_id: { quiz_id: quizId, student_id: studentId } },
+    });
+  }
+
+  static async resetAttemptForRetry(quizId: string, studentId: string) {
+    return prisma.quizAttempt.update({
+      where: { quiz_id_student_id: { quiz_id: quizId, student_id: studentId } },
+      data: {
+        started_at: new Date(),
+        submitted_at: null,
+        total_marks: null,
+        obtained_marks: null,
+        rank: null,
+        answers: Prisma.JsonNull,
+      },
     });
   }
 

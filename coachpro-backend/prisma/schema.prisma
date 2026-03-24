@@ -428,9 +428,14 @@ model Quiz {
   institute      Institute @relation(fields: [institute_id], references: [id])
   teacher_id     String?   @db.Uuid
   teacher        Teacher?  @relation(fields: [teacher_id], references: [id])
+  assessment_type String   @default("QUIZ") @db.VarChar(10)
   title          String    @db.VarChar(200)
   subject        String?   @db.VarChar(100)
   time_limit_min Int?
+  scheduled_at   DateTime? @db.Timestamptz
+  negative_marking Decimal? @db.Decimal(4, 2)
+  allow_retry    Boolean?  @default(true)
+  show_instant_result Boolean? @default(true)
   is_published   Boolean?  @default(false)
   created_at     DateTime? @default(now()) @db.Timestamptz
 

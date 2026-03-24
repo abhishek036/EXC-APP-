@@ -10,12 +10,14 @@ class CreateQuizPage extends StatefulWidget {
   final String? initialBatchId;
   final String? initialSubject;
   final String? quizId;
+  final String? initialAssessmentType;
 
   const CreateQuizPage({
     super.key,
     this.initialBatchId,
     this.initialSubject,
     this.quizId,
+    this.initialAssessmentType,
   });
 
   @override
@@ -32,9 +34,14 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
 
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _durationCtrl = TextEditingController();
+  final TextEditingController _negativeMarkingCtrl = TextEditingController();
 
   final List<Map<String, dynamic>> _questions = [];
   bool _isPublishing = false;
+  String _assessmentType = 'QUIZ';
+  DateTime? _scheduledAt;
+  bool _allowRetry = true;
+  bool _showInstantResult = true;
 
   bool get _isEditMode => widget.quizId != null && widget.quizId!.isNotEmpty;
 
@@ -55,6 +62,9 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
   @override
   void initState() {
     super.initState();
+    _assessmentType = (widget.initialAssessmentType ?? 'QUIZ').toUpperCase() == 'TEST' ? 'TEST' : 'QUIZ';
+    _allowRetry = _assessmentType == 'QUIZ';
+    _showInstantResult = _assessmentType == 'QUIZ';
     if (widget.initialSubject != null && widget.initialSubject!.trim().isNotEmpty) {
       _selectedSubject = widget.initialSubject!.trim();
     }
@@ -134,9 +144,14 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
 
       setState(() {
         _titleCtrl.text = (quiz['title'] ?? '').toString();
-        _durationCtrl.text = (quiz['time_limit_min'] ?? 60).toString();
+        _assessmentType = ((quiz['assessment_type'] ?? _assessmentType).toString().toUpperCase() == 'TEST') ? 'TEST' : 'QUIZ';
+        _durationCtrl.text = (quiz['time_limit_min'] ?? (_assessmentType == 'TEST' ? 60 : '')).toString();
         _selectedBatchId = (quiz['batch_id'] ?? _selectedBatchId ?? '').toString();
         _selectedSubject = (quiz['subject'] ?? _selectedSubject ?? 'General').toString();
+        _scheduledAt = quiz['scheduled_at'] != null ? DateTime.tryParse(quiz['scheduled_at'].toString())?.toLocal() : null;
+        _negativeMarkingCtrl.text = (quiz['negative_marking'] ?? '').toString();
+        _allowRetry = quiz['allow_retry'] == null ? _assessmentType == 'QUIZ' : quiz['allow_retry'] == true;
+        _showInstantResult = quiz['show_instant_result'] == null ? _assessmentType == 'QUIZ' : quiz['show_instant_result'] == true;
       });
     } catch (e) {
       if (!mounted) return;
@@ -161,9 +176,15 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
   Future<void> _publishQuiz() async {
     final title = _titleCtrl.text.trim();
     final duration = int.tryParse(_durationCtrl.text.trim()) ?? 0;
+    final negativeMarking = double.tryParse(_negativeMarkingCtrl.text.trim());
 
-    if (title.isEmpty || duration <= 0 || _selectedBatchId == null) {
+    if (title.isEmpty || _selectedBatchId == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all main fields.')));
+      return;
+    }
+
+    if (_assessmentType == 'TEST' && duration <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Test mode needs a strict timer.')));
       return;
     }
 
@@ -188,6 +209,16 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
       });
     }
 
+    if (_assessmentType == 'QUIZ' && (parsedQuestions.length < 5 || parsedQuestions.length > 20)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quiz mode requires 5-20 questions.')));
+      return;
+    }
+
+    if (_assessmentType == 'TEST' && (parsedQuestions.length < 50 || parsedQuestions.length > 200)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Test mode requires 50-200 questions.')));
+      return;
+    }
+
     if (parsedQuestions.isEmpty) return;
 
     setState(() => _isPublishing = true);
@@ -200,6 +231,11 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           batchId: _selectedBatchId!,
           timeLimit: duration,
           questions: parsedQuestions,
+          assessmentType: _assessmentType,
+          scheduledAt: _scheduledAt,
+          negativeMarking: negativeMarking,
+          allowRetry: _allowRetry,
+          showInstantResult: _showInstantResult,
         );
       } else {
         await _repo.createQuiz(
@@ -208,6 +244,11 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           batchId: _selectedBatchId!,
           timeLimit: duration,
           questions: parsedQuestions,
+          assessmentType: _assessmentType,
+          scheduledAt: _scheduledAt,
+          negativeMarking: negativeMarking,
+          allowRetry: _allowRetry,
+          showInstantResult: _showInstantResult,
         );
       }
       if (!mounted) return;
@@ -225,6 +266,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
   void dispose() {
     _titleCtrl.dispose();
     _durationCtrl.dispose();
+    _negativeMarkingCtrl.dispose();
     _clearQuestions();
     super.dispose();
   }
@@ -282,14 +324,169 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           _inputLabel('QUIZ TITLE', blue),
           _textField(_titleCtrl, 'e.g. WEEKLY TEST #4', blue),
           const SizedBox(height: 24),
+          _inputLabel('MODE', blue),
           Row(
             children: [
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_inputLabel('MINS', blue), _textField(_durationCtrl, '60', blue, isNum: true)])),
+              Expanded(
+                child: _modeChip(
+                  label: 'QUIZ (PRACTICE)',
+                  value: 'QUIZ',
+                  selected: _assessmentType == 'QUIZ',
+                  blue: blue,
+                  yellow: yellow,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _modeChip(
+                  label: 'TEST (EXAM)',
+                  value: 'TEST',
+                  selected: _assessmentType == 'TEST',
+                  blue: blue,
+                  yellow: yellow,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _inputLabel(_assessmentType == 'TEST' ? 'STRICT TIMER (MINS)' : 'OPTIONAL TIMER (MINS)', blue),
+                    _textField(_durationCtrl, _assessmentType == 'TEST' ? '60' : '0', blue, isNum: true),
+                  ],
+                ),
+              ),
               const SizedBox(width: 16),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_inputLabel('BATCH', blue), _buildBatchDropdown(blue)])),
             ],
           ),
+          if (_assessmentType == 'TEST') ...[
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _inputLabel('NEGATIVE MARKING (OPTIONAL)', blue),
+                      _textField(_negativeMarkingCtrl, '0.25', blue, isNum: true),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _inputLabel('SCHEDULE (OPTIONAL)', blue),
+                      OutlinedButton(
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: _scheduledAt ?? DateTime.now(),
+                            firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (date == null || !mounted) return;
+                          final time = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(_scheduledAt ?? DateTime.now()),
+                          );
+                          if (time == null || !mounted) return;
+                          setState(() {
+                            _scheduledAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                          });
+                        },
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 52),
+                          side: const BorderSide(color: Colors.black, width: 2),
+                          backgroundColor: Colors.white,
+                        ),
+                        child: Text(
+                          _scheduledAt == null
+                              ? 'SET DATE & TIME'
+                              : '${_scheduledAt!.day.toString().padLeft(2, '0')}/${_scheduledAt!.month.toString().padLeft(2, '0')} ${_scheduledAt!.hour.toString().padLeft(2, '0')}:${_scheduledAt!.minute.toString().padLeft(2, '0')}',
+                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 16),
+          if (_assessmentType == 'QUIZ')
+            Row(
+              children: [
+                Expanded(
+                  child: SwitchListTile(
+                    value: _allowRetry,
+                    onChanged: (v) => setState(() => _allowRetry = v),
+                    title: Text('ALLOW RETRY', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 12, color: blue)),
+                    dense: true,
+                    activeThumbColor: yellow,
+                  ),
+                ),
+                Expanded(
+                  child: SwitchListTile(
+                    value: _showInstantResult,
+                    onChanged: (v) => setState(() => _showInstantResult = v),
+                    title: Text('INSTANT RESULT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 12, color: blue)),
+                    dense: true,
+                    activeThumbColor: yellow,
+                  ),
+                ),
+              ],
+            )
+          else
+            Text(
+              'TEST MODE: ONE ATTEMPT, STRICT TIMER, LEADERBOARD ENABLED',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 11, color: blue.withValues(alpha: 0.7), letterSpacing: 0.6),
+            ),
         ],
+      ),
+    );
+  }
+
+  Widget _modeChip({
+    required String label,
+    required String value,
+    required bool selected,
+    required Color blue,
+    required Color yellow,
+  }) {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _assessmentType = value;
+          if (_assessmentType == 'QUIZ') {
+            _allowRetry = true;
+            _showInstantResult = true;
+          } else {
+            _allowRetry = false;
+            _showInstantResult = false;
+          }
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? yellow : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.black, width: 2),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 11, color: blue),
+          ),
+        ),
       ),
     );
   }

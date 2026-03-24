@@ -240,6 +240,11 @@ class TeacherRepository {
     required String batchId,
     required int timeLimit,
     required List<Map<String, dynamic>> questions,
+    String assessmentType = 'QUIZ',
+    DateTime? scheduledAt,
+    double? negativeMarking,
+    bool? allowRetry,
+    bool? showInstantResult,
   }) async {
     final normalizedQuestions = questions.map((item) {
       final options = (item['options'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[];
@@ -261,21 +266,32 @@ class TeacherRepository {
       };
     }).toList();
 
-    final response = await _api.dio.post('quizzes', data: {
+    final payload = <String, dynamic>{
       'title': title,
       'subject': subject,
       'batch_id': batchId,
-      'time_limit_min': timeLimit,
+      if (timeLimit > 0) 'time_limit_min': timeLimit,
+      'assessment_type': assessmentType.toUpperCase(),
+      'scheduled_at': scheduledAt?.toUtc().toIso8601String(),
+      'negative_marking': negativeMarking,
+      'allow_retry': allowRetry,
+      'show_instant_result': showInstantResult,
       'questions': normalizedQuestions,
-    });
+    };
+    payload.removeWhere((key, value) => value == null);
+
+    final response = await _api.dio.post('quizzes', data: payload);
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
     throw Exception(response.data['message'] ?? 'Failed to create quiz');
   }
 
-  Future<List<Map<String, dynamic>>> getBatchQuizzes(String batchId) async {
-    final response = await _api.dio.get('quizzes', queryParameters: {'batch_id': batchId});
+  Future<List<Map<String, dynamic>>> getBatchQuizzes(String batchId, {String? assessmentType}) async {
+    final response = await _api.dio.get('quizzes', queryParameters: {
+      'batch_id': batchId,
+      if (assessmentType != null && assessmentType.trim().isNotEmpty) 'assessment_type': assessmentType.trim().toUpperCase(),
+    });
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -297,6 +313,11 @@ class TeacherRepository {
     required String batchId,
     required int timeLimit,
     required List<Map<String, dynamic>> questions,
+    String assessmentType = 'QUIZ',
+    DateTime? scheduledAt,
+    double? negativeMarking,
+    bool? allowRetry,
+    bool? showInstantResult,
   }) async {
     final normalizedQuestions = questions.map((item) {
       final options = (item['options'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[];
@@ -318,13 +339,21 @@ class TeacherRepository {
       };
     }).toList();
 
-    final response = await _api.dio.put('quizzes/$quizId', data: {
+    final payload = <String, dynamic>{
       'title': title,
       'subject': subject,
       'batch_id': batchId,
-      'time_limit_min': timeLimit,
+      if (timeLimit > 0) 'time_limit_min': timeLimit,
+      'assessment_type': assessmentType.toUpperCase(),
+      'scheduled_at': scheduledAt?.toUtc().toIso8601String(),
+      'negative_marking': negativeMarking,
+      'allow_retry': allowRetry,
+      'show_instant_result': showInstantResult,
       'questions': normalizedQuestions,
-    });
+    };
+    payload.removeWhere((key, value) => value == null);
+
+    final response = await _api.dio.put('quizzes/$quizId', data: payload);
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
