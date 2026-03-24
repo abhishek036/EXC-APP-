@@ -3,11 +3,217 @@ import { ApiError } from '../../middleware/error.middleware';
 
 export class TimetableService {
   private readonly logger = console;
+  private static readonly UUID_REGEX = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$';
 
   private isMissingLectureDurationColumn(error: unknown): boolean {
     const code = (error as any)?.code;
     const column = (error as any)?.meta?.column;
     return code === 'P2022' && typeof column === 'string' && column.includes('lectures.duration_minutes');
+  }
+
+  private isInvalidLectureUuidData(error: unknown): boolean {
+    const code = (error as any)?.code;
+    const modelName = (error as any)?.meta?.modelName;
+    const message = (error as any)?.meta?.message;
+    return code === 'P2023' &&
+      modelName === 'Lecture' &&
+      typeof message === 'string' &&
+      message.includes('Error creating UUID');
+  }
+
+  private async getTeacherScheduleRawFallback(
+    instituteId: string,
+    teacherId: string,
+    start?: Date,
+    end?: Date,
+    includeDuration: boolean = true,
+  ) {
+    type Row = {
+      id: string;
+      title: string | null;
+      scheduled_at: Date | null;
+      duration_minutes?: number | null;
+      batch_id: string | null;
+      batch_name: string | null;
+      batch_subject: string | null;
+    };
+
+    const baseWhere = `
+      l.institute_id::text = $1
+      AND l.teacher_id::text = $2
+      AND COALESCE(l.is_active, true) = true
+      AND l.id::text ~* '${TimetableService.UUID_REGEX}'
+      AND l.batch_id::text ~* '${TimetableService.UUID_REGEX}'
+    `;
+
+    const durationSelect = includeDuration ? 'l.duration_minutes,' : 'NULL::int AS duration_minutes,';
+
+    let rows: Row[] = [];
+    if (start && end) {
+      rows = await prisma.$queryRawUnsafe<Row[]>(
+        `
+        SELECT
+          l.id::text AS id,
+          l.title,
+          l.scheduled_at,
+          ${durationSelect}
+          l.batch_id::text AS batch_id,
+          b.name AS batch_name,
+          b.subject AS batch_subject
+        FROM lectures l
+        LEFT JOIN batches b
+          ON b.id::text = l.batch_id::text
+         AND b.institute_id::text = l.institute_id::text
+        WHERE ${baseWhere}
+          AND l.scheduled_at >= $3
+          AND l.scheduled_at <= $4
+        ORDER BY l.scheduled_at ASC
+        `,
+        instituteId,
+        teacherId,
+        start,
+        end,
+      );
+    } else {
+      rows = await prisma.$queryRawUnsafe<Row[]>(
+        `
+        SELECT
+          l.id::text AS id,
+          l.title,
+          l.scheduled_at,
+          ${durationSelect}
+          l.batch_id::text AS batch_id,
+          b.name AS batch_name,
+          b.subject AS batch_subject
+        FROM lectures l
+        LEFT JOIN batches b
+          ON b.id::text = l.batch_id::text
+         AND b.institute_id::text = l.institute_id::text
+        WHERE ${baseWhere}
+        ORDER BY l.scheduled_at ASC
+        `,
+        instituteId,
+        teacherId,
+      );
+    }
+
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      scheduled_at: row.scheduled_at,
+      duration_minutes: row.duration_minutes ?? null,
+      batch_id: row.batch_id,
+      batch: {
+        name: row.batch_name,
+        subject: row.batch_subject,
+      },
+    }));
+  }
+
+  private async getBatchTimetableRawFallback(
+    batchId: string,
+    instituteId: string,
+    includeDuration: boolean = true,
+  ) {
+    type Row = {
+      id: string;
+      title: string | null;
+      scheduled_at: Date | null;
+      duration_minutes?: number | null;
+      batch_id: string | null;
+      teacher_id: string | null;
+      teacher_name: string | null;
+    };
+
+    const durationSelect = includeDuration ? 'l.duration_minutes,' : 'NULL::int AS duration_minutes,';
+
+    const rows = await prisma.$queryRawUnsafe<Row[]>(
+      `
+      SELECT
+        l.id::text AS id,
+        l.title,
+        l.scheduled_at,
+        ${durationSelect}
+        l.batch_id::text AS batch_id,
+        l.teacher_id::text AS teacher_id,
+        t.name AS teacher_name
+      FROM lectures l
+      LEFT JOIN teachers t
+        ON t.id::text = l.teacher_id::text
+       AND t.institute_id::text = l.institute_id::text
+      WHERE l.institute_id::text = $1
+        AND l.batch_id::text = $2
+        AND l.id::text ~* '${TimetableService.UUID_REGEX}'
+        AND l.batch_id::text ~* '${TimetableService.UUID_REGEX}'
+        AND l.teacher_id::text ~* '${TimetableService.UUID_REGEX}'
+      ORDER BY l.scheduled_at ASC
+      `,
+      instituteId,
+      batchId,
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      scheduled_at: row.scheduled_at,
+      duration_minutes: row.duration_minutes ?? null,
+      batch_id: row.batch_id,
+      teacher_id: row.teacher_id,
+      teacher: { name: row.teacher_name },
+    }));
+  }
+
+  private async getTeacherTimetableRawFallback(
+    teacherId: string,
+    instituteId: string,
+    includeDuration: boolean = true,
+  ) {
+    type Row = {
+      id: string;
+      title: string | null;
+      scheduled_at: Date | null;
+      duration_minutes?: number | null;
+      batch_id: string | null;
+      teacher_id: string | null;
+      batch_name: string | null;
+    };
+
+    const durationSelect = includeDuration ? 'l.duration_minutes,' : 'NULL::int AS duration_minutes,';
+
+    const rows = await prisma.$queryRawUnsafe<Row[]>(
+      `
+      SELECT
+        l.id::text AS id,
+        l.title,
+        l.scheduled_at,
+        ${durationSelect}
+        l.batch_id::text AS batch_id,
+        l.teacher_id::text AS teacher_id,
+        b.name AS batch_name
+      FROM lectures l
+      LEFT JOIN batches b
+        ON b.id::text = l.batch_id::text
+       AND b.institute_id::text = l.institute_id::text
+      WHERE l.institute_id::text = $1
+        AND l.teacher_id::text = $2
+        AND l.id::text ~* '${TimetableService.UUID_REGEX}'
+        AND l.batch_id::text ~* '${TimetableService.UUID_REGEX}'
+        AND l.teacher_id::text ~* '${TimetableService.UUID_REGEX}'
+      ORDER BY l.scheduled_at ASC
+      `,
+      instituteId,
+      teacherId,
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      scheduled_at: row.scheduled_at,
+      duration_minutes: row.duration_minutes ?? null,
+      batch_id: row.batch_id,
+      teacher_id: row.teacher_id,
+      batch: { name: row.batch_name },
+    }));
   }
 
   private async assertBatchOwnedByTeacher(batchId: string, instituteId: string, teacherId: string) {
@@ -204,23 +410,36 @@ export class TimetableService {
         orderBy: { scheduled_at: 'asc' },
       });
     } catch (error) {
+      if (this.isInvalidLectureUuidData(error)) {
+        this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw schedule fallback query (with duration)');
+        return this.getTeacherScheduleRawFallback(instituteId, teacher.id, start, end, true);
+      }
       if (!this.isMissingLectureDurationColumn(error)) throw error;
-      return prisma.lecture.findMany({
-        where: {
-          institute_id: instituteId,
-          teacher_id: teacher.id,
-          is_active: true,
-          ...(start && end ? { scheduled_at: { gte: start, lte: end } } : {}),
-        },
-        select: {
-          id: true,
-          title: true,
-          scheduled_at: true,
-          batch_id: true,
-          batch: { select: { name: true, subject: true } },
-        },
-        orderBy: { scheduled_at: 'asc' },
-      });
+
+      try {
+        return await prisma.lecture.findMany({
+          where: {
+            institute_id: instituteId,
+            teacher_id: teacher.id,
+            is_active: true,
+            ...(start && end ? { scheduled_at: { gte: start, lte: end } } : {}),
+          },
+          select: {
+            id: true,
+            title: true,
+            scheduled_at: true,
+            batch_id: true,
+            batch: { select: { name: true, subject: true } },
+          },
+          orderBy: { scheduled_at: 'asc' },
+        });
+      } catch (fallbackError) {
+        if (this.isInvalidLectureUuidData(fallbackError)) {
+          this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw schedule fallback query (without duration column)');
+          return this.getTeacherScheduleRawFallback(instituteId, teacher.id, start, end, false);
+        }
+        throw fallbackError;
+      }
     }
   }
 
@@ -408,19 +627,32 @@ export class TimetableService {
         orderBy: { scheduled_at: 'asc' }
       });
     } catch (error) {
+      if (this.isInvalidLectureUuidData(error)) {
+        this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw batch timetable fallback query (with duration)');
+        return this.getBatchTimetableRawFallback(batchId, instituteId, true);
+      }
       if (!this.isMissingLectureDurationColumn(error)) throw error;
-      return prisma.lecture.findMany({
-        where: { batch_id: batchId, institute_id: instituteId },
-        select: {
-          id: true,
-          title: true,
-          scheduled_at: true,
-          batch_id: true,
-          teacher_id: true,
-          teacher: { select: { name: true } },
-        },
-        orderBy: { scheduled_at: 'asc' }
-      });
+
+      try {
+        return await prisma.lecture.findMany({
+          where: { batch_id: batchId, institute_id: instituteId },
+          select: {
+            id: true,
+            title: true,
+            scheduled_at: true,
+            batch_id: true,
+            teacher_id: true,
+            teacher: { select: { name: true } },
+          },
+          orderBy: { scheduled_at: 'asc' }
+        });
+      } catch (fallbackError) {
+        if (this.isInvalidLectureUuidData(fallbackError)) {
+          this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw batch timetable fallback query (without duration column)');
+          return this.getBatchTimetableRawFallback(batchId, instituteId, false);
+        }
+        throw fallbackError;
+      }
     }
   }
 
@@ -440,19 +672,32 @@ export class TimetableService {
         orderBy: { scheduled_at: 'asc' }
       });
     } catch (error) {
+      if (this.isInvalidLectureUuidData(error)) {
+        this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw teacher timetable fallback query (with duration)');
+        return this.getTeacherTimetableRawFallback(teacherId, instituteId, true);
+      }
       if (!this.isMissingLectureDurationColumn(error)) throw error;
-      return prisma.lecture.findMany({
-        where: { teacher_id: teacherId, institute_id: instituteId },
-        select: {
-          id: true,
-          title: true,
-          scheduled_at: true,
-          batch_id: true,
-          teacher_id: true,
-          batch: { select: { name: true } },
-        },
-        orderBy: { scheduled_at: 'asc' }
-      });
+
+      try {
+        return await prisma.lecture.findMany({
+          where: { teacher_id: teacherId, institute_id: instituteId },
+          select: {
+            id: true,
+            title: true,
+            scheduled_at: true,
+            batch_id: true,
+            teacher_id: true,
+            batch: { select: { name: true } },
+          },
+          orderBy: { scheduled_at: 'asc' }
+        });
+      } catch (fallbackError) {
+        if (this.isInvalidLectureUuidData(fallbackError)) {
+          this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw teacher timetable fallback query (without duration column)');
+          return this.getTeacherTimetableRawFallback(teacherId, instituteId, false);
+        }
+        throw fallbackError;
+      }
     }
   }
 }

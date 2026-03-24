@@ -55,6 +55,14 @@ export class TimetableController {
       const data = await this.service.getTeacherScheduleByUser(req.user!.userId, req.instituteId!, date);
       return sendResponse({ res, data, message: 'Teacher schedule fetched' });
     } catch (error) {
+      const code = (error as any)?.code;
+      if (code === 'P2022' || code === 'P2023') {
+        return sendResponse({
+          res,
+          data: [],
+          message: 'Teacher schedule partially unavailable due to legacy data/schema mismatch; returning empty result',
+        });
+      }
       next(error);
     }
   };
