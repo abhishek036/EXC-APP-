@@ -83,7 +83,7 @@ class TeacherRepository {
     final response = await _api.dio.post('timetable/teacher/me', data: {
       'batch_id': batchId,
       'title': title,
-      'scheduled_at': scheduledAt.toIso8601String(),
+      'scheduled_at': scheduledAt.toUtc().toIso8601String(),
       'duration_minutes': durationMinutes,
     });
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -102,7 +102,7 @@ class TeacherRepository {
     final payload = <String, dynamic>{
       'batch_id': batchId,
       'title': title,
-      'scheduled_at': scheduledAt?.toIso8601String(),
+      'scheduled_at': scheduledAt?.toUtc().toIso8601String(),
       'duration_minutes': durationMinutes,
     };
     payload.removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
