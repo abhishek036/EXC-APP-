@@ -17,6 +17,63 @@ export class TimetableService {
     );
   }
 
+  private async createLectureRaw(
+    instituteId: string,
+    batchId: string,
+    teacherId: string,
+    title: string,
+    scheduledAt: Date,
+    duration: number = 60,
+  ) {
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `INSERT INTO lectures (institute_id, batch_id, teacher_id, title, scheduled_at, is_active)
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6)
+       RETURNING id::text, title, scheduled_at, batch_id::text`,
+      instituteId,
+      batchId,
+      teacherId,
+      title,
+      scheduledAt,
+      true
+    );
+    const row = rows[0];
+    return {
+      id: row.id,
+      title: row.title,
+      scheduled_at: row.scheduled_at,
+      duration_minutes: duration,
+      batch_id: row.batch_id,
+      teacher_id: teacherId,
+    };
+  }
+
+  private async updateLectureRaw(
+    lectureId: string,
+    batchId: string,
+    title: string | undefined,
+    scheduledAt: Date,
+    duration: number,
+  ) {
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `UPDATE lectures 
+       SET batch_id = $1::uuid, title = $2, scheduled_at = $3
+       WHERE id = $4::uuid
+       RETURNING id::text, title, scheduled_at, batch_id::text`,
+      batchId,
+      title || '',
+      scheduledAt,
+      lectureId
+    );
+    const row = rows[0];
+    return {
+      id: row.id,
+      title: row.title,
+      scheduled_at: row.scheduled_at,
+      duration_minutes: duration,
+      batch_id: row.batch_id,
+    };
+  }
+
   private isInvalidLectureUuidData(error: unknown): boolean {
     const code = (error as any)?.code;
     const modelName = (error as any)?.meta?.modelName;
@@ -355,26 +412,7 @@ export class TimetableService {
     } catch (error) {
       if (!this.isMissingLectureDurationColumn(error)) throw error;
       this.logger.warn('[TimetableService] lectures.duration_minutes column missing; using scheduleLecture fallback create path');
-      const createdLecture = await prisma.lecture.create({
-        data: {
-          institute_id: instituteId,
-          batch_id: data.batchId,
-          teacher_id: data.teacherId,
-          title: `${data.subject} - ${data.batchId}`,
-          scheduled_at: lectureStart,
-        },
-        select: {
-          id: true,
-          title: true,
-          scheduled_at: true,
-          batch_id: true,
-          teacher_id: true,
-        },
-      });
-      return {
-        ...createdLecture,
-        duration_minutes: data.duration ?? null,
-      };
+      return this.createLectureRaw(instituteId, data.batchId, data.teacherId, `${data.subject} - ${data.batchId}`, lectureStart, data.duration);
     }
   }
 
@@ -489,26 +527,7 @@ export class TimetableService {
     } catch (error) {
       if (!this.isMissingLectureDurationColumn(error)) throw error;
       this.logger.warn('[TimetableService] lectures.duration_minutes column missing; using createTeacherScheduleByUser fallback create path');
-      const createdLecture = await prisma.lecture.create({
-        data: {
-          institute_id: instituteId,
-          batch_id: data.batch_id,
-          teacher_id: teacher.id,
-          title: data.title,
-          scheduled_at: scheduledAt,
-          is_active: true,
-        },
-        select: {
-          id: true,
-          title: true,
-          scheduled_at: true,
-          batch_id: true,
-        },
-      });
-      return {
-        ...createdLecture,
-        duration_minutes: duration,
-      };
+      return this.createLectureRaw(instituteId, data.batch_id, teacher.id, data.title, scheduledAt, duration);
     }
   }
 
@@ -570,20 +589,8 @@ export class TimetableService {
       });
     } catch (error) {
       if (!this.isMissingLectureDurationColumn(error)) throw error;
-      return prisma.lecture.update({
-        where: { id: lectureId },
-        data: {
-          batch_id: nextBatchId,
-          title: data.title,
-          scheduled_at: nextScheduledAt,
-        },
-        select: {
-          id: true,
-          title: true,
-          scheduled_at: true,
-          batch_id: true,
-        },
-      });
+      this.logger.warn('[TimetableService] lectures.duration_minutes column missing; using updateTeacherScheduleByUser fallback update path');
+      return this.updateLectureRaw(lectureId, nextBatchId, data.title, nextScheduledAt, nextDuration);
     }
   }
 
