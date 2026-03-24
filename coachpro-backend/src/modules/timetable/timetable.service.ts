@@ -8,7 +8,13 @@ export class TimetableService {
   private isMissingLectureDurationColumn(error: unknown): boolean {
     const code = (error as any)?.code;
     const column = (error as any)?.meta?.column;
-    return code === 'P2022' && typeof column === 'string' && column.includes('lectures.duration_minutes');
+    if (code !== 'P2022' || typeof column !== 'string') return false;
+    const normalizedColumn = column.toLowerCase();
+    return (
+      normalizedColumn.includes('duration_minutes') ||
+      normalizedColumn.includes('lectures.duration_minutes') ||
+      normalizedColumn.includes('lecture.duration_minutes')
+    );
   }
 
   private isInvalidLectureUuidData(error: unknown): boolean {
@@ -482,7 +488,8 @@ export class TimetableService {
       });
     } catch (error) {
       if (!this.isMissingLectureDurationColumn(error)) throw error;
-      return prisma.lecture.create({
+      this.logger.warn('[TimetableService] lectures.duration_minutes column missing; using createTeacherScheduleByUser fallback create path');
+      const createdLecture = await prisma.lecture.create({
         data: {
           institute_id: instituteId,
           batch_id: data.batch_id,
@@ -498,6 +505,10 @@ export class TimetableService {
           batch_id: true,
         },
       });
+      return {
+        ...createdLecture,
+        duration_minutes: duration,
+      };
     }
   }
 
