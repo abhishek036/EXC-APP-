@@ -28,6 +28,42 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   List<Map<String, dynamic>> _batches = [];
   StreamSubscription<Map<String, dynamic>>? _syncSub;
 
+  String _dateKey(DateTime value) {
+    final local = value.toLocal();
+    final year = local.year.toString().padLeft(4, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  bool _matchesSelectedDate(dynamic rawDate) {
+    final parsed = DateTime.tryParse((rawDate ?? '').toString());
+    if (parsed == null) return false;
+    return _dateKey(parsed) == _dateKey(_selectedDate);
+  }
+
+  Map<String, dynamic> _decorateEntryWithBatch(Map<String, dynamic> entry) {
+    final batchId = (entry['batch_id'] ?? '').toString();
+    if (batchId.isEmpty || entry['batch'] is Map<String, dynamic>) {
+      return entry;
+    }
+
+    final batch = _batches.cast<Map<String, dynamic>?>().firstWhere(
+      (item) => (item?['id'] ?? '').toString() == batchId,
+      orElse: () => null,
+    );
+
+    if (batch == null) return entry;
+
+    return {
+      ...entry,
+      'batch': {
+        'name': batch['name'],
+        'subject': batch['subject'],
+      },
+    };
+  }
+
   @override
   void initState() {
     super.initState();
@@ -415,7 +451,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   }) async {
     setState(() => _isSaving = true);
     try {
-      await _repo.createMyScheduleEntry(
+      final created = await _repo.createMyScheduleEntry(
         batchId: batchId,
         title: title,
         scheduledAt: scheduledAt,
@@ -424,6 +460,14 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       if (!mounted) return true;
       await _load();
       if (!mounted) return true;
+
+      if (_entries.isEmpty && _matchesSelectedDate(created['scheduled_at'])) {
+        final optimistic = _decorateEntryWithBatch(Map<String, dynamic>.from(created));
+        setState(() {
+          _entries = [optimistic, ..._entries];
+        });
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule created')));
       return true;
     } catch (e) {
