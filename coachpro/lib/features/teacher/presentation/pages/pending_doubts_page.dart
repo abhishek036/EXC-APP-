@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../features/teacher/data/repositories/teacher_repository.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/widgets/cp_role_shell.dart';
 
 class PendingDoubtsPage extends StatefulWidget {
@@ -26,6 +27,17 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
   }
 
   Future<void> _loadDoubts() async {
+    final token = await sl<SecureStorageService>().getToken();
+    if (token == null || token.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _doubts = [];
+        _isLoading = false;
+        _error = null;
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;

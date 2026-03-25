@@ -76,6 +76,17 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
 
   Future<void> _loadDashboard() async {
     if (!mounted || _isLoadInFlight) return;
+
+    final token = await sl<SecureStorageService>().getToken();
+    if (token == null || token.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _error = null;
+      });
+      return;
+    }
+
     _isLoadInFlight = true;
     setState(() {
       _isLoading = true;

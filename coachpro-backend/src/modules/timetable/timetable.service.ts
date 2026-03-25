@@ -6,6 +6,7 @@ export class TimetableService {
   private static readonly UUID_REGEX = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$';
   private static readonly IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
   private static isSchemaEnsured = false;
+  private static readonly warnedFallbackKeys = new Set<string>();
 
   constructor() {
     this.ensureSchema().catch((err) => this.logger.error('[TimetableService] Schema repair failed:', err));
@@ -158,6 +159,12 @@ export class TimetableService {
       modelName === 'Lecture' &&
       typeof message === 'string' &&
       message.includes('Error creating UUID');
+  }
+
+  private warnOnceFallback(key: string, message: string) {
+    if (TimetableService.warnedFallbackKeys.has(key)) return;
+    TimetableService.warnedFallbackKeys.add(key);
+    this.logger.warn(message);
   }
 
   private async getTeacherScheduleRawFallback(
@@ -729,7 +736,10 @@ export class TimetableService {
       });
     } catch (error) {
       if (this.isInvalidLectureUuidData(error)) {
-        this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw batch timetable fallback query (with duration)');
+        this.warnOnceFallback(
+          'batch-with-duration',
+          '[TimetableService] Invalid lecture UUID data detected; using raw batch timetable fallback query (with duration)',
+        );
         return this.getBatchTimetableRawFallback(batchId, instituteId, true);
       }
       if (!this.isMissingTimetableColumn(error)) throw error;
@@ -749,7 +759,10 @@ export class TimetableService {
         });
       } catch (fallbackError) {
         if (this.isInvalidLectureUuidData(fallbackError)) {
-          this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw batch timetable fallback query (without duration column)');
+          this.warnOnceFallback(
+            'batch-without-duration',
+            '[TimetableService] Invalid lecture UUID data detected; using raw batch timetable fallback query (without duration column)',
+          );
           return this.getBatchTimetableRawFallback(batchId, instituteId, false);
         }
         throw fallbackError;
@@ -774,7 +787,10 @@ export class TimetableService {
       });
     } catch (error) {
       if (this.isInvalidLectureUuidData(error)) {
-        this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw teacher timetable fallback query (with duration)');
+        this.warnOnceFallback(
+          'teacher-with-duration',
+          '[TimetableService] Invalid lecture UUID data detected; using raw teacher timetable fallback query (with duration)',
+        );
         return this.getTeacherTimetableRawFallback(teacherId, instituteId, true);
       }
       if (!this.isMissingTimetableColumn(error)) throw error;
@@ -794,7 +810,10 @@ export class TimetableService {
         });
       } catch (fallbackError) {
         if (this.isInvalidLectureUuidData(fallbackError)) {
-          this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw teacher timetable fallback query (without duration column)');
+          this.warnOnceFallback(
+            'teacher-without-duration',
+            '[TimetableService] Invalid lecture UUID data detected; using raw teacher timetable fallback query (without duration column)',
+          );
           return this.getTeacherTimetableRawFallback(teacherId, instituteId, false);
         }
         throw fallbackError;
