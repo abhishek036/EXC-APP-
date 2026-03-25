@@ -178,7 +178,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     final today = DateTime.now().weekday % 7;
     return batches.where((b) {
       if ((b['is_active'] ?? b['isActive']) == false) return false;
-      final days = (b['days_of_week'] as List?) ?? const [];
+      final days = _normalizeDaysOfWeek(b['days_of_week']);
       return days.isEmpty || days.contains(today);
     }).map((b) => {
       'batchName': b['name'] ?? 'Batch',
@@ -214,6 +214,40 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   double _toDouble(dynamic v) => v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0;
   DateTime? _parseDateTime(dynamic v) => v == null ? null : DateTime.tryParse(v.toString());
+
+  List<int> _normalizeDaysOfWeek(dynamic raw) {
+    if (raw is! List) return const [];
+    return raw
+        .map((value) {
+          if (value is int) return value;
+          if (value is num) return value.toInt();
+          return int.tryParse(value.toString());
+        })
+        .whereType<int>()
+        .toList();
+  }
+
+  String _formatTimeLabel(dynamic raw) {
+    final source = (raw ?? '').toString().trim();
+    if (source.isEmpty) return '--:--';
+
+    final parsed = DateTime.tryParse(source);
+    if (parsed != null) {
+      return DateFormat('hh:mm a').format(parsed);
+    }
+
+    final parts = source.split(':');
+    if (parts.length >= 2) {
+      final hour = int.tryParse(parts[0]);
+      final minute = int.tryParse(parts[1]);
+      if (hour != null && minute != null) {
+        final fallback = DateTime(2000, 1, 1, hour, minute);
+        return DateFormat('hh:mm a').format(fallback);
+      }
+    }
+
+    return source;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -854,7 +888,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               Text('${c['teacherName']} • ${c['subject']}', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600)),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text((c['startTime']?.toString() ?? '').split(' ')[0], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.elitePrimary)),
+              Text(_formatTimeLabel(c['startTime']), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.elitePrimary)),
               if (c['room']?.toString().isNotEmpty == true) Text('Room ${c['room']}', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26))),
             ]),
           ],

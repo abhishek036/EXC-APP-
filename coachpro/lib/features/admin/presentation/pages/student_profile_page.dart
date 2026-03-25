@@ -259,35 +259,27 @@ class _StudentProfilePageState extends State<StudentProfilePage>
       await _adminRepo.updateStudent(widget.studentId, {
         'name': _nameCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim(),
-        'email': _emailCtrl.text.trim(),
         'address': _addressCtrl.text.trim(),
         'parentName': _parentNameCtrl.text.trim(),
         'parentPhone': _parentPhoneCtrl.text.trim(),
+        'parentRelation': _parentRelCtrl.text.trim(),
       });
       // Update local state immediately
       if (mounted) {
         final updated = Map<String, dynamic>.from(_student!);
         updated['name'] = _nameCtrl.text.trim();
         updated['phone'] = _phoneCtrl.text.trim();
-        updated['email'] = _emailCtrl.text.trim();
         updated['address'] = _addressCtrl.text.trim();
         updated['parentName'] = _parentNameCtrl.text.trim();
         updated['parentPhone'] = _parentPhoneCtrl.text.trim();
+        updated['parentRelation'] = _parentRelCtrl.text.trim();
         setState(() { _student = updated; _editMode = false; _saving = false; });
         _showSnack('Student updated successfully!', const Color(0xFFF0DE36));
       }
     } catch (_) {
-      // Update locally anyway (offline support)
       if (mounted) {
-        final updated = Map<String, dynamic>.from(_student ?? {});
-        updated['name'] = _nameCtrl.text.trim();
-        updated['phone'] = _phoneCtrl.text.trim();
-        updated['email'] = _emailCtrl.text.trim();
-        updated['address'] = _addressCtrl.text.trim();
-        updated['parentName'] = _parentNameCtrl.text.trim();
-        updated['parentPhone'] = _parentPhoneCtrl.text.trim();
-        setState(() { _student = updated; _editMode = false; _saving = false; });
-        _showSnack('Saved locally (sync pending)', const Color(0xFFF0DE36));
+        setState(() => _saving = false);
+        _showSnack('Failed to save changes. Please try again.', const Color(0xFFD71313));
       }
     }
   }

@@ -104,15 +104,131 @@ export class StudentRepository {
   }
 
   async updateStudent(studentId: string, instituteId: string, data: UpdateStudentInput) {
-    // Only update fields that exist on student model
-    const { parent_name, parent_phone, parent_relation, dob, ...studentBaseData } = data as any;
-    
-    return prisma.student.update({
-      where: { id: studentId },
-      data: {
+    const {
+      parent_name,
+      parent_phone,
+      parent_relation,
+      batch_ids,
+      dob,
+      ...rest
+    } = data as any;
+
+    const allowedStudentFields = [
+      'name',
+      'phone',
+      'gender',
+      'address',
+      'blood_group',
+      'prev_institute',
+      'photo_url',
+      'student_code',
+      'is_active',
+      'enrollment_date',
+    ];
+
+    const studentBaseData = Object.fromEntries(
+      Object.entries(rest).filter(([key, value]) => allowedStudentFields.includes(key) && value !== undefined),
+    );
+
+    return prisma.$transaction(async (tx: any) => {
+      const existingStudent = await tx.student.findFirst({
+        where: { id: studentId, institute_id: instituteId },
+        select: { id: true },
+      });
+
+      if (!existingStudent) {
+        throw new Error('Student not found');
+      }
+
+      const student = await tx.student.update({
+        where: { id: studentId },
+        data: {
           ...studentBaseData,
-          ...(dob && { dob: new Date(dob) })
-      } as any
+          ...(studentBaseData.enrollment_date ? { enrollment_date: new Date(studentBaseData.enrollment_date as string) } : {}),
+          ...(dob ? { dob: new Date(dob) } : {}),
+        },
+      });
+
+      const hasParentName = typeof parent_name === 'string' && parent_name.trim().length > 0;
+      const hasParentPhone = typeof parent_phone === 'string' && parent_phone.trim().length > 0;
+
+      if (hasParentName && hasParentPhone) {
+        const existingLink = await tx.parentStudent.findFirst({
+          where: { student_id: studentId },
+          include: { parent: true },
+        });
+
+        if (existingLink?.parent_id) {
+          await tx.parent.update({
+            where: { id: existingLink.parent_id },
+            data: {
+              name: parent_name.trim(),
+              phone: parent_phone.trim(),
+            },
+          });
+
+          await tx.parentStudent.update({
+            where: { parent_id_student_id: { parent_id: existingLink.parent_id, student_id: studentId } },
+            data: {
+              relation: (typeof parent_relation === 'string' && parent_relation.trim().length > 0)
+                  ? parent_relation.trim()
+                  : existingLink.relation,
+            },
+          });
+        } else {
+          const parent = await tx.parent.create({
+            data: {
+              institute_id: instituteId,
+              name: parent_name.trim(),
+              phone: parent_phone.trim(),
+            },
+          });
+
+          await tx.parentStudent.create({
+            data: {
+              parent_id: parent.id,
+              student_id: studentId,
+              relation: (typeof parent_relation === 'string' && parent_relation.trim().length > 0)
+                  ? parent_relation.trim()
+                  : 'guardian',
+            },
+          });
+        }
+      }
+
+      if (Array.isArray(batch_ids)) {
+        const normalizedBatchIds = Array.from(
+          new Set(
+            batch_ids
+              .map((id: any) => id?.toString().trim())
+              .filter((id: string | undefined) => typeof id === 'string' && id.length > 0),
+          ),
+        );
+
+        await tx.studentBatch.updateMany({
+          where: {
+            student_id: studentId,
+            institute_id: instituteId,
+            ...(normalizedBatchIds.length > 0 ? { batch_id: { notIn: normalizedBatchIds } } : {}),
+            is_active: true,
+          },
+          data: { is_active: false, left_date: new Date() },
+        });
+
+        for (const batchId of normalizedBatchIds) {
+          await tx.studentBatch.upsert({
+            where: { student_id_batch_id: { student_id: studentId, batch_id: batchId } },
+            update: { is_active: true, left_date: null },
+            create: {
+              student_id: studentId,
+              batch_id: batchId,
+              institute_id: instituteId,
+            },
+          });
+        }
+      }
+
+      return student;
     });
   }
 

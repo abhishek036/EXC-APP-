@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
@@ -70,9 +71,42 @@ class _TimetableManagementPageState extends State<TimetableManagementPage> {
   List<Map<String, dynamic>> _slotsForDay() {
     final index = _dayIndex(_activeDay);
     return _batches.where((batch) {
-      final days = (batch['days_of_week'] as List?) ?? const [];
+      final days = _normalizeDaysOfWeek(batch['days_of_week']);
       return days.contains(index);
     }).toList();
+  }
+
+  List<int> _normalizeDaysOfWeek(dynamic raw) {
+    if (raw is! List) return const [];
+    return raw
+        .map((value) {
+          if (value is int) return value;
+          if (value is num) return value.toInt();
+          return int.tryParse(value.toString());
+        })
+        .whereType<int>()
+        .toList();
+  }
+
+  String _formatTimeLabel(dynamic raw) {
+    final source = (raw ?? '').toString().trim();
+    if (source.isEmpty) return '--:--';
+
+    final parsed = DateTime.tryParse(source);
+    if (parsed != null) {
+      return DateFormat('hh:mm a').format(parsed);
+    }
+
+    final parts = source.split(':');
+    if (parts.length >= 2) {
+      final hour = int.tryParse(parts[0]);
+      final minute = int.tryParse(parts[1]);
+      if (hour != null && minute != null) {
+        return DateFormat('hh:mm a').format(DateTime(2000, 1, 1, hour, minute));
+      }
+    }
+
+    return source;
   }
 
   Future<void> _addSlot() async {
@@ -178,7 +212,7 @@ class _TimetableManagementPageState extends State<TimetableManagementPage> {
                   }
                   return;
                 }
-                final days = ((batch['days_of_week'] as List?) ?? const []).map((d) => (d as num).toInt()).toSet();
+                final days = _normalizeDaysOfWeek(batch['days_of_week']).toSet();
                 days.add(_dayIndex(_activeDay));
 
                 await _adminRepo.updateBatch(
@@ -227,8 +261,7 @@ class _TimetableManagementPageState extends State<TimetableManagementPage> {
     if (confirmed != true) return;
 
     final activeIndex = _dayIndex(_activeDay);
-    final days = ((batch['days_of_week'] as List?) ?? const [])
-        .map((d) => (d as num).toInt())
+    final days = _normalizeDaysOfWeek(batch['days_of_week'])
         .where((d) => d != activeIndex)
         .toList();
 
@@ -321,7 +354,7 @@ class _TimetableManagementPageState extends State<TimetableManagementPage> {
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   decoration: BoxDecoration(color: CT.accent(context).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                                   child: Text(
-                                    (slot['start_time'] ?? '00:00').toString(),
+                                    _formatTimeLabel(slot['start_time']),
                                     style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700, color: CT.accent(context)),
                                   ),
                                 ),

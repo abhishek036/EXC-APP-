@@ -194,6 +194,40 @@ class AdminRepository {
     if (normalized.containsKey('parentRelation')) {
       normalized['parent_relation'] = normalized.remove('parentRelation');
     }
+    if (normalized.containsKey('batchIds')) {
+      normalized['batch_ids'] = normalized.remove('batchIds');
+    }
+
+    normalized.remove('email');
+
+    final parentName = (normalized['parent_name'] ?? '').toString().trim();
+    final parentPhone = (normalized['parent_phone'] ?? '').toString().trim();
+    final parentRelation = (normalized['parent_relation'] ?? '').toString().trim();
+
+    if (parentName.isEmpty || parentPhone.isEmpty) {
+      normalized.remove('parent_name');
+      normalized.remove('parent_phone');
+      normalized.remove('parent_relation');
+    } else {
+      normalized['parent_name'] = parentName;
+      normalized['parent_phone'] = parentPhone;
+      if (parentRelation.isNotEmpty) {
+        normalized['parent_relation'] = parentRelation;
+      } else {
+        normalized.remove('parent_relation');
+      }
+    }
+
+    if (normalized['batch_ids'] is List) {
+      final batchIds = (normalized['batch_ids'] as List)
+          .map((id) => id.toString().trim())
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
+      normalized['batch_ids'] = batchIds;
+    }
+
+    normalized.removeWhere((key, value) => value == null);
 
     final response = await _api.dio.put('students/$studentId', data: normalized);
     if (response.statusCode == 200) {
