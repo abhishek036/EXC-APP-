@@ -22,6 +22,7 @@ class _StudentListPageState extends State<StudentListPage> {
   final _adminRepo = sl<AdminRepository>();
   final _realtime = sl<RealtimeSyncService>();
   StreamSubscription<Map<String, dynamic>>? _syncSub;
+  Timer? _searchDebounce;
   List<_Student> _students = [];
   bool _loadingStudents = true;
   bool _loadFailed = false;
@@ -65,11 +66,20 @@ class _StudentListPageState extends State<StudentListPage> {
   @override
   void initState() {
     super.initState();
-    // THE CODE IS STALE IF THIS CRASH DOES NOT WORK:
-    // throw Exception('SYNC_TEST_RESTART_FLUTTER'); 
-    _searchController.addListener(() => setState(() {}));
+    _searchController.addListener(_onSearchChanged);
     _loadAll();
     _initRealtime();
+  }
+
+  void _onSearchChanged() {
+    if (!mounted) return;
+    setState(() {});
+
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      _loadAll();
+    });
   }
 
   Future<void> _initRealtime() async {
@@ -93,8 +103,12 @@ class _StudentListPageState extends State<StudentListPage> {
     });
     try {
       final selectedBatchId = _selectedBatchIdForApi();
+      final query = _searchController.text.trim();
       final results = await Future.wait([
-        _adminRepo.getStudents(batchId: selectedBatchId),
+        _adminRepo.getStudents(
+          batchId: selectedBatchId,
+          query: query.isEmpty ? null : query,
+        ),
         _adminRepo.getBatches(),
       ]);
       if (mounted) {
@@ -152,6 +166,8 @@ class _StudentListPageState extends State<StudentListPage> {
   @override
   void dispose() {
     _syncSub?.cancel();
+    _searchDebounce?.cancel();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
