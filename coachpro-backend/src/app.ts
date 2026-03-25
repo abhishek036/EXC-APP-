@@ -31,6 +31,8 @@ import auditLogRoutes from './modules/audit-log/audit-log.routes';
 import whatsappRoutes from './modules/whatsapp/whatsapp.routes';
 import appUpdateRoutes from './modules/app-update/app-update.routes';
 import notificationRoutes from './modules/notification/notification.routes';
+import { emitBatchSync, emitInstituteDashboardSync } from './config/socket';
+import { AuditAction, Logger } from './utils/logger';
 
 const app: Express = express();
 app.set('trust proxy', true); // Trust proxy chain (Azure/App Gateway/CDN)
@@ -73,6 +75,99 @@ const authLimiter = rateLimit({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
+
+const mutatingMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+const inferAuditAction = (method: string): AuditAction => {
+  switch (method) {
+    case 'POST':
+      return AuditAction.CREATE;
+    case 'PUT':
+    case 'PATCH':
+      return AuditAction.UPDATE;
+    case 'DELETE':
+      return AuditAction.DELETE;
+    default:
+      return AuditAction.UPDATE;
+  }
+};
+
+const shouldSkipAutoAudit = (path: string): boolean => {
+  const ignoredPrefixes = [
+    '/api/auth',
+    '/api/notifications/register-token',
+  ];
+
+  if (ignoredPrefixes.some((prefix) => path.startsWith(prefix))) return true;
+  if (path.includes('/read-all') || path.endsWith('/read')) return true;
+  return false;
+};
+
+const tryExtractBatchId = (req: Request): string | undefined => {
+  const bodyBatch = (req.body?.batch_id ?? req.body?.batchId)?.toString();
+  if (bodyBatch && bodyBatch.trim().length > 0) return bodyBatch.trim();
+
+  const paramBatch = (req.params?.batchId ?? req.params?.id)?.toString();
+  if (paramBatch && paramBatch.trim().length > 0 && req.originalUrl.includes('/batches')) return paramBatch.trim();
+
+  const queryBatch = (req.query?.batchId ?? req.query?.batch_id)?.toString();
+  if (queryBatch && queryBatch.trim().length > 0) return queryBatch.trim();
+
+  return undefined;
+};
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const startedAt = Date.now();
+
+  res.on('finish', () => {
+    try {
+      if (!mutatingMethods.has(req.method.toUpperCase())) return;
+      if (res.statusCode >= 400) return;
+      if (shouldSkipAutoAudit(req.originalUrl)) return;
+
+      const anyReq = req as any;
+      const instituteId = anyReq?.instituteId || anyReq?.user?.instituteId;
+      if (!instituteId) return;
+
+      const actorId = anyReq?.user?.userId;
+      const entityType = req.baseUrl.replace('/api/', '') || req.path.split('/').filter(Boolean)[0] || 'system';
+      const entityId = (req.params?.id || req.params?.studentId || req.params?.teacherId || req.params?.batchId || '').toString() || undefined;
+      const action = inferAuditAction(req.method.toUpperCase());
+
+      void Logger.log({
+        actorId,
+        instituteId,
+        action,
+        entityType,
+        entityId,
+        newValue: {
+          method: req.method,
+          path: req.originalUrl,
+          status: res.statusCode,
+          duration_ms: Date.now() - startedAt,
+        },
+      });
+
+      const reason = `${entityType}_${req.method.toLowerCase()}`;
+      emitInstituteDashboardSync(instituteId, reason, {
+        path: req.originalUrl,
+        actor_id: actorId,
+      });
+
+      const batchId = tryExtractBatchId(req);
+      if (batchId) {
+        emitBatchSync(instituteId, batchId, reason, {
+          path: req.originalUrl,
+          actor_id: actorId,
+        });
+      }
+    } catch {
+      // Ignore sync/audit middleware failures to avoid impacting API responses.
+    }
+  });
+
+  next();
+});
 
 // Basic Healthcheck Route
 app.get('/health', (req: Request, res: Response) => {

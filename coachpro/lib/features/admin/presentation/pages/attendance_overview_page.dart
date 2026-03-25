@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
@@ -20,6 +22,8 @@ class AttendanceOverviewPage extends StatefulWidget {
 
 class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
   final _adminRepo = sl<AdminRepository>();
+  final _realtime = sl<RealtimeSyncService>();
+  StreamSubscription<Map<String, dynamic>>? _syncSub;
   int _selectedBatch = 0;
   List<_BatchOption> _batchOptions = const [
     _BatchOption(id: null, name: 'All Cohorts'),
@@ -33,6 +37,26 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
   void initState() {
     super.initState();
     _loadData();
+    _initRealtime();
+  }
+
+  @override
+  void dispose() {
+    _syncSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final type = (event['type'] ?? '').toString();
+      final reason = (event['reason'] ?? '').toString().toLowerCase();
+      if (type == 'dashboard_sync' || type == 'batch_sync' || reason.contains('attendance')) {
+        _loadData();
+      }
+    });
   }
 
   Future<void> _loadData() async {

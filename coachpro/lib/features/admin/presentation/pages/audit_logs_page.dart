@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/widgets/cp_glass_card.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_shimmer.dart';
@@ -19,14 +21,35 @@ class AuditLogsPage extends StatefulWidget {
 
 class _AuditLogsPageState extends State<AuditLogsPage> {
   final _adminRepo = sl<AdminRepository>();
+  final _realtime = sl<RealtimeSyncService>();
   bool _isLoading = true;
   List<Map<String, dynamic>> _logs = [];
   String _error = '';
+  StreamSubscription<Map<String, dynamic>>? _syncSub;
 
   @override
   void initState() {
     super.initState();
     _loadLogs();
+    _initRealtime();
+  }
+
+  @override
+  void dispose() {
+    _syncSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final type = (event['type'] ?? '').toString();
+      if (type == 'dashboard_sync' || type == 'batch_sync') {
+        _loadLogs();
+      }
+    });
   }
 
   Future<void> _loadLogs() async {

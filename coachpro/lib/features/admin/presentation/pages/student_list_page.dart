@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_shimmer.dart';
@@ -18,6 +20,8 @@ class StudentListPage extends StatefulWidget {
 
 class _StudentListPageState extends State<StudentListPage> {
   final _adminRepo = sl<AdminRepository>();
+  final _realtime = sl<RealtimeSyncService>();
+  StreamSubscription<Map<String, dynamic>>? _syncSub;
   List<_Student> _students = [];
   bool _loadingStudents = true;
   bool _loadFailed = false;
@@ -57,6 +61,20 @@ class _StudentListPageState extends State<StudentListPage> {
     // throw Exception('SYNC_TEST_RESTART_FLUTTER'); 
     _searchController.addListener(() => setState(() {}));
     _loadAll();
+    _initRealtime();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final type = (event['type'] ?? '').toString();
+      final reason = (event['reason'] ?? '').toString().toLowerCase();
+      if (type == 'dashboard_sync' || type == 'batch_sync' || reason.contains('student') || reason.contains('batch')) {
+        _loadAll();
+      }
+    });
   }
 
   Future<void> _loadAll() async {
@@ -123,6 +141,7 @@ class _StudentListPageState extends State<StudentListPage> {
 
   @override
   void dispose() {
+    _syncSub?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -829,10 +848,25 @@ class _Student {
 
   factory _Student.fromMap(Map<String, dynamic> map) {
     final batches = map['batches'] as List?;
+    final studentBatches = map['student_batches'] as List?;
     final batchName = (map['batch'] ?? map['batch_name']) as String?;
     List<String> batchNames;
     if (batchName != null && batchName.isNotEmpty) {
       batchNames = [batchName];
+    } else if (studentBatches != null && studentBatches.isNotEmpty) {
+      batchNames = studentBatches
+          .map((entry) {
+            if (entry is Map) {
+              final nestedBatch = entry['batch'];
+              if (nestedBatch is Map) {
+                return (nestedBatch['name'] ?? '').toString();
+              }
+              return (entry['batch_name'] ?? '').toString();
+            }
+            return '';
+          })
+          .where((name) => name.isNotEmpty)
+          .toList();
     } else if (batches != null && batches.isNotEmpty) {
       batchNames = batches
           .map((e) => e is Map ? (e['name'] ?? '').toString() : e.toString())

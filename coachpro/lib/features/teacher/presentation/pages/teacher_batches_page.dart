@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/widgets/cp_role_shell.dart';
 import '../../data/repositories/teacher_repository.dart';
 
@@ -17,6 +19,8 @@ class TeacherBatchesPage extends StatefulWidget {
 
 class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
   final _teacherRepo = sl<TeacherRepository>();
+  final _realtime = sl<RealtimeSyncService>();
+  StreamSubscription<Map<String, dynamic>>? _syncSub;
   List<Map<String, dynamic>> _batches = [];
   bool _isLoading = true;
   String? _error;
@@ -26,6 +30,26 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
   void initState() {
     super.initState();
     _loadBatches();
+    _initRealtime();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final type = (event['type'] ?? '').toString();
+      final reason = (event['reason'] ?? '').toString().toLowerCase();
+      if (type == 'dashboard_sync' || type == 'batch_sync' || reason.contains('batch') || reason.contains('attendance')) {
+        _loadBatches();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadBatches() async {

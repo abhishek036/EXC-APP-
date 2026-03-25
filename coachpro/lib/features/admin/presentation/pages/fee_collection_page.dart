@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_toast.dart';
@@ -23,6 +25,8 @@ class FeeCollectionPage extends StatefulWidget {
 
 class _FeeCollectionPageState extends State<FeeCollectionPage> {
   final _adminRepo = sl<AdminRepository>();
+  final _realtime = sl<RealtimeSyncService>();
+  StreamSubscription<Map<String, dynamic>>? _syncSub;
   int _selectedStatus = 0;
   String _searchQuery = '';
   final _searchCtrl = TextEditingController();
@@ -36,6 +40,20 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     super.initState();
     _searchCtrl.addListener(() => setState(() => _searchQuery = _searchCtrl.text.trim().toLowerCase()));
     _loadFeeRecords();
+    _initRealtime();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final type = (event['type'] ?? '').toString();
+      final reason = (event['reason'] ?? '').toString().toLowerCase();
+      if (type == 'dashboard_sync' || type == 'batch_sync' || reason.contains('fee') || reason.contains('payment')) {
+        _loadFeeRecords();
+      }
+    });
   }
 
   Future<void> _loadFeeRecords() async {
@@ -50,7 +68,11 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   }
 
   @override
-  void dispose() { _searchCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _syncSub?.cancel();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   String _fmtCur(double amount) {
     if (amount >= 100000) return '₹${(amount / 100000).toStringAsFixed(1)}L';
@@ -59,6 +81,30 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   }
 
   double _toDouble(dynamic v) => v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0;
+
+  ({double total, double paid, double outstanding, String status}) _feeMetrics(Map<String, dynamic> record) {
+    final total = _toDouble(record['final_amount'] ?? record['amount']);
+    final payments = (record['payments'] as List?) ?? const [];
+    final paid = payments.fold<double>(0, (sum, payment) => sum + _toDouble((payment as Map)['amount_paid']));
+    final outstanding = (total - paid).clamp(0, double.infinity).toDouble();
+
+    final now = DateTime.now();
+    final dueDate = DateTime.tryParse((record['due_date'] ?? '').toString());
+    final rawStatus = (record['status'] ?? '').toString().toLowerCase();
+
+    String status;
+    if (outstanding <= 0) {
+      status = 'paid';
+    } else if (dueDate != null && dueDate.isBefore(DateTime(now.year, now.month, now.day))) {
+      status = 'overdue';
+    } else if (rawStatus == 'partial') {
+      status = 'partial';
+    } else {
+      status = 'pending';
+    }
+
+    return (total: total, paid: paid, outstanding: outstanding, status: status);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -143,15 +189,12 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   Widget _buildSummaryHeader(bool isDark) {
     double col = 0, pen = 0, over = 0;
     for (final f in _records) {
-      final amt = _toDouble(f['final_amount'] ?? f['amount']);
-      final pays = (f['payments'] as List?) ?? const [];
-      final paid = pays.fold<double>(0, (sum, p) => sum + _toDouble((p as Map)['amount_paid']));
-      final status = (f['status'] ?? '').toString().toLowerCase();
-      col += paid;
-      if (status == 'overdue') {
-        over += (amt - paid).clamp(0, double.infinity);
-      } else if (status != 'paid') {
-        pen += (amt - paid).clamp(0, double.infinity);
+      final metrics = _feeMetrics(f);
+      col += metrics.paid;
+      if (metrics.status == 'overdue') {
+        over += metrics.outstanding;
+      } else if (metrics.status != 'paid') {
+        pen += metrics.outstanding;
       }
     }
     return Row(
@@ -231,7 +274,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     var filtered = List<Map<String, dynamic>>.from(_records);
     if (_selectedStatus > 0) {
       final status = _statuses[_selectedStatus].toLowerCase();
-      filtered = filtered.where((r) => (r['status'] ?? '').toString().toLowerCase() == status).toList();
+      filtered = filtered.where((r) => _feeMetrics(r).status == status).toList();
     }
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((r) {
@@ -255,8 +298,9 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     final name = (r['student']?['name'] ?? 'Pupil').toString();
     final batch = (r['batch']?['name'] ?? 'Batch').toString();
     final month = _monthLabel(r['month'], r['year']);
-    final status = (r['status'] ?? 'pending').toString().toUpperCase();
-    final total = _toDouble(r['final_amount'] ?? r['amount']);
+    final metrics = _feeMetrics(r);
+    final status = metrics.status.toUpperCase();
+    final total = metrics.total;
 
 
     final sColor = status == 'PAID' ? AppColors.mintGreen : status == 'OVERDUE' ? AppColors.error : status == 'PARTIAL' ? AppColors.moltenAmber : AppColors.feePending;
@@ -296,11 +340,12 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
 
   void _showFeeDetailSheet(BuildContext context, Map<String, dynamic> fee) {
     final isDark = CT.isDark(context);
-    final status = (fee['status'] ?? 'pending').toString().toUpperCase();
+    final metrics = _feeMetrics(fee);
+    final status = metrics.status.toUpperCase();
     final name = (fee['student']?['name'] ?? 'Pupil').toString();
-    final amt = _toDouble(fee['final_amount'] ?? fee['amount']);
-    final pays = (fee['payments'] as List?) ?? const [];
-    final paid = pays.fold<double>(0, (sum, p) => sum + _toDouble((p as Map)['amount_paid']));
+    final amt = metrics.total;
+    final paid = metrics.paid;
+    final outstanding = metrics.outstanding;
     final id = (fee['id'] ?? '').toString();
 
     showModalBottomSheet(
@@ -317,13 +362,13 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
           Row(children: [
             _detailStat('BILLED', '₹${amt.toInt()}', isDark),
             _detailStat('CLEARED', '₹${paid.toInt()}', isDark),
-            _detailStat('PENDING', '₹${(amt - paid).toInt()}', isDark),
+            _detailStat('PENDING', '₹${outstanding.toInt()}', isDark),
           ]),
           const SizedBox(height: 40),
           if (status != 'PAID') ...[
             CustomButton(text: 'Settle Full Amount', icon: Icons.offline_pin_rounded, onPressed: () async {
               try {
-                final pend = (amt - paid).clamp(0, double.infinity);
+                final pend = outstanding;
                 if (pend <= 0) return;
                 await _adminRepo.recordFeePayment(feeRecordId: id, amountPaid: pend, paymentMode: 'cash', note: 'Bulk update');
                 if (ctx.mounted) { Navigator.pop(ctx); CPToast.success(context, 'Ledger updated ✅'); _loadFeeRecords(); }
@@ -350,7 +395,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   void _showCollectFeeSheet(BuildContext context) {
     final isDark = CT.isDark(context);
     final debtors = _records
-        .where((r) => (r['status'] ?? '').toString().toLowerCase() != 'paid')
+        .where((r) => _feeMetrics(r).outstanding > 0)
         .toList();
     String? sid = debtors.isNotEmpty ? debtors.first['id'].toString() : null;
     final amtC = TextEditingController();
@@ -359,7 +404,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
 
     if (sid != null && debtors.isNotEmpty) {
       final first = debtors.first;
-      final pend = _toDouble(first['final_amount'] ?? first['amount']) - (_toDouble((first['payments'] as List? ?? []).fold<double>(0, (s, p) => s + _toDouble((p as Map)['amount_paid']))));
+      final pend = _feeMetrics(first).outstanding;
       amtC.text = pend > 0 ? pend.toInt().toString() : '';
     }
 
@@ -385,9 +430,9 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
         ),
       ] else ...[
       Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), decoration: BoxDecoration(color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: sid, hint: Text('Select outstanding account', style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26), fontWeight: FontWeight.w600)), isExpanded: true, dropdownColor: isDark ? const Color(0xFF0D1282) : Colors.white, icon: const Icon(Icons.keyboard_arrow_down_rounded), items: debtors.map((r) {
-        final pend = _toDouble(r['final_amount'] ?? r['amount']) - (_toDouble((r['payments'] as List? ?? []).fold<double>(0, (s, p) => s + _toDouble((p as Map)['amount_paid']))));
+        final pend = _feeMetrics(r).outstanding;
         return DropdownMenuItem(value: r['id'].toString(), child: Text('${r['student']?['name']} • ₹${pend.toInt()}', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy)));
-      }).toList(), onChanged: (v) { setS(() { sid = v; final matches = _records.where((e) => e['id'].toString() == v).toList(); if (matches.isEmpty) { amtC.text = ''; return; } final r = matches.first; final pend = _toDouble(r['final_amount'] ?? r['amount']) - (_toDouble((r['payments'] as List? ?? []).fold<double>(0, (s, p) => s + _toDouble((p as Map)['amount_paid'])))); amtC.text = pend.toInt().toString(); }); }))),
+      }).toList(), onChanged: (v) { setS(() { sid = v; final matches = _records.where((e) => e['id'].toString() == v).toList(); if (matches.isEmpty) { amtC.text = ''; return; } final r = matches.first; final pend = _feeMetrics(r).outstanding; amtC.text = pend.toInt().toString(); }); }))),
       ],
       const SizedBox(height: 24),
       CustomTextField(label: 'Amount Tendered (₹)', hint: '0', controller: amtC, prefixIcon: Icons.currency_rupee_rounded, keyboardType: TextInputType.number),
