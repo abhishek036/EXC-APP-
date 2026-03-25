@@ -293,4 +293,26 @@ export class NotificationService {
     const result = await NotificationRepository.removeByAnnouncementId(params.instituteId, params.announcementId);
     return { deleted: result.count };
   }
+
+  static async getHealth(instituteId: string) {
+    const [activeTokens, latestFailure] = await Promise.all([
+      NotificationRepository.countActiveDeviceTokensByInstitute(instituteId),
+      NotificationRepository.getLatestDeliveryFailure(instituteId),
+    ]);
+
+    return {
+      firebaseConfigured: Boolean(firebaseMessaging()),
+      activeDeviceTokens: activeTokens,
+      latestFailure: latestFailure
+        ? {
+            id: latestFailure.id,
+            notificationId: latestFailure.notification_id,
+            userId: latestFailure.user_id,
+            token: latestFailure.token,
+            errorMessage: latestFailure.error_message,
+            createdAt: latestFailure.created_at,
+          }
+        : null,
+    };
+  }
 }

@@ -34,6 +34,15 @@ export class NotificationController {
     }
   }
 
+  static async getHealth(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await NotificationService.getHealth(req.instituteId!);
+      return sendResponse({ res, data, message: 'Notification health fetched' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async listMy(req: Request, res: Response, next: NextFunction) {
     try {
       const page = req.query.page ? Number(req.query.page) : 1;

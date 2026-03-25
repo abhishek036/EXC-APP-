@@ -250,4 +250,33 @@ export class NotificationRepository {
       },
     });
   }
+
+  static async countActiveDeviceTokensByInstitute(instituteId: string) {
+    return prisma.userDeviceToken.count({
+      where: {
+        institute_id: instituteId,
+        is_active: true,
+      },
+    });
+  }
+
+  static async getLatestDeliveryFailure(instituteId: string) {
+    return prisma.notificationDeliveryLog.findFirst({
+      where: {
+        institute_id: instituteId,
+        status: 'failed',
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+      select: {
+        id: true,
+        notification_id: true,
+        user_id: true,
+        token: true,
+        error_message: true,
+        created_at: true,
+      },
+    });
+  }
 }
