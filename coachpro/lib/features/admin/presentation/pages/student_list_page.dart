@@ -43,6 +43,14 @@ class _StudentListPageState extends State<StudentListPage> {
 
   static const _statusFilters = ['All', 'Fee Due', 'Overdue', 'Active', 'Inactive'];
 
+  String? _selectedBatchIdForApi() {
+    if (_selectedBatch <= 0) return null;
+    final index = _selectedBatch - 1;
+    if (index < 0 || index >= _batchRaw.length) return null;
+    final value = (_batchRaw[index]['id'] ?? '').toString().trim();
+    return value.isEmpty ? null : value;
+  }
+
   List<_Student> _dedupeStudents(List<_Student> items) {
     final seen = <String>{};
     final unique = <_Student>[];
@@ -84,8 +92,9 @@ class _StudentListPageState extends State<StudentListPage> {
       _loadFailed = false;
     });
     try {
+      final selectedBatchId = _selectedBatchIdForApi();
       final results = await Future.wait([
-        _adminRepo.getStudents(),
+        _adminRepo.getStudents(batchId: selectedBatchId),
         _adminRepo.getBatches(),
       ]);
       if (mounted) {
@@ -119,11 +128,7 @@ class _StudentListPageState extends State<StudentListPage> {
 
   List<_Student> get _filtered {
     final query = _searchController.text.trim().toLowerCase();
-    final selectedBatchId = _selectedBatch == 0
-      ? null
-      : ((_selectedBatch - 1) >= 0 && (_selectedBatch - 1) < _batchRaw.length
-        ? (_batchRaw[_selectedBatch - 1]['id'] ?? '').toString()
-        : null);
+    final selectedBatchId = _selectedBatchIdForApi();
     return _students.where((s) {
       final matchSearch = query.isEmpty ||
           s.name.toLowerCase().contains(query) ||
@@ -486,7 +491,11 @@ class _StudentListPageState extends State<StudentListPage> {
         itemCount: _batches.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, i) => CPPressable(
-          onTap: () { HapticFeedback.selectionClick(); setState(() => _selectedBatch = i); },
+          onTap: () {
+            HapticFeedback.selectionClick();
+            setState(() => _selectedBatch = i);
+            _loadAll();
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16),
