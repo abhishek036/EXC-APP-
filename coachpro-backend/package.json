@@ -9,9 +9,10 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts",
-    "build": "prisma generate && tsc",
+    "build": "tsc",
     "lint": "eslint . --ext .ts",
-    "db:migrate": "prisma migrate dev"
+    "db:migrate": "prisma migrate dev",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "neurovaX",
