@@ -57,6 +57,9 @@ export class AnnouncementService {
       throw new ApiError('Announcement not found', 404, 'NOT_FOUND');
     }
     await this.repo.remove(id, instituteId);
+    try {
+      await NotificationService.deleteByAnnouncement({ instituteId, announcementId: id });
+    } catch {}
     return { success: true };
   }
 }

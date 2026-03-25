@@ -248,4 +248,49 @@ export class NotificationService {
     const result = await NotificationRepository.markAllRead(params);
     return { updated: result.count };
   }
+
+  static async deleteMyNotification(params: { instituteId: string; userId: string; notificationId: string }) {
+    const result = await NotificationRepository.removeByIdForUser(params);
+    if (result.count === 0) {
+      throw new ApiError('Notification not found', 404, 'NOT_FOUND');
+    }
+    return { deleted: result.count };
+  }
+
+  static async deleteGlobalNotification(params: { instituteId: string; requesterRole: string; notificationId: string }) {
+    const notification = await NotificationRepository.findById(params.instituteId, params.notificationId);
+    if (!notification) {
+      throw new ApiError('Notification not found', 404, 'NOT_FOUND');
+    }
+
+    const meta = (notification.meta ?? {}) as Record<string, any>;
+    const roleTarget = (notification.role_target ?? '').toString();
+
+    if (params.requesterRole === 'teacher') {
+      const teacherAllowedTargets = new Set(['student', 'parent']);
+      if (!teacherAllowedTargets.has(roleTarget)) {
+        throw new ApiError('Teachers can only delete teacher-created student/parent notifications', 403, 'FORBIDDEN');
+      }
+    }
+
+    const broadcastId = typeof meta.broadcast_id === 'string' ? meta.broadcast_id : '';
+    if (broadcastId) {
+      const result = await NotificationRepository.removeByBroadcastId(params.instituteId, broadcastId);
+      return { deleted: result.count, scope: 'broadcast' };
+    }
+
+    const announcementId = typeof meta.announcement_id === 'string' ? meta.announcement_id : '';
+    if (announcementId) {
+      const result = await NotificationRepository.removeByAnnouncementId(params.instituteId, announcementId);
+      return { deleted: result.count, scope: 'announcement' };
+    }
+
+    const fallback = await NotificationRepository.removeById(params.instituteId, notification.id);
+    return { deleted: fallback.count, scope: 'single' };
+  }
+
+  static async deleteByAnnouncement(params: { instituteId: string; announcementId: string }) {
+    const result = await NotificationRepository.removeByAnnouncementId(params.instituteId, params.announcementId);
+    return { deleted: result.count };
+  }
 }

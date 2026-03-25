@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { sendResponse } from '../../utils/response';
 import { NotificationService } from './notification.service';
 import { NotificationHandler } from '../../jobs/handlers/notification.handler';
+import { ApiError } from '../../middleware/error.middleware';
 
 export class NotificationController {
   static async registerToken(req: Request, res: Response, next: NextFunction) {
@@ -91,6 +92,24 @@ export class NotificationController {
     try {
       const { title, body, type, role_target, user_id, meta } = req.body;
       const targetInstituteId = req.instituteId!;
+      const requesterRole = req.user?.role ?? '';
+
+      if (requesterRole === 'teacher') {
+        if (user_id) {
+          return next(new ApiError('Teachers must send by role target (student/parent), not direct user id', 403, 'FORBIDDEN'));
+        }
+
+        const teacherAllowedTargets = new Set(['student', 'parent']);
+        if (!role_target || !teacherAllowedTargets.has(role_target)) {
+          return next(new ApiError('Teachers can send notifications only to student or parent roles', 403, 'FORBIDDEN'));
+        }
+      }
+
+      const metaWithBroadcast = {
+        ...(meta ?? {}),
+        broadcast_id: (meta?.broadcast_id ?? `manual:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`).toString(),
+        sender_role: requesterRole,
+      };
 
       let result;
       if (user_id) {
@@ -100,7 +119,7 @@ export class NotificationController {
           type,
           role_target,
           institute_id: targetInstituteId,
-          meta,
+          meta: metaWithBroadcast,
         });
       } else if (role_target && role_target !== 'all') {
         result = await NotificationService.sendNotificationToRole(role_target, {
@@ -109,7 +128,7 @@ export class NotificationController {
           type,
           role_target,
           institute_id: targetInstituteId,
-          meta,
+          meta: metaWithBroadcast,
         });
       } else {
         result = await NotificationService.sendNotificationToInstitute(targetInstituteId, {
@@ -117,7 +136,7 @@ export class NotificationController {
           body,
           type,
           role_target: role_target ?? 'all',
-          meta,
+          meta: metaWithBroadcast,
         });
       }
 
@@ -149,6 +168,32 @@ export class NotificationController {
     try {
       const data = await NotificationHandler.processDailyRevenueSummary();
       return sendResponse({ res, data, message: 'Daily revenue summary notifications sent' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteMine(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await NotificationService.deleteMyNotification({
+        instituteId: req.instituteId!,
+        userId: req.user!.userId,
+        notificationId: req.params.id,
+      });
+      return sendResponse({ res, data, message: 'Notification deleted' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteGlobal(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await NotificationService.deleteGlobalNotification({
+        instituteId: req.instituteId!,
+        requesterRole: req.user!.role,
+        notificationId: req.params.id,
+      });
+      return sendResponse({ res, data, message: 'Notification deleted for all recipients' });
     } catch (error) {
       next(error);
     }

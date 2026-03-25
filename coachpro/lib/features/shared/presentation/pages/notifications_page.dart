@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/theme_aware.dart';
+import '../../../../core/utils/role_prefix.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../student/data/repositories/student_repository.dart';
 
@@ -26,6 +27,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
   int _page = 1;
   final int _perPage = 20;
   String _selectedType = 'all';
+
+  bool get _canComposeOrGlobalDelete {
+    final prefix = context.rolePrefix;
+    return prefix == '/teacher' || prefix == '/admin';
+  }
 
   @override
   void initState() {
@@ -126,6 +132,137 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
+  Future<void> _deleteNotification(int index, {required bool global}) async {
+    final id = (_notifications[index]['id'] ?? '').toString();
+    if (id.isEmpty) return;
+
+    final removed = _notifications.removeAt(index);
+    if (mounted) setState(() {});
+
+    try {
+      if (global) {
+        await _repo.deleteNotificationGlobally(id);
+      } else {
+        await _repo.deleteNotification(id);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(global ? 'Deleted for all recipients' : 'Notification deleted')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      _notifications.insert(index, removed);
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Delete failed. Please try again.')),
+      );
+    }
+  }
+
+  Future<void> _showComposeSheet() async {
+    final titleCtrl = TextEditingController();
+    final bodyCtrl = TextEditingController();
+    String selectedType = 'system';
+    String selectedRole = context.rolePrefix == '/teacher' ? 'student' : 'all';
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final roleOptions = context.rolePrefix == '/teacher'
+                ? const ['student', 'parent']
+                : const ['all', 'teacher', 'student', 'parent', 'admin'];
+            return Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Send Notification', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: titleCtrl,
+                    decoration: const InputDecoration(labelText: 'Title'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: bodyCtrl,
+                    minLines: 2,
+                    maxLines: 4,
+                    decoration: const InputDecoration(labelText: 'Message'),
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedType,
+                    decoration: const InputDecoration(labelText: 'Type'),
+                    items: const ['system', 'class', 'attendance', 'exam', 'fee']
+                        .map((value) => DropdownMenuItem(value: value, child: Text(value.toUpperCase())))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setSheetState(() => selectedType = value);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedRole,
+                    decoration: const InputDecoration(labelText: 'Target role'),
+                    items: roleOptions
+                        .map((value) => DropdownMenuItem(value: value, child: Text(value.toUpperCase())))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setSheetState(() => selectedRole = value);
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final title = titleCtrl.text.trim();
+                        final body = bodyCtrl.text.trim();
+                        if (title.isEmpty || body.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Title and message are required')),
+                          );
+                          return;
+                        }
+                        try {
+                          await _repo.sendManualNotification(
+                            title: title,
+                            body: body,
+                            type: selectedType,
+                            roleTarget: selectedRole,
+                          );
+                          if (!ctx.mounted) return;
+                          Navigator.pop(ctx);
+                          _fetchNotifications(reset: true);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Notification sent')),
+                          );
+                        } catch (_) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Failed to send notification')),
+                          );
+                        }
+                      },
+                      child: const Text('Send'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
@@ -145,6 +282,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
           ],
         ),
         actions: [
+          if (_canComposeOrGlobalDelete)
+            IconButton(
+              icon: const Icon(Icons.add_rounded),
+              onPressed: _showComposeSheet,
+            ),
           if (unreadCount > 0)
             CPPressable(
               onTap: _markAllRead,
@@ -238,6 +380,26 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                                   notif['title'].toString(),
                                                   style: GoogleFonts.sora(fontSize: 14, fontWeight: isRead ? FontWeight.w500 : FontWeight.w700, color: CT.textH(context)),
                                                 ),
+                                              ),
+                                              PopupMenuButton<String>(
+                                                onSelected: (value) {
+                                                  if (value == 'delete_me') {
+                                                    _deleteNotification(index, global: false);
+                                                  } else if (value == 'delete_all') {
+                                                    _deleteNotification(index, global: true);
+                                                  }
+                                                },
+                                                itemBuilder: (_) => [
+                                                  const PopupMenuItem<String>(
+                                                    value: 'delete_me',
+                                                    child: Text('Delete'),
+                                                  ),
+                                                  if (_canComposeOrGlobalDelete)
+                                                    const PopupMenuItem<String>(
+                                                      value: 'delete_all',
+                                                      child: Text('Delete for all'),
+                                                    ),
+                                                ],
                                               ),
                                               if (!isRead)
                                                 Container(width: 8, height: 8, decoration: BoxDecoration(color: CT.accent(context), shape: BoxShape.circle)),

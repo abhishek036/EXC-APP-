@@ -21,7 +21,20 @@ export class StudentRepository {
     const [students, total] = await Promise.all([
       prisma.student.findMany({
         where: whereClause,
-        include: { _count: { select: { student_batches: true } } },
+        include: {
+          _count: { select: { student_batches: true } },
+          student_batches: {
+            where: { is_active: true },
+            include: {
+              batch: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
         skip: pagination.skip,
         take: pagination.take,
         orderBy: { created_at: 'desc' }

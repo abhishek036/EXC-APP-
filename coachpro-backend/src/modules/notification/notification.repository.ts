@@ -198,4 +198,56 @@ export class NotificationRepository {
       },
     });
   }
+
+  static async findById(instituteId: string, notificationId: string) {
+    return prisma.notification.findFirst({
+      where: {
+        id: notificationId,
+        institute_id: instituteId,
+      },
+    });
+  }
+
+  static async removeByIdForUser(params: { instituteId: string; userId: string; notificationId: string }) {
+    return prisma.notification.deleteMany({
+      where: {
+        id: params.notificationId,
+        institute_id: params.instituteId,
+        user_id: params.userId,
+      },
+    });
+  }
+
+  static async removeById(instituteId: string, notificationId: string) {
+    return prisma.notification.deleteMany({
+      where: {
+        id: notificationId,
+        institute_id: instituteId,
+      },
+    });
+  }
+
+  static async removeByBroadcastId(instituteId: string, broadcastId: string) {
+    return prisma.notification.deleteMany({
+      where: {
+        institute_id: instituteId,
+        meta: {
+          path: ['broadcast_id'],
+          equals: broadcastId,
+        },
+      },
+    });
+  }
+
+  static async removeByAnnouncementId(instituteId: string, announcementId: string) {
+    return prisma.notification.deleteMany({
+      where: {
+        institute_id: instituteId,
+        meta: {
+          path: ['announcement_id'],
+          equals: announcementId,
+        },
+      },
+    });
+  }
 }

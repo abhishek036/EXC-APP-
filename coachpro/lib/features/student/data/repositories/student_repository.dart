@@ -246,4 +246,34 @@ class StudentRepository {
     if (response.statusCode == 200) return;
     throw Exception(response.data['message'] ?? 'Failed to mark all notifications as read');
   }
+
+  Future<void> deleteNotification(String notificationId) async {
+    final response = await _api.dio.delete('notifications/$notificationId');
+    if (response.statusCode == 200) return;
+    throw Exception(response.data['message'] ?? 'Failed to delete notification');
+  }
+
+  Future<void> deleteNotificationGlobally(String notificationId) async {
+    final response = await _api.dio.delete('notifications/$notificationId/global');
+    if (response.statusCode == 200) return;
+    throw Exception(response.data['message'] ?? 'Failed to delete notification for all recipients');
+  }
+
+  Future<Map<String, dynamic>> sendManualNotification({
+    required String title,
+    required String body,
+    required String type,
+    required String roleTarget,
+  }) async {
+    final response = await _api.dio.post('notifications/send', data: {
+      'title': title,
+      'body': body,
+      'type': type,
+      'role_target': roleTarget,
+    });
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to send notification');
+  }
 }
