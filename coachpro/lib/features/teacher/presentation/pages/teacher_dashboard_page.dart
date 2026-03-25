@@ -215,15 +215,22 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           ),
         ),
         const SizedBox(width: 10),
-        _circleBtn(Icons.notifications_none_rounded, yellow),
+        _circleBtn(
+          Icons.notifications_none_rounded,
+          yellow,
+          onTap: () => context.go('/teacher/notifications'),
+        ),
       ],
     ).animate().fadeIn().slideY(begin: -0.1);
   }
 
-  Widget _circleBtn(IconData icon, Color yellow) => Container(
-    padding: const EdgeInsets.all(10),
-    decoration: BoxDecoration(color: yellow, shape: BoxShape.circle, border: Border.all(color: Colors.black, width: 2.5)),
-    child: Icon(icon, color: Colors.black, size: 22),
+  Widget _circleBtn(IconData icon, Color yellow, {VoidCallback? onTap}) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: yellow, shape: BoxShape.circle, border: Border.all(color: Colors.black, width: 2.5)),
+      child: Icon(icon, color: Colors.black, size: 22),
+    ),
   );
 
   Widget _sectionLabel(String text, Color yellow) => Text(text, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: yellow, letterSpacing: 2));

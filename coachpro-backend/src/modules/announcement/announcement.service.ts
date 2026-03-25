@@ -1,6 +1,7 @@
 import { ApiError } from '../../middleware/error.middleware';
 import { CreateAnnouncementInput, UpdateAnnouncementInput } from './announcement.validator';
 import { AnnouncementRepository } from './announcement.repository';
+import { NotificationService } from '../notification/notification.service';
 
 export class AnnouncementService {
   private repo: AnnouncementRepository;
@@ -23,7 +24,23 @@ export class AnnouncementService {
   }
 
   async create(instituteId: string, userId: string, data: CreateAnnouncementInput) {
-    return this.repo.create(instituteId, userId, data);
+    const created = await this.repo.create(instituteId, userId, data);
+
+    try {
+      await NotificationService.sendNotificationToInstitute(instituteId, {
+        title: data.title,
+        body: data.body,
+        type: 'announcement',
+        role_target: 'all',
+        meta: {
+          route: '/announcements',
+          source: 'announcement-create',
+          announcement_id: created.id,
+        },
+      });
+    } catch {}
+
+    return created;
   }
 
   async update(id: string, instituteId: string, data: UpdateAnnouncementInput) {

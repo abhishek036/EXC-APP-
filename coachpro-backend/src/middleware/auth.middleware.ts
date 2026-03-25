@@ -22,6 +22,11 @@ declare global {
 export const authenticateJWT = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret || jwtSecret.trim().length < 16) {
+    return next(new ApiError('Server auth configuration missing', 500, 'AUTH_CONFIG_MISSING'));
+  }
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return next(new ApiError('No token provided', 401, 'UNAUTHORIZED'));
   }
@@ -29,7 +34,7 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+    const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
     
     // Check if user still exists and is active (Optional but recommended)
     const activeUser = await prisma.user.findFirst({
@@ -42,7 +47,10 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
 
     req.user = decoded;
     next();
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.name === 'TokenExpiredError') {
+      return next(new ApiError('Token expired', 401, 'TOKEN_EXPIRED'));
+    }
     next(new ApiError('Invalid or expired token', 401, 'INVALID_TOKEN'));
   }
 };

@@ -10,12 +10,19 @@ dotenv.config();
 const PORT = process.env.PORT || 3000;
 export const prisma = new PrismaClient();
 
+function validateCriticalEnv() {
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.trim().length < 16) {
+        throw new Error('JWT_SECRET is missing or too short. Set a stable JWT_SECRET in Azure App Settings before starting the server.');
+    }
+}
+
 import { setupQueues } from './jobs/queue';
 
 // Only start the server if this file is run directly (not imported via tests/seeder)
 if (require.main === module) {
     const startServer = async () => {
         try {
+            validateCriticalEnv();
             await prisma.$connect();
             console.log('✅ Connected to database successfully');
             initializeFirebaseAdmin();

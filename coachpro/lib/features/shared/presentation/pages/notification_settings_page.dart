@@ -29,12 +29,26 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   Future<void> _loadPreferences() async {
     final prefs = await PushNotificationService.instance.getPreferences();
-    setState(() => _prefs = prefs);
+    final globalEnabled = await PushNotificationService.instance.isPushEnabled();
+    setState(() {
+      _prefs = prefs;
+      _globalEnabled = globalEnabled;
+    });
   }
 
   Future<void> _toggleCategory(NotificationCategory category, bool value) async {
     setState(() => _prefs[category] = value);
     await PushNotificationService.instance.setPreference(category, value);
+  }
+
+  Future<void> _toggleGlobal(bool value) async {
+    setState(() => _globalEnabled = value);
+    try {
+      await PushNotificationService.instance.setPushEnabled(value);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _globalEnabled = !value);
+    }
   }
 
   @override
@@ -58,7 +72,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
             title: 'Push Notifications',
             subtitle: 'Enable or disable all push notifications',
             value: _globalEnabled,
-            onChanged: (v) => setState(() => _globalEnabled = v),
+            onChanged: _toggleGlobal,
             accent: accent,
           ).animate().fadeIn(duration: 300.ms),
 

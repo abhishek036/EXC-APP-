@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +11,7 @@ import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_glass_card.dart';
 import '../../../../core/widgets/cp_toast.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../data/repositories/admin_repository.dart';
 
 class AnnouncementsPage extends StatefulWidget {
@@ -70,6 +72,8 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = context.read<AuthBloc>().state;
+    final isAdmin = authState is AuthAuthenticated && authState.user.role.name == 'admin';
     final isDark = CT.isDark(context);
     final catColors = {
       'Fee': AppColors.warning,
@@ -101,20 +105,21 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                       const SizedBox(width: 16),
                       Text('Broadcast Center', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1.0)),
                       const Spacer(),
-                      CPPressable(
-                        onTap: () => _showAddAnnouncementSheet(context),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          decoration: BoxDecoration(color: const Color(0xFFE3D465), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.add_alert_rounded, size: 20, color: Color(0xFF0D1282)),
-                              const SizedBox(width: 8),
-                              Text('Broadcast', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: -0.5)),
-                            ],
+                      if (isAdmin)
+                        CPPressable(
+                          onTap: () => _showAddAnnouncementSheet(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            decoration: BoxDecoration(color: const Color(0xFFE3D465), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.add_alert_rounded, size: 20, color: Color(0xFF0D1282)),
+                                const SizedBox(width: 8),
+                                Text('Broadcast', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: -0.5)),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -206,24 +211,26 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                             if (pinned) Icon(Icons.push_pin_rounded, size: 16, color: AppColors.warning),
                                             if (pinned) const SizedBox(width: 8),
                                             Text(dateStr, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black38)),
-                                            const SizedBox(width: 12),
-                                            CPPressable(
-                                              onTap: () => _showEditAnnouncementSheet(announcement),
-                                              child: Container(
-                                                padding: const EdgeInsets.all(6),
-                                                decoration: BoxDecoration(color: const Color(0xFFE3D465), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
-                                                child: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF0D1282)),
+                                            if (isAdmin) ...[
+                                              const SizedBox(width: 12),
+                                              CPPressable(
+                                                onTap: () => _showEditAnnouncementSheet(announcement),
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(6),
+                                                  decoration: BoxDecoration(color: const Color(0xFFE3D465), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
+                                                  child: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF0D1282)),
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            CPPressable(
-                                              onTap: () => _deleteAnnouncement((announcement['id'] ?? '').toString()),
-                                              child: Container(
-                                                padding: const EdgeInsets.all(6),
-                                                decoration: BoxDecoration(color: AppColors.error, border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
-                                                child: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.white),
+                                              const SizedBox(width: 8),
+                                              CPPressable(
+                                                onTap: () => _deleteAnnouncement((announcement['id'] ?? '').toString()),
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(6),
+                                                  decoration: BoxDecoration(color: AppColors.error, border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
+                                                  child: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.white),
+                                                ),
                                               ),
-                                            ),
+                                            ],
                                           ]),
                                           const SizedBox(height: 16),
                                           Text(title, style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),

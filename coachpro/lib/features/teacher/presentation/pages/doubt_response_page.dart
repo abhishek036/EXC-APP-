@@ -22,10 +22,20 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
     final answer = _answerController.text.trim();
     if (answer.isEmpty) return;
 
+    final doubtId = widget.doubt['id']?.toString() ?? '';
+    if (doubtId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid doubt payload. Please open this from Pending Doubts page.')),
+        );
+      }
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
       await _teacherRepo.answerDoubt(
-        doubtId: widget.doubt['id']?.toString() ?? '',
+        doubtId: doubtId,
         answer: answer,
       );
       if (mounted) {

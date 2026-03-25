@@ -97,6 +97,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
         batchId: batchId,
         sessionDate: sessionDate,
         records: records,
+        notifyParents: _notifyParents,
       );
 
       if (!mounted) return;

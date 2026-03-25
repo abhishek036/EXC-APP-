@@ -679,7 +679,26 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizResultsPage())),
+                  onPressed: () {
+                    final firstQuizId = _practiceQuizzes.isNotEmpty ? (_practiceQuizzes.first['id'] ?? '').toString() : '';
+                    final firstTestId = _scheduledTests.isNotEmpty ? (_scheduledTests.first['id'] ?? '').toString() : '';
+                    final targetId = firstQuizId.isNotEmpty ? firstQuizId : firstTestId;
+                    if (targetId.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Create a quiz or test first to view analytics.')),
+                      );
+                      return;
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => QuizResultsPage(
+                          quizId: targetId,
+                          fallbackTitle: 'BATCH ANALYTICS',
+                        ),
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: yellow,
                     foregroundColor: blue,
@@ -781,6 +800,24 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: quizId.isEmpty
+                              ? null
+                              : () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => QuizResultsPage(
+                                        quizId: quizId,
+                                        fallbackTitle: title,
+                                      ),
+                                    ),
+                                  ),
+                          style: ElevatedButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white),
+                          child: Text('RESULTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: OutlinedButton(
                           onPressed: quizId.isEmpty
@@ -932,6 +969,24 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: testId.isEmpty
+                              ? null
+                              : () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => QuizResultsPage(
+                                        quizId: testId,
+                                        fallbackTitle: title,
+                                      ),
+                                    ),
+                                  ),
+                          style: ElevatedButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white),
+                          child: Text('RESULTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: OutlinedButton(
                           onPressed: testId.isEmpty

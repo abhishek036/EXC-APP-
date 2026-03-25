@@ -11,6 +11,7 @@
     "dev": "nodemon src/server.ts",
     "build": "tsc",
     "lint": "eslint . --ext .ts",
+    "smoke:push": "node scripts/push-smoke.js",
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate"
   },

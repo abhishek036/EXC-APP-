@@ -79,6 +79,8 @@ class PushNotification {
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  if (kIsWeb) return;
+
   try {
     await Firebase.initializeApp();
   } catch (_) {}
@@ -110,6 +112,8 @@ class PushNotificationService {
   PushNotificationService._();
   static final instance = PushNotificationService._();
 
+  static const String _globalPushEnabledKey = 'notificationsEnabled';
+
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   final StreamController<Map<String, dynamic>> _notificationController = StreamController<Map<String, dynamic>>.broadcast();
@@ -125,6 +129,12 @@ class PushNotificationService {
 
   Future<void> initialize() async {
     if (_initialized) return;
+
+    if (kIsWeb) {
+      debugPrint('PushNotificationService skipped on web: Firebase web options not configured');
+      _initialized = true;
+      return;
+    }
 
     try {
       await Firebase.initializeApp();
@@ -153,6 +163,14 @@ class PushNotificationService {
         } catch (_) {}
       },
     );
+
+    final prefs = await SharedPreferences.getInstance();
+    final globalPushEnabled = prefs.getBool(_globalPushEnabledKey) ?? true;
+    if (!globalPushEnabled) {
+      _initialized = true;
+      debugPrint('PushNotificationService initialized with push disabled by user preference');
+      return;
+    }
 
     final messaging = FirebaseMessaging.instance;
     await messaging.requestPermission(alert: true, badge: true, sound: true, provisional: false);
@@ -238,6 +256,36 @@ class PushNotificationService {
 
   Future<void> syncTokenRegistration() async {
     await _registerCurrentToken();
+  }
+
+  Future<bool> isPushEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_globalPushEnabledKey) ?? true;
+  }
+
+  Future<void> setPushEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_globalPushEnabledKey, enabled);
+
+    if (!enabled) {
+      await unregisterToken();
+      try {
+        await FirebaseMessaging.instance.deleteToken();
+      } catch (_) {}
+      _fcmToken = null;
+      return;
+    }
+
+    if (!_initialized) {
+      await initialize();
+      return;
+    }
+
+    await FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true, provisional: false);
+    _fcmToken = await FirebaseMessaging.instance.getToken();
+    if (_fcmToken != null && _fcmToken!.isNotEmpty) {
+      await _registerCurrentToken();
+    }
   }
 
   Future<void> subscribeToTopic(String topic) async {

@@ -124,46 +124,70 @@ export class NotificationService {
         continue;
       }
 
-      const response = await messaging.sendEachForMulticast({
-        tokens: userTokens,
-        notification: {
-          title: payload.title,
-          body: payload.body,
-        },
-        data: {
-          type: payload.type,
-          click_action: 'FLUTTER_NOTIFICATION_CLICK',
-          ...(payload.meta
-            ? Object.entries(payload.meta).reduce<Record<string, string>>((acc, [key, value]) => {
-                acc[key] = typeof value === 'string' ? value : JSON.stringify(value);
-                return acc;
-              }, {})
-            : {}),
-        },
-      });
+      try {
+        const response = await messaging.sendEachForMulticast({
+          tokens: userTokens,
+          notification: {
+            title: payload.title,
+            body: payload.body,
+          },
+          data: {
+            type: payload.type,
+            click_action: 'FLUTTER_NOTIFICATION_CLICK',
+            ...(payload.meta
+              ? Object.entries(payload.meta).reduce<Record<string, string>>((acc, [key, value]) => {
+                  acc[key] = typeof value === 'string' ? value : JSON.stringify(value);
+                  return acc;
+                }, {})
+              : {}),
+          },
+        });
 
-      for (let i = 0; i < response.responses.length; i++) {
-        const item = response.responses[i];
-        const token = userTokens[i];
-        if (item.success) {
-          delivered += 1;
-          await NotificationRepository.createDeliveryLog({
-            notification_id: notification.id,
-            institute_id: payload.institute_id,
-            user_id: userId,
-            token,
-            status: 'sent',
-            provider_message_id: item.messageId,
-          });
-        } else {
-          failed += 1;
+        for (let i = 0; i < response.responses.length; i++) {
+          const item = response.responses[i];
+          const token = userTokens[i];
+          if (item.success) {
+            delivered += 1;
+            await NotificationRepository.createDeliveryLog({
+              notification_id: notification.id,
+              institute_id: payload.institute_id,
+              user_id: userId,
+              token,
+              status: 'sent',
+              provider_message_id: item.messageId,
+            });
+          } else {
+            failed += 1;
+            const errorCode = item.error?.code ?? '';
+
+            await NotificationRepository.createDeliveryLog({
+              notification_id: notification.id,
+              institute_id: payload.institute_id,
+              user_id: userId,
+              token,
+              status: 'failed',
+              error_message: item.error?.message,
+            });
+
+            if (errorCode === 'messaging/registration-token-not-registered' || errorCode === 'messaging/invalid-registration-token') {
+              await NotificationRepository.deactivateDeviceToken({
+                instituteId: payload.institute_id,
+                userId,
+                token,
+              });
+            }
+          }
+        }
+      } catch (error: any) {
+        failed += userTokens.length;
+        for (const token of userTokens) {
           await NotificationRepository.createDeliveryLog({
             notification_id: notification.id,
             institute_id: payload.institute_id,
             user_id: userId,
             token,
             status: 'failed',
-            error_message: item.error?.message,
+            error_message: error?.message ?? 'FCM send failed',
           });
         }
       }

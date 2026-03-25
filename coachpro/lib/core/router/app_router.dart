@@ -516,7 +516,15 @@ class AppRouter {
                   name: 'pending-doubts',
                   pageBuilder: (c, s) => _page(s, const PendingDoubtsPage()),
                   routes: [
-                    GoRoute(path: 'response', name: 'doubt-response', pageBuilder: (c, s) => _page(s, DoubtResponsePage(doubt: s.extra as Map<String, dynamic>))),
+                    GoRoute(
+                      path: 'response',
+                      name: 'doubt-response',
+                      pageBuilder: (c, s) {
+                        final extra = s.extra;
+                        final doubt = extra is Map<String, dynamic> ? extra : <String, dynamic>{};
+                        return _page(s, DoubtResponsePage(doubt: doubt));
+                      },
+                    ),
                   ],
                 ),
               ]),

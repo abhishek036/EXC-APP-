@@ -174,11 +174,13 @@ class TeacherRepository {
     required String batchId,
     required String sessionDate,
     required List<Map<String, dynamic>> records,
+    bool notifyParents = true,
   }) async {
     final response = await _api.dio.post('attendance/mark', data: {
       'batch_id': batchId,
       'session_date': sessionDate,
       'records': records,
+      'notify_parents': notifyParents,
     });
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
@@ -375,6 +377,14 @@ class TeacherRepository {
       return _extractList(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch results');
+  }
+
+  Future<Map<String, dynamic>> getQuizReport(String quizId) async {
+    final response = await _api.dio.get('quizzes/$quizId/report');
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch quiz report');
   }
 
   Future<List<Map<String, dynamic>>> getAssignments({String? batchId}) async {

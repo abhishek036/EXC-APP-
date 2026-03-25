@@ -26,8 +26,10 @@ export class AttendanceService {
 
      const session = await this.repo.markAttendance(instituteId, userId, teacherProfileId, data);
      
-     // Queue the background job for alerts (only if Redis is available)
-     if (notificationQueue) {
+     const shouldNotifyParents = data.notify_parents !== false;
+
+     // Queue the background job for alerts (only if Redis is available and notifications are enabled)
+     if (notificationQueue && shouldNotifyParents) {
        await notificationQueue.add('ATTENDANCE_ALERT', { 
          sessionId: session.id, 
          instituteId 

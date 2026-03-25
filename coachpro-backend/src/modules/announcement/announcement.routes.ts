@@ -10,7 +10,7 @@ const controller = new AnnouncementController();
 
 router.use(authenticateJWT, tenantMiddleware);
 
-router.get('/', requireRole('admin', 'teacher'), controller.list);
+router.get('/', requireRole('admin', 'teacher', 'student', 'parent'), controller.list);
 router.post('/', requireRole('admin'), validate(createAnnouncementSchema), controller.create);
 router.put('/:id', requireRole('admin'), validate(updateAnnouncementSchema), controller.update);
 router.delete('/:id', requireRole('admin'), controller.remove);

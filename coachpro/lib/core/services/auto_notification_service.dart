@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
+import '../di/injection_container.dart';
+import '../network/api_client.dart';
+
 /// Types of automated notifications.
 enum AutoNotificationType {
   feeReminder,
@@ -189,15 +192,21 @@ class AutoNotificationService {
 
   /// Trigger a manual fee reminder check (admin action).
   Future<void> triggerFeeReminders() async {
-    // TODO: API call to backend
-    // await apiClient.post('/notifications/trigger-fee-reminders');
-    debugPrint('Fee reminder check triggered');
+    try {
+      await sl<ApiClient>().dio.post('notifications/trigger/fee-reminders');
+    } catch (error) {
+      debugPrint('Fee reminder trigger failed: $error');
+      rethrow;
+    }
   }
 
   /// Trigger manual attendance notifications.
   Future<void> triggerAttendanceNotifications() async {
-    // TODO: API call to backend
-    // await apiClient.post('/notifications/trigger-attendance');
-    debugPrint('Attendance notification triggered');
+    try {
+      await sl<ApiClient>().dio.post('notifications/trigger/class-reminders');
+    } catch (error) {
+      debugPrint('Attendance notification trigger failed: $error');
+      rethrow;
+    }
   }
 }

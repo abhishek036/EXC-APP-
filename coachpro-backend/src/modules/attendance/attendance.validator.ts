@@ -4,6 +4,7 @@ export const markAttendanceSchema = z.object({
   body: z.object({
     batch_id: z.string().uuid(),
     session_date: z.string(), // Simple YYYY-MM-DD format
+    notify_parents: z.boolean().optional().default(true),
     records: z.array(z.object({
        student_id: z.string().uuid(),
        status: z.enum(['present', 'absent', 'late', 'excused']),
