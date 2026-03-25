@@ -208,13 +208,14 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     int present = 0;
 
     for (final session in _attendanceSessions) {
-      final records = (session['student_records'] as List?) ?? const [];
+      final records = (session['records'] as List?) ?? (session['student_records'] as List?) ?? const [];
       for (final entry in records) {
         if (entry is! Map) continue;
         final id = (entry['student_id'] ?? '').toString();
         if (id != studentId) continue;
         total += 1;
-        if ((entry['status'] ?? '').toString().toLowerCase() == 'present') present += 1;
+        final status = (entry['status'] ?? '').toString().toLowerCase();
+        if (status == 'present' || status == 'late') present += 1;
       }
     }
 
