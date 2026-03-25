@@ -12,6 +12,8 @@
     "build": "tsc",
     "lint": "eslint . --ext .ts",
     "smoke:push": "node scripts/push-smoke.js",
+    "db:lecture-uuid:audit": "node scripts/azure-lecture-uuid-cleanup.js",
+    "db:lecture-uuid:clean": "node scripts/azure-lecture-uuid-cleanup.js --apply",
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate"
   },

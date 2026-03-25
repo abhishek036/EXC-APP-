@@ -119,15 +119,20 @@ class _StudentListPageState extends State<StudentListPage> {
 
   List<_Student> get _filtered {
     final query = _searchController.text.trim().toLowerCase();
-    final batchFilter = _selectedBatch == 0 ? null : _batches[_selectedBatch];
+    final selectedBatchId = _selectedBatch == 0
+      ? null
+      : ((_selectedBatch - 1) >= 0 && (_selectedBatch - 1) < _batchRaw.length
+        ? (_batchRaw[_selectedBatch - 1]['id'] ?? '').toString()
+        : null);
     return _students.where((s) {
       final matchSearch = query.isEmpty ||
           s.name.toLowerCase().contains(query) ||
           s.id.toLowerCase().contains(query) ||
           s.phone.contains(query) ||
           s.rollNumber.toLowerCase().contains(query);
-      final matchBatch = batchFilter == null ||
-          s.batchNames.any((b) => b.toLowerCase().contains(batchFilter.toLowerCase()));
+      final matchBatch = selectedBatchId == null || selectedBatchId.isEmpty
+        ? true
+        : s.batchIds.contains(selectedBatchId);
       final matchStatus = switch (_selectedFilter) {
         1 => s.feeStatus == 'PENDING' || s.feeStatus == 'OVERDUE',
         2 => s.feeStatus == 'OVERDUE',
@@ -835,12 +840,14 @@ class _StudentListPageState extends State<StudentListPage> {
 class _Student {
   final String docId, name, id, rollNumber, phone;
   final List<String> batchNames;
+  final List<String> batchIds;
   final int attendance;
   final String feeStatus, status;
 
   const _Student({
     required this.docId, required this.name, required this.id,
     required this.rollNumber, required this.phone, required this.batchNames,
+    required this.batchIds,
     required this.attendance, required this.feeStatus, required this.status,
   });
 
@@ -851,8 +858,11 @@ class _Student {
     final studentBatches = map['student_batches'] as List?;
     final batchName = (map['batch'] ?? map['batch_name']) as String?;
     List<String> batchNames;
+    List<String> batchIds;
     if (batchName != null && batchName.isNotEmpty) {
       batchNames = [batchName];
+      final fallbackId = (map['batch_id'] ?? '').toString();
+      batchIds = fallbackId.isEmpty ? [] : [fallbackId];
     } else if (studentBatches != null && studentBatches.isNotEmpty) {
       batchNames = studentBatches
           .map((entry) {
@@ -867,13 +877,33 @@ class _Student {
           })
           .where((name) => name.isNotEmpty)
           .toList();
+      batchIds = studentBatches
+          .map((entry) {
+            if (entry is Map) {
+              final nestedBatch = entry['batch'];
+              if (nestedBatch is Map) {
+                return (nestedBatch['id'] ?? '').toString();
+              }
+              return (entry['batch_id'] ?? '').toString();
+            }
+            return '';
+          })
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
     } else if (batches != null && batches.isNotEmpty) {
       batchNames = batches
           .map((e) => e is Map ? (e['name'] ?? '').toString() : e.toString())
           .where((e) => e.isNotEmpty)
           .toList();
+      batchIds = batches
+          .map((e) => e is Map ? (e['id'] ?? '').toString() : '')
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
     } else {
       batchNames = [];
+      batchIds = [];
     }
 
     return _Student(
@@ -883,6 +913,7 @@ class _Student {
       rollNumber: (map['student_code'] ?? map['rollNumber'] ?? '').toString(),
       phone: (map['phone'] ?? '').toString(),
       batchNames: batchNames,
+        batchIds: batchIds,
       attendance: (map['attendance_percent'] ?? map['attendancePercent'] ?? 0) is num
           ? ((map['attendance_percent'] ?? map['attendancePercent'] ?? 0) as num).toInt()
           : 0,
