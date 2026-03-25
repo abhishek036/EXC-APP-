@@ -33,14 +33,27 @@ function normalizePrivateKey(key?: string): string | undefined {
 
 function tryParseServiceAccount(raw: string): admin.ServiceAccount | null {
   try {
-    const parsed = JSON.parse(raw) as admin.ServiceAccount;
-    if (!parsed?.projectId || !parsed?.clientEmail || !parsed?.privateKey) {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+
+    const projectId =
+      (parsed.projectId as string | undefined)?.trim() ||
+      (parsed.project_id as string | undefined)?.trim();
+    const clientEmail =
+      (parsed.clientEmail as string | undefined)?.trim() ||
+      (parsed.client_email as string | undefined)?.trim();
+    const privateKeyRaw =
+      (parsed.privateKey as string | undefined) ||
+      (parsed.private_key as string | undefined);
+    const privateKey = normalizePrivateKey(privateKeyRaw);
+
+    if (!projectId || !clientEmail || !privateKey) {
       return null;
     }
+
     return {
-      projectId: parsed.projectId,
-      clientEmail: parsed.clientEmail,
-      privateKey: normalizePrivateKey(parsed.privateKey)!,
+      projectId,
+      clientEmail,
+      privateKey,
     } as admin.ServiceAccount;
   } catch {
     return null;
