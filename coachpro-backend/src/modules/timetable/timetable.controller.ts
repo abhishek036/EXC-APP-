@@ -103,4 +103,15 @@ export class TimetableController {
       next(error);
     }
   };
+
+  clearMyPastSchedules = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await this.service.clearPastSchedules(req.user!.userId, req.instituteId!);
+      // Use a generic event
+      emitBatchSync(req.instituteId!, 'all', 'lecture_schedule_cleared');
+      return sendResponse({ res, data: null, message: 'Past schedules cleared' });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

@@ -16,6 +16,7 @@ router.get('/teacher/me', requireRole('teacher'), controller.getMySchedule);
 router.post('/schedule', requireRole(['admin', 'teacher'] as any), controller.schedule);
 router.post('/teacher/me', requireRole('teacher'), controller.createMySchedule);
 router.put('/teacher/me/:lectureId', requireRole('teacher'), controller.updateMySchedule);
+router.delete('/teacher/me/past', requireRole('teacher'), controller.clearMyPastSchedules);
 router.delete('/teacher/me/:lectureId', requireRole('teacher'), controller.deleteMySchedule);
 
 export default router;

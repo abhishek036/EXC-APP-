@@ -519,62 +519,79 @@ export class TimetableService {
     if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
     const requestedDateKey = this.normalizeRequestedDateKey(date);
+    let dateRange: { start: Date; end: Date } | undefined;
 
-    try {
-      const schedules = await prisma.lecture.findMany({
-        where: {
-          institute_id: instituteId,
-          teacher_id: teacher.id,
-          is_active: true,
-        },
-        select: {
-          id: true,
-          title: true,
-          scheduled_at: true,
-          duration_minutes: true,
-          subject: true,
-          link: true,
-          class_room: true,
-          batch_id: true,
-          batch: { select: { name: true, subject: true } },
-        },
-        orderBy: { scheduled_at: 'asc' },
-      });
-      return this.filterSchedulesByIstDate(schedules, requestedDateKey);
-    } catch (error) {
-      if (this.isInvalidLectureUuidData(error)) {
-        this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw schedule fallback query (with duration)');
-        const schedules = await this.getTeacherScheduleRawFallback(instituteId, teacher.id, undefined, undefined, true);
-        return this.filterSchedulesByIstDate(schedules, requestedDateKey);
-      }
-      if (!this.isMissingTimetableColumn(error)) throw error;
-
-      try {
-        const schedules = await prisma.lecture.findMany({
-          where: {
-            institute_id: instituteId,
-            teacher_id: teacher.id,
-            is_active: true,
-          },
-          select: {
-            id: true,
-            title: true,
-            scheduled_at: true,
-            batch_id: true,
-            batch: { select: { name: true, subject: true } },
-          },
-          orderBy: { scheduled_at: 'asc' },
-        });
-        return this.filterSchedulesByIstDate(schedules, requestedDateKey);
-      } catch (fallbackError) {
-        if (this.isInvalidLectureUuidData(fallbackError)) {
-          this.logger.warn('[TimetableService] Invalid lecture UUID data detected; using raw schedule fallback query (without duration column)');
-          const schedules = await this.getTeacherScheduleRawFallback(instituteId, teacher.id, undefined, undefined, false);
-          return this.filterSchedulesByIstDate(schedules, requestedDateKey);
-        }
-        throw fallbackError;
+    if (requestedDateKey) {
+      const parts = requestedDateKey.split('-').map(Number);
+      if (parts.length === 3) {
+        dateRange = this.getIstDayRangeUtc(parts[0], parts[1], parts[2]);
       }
     }
+
+    const where: any = {
+      institute_id: instituteId,
+      teacher_id: teacher.id,
+      is_active: true,
+    };
+
+    if (dateRange) {
+      where.scheduled_at = {
+        gte: dateRange.start,
+        lte: dateRange.end,
+      };
+    }
+
+    const select = {
+      id: true,
+      title: true,
+      scheduled_at: true,
+      duration_minutes: true,
+      subject: true,
+      link: true,
+      class_room: true,
+      batch_id: true,
+      batch: { select: { name: true, subject: true } },
+    };
+
+    try {
+      // 1. Primary path (Standard Prisma query)
+      const schedules = await prisma.lecture.findMany({
+        where,
+        select,
+        orderBy: { scheduled_at: 'asc' },
+      });
+      return schedules;
+    } catch (error) {
+      // 2. Error fallbacks (Schema mismatch or DB issues)
+      if (this.isInvalidLectureUuidData(error) || this.isMissingTimetableColumn(error)) {
+        this.logger.warn('[TimetableService] Prisma query failed, using raw fallback path');
+        const start = dateRange?.start;
+        const end = dateRange?.end;
+        const schedules = await this.getTeacherScheduleRawFallback(instituteId, teacher.id, start, end, !this.isMissingTimetableColumn(error));
+        return schedules;
+      }
+      throw error;
+    }
+  }
+
+  async clearPastSchedules(userId: string, instituteId: string) {
+    const teacher = await prisma.teacher.findFirst({
+      where: { user_id: userId, institute_id: instituteId },
+      select: { id: true },
+    });
+    if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
+
+    // Mark all active lectures before "now" as inactive
+    const now = new Date();
+    await prisma.lecture.updateMany({
+      where: {
+        teacher_id: teacher.id,
+        institute_id: instituteId,
+        is_active: true,
+        scheduled_at: { lt: now },
+      },
+      data: { is_active: false },
+    });
   }
 
   async createTeacherScheduleByUser(
