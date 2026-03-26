@@ -57,9 +57,9 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
     });
 
     if (latestSession?.created_at && decoded.iat) {
-      const tokenIssuedAtMs = decoded.iat * 1000;
-      const latestSessionMs = new Date(latestSession.created_at).getTime();
-      if (tokenIssuedAtMs < latestSessionMs) {
+      const tokenIssuedAtSec = decoded.iat;
+      const latestSessionSec = Math.floor(new Date(latestSession.created_at).getTime() / 1000);
+      if (tokenIssuedAtSec < latestSessionSec) {
         return next(new ApiError('Session expired due to login on another device', 401, 'SESSION_REVOKED'));
       }
     }
