@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/widgets/cp_glass_card.dart';
@@ -100,7 +101,13 @@ class _AdminReportsPageState extends State<AdminReportsPage> with SingleTickerPr
                   scrolledUnderElevation: 0,
                   title: Text('Analytics Engine', style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 24, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1)),
                   actions: [
-                    IconButton(onPressed: () => HapticFeedback.lightImpact(), icon: Icon(Icons.get_app_rounded, color: isDark ? Colors.white : AppColors.deepNavy)),
+                    IconButton(
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        context.push('/admin/data-export');
+                      },
+                      icon: Icon(Icons.get_app_rounded, color: isDark ? Colors.white : AppColors.deepNavy),
+                    ),
                     const SizedBox(width: 8),
                   ],
                   bottom: PreferredSize(

@@ -987,8 +987,8 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                       Wrap(
                         spacing: 8,
                         children: [
-                          OutlinedButton(onPressed: () => CPToast.info(context, 'Submission viewer will open here'), child: const Text('View Submissions')),
-                          OutlinedButton(onPressed: () => CPToast.info(context, 'Grading console will open here'), child: const Text('Grade')),
+                          OutlinedButton(onPressed: () => context.push('/admin/exams'), child: const Text('View Submissions')),
+                          OutlinedButton(onPressed: () => context.push('/admin/exams'), child: const Text('Grade')),
                           OutlinedButton(onPressed: () => context.push('/admin/whatsapp-broadcast'), child: const Text('Send Reminder')),
                         ],
                       ),
