@@ -77,6 +77,26 @@ class PushNotification {
       );
 }
 
+  class PushRegistrationStatus {
+    final bool pushEnabled;
+    final bool initialized;
+    final bool hasToken;
+    final bool registeredWithBackend;
+    final String message;
+    final String? token;
+    final DateTime? lastUpdatedAt;
+
+    const PushRegistrationStatus({
+      required this.pushEnabled,
+      required this.initialized,
+      required this.hasToken,
+      required this.registeredWithBackend,
+      required this.message,
+      required this.token,
+      required this.lastUpdatedAt,
+    });
+  }
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (kIsWeb) return;
@@ -124,6 +144,9 @@ class PushNotificationService {
 
   String? _fcmToken;
   bool _initialized = false;
+  bool _lastRegisterSucceeded = false;
+  String _lastRegisterMessage = 'Push status not checked yet';
+  DateTime? _lastRegisterAt;
 
   String? get fcmToken => _fcmToken;
 
@@ -240,8 +263,14 @@ class PushNotificationService {
                   : 'web',
         },
       );
+      _lastRegisterSucceeded = true;
+      _lastRegisterAt = DateTime.now();
+      _lastRegisterMessage = 'FCM token registered on backend';
       debugPrint('FCM token registered on backend');
     } catch (error) {
+      _lastRegisterSucceeded = false;
+      _lastRegisterAt = DateTime.now();
+      _lastRegisterMessage = 'FCM token register failed: $error';
       debugPrint('FCM token register failed: $error');
     }
   }
@@ -278,6 +307,20 @@ class PushNotificationService {
       await initialize();
     }
     await _registerCurrentToken();
+  }
+
+  Future<PushRegistrationStatus> getStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pushEnabled = prefs.getBool(_globalPushEnabledKey) ?? true;
+    return PushRegistrationStatus(
+      pushEnabled: pushEnabled,
+      initialized: _initialized,
+      hasToken: _fcmToken != null && _fcmToken!.isNotEmpty,
+      registeredWithBackend: _lastRegisterSucceeded,
+      message: _lastRegisterMessage,
+      token: _fcmToken,
+      lastUpdatedAt: _lastRegisterAt,
+    );
   }
 
   Future<bool> isPushEnabled() async {

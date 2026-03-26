@@ -20,11 +20,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   final String _quietHoursStart = '10:00 PM';
   final String _quietHoursEnd = '7:00 AM';
   bool _quietHoursEnabled = false;
+  Future<PushRegistrationStatus>? _statusFuture;
 
   @override
   void initState() {
     super.initState();
     _loadPreferences();
+    _statusFuture = PushNotificationService.instance.getStatus();
   }
 
   Future<void> _loadPreferences() async {
@@ -33,6 +35,12 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     setState(() {
       _prefs = prefs;
       _globalEnabled = globalEnabled;
+    });
+  }
+
+  void _refreshStatus() {
+    setState(() {
+      _statusFuture = PushNotificationService.instance.getStatus();
     });
   }
 
@@ -45,6 +53,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     setState(() => _globalEnabled = value);
     try {
       await PushNotificationService.instance.setPushEnabled(value);
+      _refreshStatus();
     } catch (_) {
       if (!mounted) return;
       setState(() => _globalEnabled = !value);
@@ -75,6 +84,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
             onChanged: _toggleGlobal,
             accent: accent,
           ).animate().fadeIn(duration: 300.ms),
+
+          const SizedBox(height: AppDimensions.lg),
+
+          _buildStatusCard(accent),
 
           const SizedBox(height: AppDimensions.lg),
 
@@ -120,6 +133,59 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildStatusCard(Color accent) {
+    return FutureBuilder<PushRegistrationStatus>(
+      future: _statusFuture ?? PushNotificationService.instance.getStatus(),
+      builder: (context, snapshot) {
+        final status = snapshot.data;
+        final ready = status?.registeredWithBackend == true;
+        final tokenText = status?.hasToken == true
+          ? '${status!.token!.substring(0, status.token!.length > 8 ? 8 : status.token!.length)}...'
+            : 'No token';
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: CT.card(context),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+            border: Border.all(color: CT.border(context)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(ready ? Icons.cloud_done_rounded : Icons.cloud_off_rounded, color: ready ? Colors.green : Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Push Registration',
+                      style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context)),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      await PushNotificationService.instance.syncTokenRegistration();
+                      _refreshStatus();
+                    },
+                    child: Text('Refresh', style: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w700, color: accent)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                status == null
+                    ? 'Checking push token state...'
+                    : '${status.message}\nToken: $tokenText\nBackend sync: ${ready ? 'OK' : 'Not registered'}',
+                style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context), height: 1.4),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
