@@ -27,6 +27,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   List<Map<String, dynamic>> _entries = [];
   List<Map<String, dynamic>> _batches = [];
   StreamSubscription<Map<String, dynamic>>? _syncSub;
+  Timer? _reloadDebounce;
 
   String _dateKey(DateTime value) {
     final local = value.toLocal();
@@ -80,6 +81,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
 
   @override
   void dispose() {
+    _reloadDebounce?.cancel();
     _syncSub?.cancel();
     super.dispose();
   }
@@ -91,23 +93,43 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       if (!mounted) return;
       final reason = (event['reason'] ?? '').toString();
       if (reason.startsWith('lecture_schedule_') || reason.contains('lecture_')) {
-        _load();
+        _scheduleSilentReload();
       }
     });
   }
 
-  Future<void> _load() async {
+  void _scheduleSilentReload() {
+    _reloadDebounce?.cancel();
+    _reloadDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      _load(silent: true, refreshBatches: false);
+    });
+  }
+
+  Future<void> _load({bool silent = false, bool refreshBatches = false}) async {
     if (!mounted) return;
     final previousEntries = List<Map<String, dynamic>>.from(_entries);
-    setState(() {
-      _isLoading = true;
+    final shouldShowInitialLoader = _isLoading && _entries.isEmpty;
+
+    if (shouldShowInitialLoader) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    } else if (!silent) {
+      setState(() {
+        _error = null;
+      });
+    } else {
       _error = null;
-    });
+    }
+
     try {
-      final results = await Future.wait([
-        _repo.getMyScheduleEntries(date: _selectedDate),
-        _repo.getMyBatches(),
-      ]);
+      final scheduleFuture = _repo.getMyScheduleEntries(date: _selectedDate);
+      final batchesFuture = refreshBatches || _batches.isEmpty
+          ? _repo.getMyBatches()
+          : Future<List<Map<String, dynamic>>>.value(_batches);
+      final results = await Future.wait([scheduleFuture, batchesFuture]);
 
       final entries = List<Map<String, dynamic>>.from(results[0] as List);
       final batches = List<Map<String, dynamic>>.from(results[1] as List);
@@ -167,30 +189,29 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.black, width: 3)),
         child: const Icon(Icons.add_rounded, size: 32),
       ),
-      body: RefreshIndicator(
-        color: yellow,
-        backgroundColor: blue,
-        onRefresh: _load,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: yellow))
-            : _error != null
-                ? _buildErrorState(blue, yellow)
-                : ListView(
-                    padding: const EdgeInsets.all(24),
-                    children: [
-                      _buildWeekStrip(blue, surface, yellow),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle('CLASSES • ${_formatSelectedDate(_selectedDate)}', yellow),
-                      const SizedBox(height: 16),
-                      if (_entries.isEmpty)
-                        _buildEmptyState(blue, surface)
-                      else
-                        ..._entries.asMap().entries.map((entry) => _buildClassCard(entry.value, entry.key, blue, surface, yellow)),
-                      const SizedBox(height: 40),
-                      _buildAlertsCard(blue, surface, yellow),
-                    ],
-                  ),
-      ),
+      body: _isLoading && _entries.isEmpty
+          ? const Center(child: CircularProgressIndicator(color: yellow))
+          : _error != null
+              ? _buildErrorState(blue, yellow)
+              : Stack(
+                  children: [
+                    ListView(
+                      padding: const EdgeInsets.all(24),
+                      children: [
+                        _buildWeekStrip(blue, surface, yellow),
+                        const SizedBox(height: 32),
+                        _buildSectionTitle('CLASSES • ${_formatSelectedDate(_selectedDate)}', yellow),
+                        const SizedBox(height: 16),
+                        if (_entries.isEmpty)
+                          _buildEmptyState(blue, surface)
+                        else
+                          ..._entries.asMap().entries.map((entry) => _buildClassCard(entry.value, entry.key, blue, surface, yellow)),
+                        const SizedBox(height: 40),
+                        _buildAlertsCard(blue, surface, yellow),
+                      ],
+                    ),
+                  ],
+                ),
     );
   }
 
@@ -215,7 +236,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                   setState(() {
                     _selectedDate = _selectedDate.subtract(const Duration(days: 7));
                   });
-                  _load();
+                  _load(silent: true);
                 },
                 child: Container(
                   width: 32,
@@ -242,7 +263,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                       setState(() {
                         _selectedDate = DateTime(picked.year, picked.month, picked.day);
                       });
-                      _load();
+                      _load(silent: true);
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -264,7 +285,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                   setState(() {
                     _selectedDate = _selectedDate.add(const Duration(days: 7));
                   });
-                  _load();
+                  _load(silent: true);
                 },
                 child: Container(
                   width: 32,
@@ -291,7 +312,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                   InkWell(
                     onTap: () {
                       setState(() => _selectedDate = DateTime(d.year, d.month, d.day));
-                      _load();
+                      _load(silent: true);
                     },
                     child: Container(
                       width: 36,
@@ -548,7 +569,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         durationMinutes: durationMinutes,
       );
       if (!mounted) return true;
-      await _load();
+      await _load(silent: true, refreshBatches: false);
       if (!mounted) return true;
 
       if (_entries.isEmpty && _matchesSelectedDate(created['scheduled_at'])) {
@@ -590,7 +611,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         durationMinutes: durationMinutes,
       );
       if (!mounted) return true;
-      await _load();
+      await _load(silent: true, refreshBatches: false);
       if (!mounted) return true;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule updated')));
       return true;
@@ -608,7 +629,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     try {
       await _repo.deleteMyScheduleEntry(lectureId);
       if (!mounted) return true;
-      await _load();
+      await _load(silent: true, refreshBatches: false);
       if (!mounted) return true;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule deleted')));
       return true;
@@ -660,7 +681,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       const SizedBox(height: 16),
       Text('FAILED TO LOAD SCHEDULE', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w900)),
       const SizedBox(height: 24),
-      _btn('RETRY', _load, yellow, blue),
+      _btn('RETRY', () => _load(silent: true), yellow, blue),
     ]));
   }
 
