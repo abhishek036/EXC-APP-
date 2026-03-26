@@ -172,7 +172,14 @@ export class AuthService {
         }
     }
 
-    // Generate JWT pairs
+        const { prisma } = require('../../server');
+        const sessionStartedAt = new Date();
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { last_login_at: sessionStartedAt },
+        });
+
+        // Generate JWT pairs
     const { accessToken, refreshToken } = generateTokens({
         userId: user.id,
         role: user.role,
@@ -221,6 +228,13 @@ export class AuthService {
           throw new ApiError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
       }
 
+    const { prisma } = require('../../server');
+    const sessionStartedAt = new Date();
+      await prisma.user.update({
+          where: { id: user.id },
+          data: { last_login_at: sessionStartedAt },
+      });
+
       const { accessToken, refreshToken } = generateTokens({
           userId: user.id,
           role: user.role,
@@ -263,6 +277,13 @@ export class AuthService {
          }
 
          const user = tokenRecord.user;
+
+         const { prisma } = require('../../server');
+         const sessionStartedAt = new Date();
+         await prisma.user.update({
+             where: { id: user.id },
+             data: { last_login_at: sessionStartedAt },
+         });
 
          // Rotate refresh token securely
          const { accessToken, refreshToken: newRefreshTokenString } = generateTokens({

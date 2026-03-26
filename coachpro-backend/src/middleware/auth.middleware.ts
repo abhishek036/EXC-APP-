@@ -46,20 +46,10 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
         return next(new ApiError('User no longer exists or is inactive', 401, 'USER_INACTIVE'));
     }
 
-    const latestSession = await prisma.refreshToken.findFirst({
-      where: {
-        user_id: decoded.userId,
-        revoked_at: null,
-        expires_at: { gt: new Date() },
-      },
-      orderBy: { created_at: 'desc' },
-      select: { created_at: true },
-    });
-
-    if (latestSession?.created_at && decoded.iat) {
+    if (activeUser?.last_login_at && decoded.iat) {
       const tokenIssuedAtSec = decoded.iat;
-      const latestSessionSec = Math.floor(new Date(latestSession.created_at).getTime() / 1000);
-      if (tokenIssuedAtSec < latestSessionSec) {
+      const lastLoginSec = Math.floor(new Date(activeUser.last_login_at).getTime() / 1000);
+      if (tokenIssuedAtSec < lastLoginSec) {
         return next(new ApiError('Session expired due to login on another device', 401, 'SESSION_REVOKED'));
       }
     }
