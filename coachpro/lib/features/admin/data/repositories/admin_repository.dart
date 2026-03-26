@@ -852,6 +852,31 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch materials');
   }
 
+  Future<Map<String, dynamic>> createNote({
+    required String title,
+    required String subject,
+    required String fileType,
+    required String batchId,
+    required String fileUrl,
+    String? description,
+  }) async {
+    final payload = <String, dynamic>{
+      'title': title,
+      'subject': subject,
+      'file_type': fileType,
+      'batch_id': batchId,
+      'file_url': fileUrl,
+      'description': description,
+    };
+    payload.removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
+
+    final response = await _api.dio.post('content/notes', data: payload);
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to create note');
+  }
+
   Future<List<Map<String, dynamic>>> getAssignments({String? batchId}) async {
     final response = await _api.dio.get(
       'content/assignments',

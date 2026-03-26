@@ -29,6 +29,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
     _BatchOption(id: null, name: 'All Cohorts'),
   ];
   bool _loading = true;
+  bool _isNotifyingAll = false;
   String _error = '';
   List<Map<String, dynamic>> _todayRecords = [];
   List<double> _weeklyPercentages = List<double>.filled(6, 0);
@@ -126,6 +127,43 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
     }
 
     return List<double>.generate(6, (i) => totalByDay[i] == 0 ? 0 : (presentByDay[i] / totalByDay[i]) * 100);
+  }
+
+  Future<void> _notifyAllAbsentees(List<Map<String, dynamic>> absentees) async {
+    if (absentees.isEmpty || _isNotifyingAll) return;
+    try {
+      setState(() => _isNotifyingAll = true);
+      final uniqueStudents = absentees
+          .map((item) => (item['studentId'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
+      final batches = absentees
+          .map((item) => (item['batchName'] ?? '').toString())
+          .where((name) => name.isNotEmpty)
+          .toSet()
+          .join(', ');
+
+      await _adminRepo.sendNotification(
+        title: 'Attendance Alert',
+        body: 'Absent students detected today (${uniqueStudents.length}). Please check attendance updates.',
+        type: 'attendance',
+        roleTarget: 'student',
+        meta: {
+          'reason': 'absence_alert',
+          'student_ids': uniqueStudents,
+          'batch_names': batches,
+          'date': DateTime.now().toIso8601String(),
+        },
+      );
+      if (!mounted) return;
+      CPToast.success(context, 'Attendance alert sent');
+    } catch (e) {
+      if (!mounted) return;
+      CPToast.error(context, 'Failed to notify absentees');
+    } finally {
+      if (mounted) setState(() => _isNotifyingAll = false);
+    }
   }
 
   @override
@@ -320,7 +358,17 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         _buildSectionHeader("Absentee Board", isDark),
-        if (list.isNotEmpty) CPPressable(onTap: () { HapticFeedback.mediumImpact(); CPToast.info(context, 'Alert protocol initiated'); }, child: Text('NOTIFY ALL', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.elitePurple, letterSpacing: 1))),
+        if (list.isNotEmpty)
+          CPPressable(
+            onTap: () {
+              HapticFeedback.mediumImpact();
+              _notifyAllAbsentees(list);
+            },
+            child: Text(
+              _isNotifyingAll ? 'SENDING...' : 'NOTIFY ALL',
+              style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.elitePurple, letterSpacing: 1),
+            ),
+          ),
       ]),
       const SizedBox(height: 16),
       if (list.isEmpty) CPGlassCard(isDark: isDark, padding: const EdgeInsets.all(40), borderRadius: 32, child: Column(mainAxisSize: MainAxisSize.min, children: [

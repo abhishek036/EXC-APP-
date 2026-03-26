@@ -89,6 +89,64 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     return text;
   }
 
+  Future<void> _replaceNote(Map<String, dynamic> note) async {
+    final initialUrl = (note['file_url'] ?? '').toString();
+    final titleCtrl = TextEditingController(
+      text: '${(note['title'] ?? note['file_name'] ?? 'Note').toString()} (Updated)',
+    );
+    final urlCtrl = TextEditingController(text: initialUrl);
+    final descCtrl = TextEditingController(text: (note['description'] ?? '').toString());
+
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Replace Note'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Title')),
+              const SizedBox(height: 10),
+              TextField(controller: urlCtrl, decoration: const InputDecoration(labelText: 'File URL')),
+              const SizedBox(height: 10),
+              TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Description (optional)')),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Replace')),
+          ],
+        );
+      },
+    );
+
+    if (approved != true) return;
+
+    final newUrl = urlCtrl.text.trim();
+    if (newUrl.isEmpty) {
+      if (!mounted) return;
+      CPToast.error(context, 'File URL is required');
+      return;
+    }
+
+    try {
+      await _adminRepo.createNote(
+        title: titleCtrl.text.trim().isEmpty ? 'Updated Note' : titleCtrl.text.trim(),
+        subject: (note['subject'] ?? _batch?['subject'] ?? 'General').toString(),
+        fileType: (note['file_type'] ?? 'PDF').toString(),
+        batchId: widget.batchId,
+        fileUrl: newUrl,
+        description: descCtrl.text.trim(),
+      );
+      if (!mounted) return;
+      CPToast.success(context, 'Updated note version created');
+      await _loadBatch();
+    } catch (e) {
+      if (!mounted) return;
+      CPToast.error(context, e.toString());
+    }
+  }
+
   Future<void> _loadBatch() async {
     try {
       if (!mounted) return;
@@ -916,7 +974,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                           Text('Completion: ${completion.toStringAsFixed(0)}%', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600)),
                           const Spacer(),
                           IconButton(onPressed: () => context.push('/admin/timetable'), icon: const Icon(Icons.edit_outlined, size: 18)),
-                          IconButton(onPressed: () => CPToast.info(context, 'Delete from timetable manager'), icon: const Icon(Icons.delete_outline_rounded, size: 18)),
+                          IconButton(onPressed: () => context.push('/admin/timetable'), icon: const Icon(Icons.delete_outline_rounded, size: 18)),
                         ],
                       ),
                     ],
@@ -949,7 +1007,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     children: [
                       Text('$downloads downloads', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
                       const SizedBox(height: 4),
-                      InkWell(onTap: () => CPToast.info(context, 'Use material upload flow to replace file'), child: Text('Replace', style: GoogleFonts.inter(fontSize: 10, decoration: TextDecoration.underline))),
+                      InkWell(onTap: () => _replaceNote(note), child: Text('Replace', style: GoogleFonts.inter(fontSize: 10, decoration: TextDecoration.underline))),
                     ],
                   ),
                 );
