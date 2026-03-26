@@ -98,6 +98,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
 
   Future<void> _load() async {
     if (!mounted) return;
+    final previousEntries = List<Map<String, dynamic>>.from(_entries);
     setState(() {
       _isLoading = true;
       _error = null;
@@ -110,9 +111,12 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
 
       final entries = List<Map<String, dynamic>>.from(results[0] as List);
       final batches = List<Map<String, dynamic>>.from(results[1] as List);
+      final effectiveEntries = entries.isNotEmpty
+          ? entries
+          : previousEntries.where((entry) => _matchesSelectedDate(entry['scheduled_at'])).toList();
       if (!mounted) return;
       setState(() {
-        _entries = entries;
+        _entries = effectiveEntries;
         _batches = batches;
         _isLoading = false;
       });
