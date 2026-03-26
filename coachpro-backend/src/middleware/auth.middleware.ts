@@ -8,6 +8,7 @@ interface JwtPayload {
   role: string;
   instituteId: string;
   phone: string;
+  iat?: number;
 }
 
 declare global {
@@ -43,6 +44,24 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
 
     if (!activeUser) {
         return next(new ApiError('User no longer exists or is inactive', 401, 'USER_INACTIVE'));
+    }
+
+    const latestSession = await prisma.refreshToken.findFirst({
+      where: {
+        user_id: decoded.userId,
+        revoked_at: null,
+        expires_at: { gt: new Date() },
+      },
+      orderBy: { created_at: 'desc' },
+      select: { created_at: true },
+    });
+
+    if (latestSession?.created_at && decoded.iat) {
+      const tokenIssuedAtMs = decoded.iat * 1000;
+      const latestSessionMs = new Date(latestSession.created_at).getTime();
+      if (tokenIssuedAtMs < latestSessionMs) {
+        return next(new ApiError('Session expired due to login on another device', 401, 'SESSION_REVOKED'));
+      }
     }
 
     req.user = decoded;
