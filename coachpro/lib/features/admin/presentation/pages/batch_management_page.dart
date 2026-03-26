@@ -33,24 +33,42 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
     _loadData();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool silent = false}) async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    final previousBatches = List<Map<String, dynamic>>.from(_batches);
+    
+    if (!silent) {
+       setState(() => _isLoading = true);
+    }
+
     try {
       final results = await Future.wait([
         _adminRepo.getBatches(),
         _adminRepo.getTeachers(),
       ]);
+      
+      final fetchedBatches = List<Map<String, dynamic>>.from(results[0] as List);
+      final fetchedTeachers = List<Map<String, dynamic>>.from(results[1] as List);
+      
+      // Merge: if server returns empty but we previously had batches, 
+      // it might be a stale read. Keep what we have if server is empty.
+      List<Map<String, dynamic>> effectiveBatches;
+      if (fetchedBatches.isNotEmpty) {
+        effectiveBatches = fetchedBatches;
+      } else {
+        effectiveBatches = previousBatches;
+      }
+
       if (!mounted) return;
       setState(() {
-        _batches = List<Map<String, dynamic>>.from(results[0] as List);
-        _teachers = List<Map<String, dynamic>>.from(results[1] as List);
+        _batches = effectiveBatches;
+        _teachers = fetchedTeachers;
         _isLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      CPToast.error(context, 'Unable to load batches: $e');
+      if (!silent) CPToast.error(context, 'Unable to load batches: $e');
     }
   }
 
@@ -402,12 +420,22 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
   Future<void> _toggleBatchStatus(Map<String, dynamic> batch) async {
     final isActive = (batch['is_active'] ?? batch['isActive']) == true;
     try {
+      // Optimistic update
+      setState(() {
+         final idx = _batches.indexWhere((b) => b['id'] == batch['id']);
+         if (idx != -1) {
+           _batches[idx] = {..._batches[idx], 'is_active': !isActive};
+         }
+      });
+
       await _adminRepo.toggleBatchStatus(batchId: (batch['id'] ?? '').toString(), isActive: !isActive);
       if (!mounted) return;
       CPToast.success(context, !isActive ? 'Batch resumed' : 'Batch suspended');
-      _loadData();
+      _loadData(silent: true);
     } catch (e) {
       if (!mounted) return;
+      // Revert on error
+      _loadData(silent: true);
       CPToast.error(context, 'Failed to update status: $e');
     }
   }
@@ -430,8 +458,14 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
     try {
       await _adminRepo.deleteBatch((batch['id'] ?? '').toString());
       if (!mounted) return;
+      
+      // Optimistic delete
+      setState(() {
+        _batches.removeWhere((b) => b['id'] == batch['id']);
+      });
+
       CPToast.success(context, 'Batch deleted');
-      _loadData();
+      _loadData(silent: true);
     } catch (e) {
       if (!mounted) return;
       CPToast.error(context, 'Delete failed: $e');
@@ -666,8 +700,15 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                         payload.removeWhere((key, value) => value == null);
 
                         final created = await _adminRepo.createBatch(payload);
-
                         final batchId = (created['id'] ?? '').toString();
+
+                        if (!mounted) return;
+                        
+                        // Optimistic Add
+                        setState(() {
+                          _batches = [Map<String, dynamic>.from(created), ..._batches];
+                        });
+
                         final monthlyFee = double.tryParse(feeCtrl.text.trim()) ?? 0;
                         if (batchId.isNotEmpty && monthlyFee > 0) {
                           await _adminRepo.defineFeeStructure({
@@ -685,7 +726,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                         if (!mounted || !ctx.mounted) return;
                         HapticFeedback.mediumImpact();
                         CPToast.success(ctx, 'Batch created successfully');
-                        _loadData();
+                        _loadData(silent: true);
                       } catch (e) {
                         if (ctx.mounted) {
                           CPToast.error(ctx, 'Create failed: $e');

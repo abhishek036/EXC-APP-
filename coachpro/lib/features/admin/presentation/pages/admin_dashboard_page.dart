@@ -434,7 +434,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               onTap: () => context.push('/admin/profile'),
               child: Container(
                 width: 44, height: 44,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF0D1282), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))]),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF0D1282), border: Border.all(color: Colors.black, width: 2), boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(2, 2))]),
                 child: Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
               ),
             ),
@@ -462,7 +462,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       onTap: onTap,
       child: Container(
         width: 44, height: 44,
-        decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.08) : AppColors.eliteLightBg, shape: BoxShape.circle),
+        decoration: BoxDecoration(color: isDark ? AppColors.elitePrimary : Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.black, width: 2), boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(2, 2))]),
         child: Stack(
           alignment: Alignment.center,
           children: [
@@ -515,8 +515,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       width: 180, padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.elitePrimary,
-        borderRadius: BorderRadius.circular(16), 
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))]
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black, width: 3),
+        boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(4, 4))]
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,9 +543,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       width: 160,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
+        color: isDark ? AppColors.eliteDarkBg : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+        border: Border.all(color: Colors.black, width: 3),
+        boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
@@ -590,7 +592,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF0D1282),
                     borderRadius: BorderRadius.circular(14),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+                    border: Border.all(color: Colors.black, width: 3),
+                    boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
                   ),
                   child: Row(
                     children: [
@@ -625,9 +628,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   height: 88,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
+                    color: isDark ? AppColors.eliteDarkBg : Colors.white,
                     borderRadius: BorderRadius.circular(14),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+                    border: Border.all(color: Colors.black, width: 3),
+                    boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -654,9 +658,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   height: 88,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
+                    color: isDark ? AppColors.eliteDarkBg : Colors.white,
                     borderRadius: BorderRadius.circular(14),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+                    border: Border.all(color: Colors.black, width: 3),
+                    boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -679,9 +684,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   height: 88,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
+                    color: isDark ? AppColors.eliteDarkBg : Colors.white,
                     borderRadius: BorderRadius.circular(14),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+                    border: Border.all(color: Colors.black, width: 3),
+                    boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
                   ),
                   child: Row(
                     children: [
@@ -741,9 +747,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           child: Container(
             padding: const EdgeInsets.all(14), // Reduced from 16
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
+              color: isDark ? AppColors.eliteDarkBg : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
+              border: Border.all(color: Colors.black, width: 3),
+              boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

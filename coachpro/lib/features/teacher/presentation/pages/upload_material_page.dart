@@ -225,8 +225,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         onTap: () => setState(() => _selectedType = type),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(color: isSel ? yellow : Colors.transparent, borderRadius: BorderRadius.circular(8), border: isSel ? Border.all(color: Colors.black, width: 2) : null),
+          decoration: BoxDecoration(color: isSel ? yellow : Colors.transparent, borderRadius: BorderRadius.circular(8), border: isSel ? Border.all(color: blue, width: 2) : null),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, color: isSel ? blue : Colors.white, size: 20),
               const SizedBox(height: 4),
@@ -243,9 +244,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: surface,
-        border: Border.all(color: Colors.black, width: 3),
+        border: Border.all(color: blue, width: 3),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(5, 5))],
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,8 +282,8 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black, width: 2)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black, width: 2.5)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: blue, width: 2)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: blue, width: 2.5)),
     ),
   );
 
@@ -290,10 +291,10 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     if (_isLoadingBatches) return const CircularProgressIndicator();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black, width: 2), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(8)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-           value: _safeSelectedBatchId,
+          value: _safeSelectedBatchId,
           isExpanded: true,
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue),
           onChanged: (val) {
@@ -338,7 +339,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           backgroundColor: yellow,
           foregroundColor: blue,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.black, width: 3)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: blue, width: 3)),
         ),
         onPressed: _isUploading ? null : _handleUpload,
         child: _isUploading 

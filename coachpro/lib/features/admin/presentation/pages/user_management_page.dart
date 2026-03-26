@@ -443,10 +443,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 children: [
                   Text(phone, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
                   const SizedBox(height: 6),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       _eliteBadge(role.toUpperCase(), AppColors.primary, isDark),
-                      const SizedBox(width: 8),
                       _eliteBadge(status.toUpperCase(), _statusColor(status), isDark),
                     ],
                   ),

@@ -56,14 +56,30 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     });
   }
 
-  Future<void> _loadFeeRecords() async {
-    setState(() { _loading = true; _error = ''; });
+  Future<void> _loadFeeRecords({bool silent = false}) async {
+    final previousRecords = List<Map<String, dynamic>>.from(_records);
+    if (!silent) {
+       setState(() { _loading = true; _error = ''; });
+    }
     try {
       final records = await _adminRepo.getFeeRecords();
       if (!mounted) return;
-      setState(() { _records = records; _loading = false; });
+      
+      List<Map<String, dynamic>> effectiveRecords;
+      if (records.isNotEmpty) {
+        effectiveRecords = records;
+      } else {
+        effectiveRecords = previousRecords;
+      }
+
+      setState(() { _records = effectiveRecords; _loading = false; });
     } catch (e) {
-      if (mounted) setState(() { _error = 'Failed to sync data'; _loading = false; });
+      if (mounted) {
+        setState(() { 
+          _error = !silent ? 'Failed to sync data' : ''; 
+          _loading = false; 
+        });
+      }
     }
   }
 
@@ -148,7 +164,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                       ? ListView.separated(padding: const EdgeInsets.all(20), itemCount: 5, separatorBuilder: (_, _) => const SizedBox(height: 16), itemBuilder: (_, _) => CPShimmer(width: double.infinity, height: 90, borderRadius: 24))
                       : _error.isNotEmpty 
                         ? Center(child: Text(_error, style: GoogleFonts.inter(color: AppColors.error, fontWeight: FontWeight.w800)))
-                        : RefreshIndicator(onRefresh: _loadFeeRecords, color: AppColors.elitePrimary, child: _buildRecordsList(isDark)),
+                        : RefreshIndicator(onRefresh: () => _loadFeeRecords(silent: false), color: AppColors.elitePrimary, child: _buildRecordsList(isDark)),
                   ),
                 ],
               ),
@@ -370,9 +386,23 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
               try {
                 final pend = outstanding;
                 if (pend <= 0) return;
+                
+                // Optimistic Local Update
+                setState(() {
+                  final idx = _records.indexWhere((r) => r['id'].toString() == id);
+                  if (idx != -1) {
+                    final updated = Map<String, dynamic>.from(_records[idx]);
+                    final payments = List<Map<String, dynamic>>.from((updated['payments'] as List?) ?? []);
+                    payments.add({'amount_paid': pend, 'payment_mode': 'cash'});
+                    updated['payments'] = payments;
+                    updated['status'] = 'paid';
+                    _records[idx] = updated;
+                  }
+                });
+
                 await _adminRepo.recordFeePayment(feeRecordId: id, amountPaid: pend, paymentMode: 'cash', note: 'Bulk update');
-                if (ctx.mounted) { Navigator.pop(ctx); CPToast.success(context, 'Ledger updated ✅'); _loadFeeRecords(); }
-              } catch (_) { if (ctx.mounted) CPToast.error(ctx, 'Update failed'); }
+                if (ctx.mounted) { Navigator.pop(ctx); CPToast.success(context, 'Ledger updated ✅'); _loadFeeRecords(silent: true); }
+              } catch (_) { if (ctx.mounted) { CPToast.error(ctx, 'Update failed'); _loadFeeRecords(silent: true); } }
             }),
             const SizedBox(height: 16),
           ],
@@ -444,7 +474,23 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
       CustomButton(text: 'Process Payment', icon: Icons.offline_bolt_rounded, onPressed: () async {
         if (debtors.isEmpty) { CPToast.warning(ctx, 'No outstanding accounts to collect'); return; }
         if (sid == null || amtC.text.isEmpty) { CPToast.warning(ctx, 'Select an account and enter an amount'); return; }
-        try { await _adminRepo.recordFeePayment(feeRecordId: sid!, amountPaid: double.parse(amtC.text), paymentMode: mode, note: nC.text); if (ctx.mounted) { Navigator.pop(ctx); CPToast.success(context, 'Transaction Confirmed'); _loadFeeRecords(); } } catch (_) { if (ctx.mounted) CPToast.error(ctx, 'Transaction Error'); }
+        try { 
+          // Optimistic update
+          setState(() {
+            final idx = _records.indexWhere((r) => r['id'].toString() == sid);
+            if (idx != -1) {
+              final updated = Map<String, dynamic>.from(_records[idx]);
+              final payments = List<Map<String, dynamic>>.from((updated['payments'] as List?) ?? []);
+              final amt = double.tryParse(amtC.text) ?? 0;
+              payments.add({'amount_paid': amt, 'payment_mode': mode});
+              updated['payments'] = payments;
+              _records[idx] = updated;
+            }
+          });
+
+          await _adminRepo.recordFeePayment(feeRecordId: sid!, amountPaid: double.parse(amtC.text), paymentMode: mode, note: nC.text); 
+          if (ctx.mounted) { Navigator.pop(ctx); CPToast.success(context, 'Transaction Confirmed'); _loadFeeRecords(silent: true); } 
+        } catch (_) { if (ctx.mounted) { CPToast.error(ctx, 'Transaction Error'); _loadFeeRecords(silent: true); } }
       }),
       const SizedBox(height: 12),
     ]))))));
@@ -496,7 +542,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
             setS(() => loading = true);
             try {
               await _adminRepo.generateMonthlyFees(batchId: bid!, month: m, year: y);
-              if (ctx.mounted) { Navigator.pop(ctx); CPToast.success(context, 'Propagation successful. 🌐'); _loadFeeRecords(); }
+              if (ctx.mounted) { Navigator.pop(ctx); CPToast.success(context, 'Propagation successful. 🌐'); _loadFeeRecords(silent: false); }
             } catch (_) { if (ctx.mounted) { CPToast.error(ctx, 'Propagation protocol failed.'); setS(() => loading = false); } }
           }),
           const SizedBox(height: 12),

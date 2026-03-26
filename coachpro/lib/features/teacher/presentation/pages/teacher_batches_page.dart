@@ -239,7 +239,7 @@ class _BatchCard extends StatelessWidget {
           color: white,
           border: Border.all(color: blue, width: 2.5),
           borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: blue.withValues(alpha: 0.35), offset: const Offset(5, 5))],
+          boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,7 +393,7 @@ class _PremiumCard extends StatelessWidget {
         color: surface,
         border: Border.all(color: blue, width: 2.5),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: blue, offset: Offset(4, 4))],
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
       ),
       child: child,
     );

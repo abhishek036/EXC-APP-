@@ -239,7 +239,7 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
         color: surface,
         border: Border.all(color: blue, width: 3),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: yellow, offset: const Offset(6, 6))],
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,7 +369,7 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
           gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 1, getDrawingHorizontalLine: (v) => FlLine(color: blue.withValues(alpha: 0.1), strokeWidth: 2)),
           barGroups: distribution.asMap().entries.map((e) {
             return BarChartGroupData(x: e.key, barRods: [
-              BarChartRodData(toY: e.value.toDouble(), width: 24, borderRadius: BorderRadius.circular(2), color: blue, borderSide: const BorderSide(color: Colors.black, width: 1.5)),
+              BarChartRodData(toY: e.value.toDouble(), width: 24, borderRadius: BorderRadius.circular(2), color: blue, borderSide: BorderSide(color: blue, width: 1.5)),
             ]);
           }).toList(),
         ),

@@ -96,9 +96,9 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: surface,
-        border: Border.all(color: Colors.black, width: 3),
+        border: Border.all(color: blue, width: 3),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(5, 5))],
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
@@ -110,7 +110,7 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
         Text(question, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, height: 1.3, color: blue)),
         const SizedBox(height: 20),
         Row(children: [
-          Container(width: 32, height: 32, decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 2), shape: BoxShape.circle), alignment: Alignment.center, child: Text(studentInitial, style: const TextStyle(fontWeight: FontWeight.w900))),
+          Container(width: 32, height: 32, decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 2), shape: BoxShape.circle), alignment: Alignment.center, child: Text(studentInitial, style: TextStyle(fontWeight: FontWeight.w900, color: blue))),
           const SizedBox(width: 12),
           Expanded(child: Text('$student • $batch', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.7)))),
         ]),
@@ -129,8 +129,8 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.all(20),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 2.5)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 3)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: blue, width: 2.5)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: blue, width: 3)),
     ),
   );
 
@@ -151,7 +151,7 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(color: surface, border: Border.all(color: Colors.black, width: 2.5), borderRadius: BorderRadius.circular(12), boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(2, 2))]),
+        decoration: BoxDecoration(color: surface, border: Border.all(color: blue, width: 2.5), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: blue, offset: const Offset(2, 2))]),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(icon, color: blue, size: 20),
           const SizedBox(width: 8),
@@ -170,7 +170,7 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
           backgroundColor: yellow,
           foregroundColor: blue,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.black, width: 3)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: blue, width: 3)),
         ),
         onPressed: _isSubmitting ? null : _submitAnswer,
         child: _isSubmitting 

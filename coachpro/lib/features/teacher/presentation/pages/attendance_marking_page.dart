@@ -369,7 +369,7 @@ class _PremiumCard extends StatelessWidget {
     const blue = Color(0xFF0D1282);
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Color(0xFFEEEDED), border: Border.all(color: blue, width: 2.5), borderRadius: BorderRadius.circular(12), boxShadow: const [BoxShadow(color: blue, offset: Offset(4, 4))]),
+      decoration: BoxDecoration(color: Color(0xFFEEEDED), border: Border.all(color: blue, width: 2.5), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))]),
       child: child,
     );
   }

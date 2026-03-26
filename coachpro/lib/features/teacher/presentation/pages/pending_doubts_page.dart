@@ -114,7 +114,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 3), borderRadius: BorderRadius.circular(12), boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(4, 4))]),
+        decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 3), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))]),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -138,9 +138,9 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: surface,
-        border: Border.all(color: Colors.black, width: 3),
+        border: Border.all(color: blue, width: 3),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(5, 5))],
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -155,30 +155,30 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
         Text(question, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, height: 1.3, color: blue)),
         const SizedBox(height: 20),
         Row(children: [
-          Container(width: 32, height: 32, decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 2), shape: BoxShape.circle), alignment: Alignment.center, child: Text(studentInitial, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13))),
+          Container(width: 32, height: 32, decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 2), shape: BoxShape.circle), alignment: Alignment.center, child: Text(studentInitial, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: blue))),
           const SizedBox(width: 12),
           Expanded(child: Text('$studentName • $batchName', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.7)))),
         ]),
         const SizedBox(height: 24),
         Row(children: [
-          Expanded(child: _btn('REPLY', () => _openReplySheet(d), yellow, blue, true)),
+          Expanded(child: _btn('REPLY', () => _openReplySheet(d), yellow, blue, true, blue)),
           const SizedBox(width: 12),
-          Expanded(child: _btn('VIEW IMAGE', () => _openImagePreview(d), surface, blue, false)),
+          Expanded(child: _btn('VIEW IMAGE', () => _openImagePreview(d), surface, blue, false, blue)),
         ]),
       ]),
     ).animate().fadeIn().slideX(begin: 0.05);
   }
 
-  Widget _btn(String label, VoidCallback onTap, Color bg, Color fg, bool isPrimary) {
+  Widget _btn(String label, VoidCallback onTap, Color bg, Color fg, bool isPrimary, Color blue) {
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: bg,
-          border: Border.all(color: Colors.black, width: 2.5),
+          border: Border.all(color: blue, width: 2.5),
           borderRadius: BorderRadius.circular(8),
-          boxShadow: isPrimary ? [const BoxShadow(color: Colors.black, offset: Offset(3, 3))] : null,
+          boxShadow: isPrimary ? [BoxShadow(color: blue, offset: const Offset(3, 3))] : null,
         ),
         child: Center(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: fg))),
       ),
@@ -196,7 +196,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(ctx).viewInsets.bottom),
-        decoration: BoxDecoration(color: surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24)), border: Border.all(color: Colors.black, width: 4)),
+        decoration: BoxDecoration(color: surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24)), border: Border.all(color: blue, width: 4)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,8 +215,8 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
                 filled: true,
                 fillColor: Colors.white,
                 contentPadding: const EdgeInsets.all(16),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 2.5)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 3)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: blue, width: 2.5)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: blue, width: 3)),
               ),
             ),
             const SizedBox(height: 24),
@@ -303,7 +303,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
   }
 
   Widget _buildEmptyState(Color blue, Color yellow) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-    Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: yellow, border: Border.all(color: Colors.black, width: 3), shape: BoxShape.circle), child: const Icon(Icons.celebration_rounded, size: 48, color: Colors.black)),
+    Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 3), shape: BoxShape.circle), child: Icon(Icons.celebration_rounded, size: 48, color: blue)),
     const SizedBox(height: 24),
     Text('CLEAN SLATE!', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2)),
     const SizedBox(height: 8),
@@ -315,6 +315,6 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
     const SizedBox(height: 16),
     Text('ERROR LOADING DOUBTS', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w900)),
     const SizedBox(height: 24),
-    _btn('RETRY', _loadDoubts, yellow, blue, true),
+    _btn('RETRY', _loadDoubts, yellow, blue, true, blue),
   ]));
 }

@@ -145,6 +145,13 @@ class TeacherRepository {
     throw Exception(response.data['message'] ?? 'Failed to update schedule entry');
   }
 
+  Future<void> clearPastSchedules() async {
+    final response = await _api.dio.delete('timetable/teacher/me/past');
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception(response.data['message'] ?? 'Failed to clear past schedules');
+    }
+  }
+
   Future<void> deleteMyScheduleEntry(String lectureId) async {
     final response = await _api.dio.delete('timetable/teacher/me/$lectureId');
     if (response.statusCode == 200 || response.statusCode == 204) {

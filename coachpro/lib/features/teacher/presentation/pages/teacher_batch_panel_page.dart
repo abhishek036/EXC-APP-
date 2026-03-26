@@ -354,9 +354,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                       title: Text(
                         chapter.isEmpty ? topicName : '$chapter: $topicName',
                         style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 14, color: blue),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
                       ),
                       subtitle: Text('BATCH COMPLETION: ${_toNum(topic['completion_percent']).round()}%', 
-                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 10, color: blue.withValues(alpha: 0.6))),
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 10, color: blue.withValues(alpha: 0.6)),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   );
                 }),
@@ -563,8 +567,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                        child: Column(
                          crossAxisAlignment: CrossAxisAlignment.start,
                          children: [
-                           Text(name.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14, color: blue)),
-                           Text('STATUS: $tag', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 10, color: blue.withValues(alpha: 0.5))),
+                            Text(name.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14, color: blue), overflow: TextOverflow.ellipsis, maxLines: 1),
+                           Text('STATUS: $tag', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 10, color: blue.withValues(alpha: 0.5)), overflow: TextOverflow.ellipsis, maxLines: 1),
                          ],
                        ),
                      ),
@@ -707,7 +711,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                     side: BorderSide(color: blue, width: 2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: Text('VIEW DETAILED ANALYTICS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14)),
+                  child: FittedBox(fit: BoxFit.scaleDown, child: Text('VIEW DETAILED ANALYTICS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14))),
                 ),
               ),
             ],
@@ -772,6 +776,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                         child: Text(
                           title,
                           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 15, color: blue),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
                       Container(
@@ -796,6 +802,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                   Text(
                     '$subject • $totalQuestions QUESTIONS • ${timeLimit > 0 ? '$timeLimit MIN' : 'NO LIMIT'}',
                     style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 11, color: blue.withValues(alpha: 0.6)),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -813,8 +821,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                       ),
                                     ),
                                   ),
-                          style: ElevatedButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white),
-                          child: Text('RESULTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900)),
+                          style: ElevatedButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 4)),
+                          child: FittedBox(fit: BoxFit.scaleDown, child: Text('RESULTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12))),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -836,8 +844,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                   );
                                   await _load();
                                 },
-                          style: OutlinedButton.styleFrom(side: BorderSide(color: blue, width: 2)),
-                          child: Text('EDIT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
+                          style: OutlinedButton.styleFrom(side: BorderSide(color: blue, width: 2), padding: const EdgeInsets.symmetric(horizontal: 4)),
+                          child: FittedBox(fit: BoxFit.scaleDown, child: Text('EDIT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue, fontSize: 12))),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -872,8 +880,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                     if (mounted) setState(() => _isDeletingQuiz = false);
                                   }
                                 },
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.coralRed, foregroundColor: Colors.white),
-                          child: Text('DELETE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900)),
+                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.coralRed, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 4)),
+                          child: FittedBox(fit: BoxFit.scaleDown, child: Text('DELETE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12))),
                         ),
                       ),
                     ],
@@ -941,6 +949,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                         child: Text(
                           title,
                           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 15, color: blue),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
                       Container(
@@ -965,6 +975,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                   Text(
                     '$subject • $totalQuestions QUESTIONS • ${timeLimit > 0 ? '$timeLimit MIN' : 'NO TIMER'}',
                     style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 11, color: blue.withValues(alpha: 0.6)),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -982,8 +994,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                       ),
                                     ),
                                   ),
-                          style: ElevatedButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white),
-                          child: Text('RESULTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900)),
+                          style: ElevatedButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 4)),
+                          child: FittedBox(fit: BoxFit.scaleDown, child: Text('RESULTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12))),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1005,8 +1017,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                   );
                                   await _load();
                                 },
-                          style: OutlinedButton.styleFrom(side: BorderSide(color: blue, width: 2)),
-                          child: Text('EDIT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
+                          style: OutlinedButton.styleFrom(side: BorderSide(color: blue, width: 2), padding: const EdgeInsets.symmetric(horizontal: 4)),
+                          child: FittedBox(fit: BoxFit.scaleDown, child: Text('EDIT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue, fontSize: 12))),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1041,8 +1053,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                     if (mounted) setState(() => _isDeletingQuiz = false);
                                   }
                                 },
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.coralRed, foregroundColor: Colors.white),
-                          child: Text('DELETE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900)),
+                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.coralRed, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 4)),
+                          child: FittedBox(fit: BoxFit.scaleDown, child: Text('DELETE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12))),
                         ),
                       ),
                     ],
@@ -1113,7 +1125,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                     children: [
                       Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(3)), child: Text('PENDING', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900))),
                       const SizedBox(width: 8),
-                      Text(student.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12, color: blue)),
+                      Expanded(child: Text(student.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12, color: blue), overflow: TextOverflow.ellipsis, maxLines: 1)),
                     ],
                   ),
                   const SizedBox(height: 12),

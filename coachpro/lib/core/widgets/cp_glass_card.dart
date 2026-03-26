@@ -29,8 +29,9 @@ class CPGlassCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFEEEDED), // Off White
           border: border ?? Border.all(color: const Color(0xFF0D1282), width: 3), // 3px Deep Blue
-          boxShadow: [
-            const BoxShadow(
+          borderRadius: BorderRadius.circular(borderRadius),
+          boxShadow: const [
+            BoxShadow(
               color: Color(0xFF0D1282), // Deep Blue hard shadow
               offset: Offset(4, 4),
               blurRadius: 0,

@@ -138,11 +138,11 @@ class _AddStudentPageState extends State<AddStudentPage> {
 
 
       // 2. Call Repo
-      await _adminRepo.createStudent(payload);
+      final created = await _adminRepo.createStudent(payload);
 
       if (mounted) {
         CPToast.success(context, 'Student added successfully! 🎉');
-        Navigator.pop(context, true); // Pass true to indicate refresh needed
+        Navigator.pop(context, created); // Return the created record
       }
     } on DioException catch (e) {
       if (mounted) {

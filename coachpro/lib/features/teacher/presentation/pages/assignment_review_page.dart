@@ -190,8 +190,9 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: surface,
-                    border: Border.all(color: Colors.black, width: 2),
+                    border: Border.all(color: blue, width: 2.5),
                     borderRadius: BorderRadius.circular(10),
+                    boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
@@ -256,8 +257,9 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: surface,
-        border: Border.all(color: Colors.black, width: 2),
+        border: Border.all(color: blue, width: 2.5),
         borderRadius: BorderRadius.circular(10),
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,8 +288,9 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: surface,
-        border: Border.all(color: Colors.black, width: 2),
+        border: Border.all(color: blue, width: 2.5),
         borderRadius: BorderRadius.circular(10),
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -95,12 +95,16 @@ class _StudentListPageState extends State<StudentListPage> {
     });
   }
 
-  Future<void> _loadAll() async {
+  Future<void> _loadAll({bool silent = false}) async {
     if (!mounted) return;
-    setState(() {
-      _loadingStudents = true;
-      _loadFailed = false;
-    });
+    final previousStudents = List<_Student>.from(_students);
+
+    if (!silent) {
+      setState(() {
+        _loadingStudents = true;
+        _loadFailed = false;
+      });
+    }
     try {
       final selectedBatchId = _selectedBatchIdForApi();
       final query = _searchController.text.trim();
@@ -112,15 +116,24 @@ class _StudentListPageState extends State<StudentListPage> {
         _adminRepo.getBatches(),
       ]);
       if (mounted) {
-        final students = (results[0] as List)
+        final fetchedStudents = (results[0] as List)
             .map((s) => _Student.fromMap(s as Map<String, dynamic>))
             .toList();
         final rawBatches = (results[1] as List)
           .map((b) => Map<String, dynamic>.from(b as Map))
           .toList();
         final batchNames = rawBatches.map((b) => (b['name'] ?? 'Batch').toString()).toList();
+        
+        // Stale-data handling: if we have local students but server says 0, keep local for now
+        List<_Student> effectiveStudents;
+        if (fetchedStudents.isNotEmpty) {
+          effectiveStudents = fetchedStudents;
+        } else {
+          effectiveStudents = previousStudents;
+        }
+
         setState(() {
-          _students = _dedupeStudents(students);
+          _students = _dedupeStudents(effectiveStudents);
           _batchRaw = rawBatches;
           _batches = ['All', ...batchNames];
           _loadingStudents = false;
@@ -131,10 +144,8 @@ class _StudentListPageState extends State<StudentListPage> {
       if (mounted) {
         setState(() {
           _loadingStudents = false;
-          _loadFailed = true;
-          _students = [];
-          _batchRaw = [];
-          _batches = ['All'];
+          _loadFailed = !silent; // Only show failed if it wasn't a silent background update
+          if (!silent) _students = [];
         });
       }
     }
@@ -256,10 +267,16 @@ class _StudentListPageState extends State<StudentListPage> {
       backgroundColor: const Color(0xFFEEEDED),
       floatingActionButton: _selectMode ? null : FloatingActionButton(
         onPressed: () async {
-          final created = await context.push('/admin/add-student');
-          if (!mounted) return;
-          if (created == true) {
-            await _loadAll();
+          final result = await context.push('/admin/add-student');
+          if (!mounted || result == null) return;
+          if (result is Map<String, dynamic>) {
+            // Optimistic update
+            setState(() {
+              _students = _dedupeStudents([_Student.fromMap(result), ..._students]);
+            });
+            _loadAll(silent: true);
+          } else if (result == true) {
+             _loadAll();
           }
         },
         backgroundColor: const Color(0xFF0D1282),

@@ -322,9 +322,9 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: surface,
-        border: Border.all(color: Colors.black, width: 3),
+        border: Border.all(color: blue, width: 3),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(5, 5))],
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,7 +411,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                         },
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(double.infinity, 52),
-                          side: const BorderSide(color: Colors.black, width: 2),
+                          side: BorderSide(color: blue, width: 2),
                           backgroundColor: Colors.white,
                         ),
                         child: Text(
@@ -486,7 +486,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
         decoration: BoxDecoration(
           color: selected ? yellow : Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.black, width: 2),
+          border: Border.all(color: blue, width: 2),
         ),
         child: Center(
           child: Text(
@@ -511,8 +511,8 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black, width: 2)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black, width: 2.5)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: blue, width: 2)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: blue, width: 2.5)),
     ),
   );
 
@@ -520,7 +520,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
     if (_isLoadingBatches) return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black, width: 2), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(8)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _safeSelectedBatchId,
@@ -546,9 +546,9 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: surface,
-        border: Border.all(color: Colors.black, width: 3),
+        border: Border.all(color: blue, width: 3),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: yellow, offset: const Offset(4, 4))],
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -592,8 +592,8 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
             onTap: () => setState(() => qMap['correct_index'] = oIdx),
             child: Container(
               width: 32, height: 32,
-              decoration: BoxDecoration(color: isCorrect ? yellow : Colors.white, border: Border.all(color: Colors.black, width: 2), shape: BoxShape.circle),
-              child: isCorrect ? const Icon(Icons.check_rounded, size: 18, color: Colors.black) : null,
+              decoration: BoxDecoration(color: isCorrect ? yellow : Colors.white, border: Border.all(color: blue, width: 2), shape: BoxShape.circle),
+              child: isCorrect ? Icon(Icons.check_rounded, size: 18, color: blue) : null,
             ),
           ),
           const SizedBox(width: 12),
@@ -615,7 +615,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
 
   Widget _buildBottomBar(Color blue, Color surface, Color yellow) => Container(
     padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-    decoration: BoxDecoration(color: surface, border: const Border(top: BorderSide(color: Colors.black, width: 4))),
+    decoration: BoxDecoration(color: surface, border: Border(top: BorderSide(color: blue, width: 4))),
     child: SizedBox(
       width: double.infinity,
       height: 60,
@@ -624,7 +624,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           backgroundColor: yellow,
           foregroundColor: blue,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.black, width: 3)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: blue, width: 3)),
         ),
         onPressed: _isPublishing ? null : _publishQuiz,
         child: _isPublishing
