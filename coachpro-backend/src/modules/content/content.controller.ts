@@ -11,10 +11,19 @@ export class ContentController {
     this.service = new ContentService();
   }
 
+  private async resolveTeacherId(instituteId: string, userId: string): Promise<string | null> {
+    const teacher = await prisma.teacher.findFirst({
+      where: { institute_id: instituteId, user_id: userId },
+      select: { id: true },
+    });
+    return teacher?.id ?? null;
+  }
+
   // NOTES
   createNote = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.service.createNote(req.instituteId!, req.user!.userId, req.body);
+      const teacherId = await this.resolveTeacherId(req.instituteId!, req.user!.userId);
+      const data = await this.service.createNote(req.instituteId!, teacherId, req.body);
       return sendResponse({ res, data, message: 'Note uploaded successfully', statusCode: 201 });
     } catch (e) { next(e); }
   }
@@ -29,7 +38,8 @@ export class ContentController {
   // ASSIGNMENTS
   createAssignment = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.service.createAssignment(req.instituteId!, req.user!.userId, req.body);
+      const teacherId = await this.resolveTeacherId(req.instituteId!, req.user!.userId);
+      const data = await this.service.createAssignment(req.instituteId!, teacherId, req.body);
       emitBatchSync(req.instituteId!, req.body.batch_id, 'assignment_created', {
         assignment_id: (data as any)?.id,
       });

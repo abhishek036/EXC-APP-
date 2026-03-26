@@ -220,6 +220,14 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
     }
 
     if (parsedQuestions.isEmpty) return;
+    if (parsedQuestions.length < 5 || parsedQuestions.length > 20) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Quiz must contain 5 to 20 questions')),
+        );
+      }
+      return;
+    }
 
     setState(() => _isPublishing = true);
     try {

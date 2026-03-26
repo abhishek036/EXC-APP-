@@ -3,9 +3,9 @@ import { CreateNoteInput, CreateAssignmentInput, SubmitAssignmentInput, ReviewAs
 
 export class ContentRepository {
   // NOTES
-  async createNote(instituteId: string, teacherId: string, data: CreateNoteInput) {
+    async createNote(instituteId: string, teacherId: string | null, data: CreateNoteInput) {
       return prisma.note.create({
-          data: { ...data, institute_id: instituteId, teacher_id: teacherId }
+                    data: { ...data, institute_id: instituteId, teacher_id: teacherId ?? null }
       });
   }
 
@@ -17,12 +17,12 @@ export class ContentRepository {
   }
 
   // ASSIGNMENTS
-  async createAssignment(instituteId: string, teacherId: string, data: CreateAssignmentInput) {
+  async createAssignment(instituteId: string, teacherId: string | null, data: CreateAssignmentInput) {
       return prisma.assignment.create({
           data: { 
              ...data, 
              institute_id: instituteId, 
-             teacher_id: teacherId, 
+             teacher_id: teacherId ?? null, 
              ...(data.due_date && { due_date: new Date(data.due_date) })
           } as any
       });

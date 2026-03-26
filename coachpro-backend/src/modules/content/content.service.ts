@@ -9,7 +9,7 @@ export class ContentService {
   }
 
   // NOTES
-  async createNote(instituteId: string, teacherId: string, data: CreateNoteInput) {
+    async createNote(instituteId: string, teacherId: string | null, data: CreateNoteInput) {
       return this.repo.createNote(instituteId, teacherId, data);
   }
 
@@ -18,7 +18,7 @@ export class ContentService {
   }
 
   // ASSIGNMENTS
-  async createAssignment(instituteId: string, teacherId: string, data: CreateAssignmentInput) {
+    async createAssignment(instituteId: string, teacherId: string | null, data: CreateAssignmentInput) {
       return this.repo.createAssignment(instituteId, teacherId, data);
   }
 
