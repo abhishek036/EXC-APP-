@@ -210,6 +210,7 @@ class PushNotificationService {
   }
 
   Future<void> _registerCurrentToken() async {
+    await _ensureFcmToken();
     if (_fcmToken == null || _fcmToken!.isEmpty) return;
 
     final storage = sl<SecureStorageService>();
@@ -239,6 +240,17 @@ class PushNotificationService {
     }
   }
 
+  Future<void> _ensureFcmToken() async {
+    if (kIsWeb) return;
+    if (_fcmToken != null && _fcmToken!.isNotEmpty) return;
+
+    try {
+      _fcmToken = await FirebaseMessaging.instance.getToken();
+    } catch (error) {
+      debugPrint('FCM token fetch failed: $error');
+    }
+  }
+
   Future<void> unregisterToken() async {
     if (_fcmToken == null || _fcmToken!.isEmpty) return;
 
@@ -255,6 +267,10 @@ class PushNotificationService {
   }
 
   Future<void> syncTokenRegistration() async {
+    if (kIsWeb) return;
+    if (!_initialized) {
+      await initialize();
+    }
     await _registerCurrentToken();
   }
 
