@@ -8,7 +8,7 @@ export const generateOTP = (): string => {
 };
 
 export const generateTokens = (payload: { userId: string, role: string, instituteId: string, phone: string }) => {
-    const accessExpiresIn = (process.env.JWT_EXPIRES_IN || '15m') as jwt.SignOptions['expiresIn'];
+    const accessExpiresIn = (process.env.JWT_EXPIRES_IN || '8h') as jwt.SignOptions['expiresIn'];
     const refreshExpiresIn = (process.env.JWT_REFRESH_EXPIRES_IN || '30d') as jwt.SignOptions['expiresIn'];
 
     const accessToken = jwt.sign(
