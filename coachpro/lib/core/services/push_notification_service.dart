@@ -173,7 +173,13 @@ class PushNotificationService {
     }
 
     final messaging = FirebaseMessaging.instance;
-    await messaging.requestPermission(alert: true, badge: true, sound: true, provisional: false);
+    final permission = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+    debugPrint('FCM permission status: ${permission.authorizationStatus.name}');
 
     _fcmToken = await messaging.getToken();
     if (_fcmToken != null && _fcmToken!.isNotEmpty) {
@@ -215,9 +221,8 @@ class PushNotificationService {
 
     final storage = sl<SecureStorageService>();
     final token = await storage.getToken();
-    final userJson = await storage.getUserJson();
 
-    if (token == null || token.isEmpty || userJson == null || userJson.isEmpty) {
+    if (token == null || token.isEmpty) {
       return;
     }
 
@@ -235,6 +240,7 @@ class PushNotificationService {
                   : 'web',
         },
       );
+      debugPrint('FCM token registered on backend');
     } catch (error) {
       debugPrint('FCM token register failed: $error');
     }
