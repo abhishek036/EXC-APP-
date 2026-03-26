@@ -42,6 +42,13 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     return _dateKey(parsed) == _dateKey(_selectedDate);
   }
 
+  String _formatSelectedDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final year = date.year.toString();
+    return '$day/$month/$year';
+  }
+
   Map<String, dynamic> _decorateEntryWithBatch(Map<String, dynamic> entry) {
     final batchId = (entry['batch_id'] ?? '').toString();
     if (batchId.isEmpty || entry['batch'] is Map<String, dynamic>) {
@@ -169,7 +176,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                     children: [
                       _buildWeekStrip(blue, surface, yellow),
                       const SizedBox(height: 32),
-                      _buildSectionTitle('TODAY\'S CLASSES', yellow),
+                      _buildSectionTitle('CLASSES • ${_formatSelectedDate(_selectedDate)}', yellow),
                       const SizedBox(height: 16),
                       if (_entries.isEmpty)
                         _buildEmptyState(blue, surface)
@@ -195,34 +202,110 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(4, 4))],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: days.map((d) {
-          final isSelected = d.year == _selectedDate.year && d.month == _selectedDate.month && d.day == _selectedDate.day;
-          return Column(
+      child: Column(
+        children: [
+          Row(
             children: [
-              Text(_dayShort(d.weekday), style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.5))),
-              const SizedBox(height: 8),
               InkWell(
                 onTap: () {
-                  setState(() => _selectedDate = DateTime(d.year, d.month, d.day));
+                  setState(() {
+                    _selectedDate = _selectedDate.subtract(const Duration(days: 7));
+                  });
                   _load();
                 },
                 child: Container(
-                  width: 36,
-                  height: 36,
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: isSelected ? yellow : Colors.transparent,
-                    border: isSelected ? Border.all(color: Colors.black, width: 2) : null,
+                    border: Border.all(color: Colors.black, width: 2),
                     borderRadius: BorderRadius.circular(8),
                   ),
+                  child: Icon(Icons.chevron_left_rounded, color: blue, size: 20),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate,
+                        firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (picked == null) return;
+                      setState(() {
+                        _selectedDate = DateTime(picked.year, picked.month, picked.day);
+                      });
+                      _load();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      child: Text(
+                        _formatSelectedDate(_selectedDate),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          color: blue,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedDate = _selectedDate.add(const Duration(days: 7));
+                  });
+                  _load();
+                },
+                child: Container(
+                  width: 32,
+                  height: 32,
                   alignment: Alignment.center,
-                  child: Text('${d.day}', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: blue)),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black, width: 2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.chevron_right_rounded, color: blue, size: 20),
                 ),
               ),
             ],
-          );
-        }).toList(),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: days.map((d) {
+              final isSelected = d.year == _selectedDate.year && d.month == _selectedDate.month && d.day == _selectedDate.day;
+              return Column(
+                children: [
+                  Text(_dayShort(d.weekday), style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.5))),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () {
+                      setState(() => _selectedDate = DateTime(d.year, d.month, d.day));
+                      _load();
+                    },
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isSelected ? yellow : Colors.transparent,
+                        border: isSelected ? Border.all(color: Colors.black, width: 2) : null,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text('${d.day}', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: blue)),
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        ],
       ),
     ).animate().fadeIn();
   }
@@ -557,7 +640,13 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(color: surface.withValues(alpha: 0.1), border: Border.all(color: Colors.white24, width: 2, style: BorderStyle.solid), borderRadius: BorderRadius.circular(16)),
-      child: Center(child: Text('NO CLASSES SCHEDULED FOR TODAY', textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(color: Colors.white54, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1))),
+      child: Center(
+        child: Text(
+          'NO CLASSES SCHEDULED FOR ${_formatSelectedDate(_selectedDate)}',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.plusJakartaSans(color: Colors.white54, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+        ),
+      ),
     );
   }
 
