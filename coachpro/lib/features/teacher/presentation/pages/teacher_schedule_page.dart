@@ -449,7 +449,10 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     required DateTime scheduledAt,
     required int durationMinutes,
   }) async {
-    setState(() => _isSaving = true);
+    setState(() {
+      _isSaving = true;
+      _selectedDate = DateTime(scheduledAt.year, scheduledAt.month, scheduledAt.day);
+    });
     try {
       final created = await _repo.createMyScheduleEntry(
         batchId: batchId,
@@ -487,7 +490,10 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     required int durationMinutes,
   }) async {
     if (lectureId.isEmpty) return false;
-    setState(() => _isSaving = true);
+    setState(() {
+      _isSaving = true;
+      _selectedDate = DateTime(scheduledAt.year, scheduledAt.month, scheduledAt.day);
+    });
     try {
       await _repo.updateMyScheduleEntry(
         lectureId: lectureId,
