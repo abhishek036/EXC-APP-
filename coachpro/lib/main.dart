@@ -149,6 +149,7 @@ class _CoachProAppState extends State<CoachProApp> with WidgetsBindingObserver {
       );
       // Quietly refresh auth state when app comes back to foreground
       _authBloc.add(const AuthRefreshRequested());
+      unawaited(sl<PushNotificationService>().syncTokenRegistration());
       _startAuthSyncTimer();
     } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.detached) {
       _authSyncTimer?.cancel();
