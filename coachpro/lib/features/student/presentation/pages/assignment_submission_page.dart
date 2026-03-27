@@ -14,7 +14,8 @@ class AssignmentSubmissionPage extends StatefulWidget {
   const AssignmentSubmissionPage({super.key});
 
   @override
-  State<AssignmentSubmissionPage> createState() => _AssignmentSubmissionPageState();
+  State<AssignmentSubmissionPage> createState() =>
+      _AssignmentSubmissionPageState();
 }
 
 class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
@@ -71,7 +72,11 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
     if (assignmentId.isEmpty) return;
 
     if (!_isFileUploaded) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Upload a file or add text before submitting')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Upload a file or add text before submitting'),
+        ),
+      );
       return;
     }
 
@@ -79,15 +84,23 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
     try {
       await _adminRepo.submitAssignment(
         assignmentId: assignmentId,
-        fileUrl: _fileUrlCtrl.text.trim().isNotEmpty ? _fileUrlCtrl.text.trim() : null,
-        submissionText: _submissionTextCtrl.text.trim().isNotEmpty ? _submissionTextCtrl.text.trim() : null,
+        fileUrl: _fileUrlCtrl.text.trim().isNotEmpty
+            ? _fileUrlCtrl.text.trim()
+            : null,
+        submissionText: _submissionTextCtrl.text.trim().isNotEmpty
+            ? _submissionTextCtrl.text.trim()
+            : null,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Assignment submitted successfully')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Assignment submitted successfully')),
+      );
       context.pop();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Submission failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Submission failed: $e')));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -96,181 +109,349 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
   @override
   Widget build(BuildContext context) {
     final assignment = _selectedAssignment;
-    final title = (assignment?['title'] ?? 'No Assignment Available').toString();
+    final title = (assignment?['title'] ?? 'No Assignment Available')
+        .toString();
     final subject = (assignment?['subject'] ?? 'General').toString();
-    final description = (assignment?['description'] ?? 'No assignment description provided.').toString();
+    final description =
+        (assignment?['description'] ?? 'No assignment description provided.')
+            .toString();
     final dueDateRaw = (assignment?['due_date'] ?? '').toString();
     final dueLabel = _formatDueLabel(dueDateRaw);
 
     return Scaffold(
       backgroundColor: CT.bg(context),
       appBar: AppBar(
-        title: Text('Submit Assignment', style: GoogleFonts.sora(fontWeight: FontWeight.w600)),
+        title: Text(
+          'Submit Assignment',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!, style: GoogleFonts.dmSans(color: CT.textM(context))))
-              : assignment == null
-                  ? Center(child: Text('No assignments found', style: GoogleFonts.dmSans(color: CT.textM(context))))
-                  : SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if (_assignments.length > 1) ...[
-            Text('Select Assignment', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context))),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: CT.card(context),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: CT.border(context)),
+          ? Center(
+              child: Text(
+                _error!,
+                style: GoogleFonts.plusJakartaSans(color: CT.textM(context)),
               ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: (assignment['id'] ?? '').toString(),
-                  isExpanded: true,
-                  items: _assignments.map((item) {
-                    final id = (item['id'] ?? '').toString();
-                    final label = (item['title'] ?? 'Assignment').toString();
-                    return DropdownMenuItem<String>(value: id, child: Text(label, overflow: TextOverflow.ellipsis));
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() {
-                      _selectedAssignment = _assignments.firstWhere(
-                        (item) => (item['id'] ?? '').toString() == value,
-                        orElse: () => _assignments.first,
-                      );
-                    });
-                  },
-                ),
+            )
+          : assignment == null
+          ? Center(
+              child: Text(
+                'No assignments found',
+                style: GoogleFonts.plusJakartaSans(color: CT.textM(context)),
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_assignments.length > 1) ...[
+                    Text(
+                      'Select Assignment',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: CT.textH(context),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: CT.card(context),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: CT.border(context)),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: (assignment['id'] ?? '').toString(),
+                          isExpanded: true,
+                          items: _assignments.map((item) {
+                            final id = (item['id'] ?? '').toString();
+                            final label = (item['title'] ?? 'Assignment')
+                                .toString();
+                            return DropdownMenuItem<String>(
+                              value: id,
+                              child: Text(
+                                label,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() {
+                              _selectedAssignment = _assignments.firstWhere(
+                                (item) =>
+                                    (item['id'] ?? '').toString() == value,
+                                orElse: () => _assignments.first,
+                              );
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
 
-          // Basic Info
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: AppColors.physics.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-              child: Text(subject, style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.physics)),
-            ),
-            Text(dueLabel, style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.error, fontWeight: FontWeight.w700)),
-          ]),
-          const SizedBox(height: 16),
-          Text(title, style: GoogleFonts.sora(fontSize: 20, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          Text(
-            description,
-            style: GoogleFonts.dmSans(fontSize: 14, color: CT.textS(context), height: 1.5),
-          ),
-          const SizedBox(height: 32),
-
-          // Upload Box
-          Text('Your Submission', style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          
-          if (!_isFileUploaded)
-            CPPressable(
-              onTap: () {
-                // Simulate upload
-                setState(() {
-                  _isFileUploaded = true;
-                  _fileUrlCtrl.text = _fileUrlCtrl.text.trim().isEmpty
-                      ? 'https://example.com/submission-${DateTime.now().millisecondsSinceEpoch}.pdf'
-                      : _fileUrlCtrl.text.trim();
-                });
-              },
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                decoration: BoxDecoration(
-                  color: CT.card(context),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5), // Simulate dashed border
-                ),
-                child: Column(children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
-                    child: const Icon(Icons.cloud_upload_outlined, color: AppColors.primary, size: 36),
+                  // Basic Info
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.physics.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          subject,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.physics,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        dueLabel,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
-                  Text('Tap to browse files', style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primary)),
-                  const SizedBox(height: 6),
-                  Text('PDF, DOCX, JPG (Max 20MB)', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context))),
-                ]),
-              ),
-            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0)
-          else
-            // Uploaded File Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: CT.card(context),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.success.withValues(alpha: 0.5)),
-                boxShadow: [BoxShadow(color: AppColors.success.withValues(alpha: 0.05), blurRadius: 10)],
-              ),
-              child: Row(children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.picture_as_pdf, color: Colors.red),
-                ),
-                const SizedBox(width: 16),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${title.replaceAll(' ', '_')}.pdf', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text('2.4 MB • Uploaded just now', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context))),
-                ])),
-                IconButton(
-                  onPressed: () => setState(() => _isFileUploaded = false),
-                  icon: Icon(Icons.close, color: CT.textM(context)),
-                ),
-              ]),
-            ).animate().fadeIn(duration: 400.ms).scaleXY(begin: 0.95, end: 1.0, curve: Curves.easeOutBack),
+                  Text(
+                    title,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    description,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      color: CT.textS(context),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
 
-          const SizedBox(height: 12),
-          TextField(
-            controller: _submissionTextCtrl,
-            minLines: 2,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'Submission note (optional)',
-              hintText: 'Any remarks for teacher...',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          
-          const SizedBox(height: 40),
-          
-          // Action Buttons
-          Row(children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => context.pop(),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: CT.textM(context)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Text('Cancel', style: GoogleFonts.sora(fontWeight: FontWeight.w600, color: CT.textS(context))),
+                  // Upload Box
+                  Text(
+                    'Your Submission',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  if (!_isFileUploaded)
+                    CPPressable(
+                          onTap: () {
+                            // Simulate upload
+                            setState(() {
+                              _isFileUploaded = true;
+                              _fileUrlCtrl.text =
+                                  _fileUrlCtrl.text.trim().isEmpty
+                                  ? 'https://example.com/submission-${DateTime.now().millisecondsSinceEpoch}.pdf'
+                                  : _fileUrlCtrl.text.trim();
+                            });
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 40),
+                            decoration: BoxDecoration(
+                              color: CT.card(context),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                                width: 1.5,
+                              ), // Simulate dashed border
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.cloud_upload_outlined,
+                                    color: AppColors.primary,
+                                    size: 36,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Tap to browse files',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'PDF, DOCX, JPG (Max 20MB)',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12,
+                                    color: CT.textM(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(duration: 400.ms)
+                        .slideY(begin: 0.05, end: 0)
+                  else
+                    // Uploaded File Card
+                    Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: CT.card(context),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.success.withValues(alpha: 0.5),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.success.withValues(
+                                  alpha: 0.05,
+                                ),
+                                blurRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.picture_as_pdf,
+                                  color: Colors.red,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${title.replaceAll(' ', '_')}.pdf',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '2.4 MB • Uploaded just now',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12,
+                                        color: CT.textS(context),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () =>
+                                    setState(() => _isFileUploaded = false),
+                                icon: Icon(
+                                  Icons.close,
+                                  color: CT.textM(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(duration: 400.ms)
+                        .scaleXY(
+                          begin: 0.95,
+                          end: 1.0,
+                          curve: Curves.easeOutBack,
+                        ),
+
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _submissionTextCtrl,
+                    minLines: 2,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      labelText: 'Submission note (optional)',
+                      hintText: 'Any remarks for teacher...',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // Action Buttons
+                  Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => context.pop(),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                side: BorderSide(color: CT.textM(context)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'Cancel',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w600,
+                                  color: CT.textS(context),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: CustomButton(
+                              text: _isSubmitting
+                                  ? 'Submitting...'
+                                  : 'Turn In Assignment',
+                              onPressed: (_isFileUploaded && !_isSubmitting)
+                                  ? _submitAssignment
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      )
+                      .animate(delay: 200.ms)
+                      .fadeIn(duration: 400.ms)
+                      .slideY(begin: 0.05, end: 0),
+                ],
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: CustomButton(
-                text: _isSubmitting ? 'Submitting...' : 'Turn In Assignment',
-                onPressed: (_isFileUploaded && !_isSubmitting) ? _submitAssignment : null,
-              ),
-            ),
-          ]).animate(delay: 200.ms).fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
-        ]),
-      ),
     );
   }
 

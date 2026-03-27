@@ -49,7 +49,7 @@ class _StudentImportPageState extends State<StudentImportPage> {
 
       final file = result.files.first;
       _fileBytes = file.bytes;
-      
+
       if (_fileBytes == null) {
         setState(() {
           _isPicking = false;
@@ -63,18 +63,18 @@ class _StudentImportPageState extends State<StudentImportPage> {
         final firstSheetKey = excel.tables.keys.first;
         final sheet = excel.tables[firstSheetKey];
         if (sheet != null && sheet.maxRows > 1) {
-           final List<Map<String, dynamic>> parsedStudents = [];
-           for (var i = 1; i < (sheet.maxRows > 10 ? 10 : sheet.maxRows); i++) {
-             final row = sheet.row(i);
-             parsedStudents.add({
-               'name': _cell(row, 0),
-               'phone': _cell(row, 1),
-               'role': _normalizeRole(_cell(row, 2)),
-             });
-           }
-           setState(() {
-             _userRows = parsedStudents;
-           });
+          final List<Map<String, dynamic>> parsedStudents = [];
+          for (var i = 1; i < (sheet.maxRows > 10 ? 10 : sheet.maxRows); i++) {
+            final row = sheet.row(i);
+            parsedStudents.add({
+              'name': _cell(row, 0),
+              'phone': _cell(row, 1),
+              'role': _normalizeRole(_cell(row, 2)),
+            });
+          }
+          setState(() {
+            _userRows = parsedStudents;
+          });
         }
       }
 
@@ -102,17 +102,21 @@ class _StudentImportPageState extends State<StudentImportPage> {
       );
 
       if (!mounted) return;
-      
+
       final message = result['message'] ?? 'Import completed';
       final errors = result['errors'] as List<dynamic>?;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            errors != null && errors.isNotEmpty ? '$message with ${errors.length} errors' : message,
-            style: GoogleFonts.dmSans(color: Colors.white),
+            errors != null && errors.isNotEmpty
+                ? '$message with ${errors.length} errors'
+                : message,
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
           ),
-          backgroundColor: errors != null && errors.isNotEmpty ? AppColors.warning : AppColors.success,
+          backgroundColor: errors != null && errors.isNotEmpty
+              ? AppColors.warning
+              : AppColors.success,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -167,7 +171,7 @@ class _StudentImportPageState extends State<StudentImportPage> {
         ),
         title: Text(
           'Student Import (Excel)',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: CT.textH(context),
@@ -175,7 +179,9 @@ class _StudentImportPageState extends State<StudentImportPage> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.pagePaddingH,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -203,7 +209,7 @@ class _StudentImportPageState extends State<StudentImportPage> {
                         )
                       : Text(
                           'Choose Excel File',
-                          style: GoogleFonts.sora(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -216,7 +222,7 @@ class _StudentImportPageState extends State<StudentImportPage> {
               const SizedBox(height: AppDimensions.md),
               Text(
                 'Selected: $_selectedFileName',
-                style: GoogleFonts.dmSans(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   color: CT.textS(context),
                 ),
@@ -230,7 +236,9 @@ class _StudentImportPageState extends State<StudentImportPage> {
                 decoration: BoxDecoration(
                   color: AppColors.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                  border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,7 +249,7 @@ class _StudentImportPageState extends State<StudentImportPage> {
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Text(
                             '• $e',
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               color: AppColors.error,
                             ),
@@ -256,7 +264,7 @@ class _StudentImportPageState extends State<StudentImportPage> {
               const SizedBox(height: AppDimensions.lg),
               Text(
                 'Preview (${_userRows.length} valid rows)',
-                style: GoogleFonts.sora(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: CT.textH(context),
@@ -269,7 +277,10 @@ class _StudentImportPageState extends State<StudentImportPage> {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     '+${_userRows.length - 8} more rows',
-                    style: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context)),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      color: CT.textM(context),
+                    ),
                   ),
                 ),
               const SizedBox(height: AppDimensions.lg),
@@ -294,7 +305,7 @@ class _StudentImportPageState extends State<StudentImportPage> {
                           )
                         : Text(
                             'Import to Database',
-                            style: GoogleFonts.sora(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
@@ -321,7 +332,7 @@ class _StudentImportPageState extends State<StudentImportPage> {
         children: [
           Text(
             'Required Excel columns (in order)',
-            style: GoogleFonts.sora(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: CT.textH(context),
@@ -338,7 +349,7 @@ class _StudentImportPageState extends State<StudentImportPage> {
           const SizedBox(height: 8),
           Text(
             'Role can be: student / teacher / parent / admin. Invalid role defaults to student.',
-            style: GoogleFonts.dmSans(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               color: CT.textM(context),
             ),
@@ -358,7 +369,7 @@ class _StudentImportPageState extends State<StudentImportPage> {
           Expanded(
             child: Text(
               row['name'] as String,
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: CT.textH(context),
@@ -381,7 +392,7 @@ class _StudentImportPageState extends State<StudentImportPage> {
             ),
             child: Text(
               (row['role'] as String).toUpperCase(),
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 color: CT.accent(context),
@@ -393,5 +404,3 @@ class _StudentImportPageState extends State<StudentImportPage> {
     );
   }
 }
-
-

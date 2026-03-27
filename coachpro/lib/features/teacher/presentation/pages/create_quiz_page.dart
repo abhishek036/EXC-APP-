@@ -47,7 +47,9 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
 
   String? get _safeSelectedBatchId {
     if (_selectedBatchId == null || _selectedBatchId!.isEmpty) return null;
-    final hasSelected = _batches.any((b) => (b['id'] ?? '').toString() == _selectedBatchId);
+    final hasSelected = _batches.any(
+      (b) => (b['id'] ?? '').toString() == _selectedBatchId,
+    );
     return hasSelected ? _selectedBatchId : null;
   }
 
@@ -62,10 +64,14 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
   @override
   void initState() {
     super.initState();
-    _assessmentType = (widget.initialAssessmentType ?? 'QUIZ').toUpperCase() == 'TEST' ? 'TEST' : 'QUIZ';
+    _assessmentType =
+        (widget.initialAssessmentType ?? 'QUIZ').toUpperCase() == 'TEST'
+        ? 'TEST'
+        : 'QUIZ';
     _allowRetry = _assessmentType == 'QUIZ';
     _showInstantResult = _assessmentType == 'QUIZ';
-    if (widget.initialSubject != null && widget.initialSubject!.trim().isNotEmpty) {
+    if (widget.initialSubject != null &&
+        widget.initialSubject!.trim().isNotEmpty) {
       _selectedSubject = widget.initialSubject!.trim();
     }
     _loadBatches();
@@ -88,7 +94,10 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
               : const <Map<String, dynamic>>[];
           final selected = matched.isNotEmpty ? matched.first : b.first;
           _selectedBatchId = (selected['id'] ?? '').toString();
-          _selectedSubject = widget.initialSubject ?? selected['subject']?.toString() ?? 'General';
+          _selectedSubject =
+              widget.initialSubject ??
+              selected['subject']?.toString() ??
+              'General';
         }
       });
 
@@ -126,14 +135,28 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
       _clearQuestions();
       for (final question in questions) {
         _questions.add({
-          'question': TextEditingController(text: (question['question_text'] ?? '').toString()),
+          'question': TextEditingController(
+            text: (question['question_text'] ?? '').toString(),
+          ),
           'options': [
-            TextEditingController(text: (question['option_a'] ?? '').toString()),
-            TextEditingController(text: (question['option_b'] ?? '').toString()),
-            TextEditingController(text: (question['option_c'] ?? '').toString()),
-            TextEditingController(text: (question['option_d'] ?? '').toString()),
+            TextEditingController(
+              text: (question['option_a'] ?? '').toString(),
+            ),
+            TextEditingController(
+              text: (question['option_b'] ?? '').toString(),
+            ),
+            TextEditingController(
+              text: (question['option_c'] ?? '').toString(),
+            ),
+            TextEditingController(
+              text: (question['option_d'] ?? '').toString(),
+            ),
           ],
-          'correct_index': optionToIndex[(question['correct_option'] ?? 'A').toString().toUpperCase()] ?? 0,
+          'correct_index':
+              optionToIndex[(question['correct_option'] ?? 'A')
+                  .toString()
+                  .toUpperCase()] ??
+              0,
           'marks': (question['marks'] ?? 1).toString(),
         });
       }
@@ -144,18 +167,36 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
 
       setState(() {
         _titleCtrl.text = (quiz['title'] ?? '').toString();
-        _assessmentType = ((quiz['assessment_type'] ?? _assessmentType).toString().toUpperCase() == 'TEST') ? 'TEST' : 'QUIZ';
-        _durationCtrl.text = (quiz['time_limit_min'] ?? (_assessmentType == 'TEST' ? 60 : '')).toString();
-        _selectedBatchId = (quiz['batch_id'] ?? _selectedBatchId ?? '').toString();
-        _selectedSubject = (quiz['subject'] ?? _selectedSubject ?? 'General').toString();
-        _scheduledAt = quiz['scheduled_at'] != null ? DateTime.tryParse(quiz['scheduled_at'].toString())?.toLocal() : null;
+        _assessmentType =
+            ((quiz['assessment_type'] ?? _assessmentType)
+                    .toString()
+                    .toUpperCase() ==
+                'TEST')
+            ? 'TEST'
+            : 'QUIZ';
+        _durationCtrl.text =
+            (quiz['time_limit_min'] ?? (_assessmentType == 'TEST' ? 60 : ''))
+                .toString();
+        _selectedBatchId = (quiz['batch_id'] ?? _selectedBatchId ?? '')
+            .toString();
+        _selectedSubject = (quiz['subject'] ?? _selectedSubject ?? 'General')
+            .toString();
+        _scheduledAt = quiz['scheduled_at'] != null
+            ? DateTime.tryParse(quiz['scheduled_at'].toString())?.toLocal()
+            : null;
         _negativeMarkingCtrl.text = (quiz['negative_marking'] ?? '').toString();
-        _allowRetry = quiz['allow_retry'] == null ? _assessmentType == 'QUIZ' : quiz['allow_retry'] == true;
-        _showInstantResult = quiz['show_instant_result'] == null ? _assessmentType == 'QUIZ' : quiz['show_instant_result'] == true;
+        _allowRetry = quiz['allow_retry'] == null
+            ? _assessmentType == 'QUIZ'
+            : quiz['allow_retry'] == true;
+        _showInstantResult = quiz['show_instant_result'] == null
+            ? _assessmentType == 'QUIZ'
+            : quiz['show_instant_result'] == true;
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to load quiz for edit: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load quiz for edit: $e')),
+      );
       if (_questions.isEmpty) {
         _addEmptyQuestion();
       }
@@ -166,9 +207,14 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
     setState(() {
       _questions.add({
         'question': TextEditingController(),
-        'options': [TextEditingController(), TextEditingController(), TextEditingController(), TextEditingController()],
+        'options': [
+          TextEditingController(),
+          TextEditingController(),
+          TextEditingController(),
+          TextEditingController(),
+        ],
         'correct_index': 0,
-        'marks': '4'
+        'marks': '4',
       });
     });
   }
@@ -179,12 +225,16 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
     final negativeMarking = double.tryParse(_negativeMarkingCtrl.text.trim());
 
     if (title.isEmpty || _selectedBatchId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all main fields.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all main fields.')),
+      );
       return;
     }
 
     if (_assessmentType == 'TEST' && duration <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Test mode needs a strict timer.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Test mode needs a strict timer.')),
+      );
       return;
     }
 
@@ -197,7 +247,11 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
       final correctIdx = qMap['correct_index'] as int;
 
       if (qText.isEmpty || opts.any((o) => o.isEmpty)) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please fill all fields in Question ${i + 1}.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please fill all fields in Question ${i + 1}.'),
+          ),
+        );
         return;
       }
       parsedQuestions.add({
@@ -205,17 +259,23 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
         'options': opts,
         'correct_option_index': correctIdx,
         'marks': int.tryParse(qMap['marks'].toString()) ?? 4,
-        'type': 'multiple_choice'
+        'type': 'multiple_choice',
       });
     }
 
-    if (_assessmentType == 'QUIZ' && (parsedQuestions.length < 5 || parsedQuestions.length > 20)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quiz mode requires 5-20 questions.')));
+    if (_assessmentType == 'QUIZ' &&
+        (parsedQuestions.length < 5 || parsedQuestions.length > 20)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Quiz mode requires 5-20 questions.')),
+      );
       return;
     }
 
-    if (_assessmentType == 'TEST' && (parsedQuestions.length < 50 || parsedQuestions.length > 200)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Test mode requires 50-200 questions.')));
+    if (_assessmentType == 'TEST' &&
+        (parsedQuestions.length < 50 || parsedQuestions.length > 200)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Test mode requires 50-200 questions.')),
+      );
       return;
     }
 
@@ -260,11 +320,21 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
         );
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_isEditMode ? 'Quiz Updated Successfully!' : 'Quiz Published Successfully!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isEditMode
+                ? 'Quiz Updated Successfully!'
+                : 'Quiz Published Successfully!',
+          ),
+        ),
+      );
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _isPublishing = false);
     }
@@ -291,29 +361,57 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
         backgroundColor: blue,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 22,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(_isEditMode ? 'EDIT QUIZ' : 'CREATE QUIZ', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.0)),
-      ),
-      body: Column(children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _buildSettingsCard(blue, surface, yellow),
-              const SizedBox(height: 32),
-              Text('QUESTIONS (${_questions.length})', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: yellow, letterSpacing: 2)),
-              const SizedBox(height: 16),
-              ...List.generate(_questions.length, (idx) => _buildQuestionCard(idx, blue, surface, yellow)),
-              const SizedBox(height: 16),
-              _buildAddQuestionBtn(blue, surface, yellow),
-              const SizedBox(height: 40),
-            ]),
+        title: Text(
+          _isEditMode ? 'EDIT QUIZ' : 'CREATE QUIZ',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            color: Colors.white,
+            letterSpacing: 1.0,
           ),
         ),
-        _buildBottomBar(blue, surface, yellow),
-      ]),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSettingsCard(blue, surface, yellow),
+                  const SizedBox(height: 32),
+                  Text(
+                    'QUESTIONS (${_questions.length})',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      color: yellow,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ...List.generate(
+                    _questions.length,
+                    (idx) => _buildQuestionCard(idx, blue, surface, yellow),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildAddQuestionBtn(blue, surface, yellow),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+          _buildBottomBar(blue, surface, yellow),
+        ],
+      ),
     );
   }
 
@@ -363,13 +461,31 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _inputLabel(_assessmentType == 'TEST' ? 'STRICT TIMER (MINS)' : 'OPTIONAL TIMER (MINS)', blue),
-                    _textField(_durationCtrl, _assessmentType == 'TEST' ? '60' : '0', blue, isNum: true),
+                    _inputLabel(
+                      _assessmentType == 'TEST'
+                          ? 'STRICT TIMER (MINS)'
+                          : 'OPTIONAL TIMER (MINS)',
+                      blue,
+                    ),
+                    _textField(
+                      _durationCtrl,
+                      _assessmentType == 'TEST' ? '60' : '0',
+                      blue,
+                      isNum: true,
+                    ),
                   ],
                 ),
               ),
               const SizedBox(width: 16),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_inputLabel('BATCH', blue), _buildBatchDropdown(blue)])),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _inputLabel('BATCH', blue),
+                    _buildBatchDropdown(blue),
+                  ],
+                ),
+              ),
             ],
           ),
           if (_assessmentType == 'TEST') ...[
@@ -381,7 +497,12 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _inputLabel('NEGATIVE MARKING (OPTIONAL)', blue),
-                      _textField(_negativeMarkingCtrl, '0.25', blue, isNum: true),
+                      _textField(
+                        _negativeMarkingCtrl,
+                        '0.25',
+                        blue,
+                        isNum: true,
+                      ),
                     ],
                   ),
                 ),
@@ -396,17 +517,29 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                           final date = await showDatePicker(
                             context: context,
                             initialDate: _scheduledAt ?? DateTime.now(),
-                            firstDate: DateTime.now().subtract(const Duration(days: 1)),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            firstDate: DateTime.now().subtract(
+                              const Duration(days: 1),
+                            ),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
                           );
                           if (date == null || !mounted) return;
                           final time = await showTimePicker(
                             context: context,
-                            initialTime: TimeOfDay.fromDateTime(_scheduledAt ?? DateTime.now()),
+                            initialTime: TimeOfDay.fromDateTime(
+                              _scheduledAt ?? DateTime.now(),
+                            ),
                           );
                           if (time == null || !mounted) return;
                           setState(() {
-                            _scheduledAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                            _scheduledAt = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                              time.hour,
+                              time.minute,
+                            );
                           });
                         },
                         style: OutlinedButton.styleFrom(
@@ -418,7 +551,10 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                           _scheduledAt == null
                               ? 'SET DATE & TIME'
                               : '${_scheduledAt!.day.toString().padLeft(2, '0')}/${_scheduledAt!.month.toString().padLeft(2, '0')} ${_scheduledAt!.hour.toString().padLeft(2, '0')}:${_scheduledAt!.minute.toString().padLeft(2, '0')}',
-                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w800,
+                            color: blue,
+                          ),
                         ),
                       ),
                     ],
@@ -435,7 +571,14 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                   child: SwitchListTile(
                     value: _allowRetry,
                     onChanged: (v) => setState(() => _allowRetry = v),
-                    title: Text('ALLOW RETRY', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 12, color: blue)),
+                    title: Text(
+                      'ALLOW RETRY',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        color: blue,
+                      ),
+                    ),
                     dense: true,
                     activeThumbColor: yellow,
                   ),
@@ -444,7 +587,14 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                   child: SwitchListTile(
                     value: _showInstantResult,
                     onChanged: (v) => setState(() => _showInstantResult = v),
-                    title: Text('INSTANT RESULT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 12, color: blue)),
+                    title: Text(
+                      'INSTANT RESULT',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        color: blue,
+                      ),
+                    ),
                     dense: true,
                     activeThumbColor: yellow,
                   ),
@@ -454,7 +604,12 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           else
             Text(
               'TEST MODE: ONE ATTEMPT, STRICT TIMER, LEADERBOARD ENABLED',
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 11, color: blue.withValues(alpha: 0.7), letterSpacing: 0.6),
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                color: blue.withValues(alpha: 0.7),
+                letterSpacing: 0.6,
+              ),
             ),
         ],
       ),
@@ -492,54 +647,108 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 11, color: blue),
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w900,
+              fontSize: 11,
+              color: blue,
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _inputLabel(String label, Color blue) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.5), letterSpacing: 1)));
+  Widget _inputLabel(String label, Color blue) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      label,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 11,
+        fontWeight: FontWeight.w900,
+        color: blue.withValues(alpha: 0.5),
+        letterSpacing: 1,
+      ),
+    ),
+  );
 
-  Widget _textField(TextEditingController ctrl, String hint, Color blue, {bool isNum = false, int maxLines = 1}) => TextField(
+  Widget _textField(
+    TextEditingController ctrl,
+    String hint,
+    Color blue, {
+    bool isNum = false,
+    int maxLines = 1,
+  }) => TextField(
     controller: ctrl,
     keyboardType: isNum ? TextInputType.number : TextInputType.text,
     maxLines: maxLines,
-    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue),
+    style: GoogleFonts.plusJakartaSans(
+      fontWeight: FontWeight.w800,
+      color: blue,
+    ),
     decoration: InputDecoration(
       hintText: hint,
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: blue, width: 2)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: blue, width: 2.5)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: blue, width: 2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: blue, width: 2.5),
+      ),
     ),
   );
 
   Widget _buildBatchDropdown(Color blue) {
-    if (_isLoadingBatches) return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    if (_isLoadingBatches)
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: blue, width: 2),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _safeSelectedBatchId,
           isExpanded: true,
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue),
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w800,
+            color: blue,
+          ),
           onChanged: (val) {
             final selectedBatch = _findBatchById(val);
             setState(() {
               _selectedBatchId = val;
-              _selectedSubject = selectedBatch?['subject']?.toString() ?? 'General';
+              _selectedSubject =
+                  selectedBatch?['subject']?.toString() ?? 'General';
             });
           },
-          items: _batches.map((b) => DropdownMenuItem(value: b['id']?.toString(), child: Text(b['name']?.toString() ?? 'BATCH', overflow: TextOverflow.ellipsis))).toList(),
+          items: _batches
+              .map(
+                (b) => DropdownMenuItem(
+                  value: b['id']?.toString(),
+                  child: Text(
+                    b['name']?.toString() ?? 'BATCH',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(),
         ),
       ),
     );
   }
 
-  Widget _buildQuestionCard(int index, Color blue, Color surface, Color yellow) {
+  Widget _buildQuestionCard(
+    int index,
+    Color blue,
+    Color surface,
+    Color yellow,
+  ) {
     final qMap = _questions[index];
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -556,14 +765,35 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(4)), child: Text('Q${index + 1}', style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.w900))),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: blue,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Q${index + 1}',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
               if (_questions.length > 1)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded, color: AppColors.coralRed),
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.coralRed,
+                  ),
                   onPressed: () {
                     final removed = _questions.removeAt(index);
                     (removed['question'] as TextEditingController).dispose();
-                    for (final ctrl in (removed['options'] as List<TextEditingController>)) {
+                    for (final ctrl
+                        in (removed['options']
+                            as List<TextEditingController>)) {
                       ctrl.dispose();
                     }
                     setState(() {});
@@ -591,31 +821,64 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           GestureDetector(
             onTap: () => setState(() => qMap['correct_index'] = oIdx),
             child: Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(color: isCorrect ? yellow : Colors.white, border: Border.all(color: blue, width: 2), shape: BoxShape.circle),
-              child: isCorrect ? Icon(Icons.check_rounded, size: 18, color: blue) : null,
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: isCorrect ? yellow : Colors.white,
+                border: Border.all(color: blue, width: 2),
+                shape: BoxShape.circle,
+              ),
+              child: isCorrect
+                  ? Icon(Icons.check_rounded, size: 18, color: blue)
+                  : null,
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(child: _textField(qMap['options'][oIdx], 'OPTION ${String.fromCharCode(65 + oIdx)}', blue)),
+          Expanded(
+            child: _textField(
+              qMap['options'][oIdx],
+              'OPTION ${String.fromCharCode(65 + oIdx)}',
+              blue,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildAddQuestionBtn(Color blue, Color surface, Color yellow) => InkWell(
-    onTap: _addEmptyQuestion,
-    child: Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      decoration: BoxDecoration(color: blue.withValues(alpha: 0.3), border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2, strokeAlign: BorderSide.strokeAlignOutside), borderRadius: BorderRadius.circular(16)),
-      child: Center(child: Text('+ ADD ANOTHER QUESTION', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: Colors.white))),
-    ),
-  );
+  Widget _buildAddQuestionBtn(Color blue, Color surface, Color yellow) =>
+      InkWell(
+        onTap: _addEmptyQuestion,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: blue.withValues(alpha: 0.3),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.5),
+              width: 2,
+              strokeAlign: BorderSide.strokeAlignOutside,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Text(
+              '+ ADD ANOTHER QUESTION',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      );
 
   Widget _buildBottomBar(Color blue, Color surface, Color yellow) => Container(
     padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-    decoration: BoxDecoration(color: surface, border: Border(top: BorderSide(color: blue, width: 4))),
+    decoration: BoxDecoration(
+      color: surface,
+      border: Border(top: BorderSide(color: blue, width: 4)),
+    ),
     child: SizedBox(
       width: double.infinity,
       height: 60,
@@ -624,12 +887,21 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           backgroundColor: yellow,
           foregroundColor: blue,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: blue, width: 3)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: blue, width: 3),
+          ),
         ),
         onPressed: _isPublishing ? null : _publishQuiz,
         child: _isPublishing
             ? const CircularProgressIndicator()
-            : Text(_isEditMode ? 'UPDATE QUIZ' : 'PUBLISH QUIZ', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16)),
+            : Text(
+                _isEditMode ? 'UPDATE QUIZ' : 'PUBLISH QUIZ',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
+              ),
       ),
     ),
   );

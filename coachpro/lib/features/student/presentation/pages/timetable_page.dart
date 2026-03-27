@@ -63,9 +63,9 @@ class _TimetablePageState extends State<TimetablePage> {
               _buildHeader(),
               _buildDaySelector(),
               Expanded(
-                child: _isLoading 
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _error != null
                     ? _buildErrorState()
                     : _buildScheduleList(),
               ),
@@ -77,15 +77,25 @@ class _TimetablePageState extends State<TimetablePage> {
   }
 
   Widget _buildHeader() => Padding(
-    padding: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, AppDimensions.md, AppDimensions.pagePaddingH, AppDimensions.sm),
+    padding: const EdgeInsets.fromLTRB(
+      AppDimensions.pagePaddingH,
+      AppDimensions.md,
+      AppDimensions.pagePaddingH,
+      AppDimensions.sm,
+    ),
     child: Row(
       children: [
         CPPressable(
-          onTap: () => context.canPop() ? context.pop() : context.go('/student'),
+          onTap: () =>
+              context.canPop() ? context.pop() : context.go('/student'),
           child: Container(
             padding: const EdgeInsets.all(AppDimensions.step),
             decoration: CT.cardDecor(context, radius: AppDimensions.radiusSM),
-            child: Icon(Icons.arrow_back_ios_new, size: 18, color: CT.textH(context)),
+            child: Icon(
+              Icons.arrow_back_ios_new,
+              size: 18,
+              color: CT.textH(context),
+            ),
           ),
         ),
         const SizedBox(width: 16),
@@ -93,8 +103,21 @@ class _TimetablePageState extends State<TimetablePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Timetable', style: GoogleFonts.sora(fontSize: 22, fontWeight: FontWeight.w700, color: CT.textH(context))),
-              Text('Live Daily Schedule', style: GoogleFonts.dmSans(fontSize: 13, color: CT.textS(context))),
+              Text(
+                'Timetable',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: CT.textH(context),
+                ),
+              ),
+              Text(
+                'Live Daily Schedule',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  color: CT.textS(context),
+                ),
+              ),
             ],
           ),
         ),
@@ -107,7 +130,11 @@ class _TimetablePageState extends State<TimetablePage> {
             ),
             child: Text(
               '${_todaySchedule.length} classes',
-              style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.electricBlue),
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.electricBlue,
+              ),
             ),
           ),
       ],
@@ -117,7 +144,7 @@ class _TimetablePageState extends State<TimetablePage> {
   Widget _buildDaySelector() {
     final now = DateTime.now();
     final todayIndex = now.weekday - 1;
-    
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: Container(
@@ -125,22 +152,30 @@ class _TimetablePageState extends State<TimetablePage> {
         decoration: BoxDecoration(
           color: CT.card(context),
           borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-          boxShadow: [BoxShadow(color: CT.textH(context).withValues(alpha: 0.04), blurRadius: 8)],
+          boxShadow: [
+            BoxShadow(
+              color: CT.textH(context).withValues(alpha: 0.04),
+              blurRadius: 0,
+            ),
+          ],
         ),
         child: Row(
           children: List.generate(7, (i) {
-            final isSelected = i == todayIndex; // For now we only show today's real data
+            final isSelected =
+                i == todayIndex; // For now we only show today's real data
             return Expanded(
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.electricBlue : Colors.transparent,
+                  color: isSelected
+                      ? AppColors.electricBlue
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   _days[i],
-                  style: GoogleFonts.sora(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: isSelected ? Colors.white : CT.textS(context),
@@ -162,8 +197,21 @@ class _TimetablePageState extends State<TimetablePage> {
           children: [
             Icon(Icons.weekend_outlined, size: 60, color: CT.textM(context)),
             const SizedBox(height: 12),
-            Text('No classes for today!', style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w600, color: CT.textS(context))),
-            Text('Enjoy your day off 🎉', style: GoogleFonts.dmSans(fontSize: 13, color: CT.textM(context))),
+            Text(
+              'No classes for today!',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: CT.textS(context),
+              ),
+            ),
+            Text(
+              'Enjoy your day off 🎉',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: CT.textM(context),
+              ),
+            ),
           ],
         ),
       );
@@ -189,64 +237,131 @@ class _TimetablePageState extends State<TimetablePage> {
     final room = cls['room'] ?? 'Online';
 
     Color c = AppColors.elitePrimary;
-    if (subject.toLowerCase().contains('physics')) { c = AppColors.physics; }
-    else if (subject.toLowerCase().contains('chemistry')) { c = AppColors.chemistry; }
-    else if (subject.toLowerCase().contains('math')) { c = AppColors.mathematics; }
+    if (subject.toLowerCase().contains('physics')) {
+      c = AppColors.physics;
+    } else if (subject.toLowerCase().contains('chemistry')) {
+      c = AppColors.chemistry;
+    } else if (subject.toLowerCase().contains('math')) {
+      c = AppColors.mathematics;
+    }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: CPPressable(
-        child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 55,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+          padding: const EdgeInsets.only(bottom: 12),
+          child: CPPressable(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(startTime, style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w700, color: CT.textH(context))),
-                const SizedBox(height: 4),
-                Container(width: 2, height: 30, decoration: BoxDecoration(color: c.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(1))),
-                const SizedBox(height: 4),
-                Text(endTime, style: GoogleFonts.jetBrainsMono(fontSize: 11, color: CT.textM(context))),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: CT.card(context),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-                border: Border(left: BorderSide(color: c, width: 4)),
-                boxShadow: [BoxShadow(color: CT.textH(context).withValues(alpha: 0.04), blurRadius: 10)],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                SizedBox(
+                  width: 55,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(subject, style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w700, color: CT.textH(context))),
+                      Text(
+                        startTime,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: CT.textH(context),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: c.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                        child: Text(room, style: GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.w600, color: c)),
+                        width: 2,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: c.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        endTime,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          color: CT.textM(context),
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(teacher, style: GoogleFonts.dmSans(fontSize: 13, color: CT.textS(context))),
-                  const SizedBox(height: 4),
-                  Text(batch, style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context))),
-                ],
-              ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: CT.card(context),
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusMD,
+                      ),
+                      border: Border(left: BorderSide(color: c, width: 4)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: CT.textH(context).withValues(alpha: 0.04),
+                          blurRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              subject,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: CT.textH(context),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: c.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                room,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: c,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          teacher,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            color: CT.textS(context),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          batch,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            color: CT.textM(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-    )).animate(delay: Duration(milliseconds: 200 + index * 80)).fadeIn(duration: 300.ms).slideX(begin: 0.1, end: 0);
+        )
+        .animate(delay: Duration(milliseconds: 200 + index * 80))
+        .fadeIn(duration: 300.ms)
+        .slideX(begin: 0.1, end: 0);
   }
 
   Widget _buildErrorState() {
@@ -256,9 +371,18 @@ class _TimetablePageState extends State<TimetablePage> {
         children: [
           Icon(Icons.error_outline, size: 48, color: AppColors.error),
           const SizedBox(height: 16),
-          Text('Failed to load schedule', style: GoogleFonts.sora(fontSize: 18, color: CT.textH(context))),
+          Text(
+            'Failed to load schedule',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              color: CT.textH(context),
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(_error ?? 'Unknown error', style: GoogleFonts.dmSans(color: CT.textM(context))),
+          Text(
+            _error ?? 'Unknown error',
+            style: GoogleFonts.plusJakartaSans(color: CT.textM(context)),
+          ),
           const SizedBox(height: 24),
           ElevatedButton(onPressed: _loadSchedule, child: const Text('Retry')),
         ],

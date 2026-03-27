@@ -126,11 +126,14 @@ class StudentRepository {
     required String question,
     String? imageUrl,
   }) async {
-    final response = await _api.dio.post('doubts', data: {
-      'batch_id': batchId,
-      'question_text': question,
-      'question_img': imageUrl,
-    });
+    final response = await _api.dio.post(
+      'doubts',
+      data: {
+        'batch_id': batchId,
+        'question_text': question,
+        'question_img': imageUrl,
+      },
+    );
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map);
     }
@@ -174,9 +177,10 @@ class StudentRepository {
     required String quizId,
     required List<Map<String, dynamic>> answers,
   }) async {
-    final response = await _api.dio.post('quizzes/$quizId/attempt/submit', data: {
-      'answers': answers,
-    });
+    final response = await _api.dio.post(
+      'quizzes/$quizId/attempt/submit',
+      data: {'answers': answers},
+    );
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map);
     }
@@ -192,7 +196,9 @@ class StudentRepository {
   }
 
   // ── Study Materials ──────────────────────────────────────
-  Future<List<Map<String, dynamic>>> getStudyMaterials({String? subject}) async {
+  Future<List<Map<String, dynamic>>> getStudyMaterials({
+    String? subject,
+  }) async {
     final response = await _api.dio.get(
       'content/notes',
       queryParameters: {
@@ -211,7 +217,9 @@ class StudentRepository {
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
-    throw Exception(response.data['message'] ?? 'Failed to fetch announcements');
+    throw Exception(
+      response.data['message'] ?? 'Failed to fetch announcements',
+    );
   }
 
   // ── Notifications ────────────────────────────────────────
@@ -221,42 +229,62 @@ class StudentRepository {
     String? type,
     String readStatus = 'all',
   }) async {
-    final response = await _api.dio.get('notifications', queryParameters: {
-      'page': page,
-      'perPage': perPage,
-      if (type != null && type.isNotEmpty) 'type': type,
-      'read_status': readStatus,
-    });
+    final response = await _api.dio.get(
+      'notifications',
+      queryParameters: {
+        'page': page,
+        'perPage': perPage,
+        if (type != null && type.isNotEmpty) 'type': type,
+        'read_status': readStatus,
+      },
+    );
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
-    throw Exception(response.data['message'] ?? 'Failed to fetch notifications');
+    throw Exception(
+      response.data['message'] ?? 'Failed to fetch notifications',
+    );
   }
 
-  Future<void> markNotificationRead(String notificationId, {bool read = true}) async {
-    final response = await _api.dio.patch('notifications/$notificationId/read', data: {
-      'read_status': read,
-    });
+  Future<void> markNotificationRead(
+    String notificationId, {
+    bool read = true,
+  }) async {
+    final response = await _api.dio.patch(
+      'notifications/$notificationId/read',
+      data: {'read_status': read},
+    );
     if (response.statusCode == 200) return;
-    throw Exception(response.data['message'] ?? 'Failed to update notification status');
+    throw Exception(
+      response.data['message'] ?? 'Failed to update notification status',
+    );
   }
 
   Future<void> markAllNotificationsRead() async {
     final response = await _api.dio.patch('notifications/read-all');
     if (response.statusCode == 200) return;
-    throw Exception(response.data['message'] ?? 'Failed to mark all notifications as read');
+    throw Exception(
+      response.data['message'] ?? 'Failed to mark all notifications as read',
+    );
   }
 
   Future<void> deleteNotification(String notificationId) async {
     final response = await _api.dio.delete('notifications/$notificationId');
     if (response.statusCode == 200) return;
-    throw Exception(response.data['message'] ?? 'Failed to delete notification');
+    throw Exception(
+      response.data['message'] ?? 'Failed to delete notification',
+    );
   }
 
   Future<void> deleteNotificationGlobally(String notificationId) async {
-    final response = await _api.dio.delete('notifications/$notificationId/global');
+    final response = await _api.dio.delete(
+      'notifications/$notificationId/global',
+    );
     if (response.statusCode == 200) return;
-    throw Exception(response.data['message'] ?? 'Failed to delete notification for all recipients');
+    throw Exception(
+      response.data['message'] ??
+          'Failed to delete notification for all recipients',
+    );
   }
 
   Future<Map<String, dynamic>> sendManualNotification({
@@ -265,12 +293,15 @@ class StudentRepository {
     required String type,
     required String roleTarget,
   }) async {
-    final response = await _api.dio.post('notifications/send', data: {
-      'title': title,
-      'body': body,
-      'type': type,
-      'role_target': roleTarget,
-    });
+    final response = await _api.dio.post(
+      'notifications/send',
+      data: {
+        'title': title,
+        'body': body,
+        'type': type,
+        'role_target': roleTarget,
+      },
+    );
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }

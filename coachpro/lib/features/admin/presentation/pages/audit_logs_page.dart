@@ -58,7 +58,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
       _isLoading = true;
       _error = '';
     });
-    
+
     try {
       final logs = await _adminRepo.getAuditLogs(limit: 50);
       if (!mounted) return;
@@ -78,14 +78,18 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
-    
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       body: Stack(
         children: [
           if (isDark) ...[
-            Positioned(top: -100, left: -50, child: _glow(300, AppColors.elitePrimary.withValues(alpha: 0.1))),
-            Positioned(bottom: 200, right: -150, child: _glow(400, AppColors.elitePurple.withValues(alpha: 0.05))),
+            Positioned(top: -100, left: -50, child: const SizedBox.shrink()),
+            Positioned(
+              bottom: 200,
+              right: -150,
+              child: const SizedBox.shrink(),
+            ),
           ],
           SafeArea(
             child: Column(
@@ -97,7 +101,12 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     'System Monitoring',
-                    style: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      color: isDark ? Colors.white38 : Colors.black45,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -105,8 +114,17 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                   child: _isLoading
                       ? _buildShimmer(isDark)
                       : _error.isNotEmpty
-                          ? Center(child: Text(_error, style: GoogleFonts.inter(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w600)))
-                          : _buildTimeline(isDark),
+                      ? Center(
+                          child: Text(
+                            _error,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: AppColors.error,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        )
+                      : _buildTimeline(isDark),
                 ),
               ],
             ),
@@ -116,8 +134,6 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
     );
   }
 
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
-
   Widget _buildAppBar(BuildContext context, bool isDark) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
@@ -125,16 +141,40 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
         children: [
           CPPressable(
             onTap: () => Navigator.pop(context),
-            child: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: isDark ? Colors.white : AppColors.deepNavy),
+            child: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 20,
+              color: isDark ? Colors.white : AppColors.deepNavy,
+            ),
           ),
           const SizedBox(width: 16),
-          Expanded(child: Text('Audit Logs', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.8))),
+          Expanded(
+            child: Text(
+              'Audit Logs',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white : AppColors.deepNavy,
+                letterSpacing: -0.8,
+              ),
+            ),
+          ),
           CPPressable(
             onTap: _loadLogs,
             child: Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(16)),
-              child: Icon(Icons.refresh_rounded, size: 20, color: isDark ? Colors.white : AppColors.deepNavy),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                Icons.refresh_rounded,
+                size: 20,
+                color: isDark ? Colors.white : AppColors.deepNavy,
+              ),
             ),
           ),
         ],
@@ -147,7 +187,11 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       itemCount: 8,
       separatorBuilder: (context, index) => const SizedBox(height: 16),
-      itemBuilder: (context, index) => const CPShimmer(width: double.infinity, height: 100, borderRadius: 20),
+      itemBuilder: (context, index) => const CPShimmer(
+        width: double.infinity,
+        height: 100,
+        borderRadius: 20,
+      ),
     );
   }
 
@@ -157,9 +201,20 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.monitor_heart_outlined, size: 48, color: isDark ? Colors.white24 : Colors.black26),
+            Icon(
+              Icons.monitor_heart_outlined,
+              size: 48,
+              color: isDark ? Colors.white24 : Colors.black26,
+            ),
             const SizedBox(height: 16),
-            Text('No system logs recorded yet', style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600)),
+            Text(
+              'No system logs recorded yet',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: isDark ? Colors.white38 : Colors.black45,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       );
@@ -170,7 +225,10 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
       itemBuilder: (ctx, i) {
         final log = _logs[i];
         final isLast = i == _logs.length - 1;
-        return _buildLogEntry(log, isLast, isDark).animate(delay: (30 * i).ms).fadeIn(duration: 400.ms).slideY(begin: 0.1);
+        return _buildLogEntry(log, isLast, isDark)
+            .animate(delay: (30 * i).ms)
+            .fadeIn(duration: 400.ms)
+            .slideY(begin: 0.1);
       },
       padding: const EdgeInsets.only(bottom: 60, left: 20, right: 20, top: 12),
     );
@@ -183,20 +241,28 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
     final targetType = log['target_type']?.toString() ?? 'Unknown Entity';
     final details = log['details'] is Map ? log['details'] : {};
     final comment = details['comment']?.toString() ?? '';
-    
+
     final dt = DateTime.tryParse(log['created_at']?.toString() ?? '');
-    final timeStr = dt != null ? DateFormat('MMM d, yyyy • h:mm a').format(dt) : 'Unknown Time';
+    final timeStr = dt != null
+        ? DateFormat('MMM d, yyyy • h:mm a').format(dt)
+        : 'Unknown Time';
 
     Color actColor = AppColors.elitePrimary;
     IconData actIcon = Icons.info_outline_rounded;
-    
-    if (action.contains('CREATE') || action.contains('ADD') || action.contains('REGISTER')) {
+
+    if (action.contains('CREATE') ||
+        action.contains('ADD') ||
+        action.contains('REGISTER')) {
       actColor = AppColors.mintGreen;
       actIcon = Icons.add_circle_outline_rounded;
-    } else if (action.contains('UPDATE') || action.contains('EDIT') || action.contains('VERIFIED')) {
+    } else if (action.contains('UPDATE') ||
+        action.contains('EDIT') ||
+        action.contains('VERIFIED')) {
       actColor = AppColors.moltenAmber;
       actIcon = Icons.edit_note_rounded;
-    } else if (action.contains('DELETE') || action.contains('REMOVE') || action.contains('BLOCK')) {
+    } else if (action.contains('DELETE') ||
+        action.contains('REMOVE') ||
+        action.contains('BLOCK')) {
       actColor = AppColors.coralRed;
       actIcon = Icons.remove_circle_outline_rounded;
     } else if (action.contains('LOGIN') || action.contains('AUTH')) {
@@ -214,11 +280,25 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
           Column(
             children: [
               Container(
-                width: 32, height: 32,
-                decoration: BoxDecoration(color: actColor.withValues(alpha: 0.15), shape: BoxShape.circle, border: Border.all(color: actColor.withValues(alpha: 0.3), width: 1)),
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: actColor.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: actColor.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
                 child: Icon(actIcon, size: 14, color: actColor),
               ),
-              if (!isLast) Expanded(child: Container(width: 2, color: isDark ? Colors.white12 : Colors.black12)),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                ),
             ],
           ),
           const SizedBox(width: 16),
@@ -226,7 +306,9 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
             child: Padding(
               padding: const EdgeInsets.only(bottom: 24),
               child: CPGlassCard(
-                isDark: isDark, padding: const EdgeInsets.all(16), borderRadius: 20,
+                isDark: isDark,
+                padding: const EdgeInsets.all(16),
+                borderRadius: 20,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -237,28 +319,74 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                         Expanded(
                           child: Text(
                             action.replaceAll('_', ' ').toUpperCase(),
-                            style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w800, color: actColor, letterSpacing: -0.2),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: actColor,
+                              letterSpacing: -0.2,
+                            ),
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
-                          child: Text(targetType.toUpperCase(), style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white54 : Colors.black54, letterSpacing: 0.5)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white12
+                                : Colors.black.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            targetType.toUpperCase(),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              color: isDark ? Colors.white54 : Colors.black54,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(Icons.person_pin_rounded, size: 14, color: AppColors.primary),
+                        const Icon(
+                          Icons.person_pin_rounded,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 6),
-                        Text(user, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy)),
+                        Text(
+                          user,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white : AppColors.deepNavy,
+                          ),
+                        ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                          child: Text(userRole, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.primary, letterSpacing: 0.5)),
-                        )
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            userRole,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     if (comment.isNotEmpty) ...[
@@ -266,16 +394,39 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02), borderRadius: BorderRadius.circular(12)),
-                        child: Text('"$comment"', style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87, fontStyle: FontStyle.italic)),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.03)
+                              : Colors.black.withValues(alpha: 0.02),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '"$comment"',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
                       ),
                     ],
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Icon(Icons.schedule_rounded, size: 12, color: isDark ? Colors.white24 : Colors.black38),
+                        Icon(
+                          Icons.schedule_rounded,
+                          size: 12,
+                          color: isDark ? Colors.white24 : Colors.black38,
+                        ),
                         const SizedBox(width: 6),
-                        Text(timeStr, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black45)),
+                        Text(
+                          timeStr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white38 : Colors.black45,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -288,5 +439,3 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
     );
   }
 }
-
-

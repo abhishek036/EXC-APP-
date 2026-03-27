@@ -28,7 +28,7 @@ class UploadMaterialPage extends StatefulWidget {
 
 class _UploadMaterialPageState extends State<UploadMaterialPage> {
   final _repo = sl<TeacherRepository>();
-  
+
   String _selectedType = 'note'; // note, assignment, video
   String? _selectedBatchId;
   String? _selectedSubject;
@@ -38,12 +38,14 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _descCtrl = TextEditingController();
   final TextEditingController _linkCtrl = TextEditingController();
-  
+
   bool _isUploading = false;
 
   String? get _safeSelectedBatchId {
     if (_selectedBatchId == null || _selectedBatchId!.isEmpty) return null;
-    final hasSelected = _batches.any((b) => (b['id'] ?? '').toString() == _selectedBatchId);
+    final hasSelected = _batches.any(
+      (b) => (b['id'] ?? '').toString() == _selectedBatchId,
+    );
     return hasSelected ? _selectedBatchId : null;
   }
 
@@ -69,7 +71,8 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     if (widget.initialType != null && widget.initialType!.trim().isNotEmpty) {
       _selectedType = widget.initialType!.trim();
     }
-    if (widget.initialSubject != null && widget.initialSubject!.trim().isNotEmpty) {
+    if (widget.initialSubject != null &&
+        widget.initialSubject!.trim().isNotEmpty) {
       _selectedSubject = widget.initialSubject!.trim();
     }
     _loadBatches();
@@ -89,7 +92,10 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
               : const <Map<String, dynamic>>[];
           final selected = matched.isNotEmpty ? matched.first : b.first;
           _selectedBatchId = (selected['id'] ?? '').toString();
-          _selectedSubject = widget.initialSubject ?? selected['subject']?.toString() ?? 'General';
+          _selectedSubject =
+              widget.initialSubject ??
+              selected['subject']?.toString() ??
+              'General';
         }
       });
     } catch (e) {
@@ -100,20 +106,28 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
   Future<void> _handleUpload() async {
     if (_titleCtrl.text.isEmpty || _selectedBatchId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Title and Batch are required.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Title and Batch are required.')),
+      );
       return;
     }
 
     final rawLink = _linkCtrl.text.trim();
     if (rawLink.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please provide a valid link.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please provide a valid link.')),
+      );
       return;
     }
 
     final normalizedLink = _normalizeUrl(rawLink);
     if (normalizedLink == null || !_isValidHttpUrl(normalizedLink)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid link. Use full URL like https://example.com/file.pdf')),
+        const SnackBar(
+          content: Text(
+            'Invalid link. Use full URL like https://example.com/file.pdf',
+          ),
+        ),
       );
       return;
     }
@@ -129,11 +143,15 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         fileUrl: normalizedLink,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Material Uploaded Successfully!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Material Uploaded Successfully!')),
+      );
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
@@ -156,7 +174,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   }
 
   bool _hasPlausibleDomainHost(String host) {
-    final parts = host.toLowerCase().split('.').where((part) => part.isNotEmpty).toList();
+    final parts = host
+        .toLowerCase()
+        .split('.')
+        .where((part) => part.isNotEmpty)
+        .toList();
     if (parts.length < 2) return false;
     final tld = parts.last;
     final tldValid = RegExp(r'^[a-z]{2,}$').hasMatch(tld);
@@ -183,10 +205,22 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         backgroundColor: blue,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 22,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('UPLOAD CONTENT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.2)),
+        title: Text(
+          'UPLOAD CONTENT',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            color: Colors.white,
+            letterSpacing: 1.2,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -207,31 +241,65 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   Widget _buildTypeSelector(Color blue, Color surface, Color yellow) {
     return Container(
       padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white24, width: 2)),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white24, width: 2),
+      ),
       child: Row(
         children: [
           _typeBtn('note', 'NOTES', Icons.description_rounded, blue, yellow),
-          _typeBtn('assignment', 'TASK', Icons.assignment_rounded, blue, yellow),
-          _typeBtn('video', 'VIDEO', Icons.play_circle_fill_rounded, blue, yellow),
+          _typeBtn(
+            'assignment',
+            'TASK',
+            Icons.assignment_rounded,
+            blue,
+            yellow,
+          ),
+          _typeBtn(
+            'video',
+            'VIDEO',
+            Icons.play_circle_fill_rounded,
+            blue,
+            yellow,
+          ),
         ],
       ),
     );
   }
 
-  Widget _typeBtn(String type, String label, IconData icon, Color blue, Color yellow) {
+  Widget _typeBtn(
+    String type,
+    String label,
+    IconData icon,
+    Color blue,
+    Color yellow,
+  ) {
     final isSel = _selectedType == type;
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _selectedType = type),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(color: isSel ? yellow : Colors.transparent, borderRadius: BorderRadius.circular(8), border: isSel ? Border.all(color: blue, width: 2) : null),
+          decoration: BoxDecoration(
+            color: isSel ? yellow : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: isSel ? Border.all(color: blue, width: 2) : null,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, color: isSel ? blue : Colors.white, size: 20),
               const SizedBox(height: 4),
-              Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: isSel ? blue : Colors.white, letterSpacing: 1)),
+              Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: isSel ? blue : Colors.white,
+                  letterSpacing: 1,
+                ),
+              ),
             ],
           ),
         ),
@@ -258,9 +326,16 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           _buildBatchDropdown(blue),
           const SizedBox(height: 24),
           _inputLabel('DESCRIPTION', blue),
-          _textField(_descCtrl, 'Brief about what you are sharing...', blue, maxLines: 3),
+          _textField(
+            _descCtrl,
+            'Brief about what you are sharing...',
+            blue,
+            maxLines: 3,
+          ),
           const SizedBox(height: 24),
-          _selectedType == 'video' ? _inputLabel('VIDEO LINK (Youtube/Drive)', blue) : _inputLabel('ATTACHMENT LINK', blue),
+          _selectedType == 'video'
+              ? _inputLabel('VIDEO LINK (Youtube/Drive)', blue)
+              : _inputLabel('ATTACHMENT LINK', blue),
           _textField(_linkCtrl, 'https://...', blue),
           if (_selectedType != 'video') ...[
             const SizedBox(height: 24),
@@ -271,19 +346,44 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     );
   }
 
-  Widget _inputLabel(String label, Color blue) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.5), letterSpacing: 1)));
+  Widget _inputLabel(String label, Color blue) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      label,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 11,
+        fontWeight: FontWeight.w900,
+        color: blue.withValues(alpha: 0.5),
+        letterSpacing: 1,
+      ),
+    ),
+  );
 
-  Widget _textField(TextEditingController ctrl, String hint, Color blue, {int maxLines = 1}) => TextField(
+  Widget _textField(
+    TextEditingController ctrl,
+    String hint,
+    Color blue, {
+    int maxLines = 1,
+  }) => TextField(
     controller: ctrl,
     maxLines: maxLines,
-    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue),
+    style: GoogleFonts.plusJakartaSans(
+      fontWeight: FontWeight.w800,
+      color: blue,
+    ),
     decoration: InputDecoration(
       hintText: hint,
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: blue, width: 2)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: blue, width: 2.5)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: blue, width: 2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: blue, width: 2.5),
+      ),
     ),
   );
 
@@ -291,20 +391,37 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     if (_isLoadingBatches) return const CircularProgressIndicator();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: blue, width: 2),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _safeSelectedBatchId,
           isExpanded: true,
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue),
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w800,
+            color: blue,
+          ),
           onChanged: (val) {
-             final b = _findBatchById(val);
-             setState(() {
-               _selectedBatchId = val;
-               _selectedSubject = b?['subject']?.toString() ?? 'General';
-             });
+            final b = _findBatchById(val);
+            setState(() {
+              _selectedBatchId = val;
+              _selectedSubject = b?['subject']?.toString() ?? 'General';
+            });
           },
-          items: _batches.map((b) => DropdownMenuItem(value: b['id']?.toString(), child: Text(b['name']?.toString() ?? 'BATCH', overflow: TextOverflow.ellipsis))).toList(),
+          items: _batches
+              .map(
+                (b) => DropdownMenuItem(
+                  value: b['id']?.toString(),
+                  child: Text(
+                    b['name']?.toString() ?? 'BATCH',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(),
         ),
       ),
     );
@@ -317,14 +434,32 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       decoration: BoxDecoration(
         color: blue.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: blue.withValues(alpha: 0.2), width: 2, style: BorderStyle.solid),
+        border: Border.all(
+          color: blue.withValues(alpha: 0.2),
+          width: 2,
+          style: BorderStyle.solid,
+        ),
       ),
       child: Column(
         children: [
           Icon(Icons.cloud_upload_outlined, color: blue, size: 32),
           const SizedBox(height: 12),
-          Text('UPLOAD FILE', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: blue)),
-          Text('(MAX 10MB)', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.5))),
+          Text(
+            'UPLOAD FILE',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: blue,
+            ),
+          ),
+          Text(
+            '(MAX 10MB)',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: blue.withValues(alpha: 0.5),
+            ),
+          ),
         ],
       ),
     );
@@ -339,12 +474,22 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           backgroundColor: yellow,
           foregroundColor: blue,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: blue, width: 3)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: blue, width: 3),
+          ),
         ),
         onPressed: _isUploading ? null : _handleUpload,
-        child: _isUploading 
-          ? const CircularProgressIndicator() 
-          : Text('UPLOAD CONTENT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
+        child: _isUploading
+            ? const CircularProgressIndicator()
+            : Text(
+                'UPLOAD CONTENT',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  letterSpacing: 0.5,
+                ),
+              ),
       ),
     );
   }

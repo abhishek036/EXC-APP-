@@ -423,8 +423,8 @@ class PushNotificationService {
   Future<void> _showLocalNotification(Map<String, dynamic> data) async {
     const androidDetails = AndroidNotificationDetails(
       'coachpro_default_channel',
-      'CoachPro Notifications',
-      channelDescription: 'General notifications for CoachPro app',
+      'Excellence Academy Notifications',
+      channelDescription: 'General notifications for Excellence Academy app',
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,

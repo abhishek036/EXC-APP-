@@ -72,7 +72,7 @@ Future<void> main() async {
                 const SizedBox(height: 16),
                 Text(
                   'Oops! Something went wrong',
-                  style: GoogleFonts.sora(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
@@ -82,7 +82,7 @@ Future<void> main() async {
                 Text(
                   'We are working on fixing it. Please restart the app.',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.dmSans(color: AppColors.textSecondary),
+                  style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -92,17 +92,17 @@ Future<void> main() async {
     );
   };
 
-  runApp(const CoachProApp());
+  runApp(const ExcellenceAcademyApp());
 }
 
-class CoachProApp extends StatefulWidget {
-  const CoachProApp({super.key});
+class ExcellenceAcademyApp extends StatefulWidget {
+  const ExcellenceAcademyApp({super.key});
 
   @override
-  State<CoachProApp> createState() => _CoachProAppState();
+  State<ExcellenceAcademyApp> createState() => _ExcellenceAcademyAppState();
 }
 
-class _CoachProAppState extends State<CoachProApp> with WidgetsBindingObserver {
+class _ExcellenceAcademyAppState extends State<ExcellenceAcademyApp> with WidgetsBindingObserver {
   late final AuthBloc _authBloc;
   late final GoRouter _router;
   Timer? _authSyncTimer;

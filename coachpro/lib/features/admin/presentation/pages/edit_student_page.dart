@@ -116,7 +116,9 @@ class _EditStudentPageState extends State<EditStudentPage> {
       lastDate: DateTime.now(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.primary),
+          colorScheme: Theme.of(
+            context,
+          ).colorScheme.copyWith(primary: AppColors.primary),
         ),
         child: child!,
       ),
@@ -152,7 +154,9 @@ class _EditStudentPageState extends State<EditStudentPage> {
         'batch_ids': _selectedBatchIds,
       };
 
-      payload.removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+      payload.removeWhere(
+        (key, value) => value == null || (value is String && value.isEmpty),
+      );
 
       await _adminRepo.updateStudent(widget.studentId, payload);
 
@@ -162,7 +166,10 @@ class _EditStudentPageState extends State<EditStudentPage> {
       }
     } on DioException catch (e) {
       if (mounted) {
-        CPToast.error(context, e.message ?? e.error?.toString() ?? 'Failed to update student');
+        CPToast.error(
+          context,
+          e.message ?? e.error?.toString() ?? 'Failed to update student',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -194,19 +201,37 @@ class _EditStudentPageState extends State<EditStudentPage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Edit Student', style: GoogleFonts.sora(fontWeight: FontWeight.w600, fontSize: 16)),
+            Text(
+              'Edit Student',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
             if (_student != null)
-              Text(_student!['name'] ?? '', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context))),
+              Text(
+                _student!['name'] ?? '',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  color: CT.textM(context),
+                ),
+              ),
           ],
         ),
         actions: [
           if (_student != null)
             IconButton(
               icon: Icon(
-                (_student!['is_active'] ?? true) ? Icons.person_off_outlined : Icons.person_outlined,
-                color: (_student!['is_active'] ?? true) ? AppColors.error : AppColors.success,
+                (_student!['is_active'] ?? true)
+                    ? Icons.person_off_outlined
+                    : Icons.person_outlined,
+                color: (_student!['is_active'] ?? true)
+                    ? AppColors.error
+                    : AppColors.success,
               ),
-              tooltip: (_student!['is_active'] ?? true) ? 'Deactivate Student' : 'Activate Student',
+              tooltip: (_student!['is_active'] ?? true)
+                  ? 'Deactivate Student'
+                  : 'Activate Student',
               onPressed: _toggleStatus,
             ),
         ],
@@ -225,82 +250,99 @@ class _EditStudentPageState extends State<EditStudentPage> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: _cardDecor(),
-                      child: Column(children: [
-                        CustomTextField(
-                          label: 'Full Name *',
-                          hint: 'Student full name',
-                          controller: _nameCtrl,
-                          prefixIcon: Icons.person_outline,
-                          isRequired: true,
-                        ),
-                        const SizedBox(height: 16),
-                        CustomTextField(
-                          label: 'Phone Number *',
-                          hint: '10-digit mobile number',
-                          controller: _phoneCtrl,
-                          prefixIcon: Icons.phone_outlined,
-                          keyboardType: TextInputType.phone,
-                          isRequired: true,
-                          validator: (v) => v == null || v.trim().length < 10
-                              ? 'Enter valid 10-digit number'
-                              : null,
-                        ),
-                        const SizedBox(height: 16),
-                        CustomTextField(
-                          label: 'Email (Optional)',
-                          hint: 'student@example.com',
-                          controller: _emailCtrl,
-                          prefixIcon: Icons.email_outlined,
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                        const SizedBox(height: 16),
-                        Row(children: [
-                          Expanded(child: _buildGenderDropdown()),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: _pickDate,
-                              child: AbsorbPointer(
-                                child: CustomTextField(
-                                  label: 'Date of Birth',
-                                  hint: 'DD/MM/YYYY',
-                                  controller: _dobCtrl,
-                                  prefixIcon: Icons.cake_outlined,
+                      child: Column(
+                        children: [
+                          CustomTextField(
+                            label: 'Full Name *',
+                            hint: 'Student full name',
+                            controller: _nameCtrl,
+                            prefixIcon: Icons.person_outline,
+                            isRequired: true,
+                          ),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            label: 'Phone Number *',
+                            hint: '10-digit mobile number',
+                            controller: _phoneCtrl,
+                            prefixIcon: Icons.phone_outlined,
+                            keyboardType: TextInputType.phone,
+                            isRequired: true,
+                            validator: (v) => v == null || v.trim().length < 10
+                                ? 'Enter valid 10-digit number'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            label: 'Email (Optional)',
+                            hint: 'student@example.com',
+                            controller: _emailCtrl,
+                            prefixIcon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(child: _buildGenderDropdown()),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: _pickDate,
+                                  child: AbsorbPointer(
+                                    child: CustomTextField(
+                                      label: 'Date of Birth',
+                                      hint: 'DD/MM/YYYY',
+                                      controller: _dobCtrl,
+                                      prefixIcon: Icons.cake_outlined,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                        ]),
-                        const SizedBox(height: 16),
-                        Row(children: [
-                          Expanded(
-                            child: CustomTextField(
-                              label: 'Blood Group',
-                              hint: 'e.g. B+',
-                              controller: _bloodGroupCtrl,
-                              prefixIcon: Icons.bloodtype_outlined,
-                            ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: CustomTextField(
+                                  label: 'Blood Group',
+                                  hint: 'e.g. B+',
+                                  controller: _bloodGroupCtrl,
+                                  prefixIcon: Icons.bloodtype_outlined,
+                                ),
+                              ),
+                            ],
                           ),
-                        ]),
-                      ]),
+                        ],
+                      ),
                     ).animate().fadeIn(duration: 400.ms),
 
                     const SizedBox(height: 24),
 
-                    _sectionHeader('Assign to Batch(es) *', Icons.class_outlined),
+                    _sectionHeader(
+                      'Assign to Batch(es) *',
+                      Icons.class_outlined,
+                    ),
                     const SizedBox(height: 14),
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: _cardDecor(),
                       child: _batches.isEmpty
-                          ? Text('No batches available', style: GoogleFonts.dmSans(color: CT.textM(context)))
+                          ? Text(
+                              'No batches available',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: CT.textM(context),
+                              ),
+                            )
                           : Wrap(
                               spacing: 8,
                               runSpacing: 8,
                               children: _batches.map((b) {
                                 final batchId = b['id'] as String;
-                                final batchName = b['name'] as String? ?? 'Batch';
-                                final isSelected = _selectedBatchIds.contains(batchId);
+                                final batchName =
+                                    b['name'] as String? ?? 'Batch';
+                                final isSelected = _selectedBatchIds.contains(
+                                  batchId,
+                                );
                                 return CPBatchChip(
                                   label: batchName,
                                   isSelected: isSelected,
@@ -321,29 +363,34 @@ class _EditStudentPageState extends State<EditStudentPage> {
 
                     const SizedBox(height: 24),
 
-                    _sectionHeader('Parent / Guardian', Icons.family_restroom_outlined),
+                    _sectionHeader(
+                      'Parent / Guardian',
+                      Icons.family_restroom_outlined,
+                    ),
                     const SizedBox(height: 14),
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: _cardDecor(),
-                      child: Column(children: [
-                        CustomTextField(
-                          label: "Father's Name *",
-                          hint: "Enter father's name",
-                          controller: _parentNameCtrl,
-                          prefixIcon: Icons.person_outline,
-                          isRequired: true,
-                        ),
-                        const SizedBox(height: 16),
-                        CustomTextField(
-                          label: "Father's Phone *",
-                          hint: '10-digit mobile',
-                          controller: _parentPhoneCtrl,
-                          prefixIcon: Icons.phone_outlined,
-                          keyboardType: TextInputType.phone,
-                          isRequired: true,
-                        ),
-                      ]),
+                      child: Column(
+                        children: [
+                          CustomTextField(
+                            label: "Father's Name *",
+                            hint: "Enter father's name",
+                            controller: _parentNameCtrl,
+                            prefixIcon: Icons.person_outline,
+                            isRequired: true,
+                          ),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            label: "Father's Phone *",
+                            hint: '10-digit mobile',
+                            controller: _parentPhoneCtrl,
+                            prefixIcon: Icons.phone_outlined,
+                            keyboardType: TextInputType.phone,
+                            isRequired: true,
+                          ),
+                        ],
+                      ),
                     ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
 
                     const SizedBox(height: 24),
@@ -386,16 +433,24 @@ class _EditStudentPageState extends State<EditStudentPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('${action.capitalize()} Student?', style: GoogleFonts.sora(fontWeight: FontWeight.w600)),
+        title: Text(
+          '${action.capitalize()} Student?',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+        ),
         content: Text(
           'Are you sure you want to $action "${_student!['name']}"?',
-          style: GoogleFonts.dmSans(),
+          style: GoogleFonts.plusJakartaSans(),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: current ? AppColors.error : AppColors.success),
+            style: TextButton.styleFrom(
+              foregroundColor: current ? AppColors.error : AppColors.success,
+            ),
             child: Text(action.capitalize()),
           ),
         ],
@@ -408,7 +463,10 @@ class _EditStudentPageState extends State<EditStudentPage> {
       await _adminRepo.toggleStudentStatus(widget.studentId, !current);
       if (!mounted) return;
       setState(() => _student!['is_active'] = !current);
-      CPToast.success(context, 'Student ${!current ? 'activated' : 'deactivated'}');
+      CPToast.success(
+        context,
+        'Student ${!current ? 'activated' : 'deactivated'}',
+      );
     } catch (e) {
       if (!mounted) return;
       CPToast.error(context, 'Failed: $e');
@@ -416,53 +474,84 @@ class _EditStudentPageState extends State<EditStudentPage> {
   }
 
   BoxDecoration _cardDecor() => BoxDecoration(
-        color: CT.card(context),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLG),
-        boxShadow: [BoxShadow(color: CT.textH(context).withValues(alpha: 0.04), blurRadius: 10)],
-      );
+    color: CT.card(context),
+    borderRadius: BorderRadius.circular(AppDimensions.radiusLG),
+    boxShadow: [
+      BoxShadow(
+        color: CT.textH(context).withValues(alpha: 0.04),
+        blurRadius: 0,
+      ),
+    ],
+  );
 
-  Widget _sectionHeader(String title, IconData icon) => Row(children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-              color: AppColors.electricBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, size: 16, color: AppColors.electricBlue),
+  Widget _sectionHeader(String title, IconData icon) => Row(
+    children: [
+      Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: AppColors.electricBlue.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
         ),
-        const SizedBox(width: 10),
-        Text(title, style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w600, color: CT.textH(context))),
-      ]);
+        child: Icon(icon, size: 16, color: AppColors.electricBlue),
+      ),
+      const SizedBox(width: 10),
+      Text(
+        title,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: CT.textH(context),
+        ),
+      ),
+    ],
+  );
 
   Widget _buildGenderDropdown() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Gender', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600, color: CT.textS(context))),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: CT.bg(context),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: CT.border(context)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedGender,
-                hint: Text('Select', style: GoogleFonts.dmSans(fontSize: 13, color: CT.textM(context))),
-                isExpanded: true,
-                icon: const Icon(Icons.keyboard_arrow_down, size: 20),
-                style: GoogleFonts.dmSans(fontSize: 13, color: CT.textH(context)),
-                items: _genders.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                onChanged: (v) => setState(() => _selectedGender = v),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Gender',
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: CT.textS(context),
+        ),
+      ),
+      const SizedBox(height: 6),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: CT.bg(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: CT.border(context)),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: _selectedGender,
+            hint: Text(
+              'Select',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: CT.textM(context),
               ),
             ),
+            isExpanded: true,
+            icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              color: CT.textH(context),
+            ),
+            items: _genders
+                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedGender = v),
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 }
 
 extension StringExt on String {
   String capitalize() => isEmpty ? this : this[0].toUpperCase() + substring(1);
 }
-
-

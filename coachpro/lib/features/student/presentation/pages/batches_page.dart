@@ -23,8 +23,14 @@ class _BatchesPageState extends State<BatchesPage> {
   String? _error;
 
   String _selectedCategory = 'All';
-  final _categories = ['All', 'My Batches', 'JEE', 'NEET', 'Foundation', 'Boards'];
-
+  final _categories = [
+    'All',
+    'My Batches',
+    'JEE',
+    'NEET',
+    'Foundation',
+    'Boards',
+  ];
 
   @override
   void initState() {
@@ -58,9 +64,17 @@ class _BatchesPageState extends State<BatchesPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/student'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/student'),
         ),
-        title: Text('My Batches', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w600, color: CT.textH(context))),
+        title: Text(
+          'My Batches',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: CT.textH(context),
+          ),
+        ),
         backgroundColor: CT.bg(context),
         elevation: 0,
       ),
@@ -83,14 +97,36 @@ class _BatchesPageState extends State<BatchesPage> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        gradient: selected ? LinearGradient(colors: [CT.accent(context), CT.accent(context).withValues(alpha: 0.8)]) : null,
-                        color: selected ? null : CT.card(context),
-                        borderRadius: BorderRadius.circular(20),
-                        border: selected ? null : Border.all(color: CT.border(context)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
                       ),
-                      child: Text(cat, style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? Colors.white : CT.textS(context))),
+                      decoration: BoxDecoration(
+                        color: selected ? CT.accent(context) : CT.card(context),
+                        borderRadius: BorderRadius.circular(20),
+                        border: selected
+                            ? Border.all(
+                                color: const Color(0xFF0D1282),
+                                width: 2,
+                              )
+                            : Border.all(color: CT.border(context)),
+                        boxShadow: selected
+                            ? const [
+                                BoxShadow(
+                                  color: Color(0xFF0D1282),
+                                  offset: Offset(2, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Text(
+                        cat,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: selected ? Colors.white : CT.textS(context),
+                        ),
+                      ),
                     ),
                   );
                 },
@@ -98,9 +134,9 @@ class _BatchesPageState extends State<BatchesPage> {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: _isLoading 
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
                   ? _buildErrorState()
                   : _buildContent(),
             ),
@@ -116,10 +152,19 @@ class _BatchesPageState extends State<BatchesPage> {
     // Filtered My Batches
     if (_selectedCategory == 'All' || _selectedCategory == 'My Batches') {
       if (_myBatches.isNotEmpty) {
-        children.add(Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: Text('Active Enrollments', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
-        ));
+        children.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: Text(
+              'Active Enrollments',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: CT.textH(context),
+              ),
+            ),
+          ),
+        );
         children.addAll(_myBatches.map((b) => _myBatchCard(context, b)));
       } else {
         children.add(
@@ -127,10 +172,27 @@ class _BatchesPageState extends State<BatchesPage> {
             child: Column(
               children: [
                 const SizedBox(height: 40),
-                Icon(Icons.auto_awesome_motion_rounded, size: 60, color: CT.textM(context).withValues(alpha: 0.3)),
+                Icon(
+                  Icons.auto_awesome_motion_rounded,
+                  size: 60,
+                  color: CT.textM(context).withValues(alpha: 0.3),
+                ),
                 const SizedBox(height: 16),
-                Text('No Active Batches', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w600, color: CT.textS(context))),
-                Text('You haven\'t enrolled in any batches yet.', style: GoogleFonts.dmSans(fontSize: 14, color: CT.textM(context))),
+                Text(
+                  'No Active Batches',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: CT.textS(context),
+                  ),
+                ),
+                Text(
+                  'You haven\'t enrolled in any batches yet.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    color: CT.textM(context),
+                  ),
+                ),
               ],
             ),
           ),
@@ -141,10 +203,7 @@ class _BatchesPageState extends State<BatchesPage> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        ...children,
-        const SizedBox(height: 100),
-      ],
+      children: [...children, const SizedBox(height: 100)],
     );
   }
 
@@ -155,7 +214,7 @@ class _BatchesPageState extends State<BatchesPage> {
     final time = '${b['start_time'] ?? ''} - ${b['end_time'] ?? ''}';
 
     return CPPressable(
-      onTap: () {},
+      onTap: () => context.go('/student/timetable'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(AppDimensions.md),
@@ -167,25 +226,68 @@ class _BatchesPageState extends State<BatchesPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: AppColors.mintGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                  child: Text('ENROLLED', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.mintGreen, letterSpacing: 0.5)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.mintGreen.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'ENROLLED',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.mintGreen,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ),
-                Text(time, style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w700, color: CT.accent(context))),
+                Text(
+                  time,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: CT.accent(context),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
-            Text('$subject: $name', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -0.5)),
+            Text(
+              '$subject: $name',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: CT.textH(context),
+                letterSpacing: -0.5,
+              ),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: CT.accent(context).withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
-                  child: Icon(Icons.person_outline, size: 16, color: CT.accent(context)),
+                  decoration: BoxDecoration(
+                    color: CT.accent(context).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.person_outline,
+                    size: 16,
+                    color: CT.accent(context),
+                  ),
                 ),
                 const SizedBox(width: 10),
-                Text(teacher, style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textS(context))),
+                Text(
+                  teacher,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: CT.textS(context),
+                  ),
+                ),
               ],
             ),
           ],
@@ -201,7 +303,13 @@ class _BatchesPageState extends State<BatchesPage> {
         children: [
           Icon(Icons.error_outline, size: 48, color: AppColors.error),
           const SizedBox(height: 16),
-          Text('Failed to load batches', style: GoogleFonts.sora(fontSize: 18, color: CT.textH(context))),
+          Text(
+            'Failed to load batches',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              color: CT.textH(context),
+            ),
+          ),
           const SizedBox(height: 24),
           ElevatedButton(onPressed: _loadBatches, child: const Text('Retry')),
         ],

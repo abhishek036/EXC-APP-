@@ -35,7 +35,7 @@ class FeeReceiptGenerator {
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('THE COACHPRO ACADEMY', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                      pw.Text('EXCELLENCE ACADEMY', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
                       pw.SizedBox(height: 4),
                       pw.Text('Excellence in Education', style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
                       pw.Text('123 Education Lane, Learning District', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),

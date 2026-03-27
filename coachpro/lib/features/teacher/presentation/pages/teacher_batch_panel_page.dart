@@ -57,9 +57,17 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     try {
       final batchesFuture = _teacherRepo.getMyBatches();
       final studentsFuture = _teacherRepo.getBatchStudents(widget.batchId);
-      final executionFuture = _teacherRepo.getBatchExecutionSummary(widget.batchId);
-      final practiceQuizzesFuture = _teacherRepo.getBatchQuizzes(widget.batchId, assessmentType: 'QUIZ');
-      final scheduledTestsFuture = _teacherRepo.getBatchQuizzes(widget.batchId, assessmentType: 'TEST');
+      final executionFuture = _teacherRepo.getBatchExecutionSummary(
+        widget.batchId,
+      );
+      final practiceQuizzesFuture = _teacherRepo.getBatchQuizzes(
+        widget.batchId,
+        assessmentType: 'QUIZ',
+      );
+      final scheduledTestsFuture = _teacherRepo.getBatchQuizzes(
+        widget.batchId,
+        assessmentType: 'TEST',
+      );
 
       final batches = await batchesFuture;
       final students = await studentsFuture;
@@ -67,19 +75,28 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       final practiceQuizzes = await practiceQuizzesFuture;
       final scheduledTests = await scheduledTestsFuture;
 
-      final selected = batches.where((b) => (b['id'] ?? '').toString() == widget.batchId).toList();
-      final fallbackBatch = selected.isNotEmpty ? selected.first : <String, dynamic>{};
-      final batch = Map<String, dynamic>.from((execution['batch'] as Map?) ?? fallbackBatch);
-
-      final pendingDoubts = (((execution['doubts'] as Map?)?['pending_items']) as List? ?? const [])
-          .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item))
+      final selected = batches
+          .where((b) => (b['id'] ?? '').toString() == widget.batchId)
           .toList();
+      final fallbackBatch = selected.isNotEmpty
+          ? selected.first
+          : <String, dynamic>{};
+      final batch = Map<String, dynamic>.from(
+        (execution['batch'] as Map?) ?? fallbackBatch,
+      );
 
-      final topics = (((execution['syllabus'] as Map?)?['topics']) as List? ?? const [])
-          .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item))
-          .toList();
+      final pendingDoubts =
+          (((execution['doubts'] as Map?)?['pending_items']) as List? ??
+                  const [])
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList();
+
+      final topics =
+          (((execution['syllabus'] as Map?)?['topics']) as List? ?? const [])
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList();
 
       final completedTopicIds = topics
           .where((topic) => _toNum(topic['completion_percent']) >= 100)
@@ -115,9 +132,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     const primaryBlue = Color(0xFF0D1282);
     const surfaceWhite = Color(0xFFEEEDED);
     const accentYellow = Color(0xFFF0DE36);
-    
+
     final name = (_batch?['name'] ?? 'Batch Panel').toString();
-    
+
     return DefaultTabController(
       length: 6,
       initialIndex: widget.initialTabIndex.clamp(0, 5),
@@ -127,7 +144,11 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
           backgroundColor: primaryBlue,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
@@ -145,8 +166,14 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
             indicatorWeight: 4,
             labelColor: accentYellow,
             unselectedLabelColor: Colors.white.withValues(alpha: 0.6),
-            labelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 13),
-            unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13),
+            labelStyle: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+            unselectedLabelStyle: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
             tabs: const [
               Tab(text: 'OVERVIEW'),
               Tab(text: 'CONTENT'),
@@ -158,31 +185,46 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
           ),
         ),
         body: _loading
-            ? const Center(child: CircularProgressIndicator(color: accentYellow))
+            ? const Center(
+                child: CircularProgressIndicator(color: accentYellow),
+              )
             : _error != null
-                ? Center(child: _PremiumCard(
-                    child: Text(_error!, style: GoogleFonts.plusJakartaSans(color: AppColors.coralRed, fontWeight: FontWeight.bold)),
-                  ))
-                : TabBarView(
-                    children: [
-                      _overviewTab(surfaceWhite, accentYellow, primaryBlue),
-                      _contentTab(surfaceWhite, accentYellow, primaryBlue),
-                      _studentsTab(surfaceWhite, accentYellow, primaryBlue),
-                      _testsTab(surfaceWhite, accentYellow, primaryBlue),
-                      _attendanceTab(surfaceWhite, accentYellow, primaryBlue),
-                      _doubtsTab(surfaceWhite, accentYellow, primaryBlue),
-                    ],
+            ? Center(
+                child: _PremiumCard(
+                  child: Text(
+                    _error!,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppColors.coralRed,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                ),
+              )
+            : TabBarView(
+                children: [
+                  _overviewTab(surfaceWhite, accentYellow, primaryBlue),
+                  _contentTab(surfaceWhite, accentYellow, primaryBlue),
+                  _studentsTab(surfaceWhite, accentYellow, primaryBlue),
+                  _testsTab(surfaceWhite, accentYellow, primaryBlue),
+                  _attendanceTab(surfaceWhite, accentYellow, primaryBlue),
+                  _doubtsTab(surfaceWhite, accentYellow, primaryBlue),
+                ],
+              ),
       ),
     );
   }
 
   Widget _overviewTab(Color bg, Color yellow, Color blue) {
     final subject = (_batch?['subject'] ?? 'Subject').toString();
-    final overview = Map<String, dynamic>.from((_execution['overview'] as Map?) ?? const {});
+    final overview = Map<String, dynamic>.from(
+      (_execution['overview'] as Map?) ?? const {},
+    );
     final progress = _toNum(overview['teaching_progress_percent']).round();
-    final lastLecture = Map<String, dynamic>.from((overview['last_lecture'] as Map?) ?? const {});
-    final lastLectureSummary = (lastLecture['title'] ?? 'No lecture yet').toString();
+    final lastLecture = Map<String, dynamic>.from(
+      (overview['last_lecture'] as Map?) ?? const {},
+    );
+    final lastLectureSummary = (lastLecture['title'] ?? 'No lecture yet')
+        .toString();
     final studentCount = _students.length;
 
     return ListView(
@@ -195,25 +237,75 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('STATUS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue, fontSize: 12, letterSpacing: 1)),
+                  Text(
+                    'STATUS',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w900,
+                      color: blue,
+                      fontSize: 12,
+                      letterSpacing: 1,
+                    ),
+                  ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(4)),
-                    child: Text('ACTIVE', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: blue,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'ACTIVE',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 10,
+                      ),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              Text(subject.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 24, color: blue, height: 1.1)),
+              Text(
+                subject.toUpperCase(),
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 24,
+                  color: blue,
+                  height: 1.1,
+                ),
+              ),
               const SizedBox(height: 8),
-              Text('SYLLABUS PROGRESS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 12, color: blue.withValues(alpha: 0.6))),
+              Text(
+                'SYLLABUS PROGRESS',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  color: blue.withValues(alpha: 0.6),
+                ),
+              ),
               const SizedBox(height: 8),
               Stack(
                 children: [
-                  Container(height: 12, decoration: BoxDecoration(color: blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2), border: Border.all(color: blue, width: 2))),
+                  Container(
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: blue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(2),
+                      border: Border.all(color: blue, width: 2),
+                    ),
+                  ),
                   FractionallySizedBox(
                     widthFactor: progress / 100,
-                    child: Container(height: 12, decoration: BoxDecoration(color: yellow, borderRadius: BorderRadius.circular(1), border: Border.all(color: blue, width: 1))),
+                    child: Container(
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: yellow,
+                        borderRadius: BorderRadius.circular(1),
+                        border: Border.all(color: blue, width: 1),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -221,8 +313,22 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('$progress% Completed', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 13, color: blue)),
-                  Text('Target: 100%', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 11, color: blue.withValues(alpha: 0.5))),
+                  Text(
+                    '$progress% Completed',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                      color: blue,
+                    ),
+                  ),
+                  Text(
+                    'Target: 100%',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                      color: blue.withValues(alpha: 0.5),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -231,9 +337,25 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         const SizedBox(height: 20),
         Row(
           children: [
-            Expanded(child: _StatBox(label: 'STUDENTS', value: '$studentCount', icon: Icons.people_outline, blue: blue, yellow: yellow)),
+            Expanded(
+              child: _StatBox(
+                label: 'STUDENTS',
+                value: '$studentCount',
+                icon: Icons.people_outline,
+                blue: blue,
+                yellow: yellow,
+              ),
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _StatBox(label: 'DOUBTS', value: '${_doubts.length}', icon: Icons.help_outline, blue: blue, yellow: yellow)),
+            Expanded(
+              child: _StatBox(
+                label: 'DOUBTS',
+                value: '${_doubts.length}',
+                icon: Icons.help_outline,
+                blue: blue,
+                yellow: yellow,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 20),
@@ -241,11 +363,33 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('LATEST LECTURE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue, fontSize: 12, letterSpacing: 1)),
+              Text(
+                'LATEST LECTURE',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  color: blue,
+                  fontSize: 12,
+                  letterSpacing: 1,
+                ),
+              ),
               const SizedBox(height: 12),
-              Text(lastLectureSummary, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16, color: blue)),
+              Text(
+                lastLectureSummary,
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: blue,
+                ),
+              ),
               const SizedBox(height: 8),
-              Text('Uploaded yesterday • 84% student reach', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, fontSize: 12, color: blue.withValues(alpha: 0.6))),
+              Text(
+                'Uploaded yesterday • 84% student reach',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  color: blue.withValues(alpha: 0.6),
+                ),
+              ),
             ],
           ),
         ),
@@ -264,7 +408,10 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               indicatorColor: yellow,
               labelColor: yellow,
               unselectedLabelColor: Colors.white70,
-              labelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 11),
+              labelStyle: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+              ),
               tabs: const [
                 Tab(text: 'LECTURES'),
                 Tab(text: 'NOTES'),
@@ -289,10 +436,11 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   Widget _lecturesPane(Color bg, Color yellow, Color blue) {
-    final topics = (((_execution['syllabus'] as Map?)?['topics']) as List? ?? const [])
-        .whereType<Map>()
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList();
+    final topics =
+        (((_execution['syllabus'] as Map?)?['topics']) as List? ?? const [])
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -301,21 +449,35 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('SYLLABUS TRACKER', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
+              Text(
+                'SYLLABUS TRACKER',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  color: blue,
+                ),
+              ),
               const SizedBox(height: 16),
               if (topics.isEmpty)
-                Text('No topics configured.', style: GoogleFonts.plusJakartaSans(color: blue.withValues(alpha: 0.5)))
+                Text(
+                  'No topics configured.',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: blue.withValues(alpha: 0.5),
+                  ),
+                )
               else
                 ...topics.map((topic) {
                   final topicId = (topic['id'] ?? '').toString();
                   final chapter = (topic['chapter_name'] ?? '').toString();
                   final topicName = (topic['topic_name'] ?? 'Topic').toString();
                   final completed = _completedTopicIds.contains(topicId);
-                  
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
-                      color: completed ? yellow.withValues(alpha: 0.1) : Colors.transparent,
+                      color: completed
+                          ? yellow.withValues(alpha: 0.1)
+                          : Colors.transparent,
                       border: Border.all(color: blue, width: 1.5),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -346,19 +508,30 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                             }
                           });
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text('Error: $e')));
                         }
                       },
                       activeColor: blue,
                       checkColor: yellow,
                       title: Text(
                         chapter.isEmpty ? topicName : '$chapter: $topicName',
-                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 14, color: blue),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: blue,
+                        ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,
                       ),
-                      subtitle: Text('BATCH COMPLETION: ${_toNum(topic['completion_percent']).round()}%', 
-                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 10, color: blue.withValues(alpha: 0.6)),
+                      subtitle: Text(
+                        'BATCH COMPLETION: ${_toNum(topic['completion_percent']).round()}%',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                          color: blue.withValues(alpha: 0.6),
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -383,7 +556,14 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(title.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
+                  Text(
+                    title.toUpperCase(),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      color: blue,
+                    ),
+                  ),
                   _ActionBtn(
                     label: 'ADD NEW',
                     icon: Icons.add,
@@ -406,9 +586,19 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               Center(
                 child: Column(
                   children: [
-                    Icon(Icons.folder_open_rounded, size: 48, color: blue.withValues(alpha: 0.2)),
+                    Icon(
+                      Icons.folder_open_rounded,
+                      size: 48,
+                      color: blue.withValues(alpha: 0.2),
+                    ),
                     const SizedBox(height: 12),
-                    Text('No $title uploaded yet', style: GoogleFonts.plusJakartaSans(color: blue.withValues(alpha: 0.4), fontWeight: FontWeight.bold)),
+                    Text(
+                      'No $title uploaded yet',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: blue.withValues(alpha: 0.4),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -420,7 +610,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   Widget _assignmentsPane(Color bg, Color yellow, Color blue) {
-    final assignments = Map<String, dynamic>.from((_execution['assignments'] as Map?) ?? const {});
+    final assignments = Map<String, dynamic>.from(
+      (_execution['assignments'] as Map?) ?? const {},
+    );
     final pending = _toNum(assignments['pending_evaluation_count']).toInt();
     final late = _toNum(assignments['late_submissions_count']).toInt();
 
@@ -434,7 +626,14 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('ASSIGNMENTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
+                  Text(
+                    'ASSIGNMENTS',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      color: blue,
+                    ),
+                  ),
                   _ActionBtn(
                     label: 'NEW',
                     icon: Icons.add,
@@ -456,14 +655,36 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(8),
-                  boxShadow: [BoxShadow(color: blue, offset: const Offset(3, 3))]),
+                decoration: BoxDecoration(
+                  color: yellow,
+                  border: Border.all(color: blue, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(color: blue, offset: const Offset(3, 3)),
+                  ],
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.pending_actions_rounded, color: Color(0xFF0D1282)),
+                    const Icon(
+                      Icons.pending_actions_rounded,
+                      color: Color(0xFF0D1282),
+                    ),
                     const SizedBox(width: 12),
-                    Expanded(child: Text('$pending SUBMISSIONS NEED REVIEW', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12, color: blue))),
-                    Icon(Icons.arrow_forward_ios_rounded, size: 14, color: blue),
+                    Expanded(
+                      child: Text(
+                        '$pending SUBMISSIONS NEED REVIEW',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                          color: blue,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: blue,
+                    ),
                   ],
                 ),
               ),
@@ -471,12 +692,22 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               Row(
                 children: [
                   Expanded(
-                    child: Text('LATE SUBMISSIONS: $late', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 11, color: blue.withValues(alpha: 0.7))),
+                    child: Text(
+                      'LATE SUBMISSIONS: $late',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                        color: blue.withValues(alpha: 0.7),
+                      ),
+                    ),
                   ),
                   ElevatedButton(
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => AssignmentReviewPage(batchId: widget.batchId)),
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AssignmentReviewPage(batchId: widget.batchId),
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: blue,
@@ -484,7 +715,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                       elevation: 0,
                       side: BorderSide(color: blue, width: 2),
                     ),
-                    child: Text('REVIEW NOW', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 11)),
+                    child: Text(
+                      'REVIEW NOW',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -496,27 +733,36 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   Widget _studentsTab(Color bg, Color yellow, Color blue) {
-    final attendance = Map<String, dynamic>.from((_execution['attendance'] as Map?) ?? const {});
-    final tests = Map<String, dynamic>.from((_execution['tests'] as Map?) ?? const {});
-    final lowAttendanceIds = (((attendance['low_attendance_students'] as List?) ?? const [])
-            .whereType<Map>()
-            .map((e) => (e['student_id'] ?? '').toString())
-            .where((e) => e.isNotEmpty))
-        .toSet();
-    final weakIds = (((tests['weak_students'] as List?) ?? const [])
-            .whereType<Map>()
-            .map((e) => (e['student_id'] ?? '').toString())
-            .where((e) => e.isNotEmpty))
-        .toSet();
-    final effectiveWeakIds = ({...weakIds, ..._manualWeakIds}..removeAll(_removedWeakIds));
-    final pendingWorkIds = (_doubts
-            .map((e) => ((e['student'] as Map?)?['id'] ?? '').toString())
-            .where((e) => e.isNotEmpty))
-        .toSet();
+    final attendance = Map<String, dynamic>.from(
+      (_execution['attendance'] as Map?) ?? const {},
+    );
+    final tests = Map<String, dynamic>.from(
+      (_execution['tests'] as Map?) ?? const {},
+    );
+    final lowAttendanceIds =
+        (((attendance['low_attendance_students'] as List?) ?? const [])
+                .whereType<Map>()
+                .map((e) => (e['student_id'] ?? '').toString())
+                .where((e) => e.isNotEmpty))
+            .toSet();
+    final weakIds =
+        (((tests['weak_students'] as List?) ?? const [])
+                .whereType<Map>()
+                .map((e) => (e['student_id'] ?? '').toString())
+                .where((e) => e.isNotEmpty))
+            .toSet();
+    final effectiveWeakIds = ({...weakIds, ..._manualWeakIds}
+      ..removeAll(_removedWeakIds));
+    final pendingWorkIds =
+        (_doubts
+                .map((e) => ((e['student'] as Map?)?['id'] ?? '').toString())
+                .where((e) => e.isNotEmpty))
+            .toSet();
 
     final filtered = _students.where((s) {
       final id = (s['id'] ?? '').toString();
-      if (_studentFilter == 'low_attendance') return lowAttendanceIds.contains(id);
+      if (_studentFilter == 'low_attendance')
+        return lowAttendanceIds.contains(id);
       if (_studentFilter == 'weak') return effectiveWeakIds.contains(id);
       if (_studentFilter == 'pending_work') return pendingWorkIds.contains(id);
       return true;
@@ -548,71 +794,120 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               final tag = lowAttendanceIds.contains(id)
                   ? 'LOW ATTN'
                   : effectiveWeakIds.contains(id)
-                      ? 'WEAK'
-                      : pendingWorkIds.contains(id)
-                          ? 'PENDING'
-                          : 'OK';
+                  ? 'WEAK'
+                  : pendingWorkIds.contains(id)
+                  ? 'PENDING'
+                  : 'OK';
               return _PremiumCard(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: Row(
                   children: [
-                     Container(
-                       width: 40, height: 40,
-                       decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(4)),
-                       alignment: Alignment.center,
-                       child: Text(name.isNotEmpty ? name[0] : 'S', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
-                     ),
-                     const SizedBox(width: 16),
-                     Expanded(
-                       child: Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                            Text(name.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14, color: blue), overflow: TextOverflow.ellipsis, maxLines: 1),
-                           Text('STATUS: $tag', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 10, color: blue.withValues(alpha: 0.5)), overflow: TextOverflow.ellipsis, maxLines: 1),
-                         ],
-                       ),
-                     ),
-                     PopupMenuButton<String>(
-                       icon: Icon(Icons.more_vert_rounded, color: blue),
-                       onSelected: (value) {
-                         if (value == 'view_profile') {
-                           _showStudentProfileDialog(s, blue, yellow);
-                           return;
-                         }
-                         if (value == 'view_attendance') {
-                           _showActionSnack('Attendance details opening soon');
-                           return;
-                         }
-                         if (value == 'mark_weak') {
-                           setState(() {
-                             _manualWeakIds.add(id);
-                             _removedWeakIds.remove(id);
-                           });
-                           _showActionSnack('${name.toUpperCase()} marked as WEAK');
-                           return;
-                         }
-                         if (value == 'remove_weak') {
-                           setState(() {
-                             _manualWeakIds.remove(id);
-                             _removedWeakIds.add(id);
-                           });
-                           _showActionSnack('${name.toUpperCase()} removed from WEAK');
-                           return;
-                         }
-                         if (value == 'message_parent') {
-                           _showActionSnack('Parent communication shortcut coming soon');
-                         }
-                       },
-                       itemBuilder: (ctx) {
-                         final isWeak = effectiveWeakIds.contains(id);
-                         return [
-                           const PopupMenuItem(value: 'view_profile', child: Text('View Profile')),
-                           const PopupMenuItem(value: 'view_attendance', child: Text('View Attendance')),
-                           PopupMenuItem(value: isWeak ? 'remove_weak' : 'mark_weak', child: Text(isWeak ? 'Remove Weak Tag' : 'Mark as Weak')),
-                           const PopupMenuItem(value: 'message_parent', child: Text('Message Parent')),
-                         ];
-                       },
-                     ),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: yellow,
+                        border: Border.all(color: blue, width: 2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        name.isNotEmpty ? name[0] : 'S',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w900,
+                          color: blue,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name.toUpperCase(),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 14,
+                              color: blue,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          Text(
+                            'STATUS: $tag',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10,
+                              color: blue.withValues(alpha: 0.5),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.more_vert_rounded, color: blue),
+                      onSelected: (value) {
+                        if (value == 'view_profile') {
+                          _showStudentProfileDialog(s, blue, yellow);
+                          return;
+                        }
+                        if (value == 'view_attendance') {
+                          _showActionSnack('Attendance details opening soon');
+                          return;
+                        }
+                        if (value == 'mark_weak') {
+                          setState(() {
+                            _manualWeakIds.add(id);
+                            _removedWeakIds.remove(id);
+                          });
+                          _showActionSnack(
+                            '${name.toUpperCase()} marked as WEAK',
+                          );
+                          return;
+                        }
+                        if (value == 'remove_weak') {
+                          setState(() {
+                            _manualWeakIds.remove(id);
+                            _removedWeakIds.add(id);
+                          });
+                          _showActionSnack(
+                            '${name.toUpperCase()} removed from WEAK',
+                          );
+                          return;
+                        }
+                        if (value == 'message_parent') {
+                          _showActionSnack(
+                            'Parent communication shortcut coming soon',
+                          );
+                        }
+                      },
+                      itemBuilder: (ctx) {
+                        final isWeak = effectiveWeakIds.contains(id);
+                        return [
+                          const PopupMenuItem(
+                            value: 'view_profile',
+                            child: Text('View Profile'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'view_attendance',
+                            child: Text('View Attendance'),
+                          ),
+                          PopupMenuItem(
+                            value: isWeak ? 'remove_weak' : 'mark_weak',
+                            child: Text(
+                              isWeak ? 'Remove Weak Tag' : 'Mark as Weak',
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'message_parent',
+                            child: Text('Message Parent'),
+                          ),
+                        ];
+                      },
+                    ),
                   ],
                 ),
               );
@@ -624,10 +919,16 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   void _showActionSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _showStudentProfileDialog(Map<String, dynamic> student, Color blue, Color yellow) {
+  void _showStudentProfileDialog(
+    Map<String, dynamic> student,
+    Color blue,
+    Color yellow,
+  ) {
     final name = (student['name'] ?? 'Student').toString();
     final phone = (student['phone'] ?? 'N/A').toString();
     final id = (student['id'] ?? '-').toString();
@@ -637,25 +938,63 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFFEEEDED),
-        title: Text('STUDENT PROFILE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
+        title: Text(
+          'STUDENT PROFILE',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            color: blue,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(name.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: blue)),
+            Text(
+              name.toUpperCase(),
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                color: blue,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text('PHONE: $phone', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.8))),
+            Text(
+              'PHONE: $phone',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+                color: blue.withValues(alpha: 0.8),
+              ),
+            ),
             const SizedBox(height: 6),
-            Text('STATUS: $status', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.8))),
+            Text(
+              'STATUS: $status',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+                color: blue.withValues(alpha: 0.8),
+              ),
+            ),
             const SizedBox(height: 6),
-            Text('ID: $id', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.65), fontSize: 12)),
+            Text(
+              'ID: $id',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+                color: blue.withValues(alpha: 0.65),
+                fontSize: 12,
+              ),
+            ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            style: TextButton.styleFrom(foregroundColor: blue, backgroundColor: yellow),
-            child: Text('CLOSE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900)),
+            style: TextButton.styleFrom(
+              foregroundColor: blue,
+              backgroundColor: yellow,
+            ),
+            child: Text(
+              'CLOSE',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900),
+            ),
           ),
         ],
       ),
@@ -663,9 +1002,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   Widget _testsTab(Color bg, Color yellow, Color blue) {
-    final tests = Map<String, dynamic>.from((_execution['tests'] as Map?) ?? const {});
+    final tests = Map<String, dynamic>.from(
+      (_execution['tests'] as Map?) ?? const {},
+    );
     final avg = _toNum(tests['avg_score']).toStringAsFixed(1);
-    final topper = Map<String, dynamic>.from((tests['topper'] as Map?) ?? const {});
+    final topper = Map<String, dynamic>.from(
+      (tests['topper'] as Map?) ?? const {},
+    );
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -674,22 +1017,49 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('PERFORMANCE OVERVIEW', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
+              Text(
+                'PERFORMANCE OVERVIEW',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  color: blue,
+                ),
+              ),
               const SizedBox(height: 20),
               _InfoRow(label: 'CLASS AVERAGE', value: '$avg%', blue: blue),
-              _InfoRow(label: 'BATCH TOPPER', value: (topper['student_name'] ?? 'N/A').toString().toUpperCase(), blue: blue),
-              _InfoRow(label: 'QUIZZES TAKEN', value: '${(tests['total_quizzes'] ?? 0)}', blue: blue),
+              _InfoRow(
+                label: 'BATCH TOPPER',
+                value: (topper['student_name'] ?? 'N/A')
+                    .toString()
+                    .toUpperCase(),
+                blue: blue,
+              ),
+              _InfoRow(
+                label: 'QUIZZES TAKEN',
+                value: '${(tests['total_quizzes'] ?? 0)}',
+                blue: blue,
+              ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    final firstQuizId = _practiceQuizzes.isNotEmpty ? (_practiceQuizzes.first['id'] ?? '').toString() : '';
-                    final firstTestId = _scheduledTests.isNotEmpty ? (_scheduledTests.first['id'] ?? '').toString() : '';
-                    final targetId = firstQuizId.isNotEmpty ? firstQuizId : firstTestId;
+                    final firstQuizId = _practiceQuizzes.isNotEmpty
+                        ? (_practiceQuizzes.first['id'] ?? '').toString()
+                        : '';
+                    final firstTestId = _scheduledTests.isNotEmpty
+                        ? (_scheduledTests.first['id'] ?? '').toString()
+                        : '';
+                    final targetId = firstQuizId.isNotEmpty
+                        ? firstQuizId
+                        : firstTestId;
                     if (targetId.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Create a quiz or test first to view analytics.')),
+                        const SnackBar(
+                          content: Text(
+                            'Create a quiz or test first to view analytics.',
+                          ),
+                        ),
                       );
                       return;
                     }
@@ -709,9 +1079,20 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     side: BorderSide(color: blue, width: 2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: FittedBox(fit: BoxFit.scaleDown, child: Text('VIEW DETAILED ANALYTICS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14))),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'VIEW DETAILED ANALYTICS',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -721,7 +1102,15 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('QUIZ (PRACTICE MODE)', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 14, letterSpacing: 1)),
+            Text(
+              'QUIZ (PRACTICE MODE)',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                fontSize: 14,
+                letterSpacing: 1,
+              ),
+            ),
             _ActionBtn(
               label: 'NEW QUIZ',
               icon: Icons.add,
@@ -746,22 +1135,34 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         const SizedBox(height: 6),
         Text(
           'TOPIC-WISE • DAILY CHALLENGE • 5-20 QUESTIONS • RETRY ALLOWED',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 10, color: Colors.white.withValues(alpha: 0.8), letterSpacing: 0.5),
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w800,
+            fontSize: 10,
+            color: Colors.white.withValues(alpha: 0.8),
+            letterSpacing: 0.5,
+          ),
         ),
         const SizedBox(height: 12),
         if (_practiceQuizzes.isEmpty)
           _PremiumCard(
             child: Text(
               'NO QUIZZES CREATED FOR THIS BATCH YET',
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.6)),
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                color: blue.withValues(alpha: 0.6),
+              ),
             ),
           )
         else
           ..._practiceQuizzes.map((quiz) {
             final quizId = (quiz['id'] ?? '').toString();
             final title = (quiz['title'] ?? 'QUIZ').toString().toUpperCase();
-            final subject = (quiz['subject'] ?? _batch?['subject'] ?? 'GENERAL').toString().toUpperCase();
-            final totalQuestions = ((quiz['questions'] as List?)?.length ?? _toNum((quiz['_count'] as Map?)?['questions']).toInt());
+            final subject = (quiz['subject'] ?? _batch?['subject'] ?? 'GENERAL')
+                .toString()
+                .toUpperCase();
+            final totalQuestions =
+                ((quiz['questions'] as List?)?.length ??
+                _toNum((quiz['_count'] as Map?)?['questions']).toInt());
             final timeLimit = _toNum(quiz['time_limit_min']).toInt();
             final isPublished = quiz['is_published'] == true;
 
@@ -775,13 +1176,20 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                       Expanded(
                         child: Text(
                           title,
-                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 15, color: blue),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                            color: blue,
+                          ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: isPublished ? blue : yellow,
                           borderRadius: BorderRadius.circular(6),
@@ -801,7 +1209,11 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                   const SizedBox(height: 8),
                   Text(
                     '$subject • $totalQuestions QUESTIONS • ${timeLimit > 0 ? '$timeLimit MIN' : 'NO LIMIT'}',
-                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 11, color: blue.withValues(alpha: 0.6)),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                      color: blue.withValues(alpha: 0.6),
+                    ),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                   ),
@@ -813,16 +1225,29 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                           onPressed: quizId.isEmpty
                               ? null
                               : () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => QuizResultsPage(
-                                        quizId: quizId,
-                                        fallbackTitle: title,
-                                      ),
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => QuizResultsPage(
+                                      quizId: quizId,
+                                      fallbackTitle: title,
                                     ),
                                   ),
-                          style: ElevatedButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 4)),
-                          child: FittedBox(fit: BoxFit.scaleDown, child: Text('RESULTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12))),
+                                ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'RESULTS',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -836,7 +1261,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                     MaterialPageRoute(
                                       builder: (_) => CreateQuizPage(
                                         initialBatchId: widget.batchId,
-                                        initialSubject: (_batch?['subject'] ?? '').toString(),
+                                        initialSubject:
+                                            (_batch?['subject'] ?? '')
+                                                .toString(),
                                         quizId: quizId,
                                         initialAssessmentType: 'QUIZ',
                                       ),
@@ -844,8 +1271,21 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                   );
                                   await _load();
                                 },
-                          style: OutlinedButton.styleFrom(side: BorderSide(color: blue, width: 2), padding: const EdgeInsets.symmetric(horizontal: 4)),
-                          child: FittedBox(fit: BoxFit.scaleDown, child: Text('EDIT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue, fontSize: 12))),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: blue, width: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'EDIT',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w900,
+                                color: blue,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -858,10 +1298,20 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                     context: context,
                                     builder: (ctx) => AlertDialog(
                                       title: const Text('Delete Quiz?'),
-                                      content: const Text('This will remove the quiz and related attempts for this batch.'),
+                                      content: const Text(
+                                        'This will remove the quiz and related attempts for this batch.',
+                                      ),
                                       actions: [
-                                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                                        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx, false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx, true),
+                                          child: const Text('Delete'),
+                                        ),
                                       ],
                                     ),
                                   );
@@ -871,17 +1321,39 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                   try {
                                     await _teacherRepo.deleteQuiz(quizId);
                                     if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quiz deleted')));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Quiz deleted'),
+                                      ),
+                                    );
                                     await _load();
                                   } catch (e) {
                                     if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Delete failed: $e'),
+                                      ),
+                                    );
                                   } finally {
-                                    if (mounted) setState(() => _isDeletingQuiz = false);
+                                    if (mounted)
+                                      setState(() => _isDeletingQuiz = false);
                                   }
                                 },
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.coralRed, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 4)),
-                          child: FittedBox(fit: BoxFit.scaleDown, child: Text('DELETE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12))),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.coralRed,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'DELETE',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -894,7 +1366,15 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('TEST (EXAM MODE)', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 14, letterSpacing: 1)),
+            Text(
+              'TEST (EXAM MODE)',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                fontSize: 14,
+                letterSpacing: 1,
+              ),
+            ),
             _ActionBtn(
               label: 'NEW TEST',
               icon: Icons.add_task_rounded,
@@ -919,22 +1399,34 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         const SizedBox(height: 6),
         Text(
           'SCHEDULED TESTS • 50-200 QUESTIONS • STRICT TIMER • ONE ATTEMPT • RANK SYSTEM',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 10, color: Colors.white.withValues(alpha: 0.8), letterSpacing: 0.5),
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w800,
+            fontSize: 10,
+            color: Colors.white.withValues(alpha: 0.8),
+            letterSpacing: 0.5,
+          ),
         ),
         const SizedBox(height: 12),
         if (_scheduledTests.isEmpty)
           _PremiumCard(
             child: Text(
               'NO TESTS CREATED FOR THIS BATCH YET',
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.6)),
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                color: blue.withValues(alpha: 0.6),
+              ),
             ),
           )
         else
           ..._scheduledTests.map((test) {
             final testId = (test['id'] ?? '').toString();
             final title = (test['title'] ?? 'TEST').toString().toUpperCase();
-            final subject = (test['subject'] ?? _batch?['subject'] ?? 'GENERAL').toString().toUpperCase();
-            final totalQuestions = ((test['questions'] as List?)?.length ?? _toNum((test['_count'] as Map?)?['questions']).toInt());
+            final subject = (test['subject'] ?? _batch?['subject'] ?? 'GENERAL')
+                .toString()
+                .toUpperCase();
+            final totalQuestions =
+                ((test['questions'] as List?)?.length ??
+                _toNum((test['_count'] as Map?)?['questions']).toInt());
             final timeLimit = _toNum(test['time_limit_min']).toInt();
             final isPublished = test['is_published'] == true;
 
@@ -948,13 +1440,20 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                       Expanded(
                         child: Text(
                           title,
-                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 15, color: blue),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                            color: blue,
+                          ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: isPublished ? blue : yellow,
                           borderRadius: BorderRadius.circular(6),
@@ -974,7 +1473,11 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                   const SizedBox(height: 8),
                   Text(
                     '$subject • $totalQuestions QUESTIONS • ${timeLimit > 0 ? '$timeLimit MIN' : 'NO TIMER'}',
-                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 11, color: blue.withValues(alpha: 0.6)),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                      color: blue.withValues(alpha: 0.6),
+                    ),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                   ),
@@ -986,16 +1489,29 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                           onPressed: testId.isEmpty
                               ? null
                               : () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => QuizResultsPage(
-                                        quizId: testId,
-                                        fallbackTitle: title,
-                                      ),
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => QuizResultsPage(
+                                      quizId: testId,
+                                      fallbackTitle: title,
                                     ),
                                   ),
-                          style: ElevatedButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 4)),
-                          child: FittedBox(fit: BoxFit.scaleDown, child: Text('RESULTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12))),
+                                ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'RESULTS',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1009,7 +1525,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                     MaterialPageRoute(
                                       builder: (_) => CreateQuizPage(
                                         initialBatchId: widget.batchId,
-                                        initialSubject: (_batch?['subject'] ?? '').toString(),
+                                        initialSubject:
+                                            (_batch?['subject'] ?? '')
+                                                .toString(),
                                         quizId: testId,
                                         initialAssessmentType: 'TEST',
                                       ),
@@ -1017,8 +1535,21 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                   );
                                   await _load();
                                 },
-                          style: OutlinedButton.styleFrom(side: BorderSide(color: blue, width: 2), padding: const EdgeInsets.symmetric(horizontal: 4)),
-                          child: FittedBox(fit: BoxFit.scaleDown, child: Text('EDIT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue, fontSize: 12))),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: blue, width: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'EDIT',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w900,
+                                color: blue,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1031,10 +1562,20 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                     context: context,
                                     builder: (ctx) => AlertDialog(
                                       title: const Text('Delete Test?'),
-                                      content: const Text('This will remove the test and related attempts for this batch.'),
+                                      content: const Text(
+                                        'This will remove the test and related attempts for this batch.',
+                                      ),
                                       actions: [
-                                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                                        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx, false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx, true),
+                                          child: const Text('Delete'),
+                                        ),
                                       ],
                                     ),
                                   );
@@ -1044,17 +1585,39 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                   try {
                                     await _teacherRepo.deleteQuiz(testId);
                                     if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Test deleted')));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Test deleted'),
+                                      ),
+                                    );
                                     await _load();
                                   } catch (e) {
                                     if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Delete failed: $e'),
+                                      ),
+                                    );
                                   } finally {
-                                    if (mounted) setState(() => _isDeletingQuiz = false);
+                                    if (mounted)
+                                      setState(() => _isDeletingQuiz = false);
                                   }
                                 },
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.coralRed, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 4)),
-                          child: FittedBox(fit: BoxFit.scaleDown, child: Text('DELETE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12))),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.coralRed,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'DELETE',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -1075,23 +1638,49 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('ATTENDANCE WORKFLOW', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16, color: blue)),
+              Text(
+                'ATTENDANCE WORKFLOW',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  color: blue,
+                ),
+              ),
               const SizedBox(height: 12),
-              Text('Track and mark attendance for your students daily.', style: GoogleFonts.plusJakartaSans(color: blue.withValues(alpha: 0.6), fontWeight: FontWeight.w600)),
+              Text(
+                'Track and mark attendance for your students daily.',
+                style: GoogleFonts.plusJakartaSans(
+                  color: blue.withValues(alpha: 0.6),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceMarkingPage())),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AttendanceMarkingPage(),
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: blue,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     side: BorderSide(color: blue, width: 2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: Text('OPEN ATTENDANCE PORTAL', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14)),
+                  child: Text(
+                    'OPEN ATTENDANCE PORTAL',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1109,12 +1698,21 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
           Center(
             child: Padding(
               padding: const EdgeInsets.only(top: 100),
-              child: _PremiumCard(child: Text('NO PENDING DOUBTS', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue))),
+              child: _PremiumCard(
+                child: Text(
+                  'NO PENDING DOUBTS',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w900,
+                    color: blue,
+                  ),
+                ),
+              ),
             ),
           )
         else
           ..._doubts.map((d) {
-            final student = ((d['student'] as Map?)?['name'] ?? 'Student').toString();
+            final student = ((d['student'] as Map?)?['name'] ?? 'Student')
+                .toString();
             final question = (d['question_text'] ?? '').toString();
             return _PremiumCard(
               margin: const EdgeInsets.only(bottom: 16),
@@ -1123,15 +1721,56 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                 children: [
                   Row(
                     children: [
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(3)), child: Text('PENDING', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900))),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: blue,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Text(
+                          'PENDING',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
                       const SizedBox(width: 8),
-                      Expanded(child: Text(student.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12, color: blue), overflow: TextOverflow.ellipsis, maxLines: 1)),
+                      Expanded(
+                        child: Text(
+                          student.toUpperCase(),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                            color: blue,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Text(question, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 14, color: blue)),
+                  Text(
+                    question,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: blue,
+                    ),
+                  ),
                   const SizedBox(height: 16),
-                  _ActionBtn(label: 'RESPOND', icon: Icons.reply, blue: blue, yellow: yellow, onPressed: () => _openReplySheet(d, blue, yellow)),
+                  _ActionBtn(
+                    label: 'RESPOND',
+                    icon: Icons.reply,
+                    blue: blue,
+                    yellow: yellow,
+                    onPressed: () => _openReplySheet(d, blue, yellow),
+                  ),
                 ],
               ),
             );
@@ -1157,12 +1796,23 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
           border: Border.all(color: blue, width: 2),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue)),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            fontSize: 10,
+            color: blue,
+          ),
+        ),
       ),
     );
   }
 
-  Future<void> _openReplySheet(Map<String, dynamic> doubt, Color blue, Color yellow) async {
+  Future<void> _openReplySheet(
+    Map<String, dynamic> doubt,
+    Color blue,
+    Color yellow,
+  ) async {
     final ctrl = TextEditingController();
     await showModalBottomSheet<void>(
       context: context,
@@ -1170,7 +1820,12 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         return Container(
-          padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            20,
+            20,
+            20 + MediaQuery.of(ctx).viewInsets.bottom,
+          ),
           decoration: BoxDecoration(
             color: const Color(0xFFEEEDED),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -1180,7 +1835,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('RESPOND TO DOUBT', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
+              Text(
+                'RESPOND TO DOUBT',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  color: blue,
+                ),
+              ),
               const SizedBox(height: 12),
               TextField(
                 controller: ctrl,
@@ -1201,10 +1862,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                           await _submitDoubtReply(doubt, ctrl.text.trim());
                           if (ctx.mounted) Navigator.pop(ctx);
                         },
-                  style: ElevatedButton.styleFrom(backgroundColor: yellow, foregroundColor: blue),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: yellow,
+                    foregroundColor: blue,
+                  ),
                   child: Text(_isReplying ? 'SAVING...' : 'SEND'),
                 ),
-              )
+              ),
             ],
           ),
         );
@@ -1212,18 +1876,29 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     );
   }
 
-  Future<void> _submitDoubtReply(Map<String, dynamic> doubt, String answer) async {
+  Future<void> _submitDoubtReply(
+    Map<String, dynamic> doubt,
+    String answer,
+  ) async {
     final doubtId = (doubt['id'] ?? '').toString();
     if (doubtId.isEmpty || answer.isEmpty) return;
     setState(() => _isReplying = true);
     try {
       await _teacherRepo.answerDoubt(doubtId: doubtId, answer: answer);
       if (!mounted) return;
-      setState(() => _doubts.removeWhere((item) => (item['id'] ?? '').toString() == doubtId));
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Doubt resolved')));
+      setState(
+        () => _doubts.removeWhere(
+          (item) => (item['id'] ?? '').toString() == doubtId,
+        ),
+      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Doubt resolved')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed: $e')));
     } finally {
       if (mounted) setState(() => _isReplying = false);
     }
@@ -1246,9 +1921,7 @@ class _PremiumCard extends StatelessWidget {
         color: surface,
         border: Border.all(color: blue, width: 2.5),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(color: blue, offset: Offset(4, 4)),
-        ],
+        boxShadow: const [BoxShadow(color: blue, offset: Offset(4, 4))],
       ),
       child: child,
     );
@@ -1262,7 +1935,13 @@ class _StatBox extends StatelessWidget {
   final Color blue;
   final Color yellow;
 
-  const _StatBox({required this.label, required this.value, required this.icon, required this.blue, required this.yellow});
+  const _StatBox({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.blue,
+    required this.yellow,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1278,8 +1957,22 @@ class _StatBox extends StatelessWidget {
         children: [
           Icon(icon, color: blue, size: 24),
           const SizedBox(height: 8),
-          Text(value, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 24, color: blue)),
-          Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 10, color: blue.withValues(alpha: 0.5))),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w900,
+              fontSize: 24,
+              color: blue,
+            ),
+          ),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w800,
+              fontSize: 10,
+              color: blue.withValues(alpha: 0.5),
+            ),
+          ),
         ],
       ),
     );
@@ -1290,7 +1983,11 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
   final Color blue;
-  const _InfoRow({required this.label, required this.value, required this.blue});
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    required this.blue,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1299,8 +1996,22 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 12, color: blue.withValues(alpha: 0.6))),
-          Text(value, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 13, color: blue)),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              color: blue.withValues(alpha: 0.6),
+            ),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w900,
+              fontSize: 13,
+              color: blue,
+            ),
+          ),
         ],
       ),
     );
@@ -1314,7 +2025,13 @@ class _ActionBtn extends StatelessWidget {
   final Color yellow;
   final VoidCallback onPressed;
 
-  const _ActionBtn({required this.label, required this.icon, required this.blue, required this.yellow, required this.onPressed});
+  const _ActionBtn({
+    required this.label,
+    required this.icon,
+    required this.blue,
+    required this.yellow,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1332,7 +2049,14 @@ class _ActionBtn extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: blue),
             const SizedBox(width: 8),
-            Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue)),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                fontSize: 10,
+                color: blue,
+              ),
+            ),
           ],
         ),
       ),

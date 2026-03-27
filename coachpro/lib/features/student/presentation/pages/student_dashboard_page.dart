@@ -1,9 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_animated_ring.dart';
@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../features/shared/presentation/widgets/global_search_overlay.dart';
 import '../../../../features/student/data/repositories/student_repository.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/secure_storage_service.dart';
 
 class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
@@ -52,8 +53,6 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     }
   }
 
-
-  // Time-aware greeting
   String get _greeting {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'Good Morning';
@@ -94,94 +93,116 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     super.dispose();
   }
 
-  Widget _glassContainer({required Widget child, bool isDark = true, EdgeInsetsGeometry? padding}) {
-    if (!isDark) {
-      return Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: AppDimensions.shadowSm(false),
-        ),
-        child: child,
-      );
-    }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: AppColors.glassWhiteCard,
-            border: Border.all(color: AppColors.glassBorder),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: child,
-        ),
+  Widget _neoContainer({
+    required Widget child,
+    bool isDark = true,
+    EdgeInsetsGeometry? padding,
+    Color? bgColor,
+  }) {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: bgColor ?? (isDark ? AppColors.eliteDarkBg : Colors.white),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.elitePrimary, width: 3),
+        boxShadow: const [
+          BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
+        ],
       ),
+      child: child,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = CT.isDark(context);
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: CT.bg(context),
-      drawer: _buildDrawer(context),
+      backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
+      drawer: _buildDrawer(context, isDark),
       body: SafeArea(
         child: RefreshIndicator(
+          color: AppColors.elitePrimary,
+          displacement: 20,
           onRefresh: _loadDashboard,
           child: _isLoading
               ? _buildLoadingState(context)
               : _error != null
-                  ? _buildErrorState(context)
-                  : SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppDimensions.pagePaddingH,
+              ? _buildErrorState(context)
+              : SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      _buildAppBar(context, isDark),
+                      const SizedBox(height: 8),
+                      Text(
+                        _formattedDate,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white54 : Colors.black54,
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: AppDimensions.md),
-                          _buildAppBar(context),
-                          const SizedBox(height: AppDimensions.xs),
-                          Text(
-                            _formattedDate,
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: CT.textM(context),
-                            ),
-                          ),
-                          const SizedBox(height: AppDimensions.lg),
-                          _buildQuickAccess(context),
-                          const SizedBox(height: AppDimensions.lg),
-                          _buildTodaysClasses(context),
-                          const SizedBox(height: AppDimensions.lg),
-                          _buildExamCountdown(context),
-                          const SizedBox(height: AppDimensions.lg),
-                          _buildExploreMore(context),
-                          const SizedBox(height: AppDimensions.lg),
-                          _buildStatsRow(context),
-                          const SizedBox(height: AppDimensions.lg),
-                          _buildFeeBanner(context),
-                          const SizedBox(height: AppDimensions.lg),
-                          _buildAnnouncements(context),
-                          const SizedBox(height: AppDimensions.lg),
-                          _buildConnectWithUs(context),
-                          const SizedBox(height: 100),
-                        ],
+                      const SizedBox(height: 32),
+                      _buildQuickAccess(context, isDark),
+                      const SizedBox(height: 32),
+                      _buildSectionHeader(
+                        "Today's Schedule",
+                        () => context.push('/student/timetable'),
+                        isDark,
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      _buildTodaysClasses(context, isDark),
+                      const SizedBox(height: 32),
+                      _buildSectionHeader(
+                        "Exam Center",
+                        () => context.go('/student/exam-calendar'),
+                        isDark,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildExamCountdown(context, isDark),
+                      const SizedBox(height: 32),
+                      _buildSectionHeader("Academic Flow", () {}, isDark),
+                      const SizedBox(height: 16),
+                      _buildExploreMore(context, isDark),
+                      const SizedBox(height: 48),
+                      _buildSectionHeader(
+                        "Performance Stats",
+                        () => context.go('/student/results'),
+                        isDark,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildStatsRow(context, isDark),
+                      const SizedBox(height: 40),
+                      _buildFeeBanner(context, isDark),
+                      const SizedBox(height: 32),
+                      _buildSectionHeader(
+                        "Notice Board",
+                        () => context.go('/student/announcements'),
+                        isDark,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildAnnouncements(context, isDark),
+                      const SizedBox(height: 40),
+                      _buildSectionHeader("Connect", () {}, isDark),
+                      const SizedBox(height: 16),
+                      _buildConnectWithUs(context, isDark),
+                      const SizedBox(height: 100),
+                    ],
+                  ),
+                ),
         ),
       ),
     );
   }
 
   Widget _buildLoadingState(BuildContext context) {
-    return const Center(child: CircularProgressIndicator());
+    return const Center(
+      child: CircularProgressIndicator(color: AppColors.elitePrimary),
+    );
   }
 
   Widget _buildErrorState(BuildContext context) {
@@ -189,13 +210,43 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+          Icon(Icons.error_outline, size: 48, color: AppColors.coralRed),
           const SizedBox(height: 16),
-          Text('Failed to load dashboard', style: GoogleFonts.sora(fontSize: 18, color: CT.textH(context))),
+          Text(
+            'Failed to load dashboard',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.elitePrimary,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(_error ?? 'Unknown error', style: GoogleFonts.dmSans(color: CT.textM(context))),
+          Text(
+            _error ?? 'Unknown error',
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.black54,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 24),
-          ElevatedButton(onPressed: _loadDashboard, child: const Text('Retry')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.elitePrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: AppColors.elitePrimary, width: 2),
+              ),
+              elevation: 0,
+            ),
+            onPressed: _loadDashboard,
+            child: Text(
+              'Retry',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -204,68 +255,53 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   // ═══════════════════════════════════════════════════════
   // DRAWER
   // ═══════════════════════════════════════════════════════
-  Widget _buildDrawer(BuildContext context) {
+  Widget _buildDrawer(BuildContext context, bool isDark) {
+    final name = _dashboardData?['student']?['name'] ?? 'Student';
+    final initials = name.isNotEmpty
+        ? name.split(' ').map((e) => e[0]).take(2).join().toUpperCase()
+        : 'S';
     return Drawer(
-      backgroundColor: CT.bg(context),
+      backgroundColor: isDark ? AppColors.eliteDarkBg : Colors.white,
       child: SafeArea(
         child: Column(
           children: [
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: CT.border(context), width: 0.5),
-                ),
-              ),
+              padding: const EdgeInsets.all(24),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: CT.accent(context).withValues(alpha: 0.12),
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: AppColors.moltenAmber,
+                      border: Border.all(
+                        color: AppColors.elitePrimary,
+                        width: 3,
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
                     child: Text(
-                      'P',
-                      style: GoogleFonts.sora(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: CT.accent(context),
+                      initials,
+                      style: const TextStyle(
+                        color: AppColors.elitePrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
                     ),
                   ),
-                  const SizedBox(width: AppDimensions.md),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _dashboardData?['student']?['name'] ?? 'Student User',
-                          style: GoogleFonts.sora(
+                          'STUDENT\nPANEL',
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: CT.textH(context),
-                          ),
-                        ),
-                        const SizedBox(height: AppDimensions.xxs),
-                        Text(
-                          _dashboardData?['student']?['phone'] ?? '+91 XXXXX XXXXX',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 13,
-                            color: CT.textM(context),
-                          ),
-                        ),
-                        const SizedBox(height: AppDimensions.xs),
-                        GestureDetector(
-                          onTap: () {
-                            context.pop();
-                            context.go('/student/profile');
-                          },
-                          child: Text(
-                            'View profile ›',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: CT.accent(context),
-                            ),
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.elitePrimary,
+                            height: 1.1,
                           ),
                         ),
                       ],
@@ -274,207 +310,321 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                 ],
               ),
             ),
+            const Divider(
+              color: AppColors.elitePrimary,
+              thickness: 2,
+              height: 1,
+            ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: AppDimensions.sm),
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
-                  _drawerItem(
-                    context,
-                    Icons.menu_book_outlined,
-                    'Study Material',
-                    'Notes, sample papers & more',
+                  _drawerTile(
+                    Icons.dashboard_rounded,
+                    'DASHBOARD',
+                    AppColors.elitePrimary,
+                    () => Navigator.pop(context),
+                  ),
+                  _drawerTile(
+                    Icons.menu_book_rounded,
+                    'STUDY MATERIAL',
+                    AppColors.elitePrimary,
                     () {
-                      context.pop();
+                      Navigator.pop(context);
                       context.go('/student/materials');
                     },
                   ),
-                  _drawerItem(
-                    context,
-                    Icons.play_circle_outline,
-                    'Concept Videos',
-                    'Short animated video lessons',
+                  _drawerTile(
+                    Icons.play_circle_rounded,
+                    'CONCEPT VIDEOS',
+                    AppColors.elitePrimary,
                     () {
-                      context.pop();
+                      Navigator.pop(context);
                       context.go('/student/video-player');
                     },
                   ),
-                  _drawerItem(
-                    context,
-                    Icons.bookmark_outline,
-                    'My Saved Content',
-                    'Saved classes, notes & PDFs',
+                  _drawerTile(
+                    Icons.calendar_month_rounded,
+                    'EXAM CALENDAR',
+                    AppColors.elitePrimary,
                     () {
-                      context.pop();
-                      context.go('/student/materials');
-                    },
-                  ),
-                  _drawerItem(
-                    context,
-                    Icons.calendar_today_outlined,
-                    'Exam Calendar',
-                    'Upcoming exams & schedule',
-                    () {
-                      context.pop();
+                      Navigator.pop(context);
                       context.go('/student/exam-calendar');
                     },
                   ),
-                  _drawerItem(
-                    context,
-                    Icons.receipt_long_outlined,
-                    'Fee History',
-                    'Payment records & receipts',
+                  _drawerTile(
+                    Icons.receipt_long_rounded,
+                    'FEE HISTORY',
+                    AppColors.elitePrimary,
                     () {
-                      context.pop();
+                      Navigator.pop(context);
                       context.go('/student/fee-history');
                     },
                   ),
-                  _drawerItem(
-                    context,
-                    Icons.headset_mic_outlined,
-                    'Share Feedback',
-                    'Help us improve your experience',
+                  _drawerTile(
+                    Icons.person_rounded,
+                    'PROFILE',
+                    AppColors.elitePrimary,
                     () {
-                      context.pop();
+                      Navigator.pop(context);
+                      context.go('/student/profile');
                     },
                   ),
-                  Divider(
-                    color: CT.border(context),
-                    height: AppDimensions.lg,
-                    indent: AppDimensions.md,
-                    endIndent: AppDimensions.md,
-                  ),
-                  _drawerItem(
-                    context,
-                    Icons.settings_outlined,
-                    'Settings',
-                    'Dark mode, notifications & more',
+                  _drawerTile(
+                    Icons.settings_rounded,
+                    'SETTINGS',
+                    AppColors.elitePrimary,
                     () {
-                      context.pop();
+                      Navigator.pop(context);
                       context.go('/student/settings');
                     },
-                  ),
-                  _drawerItem(
-                    context,
-                    Icons.logout,
-                    'Log Out',
-                    'Sign out of your account',
-                    () {
-                      context.pop();
-                      context.go('/login');
-                    },
-                    isDestructive: true,
                   ),
                 ],
               ),
             ),
+            const Divider(
+              thickness: 2,
+              color: AppColors.elitePrimary,
+              height: 1,
+            ),
+            _drawerTile(
+              Icons.logout_rounded,
+              'SIGN OUT',
+              AppColors.coralRed,
+              () async {
+                Navigator.pop(context);
+                await sl<SecureStorageService>().clearAll();
+                if (mounted) context.go('/login');
+              },
+            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _drawerItem(
-    BuildContext context,
+  Widget _drawerTile(
     IconData icon,
-    String title,
-    String subtitle,
-    VoidCallback onTap, {
-    bool isDestructive = false,
-  }) {
-    final clr = isDestructive ? AppColors.error : CT.textS(context);
-    return ListTile(
-      leading: Icon(icon, size: 20, color: clr),
-      title: Text(
-        title,
-        style: GoogleFonts.dmSans(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: isDestructive ? AppColors.error : CT.textH(context),
-        ),
+    String label,
+    Color color,
+    VoidCallback onTap,
+  ) => InkWell(
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(width: 16),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w900,
+              color: color,
+              fontSize: 16,
+            ),
+          ),
+        ],
       ),
-      subtitle: Text(
-        subtitle,
-        style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context)),
-      ),
-      trailing: Icon(Icons.chevron_right, size: 16, color: CT.textM(context)),
-      onTap: onTap,
-    );
-  }
+    ),
+  );
 
   // ═══════════════════════════════════════════════════════
   // APP BAR — time-aware greeting
   // ═══════════════════════════════════════════════════════
-  Widget _buildAppBar(BuildContext context) {
-    final isDark = CT.isDark(context);
-    final name = (_dashboardData?['student']?['name']?.split(' ').first) ?? 'Student';
-    
+  Widget _buildAppBar(BuildContext context, bool isDark) {
+    final name =
+        (_dashboardData?['student']?['name']?.split(' ').first) ?? 'Student';
+    final initials = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+
     return Row(
       children: [
-        GestureDetector(
-          onTap: () => _scaffoldKey.currentState?.openDrawer(),
+        CPPressable(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _scaffoldKey.currentState?.openDrawer();
+          },
+          child: const Padding(
+            padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
+            child: Icon(
+              Icons.menu_rounded,
+              color: AppColors.elitePrimary,
+              size: 28,
+            ),
+          ),
+        ),
+        CPPressable(
+          onTap: () => context.go('/student/profile'),
           child: Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.glassBorder),
+              color: AppColors.elitePrimary,
+              border: Border.all(color: AppColors.elitePrimary, width: 2),
+              boxShadow: const [
+                BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2)),
+              ],
             ),
-            child: const Center(
-              child: Icon(Icons.person, color: AppColors.primary, size: 20),
+            child: Center(
+              child: Text(
+                initials,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
             ),
           ),
         ),
-        const SizedBox(width: AppDimensions.sm),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_greeting, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: CT.textS(context))),
-              const SizedBox(height: 2),
-              Text('$name 🙌', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -0.5)),
+              Text(
+                _greeting,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white54 : Colors.black54,
+                ),
+              ),
+              Text(
+                '$name 🙌',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  letterSpacing: -0.5,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),
-        CPPressable(
-          onTap: () => GlobalSearchOverlay.show(context),
-          child: Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(color: isDark ? AppColors.glassWhiteCard : AppColors.frostBlue, shape: BoxShape.circle),
-            child: Icon(Icons.search, size: 20, color: CT.textH(context)),
+        _appBarAction(Icons.search_rounded, () {
+          HapticFeedback.mediumImpact();
+          GlobalSearchOverlay.show(context);
+        }, isDark),
+        const SizedBox(width: 8),
+        _appBarAction(
+          Icons.notifications_none_rounded,
+          () {
+            HapticFeedback.mediumImpact();
+            context.go('/student/notifications');
+          },
+          isDark,
+          badge: true,
+        ),
+      ],
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);
+  }
+
+  Widget _appBarAction(
+    IconData icon,
+    VoidCallback onTap,
+    bool isDark, {
+    bool badge = false,
+  }) {
+    return CPPressable(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.eliteDarkBg : Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.elitePrimary, width: 2),
+          boxShadow: const [
+            BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2)),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(icon, size: 21, color: AppColors.elitePrimary),
+            if (badge)
+              const Positioned(
+                top: 8,
+                right: 8,
+                child: SizedBox(
+                  width: 8,
+                  height: 8,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.coralRed,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // SECTION HEADER
+  // ═══════════════════════════════════════════════════════
+  Widget _buildSectionHeader(String title, VoidCallback onTap, bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: isDark ? Colors.white : AppColors.deepNavy,
+              letterSpacing: -0.6,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(width: AppDimensions.sm),
         CPPressable(
-          onTap: () => context.go('/student/notifications'),
+          onTap: onTap,
           child: Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(color: isDark ? AppColors.glassWhiteCard : AppColors.frostBlue, shape: BoxShape.circle),
-            child: Stack(
-              alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.moltenAmber,
+              border: Border.all(color: AppColors.elitePrimary, width: 2),
+              boxShadow: const [
+                BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2)),
+              ],
+            ),
+            child: Row(
               children: [
-                Icon(Icons.notifications_outlined, size: 20, color: CT.textH(context)),
-                Positioned(
-                  top: 10, right: 10,
-                  child: Container(
-                    width: 8, height: 8,
-                    decoration: BoxDecoration(color: AppColors.elitePrimary, shape: BoxShape.circle, border: Border.all(color: CT.bg(context), width: 1.5)),
+                Text(
+                  'Open',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.elitePrimary,
                   ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 10,
+                  color: AppColors.elitePrimary,
                 ),
               ],
             ),
           ),
         ),
       ],
-    ).animate().fadeIn(duration: 500.ms);
+    );
   }
-
-
 
   // ═══════════════════════════════════════════════════════
   // QUICK ACCESS — 4 action shortcut row
   // ═══════════════════════════════════════════════════════
-  Widget _buildQuickAccess(BuildContext context) => Row(
+  Widget _buildQuickAccess(BuildContext context, bool isDark) => Row(
     children: [
       _qaItem(
         context,
@@ -482,30 +632,34 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         'Performance',
         AppColors.elitePrimary,
         '/student/performance',
+        isDark,
       ),
-      const SizedBox(width: AppDimensions.sm),
+      const SizedBox(width: 10),
       _qaItem(
         context,
         Icons.calendar_month_rounded,
         'Timetable',
         const Color(0xFF5C7CFA),
         '/student/timetable',
+        isDark,
       ),
-      const SizedBox(width: AppDimensions.sm),
+      const SizedBox(width: 10),
       _qaItem(
         context,
         Icons.help_outline_rounded,
         'Doubts',
         AppColors.moltenAmber,
         '/student/doubts',
+        isDark,
       ),
-      const SizedBox(width: AppDimensions.sm),
+      const SizedBox(width: 10),
       _qaItem(
         context,
         Icons.checklist_rounded,
         'Syllabus',
         AppColors.elitePurple,
         '/student/syllabus',
+        isDark,
       ),
     ],
   ).animate(delay: 150.ms).fadeIn(duration: 400.ms);
@@ -516,29 +670,30 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     String label,
     Color color,
     String route,
+    bool isDark,
   ) => Expanded(
     child: CPPressable(
       onTap: () => ctx.push(route),
-      child: _glassContainer(
-        isDark: CT.isDark(ctx),
-        padding: const EdgeInsets.symmetric(vertical: AppDimensions.md),
+      child: _neoContainer(
+        isDark: isDark,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(AppDimensions.sm),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 18, color: color),
+              child: Icon(icon, size: 20, color: color),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: CT.textH(ctx),
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : AppColors.elitePrimary,
               ),
               textAlign: TextAlign.center,
               maxLines: 1,
@@ -553,62 +708,53 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   // ═══════════════════════════════════════════════════════
   // TODAY'S SCHEDULE — horizontal class cards
   // ═══════════════════════════════════════════════════════
-  Widget _buildTodaysClasses(BuildContext context) {
+  Widget _buildTodaysClasses(BuildContext context, bool isDark) {
     final batches = _dashboardData?['batches'] as List? ?? [];
-    final isDark = CT.isDark(context);
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Classes Today', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -0.5)),
-            CPPressable(
-              onTap: () => context.push('/student/timetable'),
-              child: Text('View all', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.elitePrimary)),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppDimensions.md),
-        if (batches.isEmpty)
-          _glassContainer(
-            isDark: isDark,
-            padding: const EdgeInsets.all(24),
-            child: Center(
-              child: Text('No classes scheduled for today', style: GoogleFonts.inter(fontSize: 14, color: CT.textS(context))),
-            ),
-          )
-        else
-          SizedBox(
-            height: 100,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              clipBehavior: Clip.none,
-              itemCount: batches.length,
-              itemBuilder: (context, index) {
-                final b = batches[index];
-                final subject = b['subject'] ?? 'No Subject';
-                final time = '${b['start_time'] ?? ''} - ${b['end_time'] ?? ''}';
-                final teacher = b['teacher_name'] ?? 'TBA';
-                
-                Color c = AppColors.elitePrimary;
-                if (subject.toLowerCase().contains('physics')) {
-                  c = AppColors.physics;
-                } else if (subject.toLowerCase().contains('chemistry')) {
-                  c = AppColors.chemistry;
-                } else if (subject.toLowerCase().contains('math')) {
-                  c = AppColors.mathematics;
-                }
 
-                return Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: _classCard(context, subject, time, teacher, c, isDark),
-                );
-              },
+    if (batches.isEmpty) {
+      return _neoContainer(
+        isDark: isDark,
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: Text(
+            'No classes scheduled for today',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white54 : Colors.black54,
             ),
           ),
-      ],
+        ),
+      ).animate(delay: 200.ms).fadeIn(duration: 500.ms);
+    }
+
+    return SizedBox(
+      height: 120,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        itemCount: batches.length,
+        itemBuilder: (context, index) {
+          final b = batches[index];
+          final subject = b['subject'] ?? 'No Subject';
+          final time = '${b['start_time'] ?? ''} - ${b['end_time'] ?? ''}';
+          final teacher = b['teacher_name'] ?? 'TBA';
+
+          Color c = AppColors.elitePrimary;
+          if (subject.toLowerCase().contains('physics')) {
+            c = AppColors.physics;
+          } else if (subject.toLowerCase().contains('chemistry')) {
+            c = AppColors.chemistry;
+          } else if (subject.toLowerCase().contains('math')) {
+            c = AppColors.mathematics;
+          }
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 14),
+            child: _classCard(context, subject, time, teacher, c, isDark),
+          );
+        },
+      ),
     ).animate(delay: 200.ms).fadeIn(duration: 500.ms);
   }
 
@@ -622,28 +768,77 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   ) {
     return CPPressable(
       onTap: () => ctx.push('/student/timetable'),
-      child: _glassContainer(
+      child: _neoContainer(
         isDark: isDark,
-        padding: const EdgeInsets.all(AppDimensions.md),
+        padding: const EdgeInsets.all(16),
         child: SizedBox(
-          width: 170,
+          width: 180,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  Container(width: 6, height: 6, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
-                  const SizedBox(width: 6),
-                  Expanded(child: Text(subject, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: CT.textH(ctx)), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: c,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.elitePrimary,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      subject,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : AppColors.elitePrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
-              Text(time, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(ctx), letterSpacing: -0.5)),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  time,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.deepNavy,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
               Row(
                 children: [
-                  Icon(Icons.person_outline, size: 12, color: CT.textS(ctx)),
-                  const SizedBox(width: 4),
-                  Expanded(child: Text(teacher, style: GoogleFonts.inter(fontSize: 11, color: CT.textS(ctx)), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  const Icon(
+                    Icons.person_rounded,
+                    size: 14,
+                    color: Colors.black54,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      teacher,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black54,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -654,26 +849,22 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   }
 
   // ═══════════════════════════════════════════════════════
-  // EXAM COUNTDOWN — hero gradient card
+  // EXAM COUNTDOWN
   // ═══════════════════════════════════════════════════════
-  Widget _buildExamCountdown(BuildContext context) {
+  Widget _buildExamCountdown(BuildContext context, bool isDark) {
     final exams = _dashboardData?['upcoming_exams'] as List? ?? [];
     if (exams.isEmpty) return const SizedBox.shrink();
-    
+
     final exam = exams.first;
     final date = DateTime.tryParse(exam['exam_date'] ?? '') ?? DateTime.now();
     final diff = date.difference(DateTime.now()).inDays.abs();
 
     return CPPressable(
           onTap: () => context.go('/student/exam-calendar'),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-            decoration: BoxDecoration(
-              gradient: AppColors.premiumEliteGradient,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: AppColors.elitePurple.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))],
-            ),
+          child: _neoContainer(
+            isDark: isDark,
+            bgColor: AppColors.elitePrimary,
+            padding: const EdgeInsets.all(20),
             child: Row(
               children: [
                 Expanded(
@@ -681,24 +872,81 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
-                        child: Text('UPCOMING EXAM', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 1)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.moltenAmber,
+                          border: Border.all(color: Colors.black, width: 2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'UPCOMING',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black,
+                            letterSpacing: 1,
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 10),
-                      Text(exam['title'] ?? 'Mock Test', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: -0.5)),
+                      const SizedBox(height: 12),
+                      Text(
+                        exam['title'] ?? 'Mock Test',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text(exam['subject'] ?? 'All Subjects', style: GoogleFonts.inter(fontSize: 13, color: Colors.white70)),
+                      Text(
+                        exam['subject'] ?? 'All Subjects',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white70,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Colors.black, width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black, offset: Offset(2, 2)),
+                    ],
+                  ),
                   child: Column(
                     children: [
-                      Text(diff.toString().padLeft(2, '0'), style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white, height: 1)),
-                      Text('DAYS', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.white60, letterSpacing: 0.5)),
+                      Text(
+                        diff.toString().padLeft(2, '0'),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.elitePrimary,
+                          height: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'DAYS',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.coralRed,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -714,89 +962,176 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   // ═══════════════════════════════════════════════════════
   // EXPLORE MORE — 8-item quick action grid
   // ═══════════════════════════════════════════════════════
-  Widget _buildExploreMore(BuildContext context) {
+  Widget _buildExploreMore(BuildContext context, bool isDark) {
     final items = [
-      {'icon': Icons.quiz_outlined, 'label': 'Tests', 'color': AppColors.elitePrimary, 'route': '/student/quiz'},
-      {'icon': Icons.play_circle_outline_rounded, 'label': 'Videos', 'color': const Color(0xFF5C7CFA), 'route': '/student/video-lectures'},
-      {'icon': Icons.menu_book_outlined, 'label': 'Notes', 'color': AppColors.moltenAmber, 'route': '/student/materials'},
-      {'icon': Icons.assignment_outlined, 'label': 'Assign.', 'color': AppColors.coralRed, 'route': '/student/assignment'},
-      {'icon': Icons.class_outlined, 'label': 'Batches', 'color': AppColors.elitePurple, 'route': '/student/batches'},
-      {'icon': Icons.assessment_outlined, 'label': 'Results', 'color': AppColors.mintGreen, 'route': '/student/results'},
-      {'icon': Icons.history_edu_outlined, 'label': 'Exams', 'color': const Color(0xFF7048E8), 'route': '/student/exam-calendar'},
-      {'icon': Icons.receipt_long_outlined, 'label': 'Fees', 'color': AppColors.softAmber, 'route': '/student/fee-history'},
+      {
+        'icon': Icons.quiz_rounded,
+        'label': 'Tests',
+        'color': AppColors.elitePrimary,
+        'route': '/student/quiz',
+      },
+      {
+        'icon': Icons.play_circle_filled_rounded,
+        'label': 'Videos',
+        'color': const Color(0xFF5C7CFA),
+        'route': '/student/video-lectures',
+      },
+      {
+        'icon': Icons.menu_book_rounded,
+        'label': 'Notes',
+        'color': AppColors.moltenAmber,
+        'route': '/student/materials',
+      },
+      {
+        'icon': Icons.assignment_rounded,
+        'label': 'Assign.',
+        'color': AppColors.coralRed,
+        'route': '/student/assignment',
+      },
+      {
+        'icon': Icons.class_rounded,
+        'label': 'Batches',
+        'color': AppColors.elitePurple,
+        'route': '/student/batches',
+      },
+      {
+        'icon': Icons.assessment_rounded,
+        'label': 'Results',
+        'color': AppColors.mintGreen,
+        'route': '/student/results',
+      },
+      {
+        'icon': Icons.history_edu_rounded,
+        'label': 'Exams',
+        'color': const Color(0xFF7048E8),
+        'route': '/student/exam-calendar',
+      },
+      {
+        'icon': Icons.receipt_long_rounded,
+        'label': 'Fees',
+        'color': AppColors.softAmber,
+        'route': '/student/fee-history',
+      },
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Quick jump', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -0.5)),
-        const SizedBox(height: AppDimensions.md),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 0.85,
-          ),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return CPPressable(
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 0.85,
+      ),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return CPPressable(
               onTap: () => context.go(item['route'] as String),
-              child: _glassContainer(
-                isDark: CT.isDark(context),
+              child: _neoContainer(
+                isDark: isDark,
+                padding: const EdgeInsets.all(8),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: (item['color'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                      child: Icon(item['icon'] as IconData, size: 18, color: item['color'] as Color),
+                      decoration: BoxDecoration(
+                        color: (item['color'] as Color).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        item['icon'] as IconData,
+                        size: 20,
+                        color: item['color'] as Color,
+                      ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(item['label'] as String, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                    const SizedBox(height: 8),
+                    Text(
+                      item['label'] as String,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : AppColors.elitePrimary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
-            ).animate(delay: Duration(milliseconds: 30 * index)).fadeIn(duration: 250.ms);
-          },
-        ),
-      ],
+            )
+            .animate(delay: Duration(milliseconds: 30 * index))
+            .fadeIn(duration: 250.ms);
+      },
     ).animate(delay: 400.ms).fadeIn(duration: 400.ms);
   }
 
   // ═══════════════════════════════════════════════════════
-  // STATS ROW — with animated progress rings
+  // STATS ROW
   // ═══════════════════════════════════════════════════════
-  Widget _buildStatsRow(BuildContext context) {
+  Widget _buildStatsRow(BuildContext context, bool isDark) {
     final stats = _dashboardData?['stats'] ?? {};
     final attPct = (stats['attendance_percentage'] ?? 0) / 100.0;
-    final isDark = CT.isDark(context);
-    
+
     return Row(
       children: [
-        _statCircle(context, '${(attPct * 100).toInt()}%', 'Attendance', attPct, AppColors.mintGreen, isDark),
-        const SizedBox(width: 10),
-        _statCircle(context, '${stats['pending_doubts'] ?? 0}', 'Open Doubts', 0.5, AppColors.moltenAmber, isDark),
-        const SizedBox(width: 10),
+        _statCircle(
+          context,
+          '${(attPct * 100).toInt()}%',
+          'Attendance',
+          attPct,
+          AppColors.mintGreen,
+          isDark,
+        ),
+        const SizedBox(width: 12),
+        _statCircle(
+          context,
+          '${stats['pending_doubts'] ?? 0}',
+          'Open Doubts',
+          0.5,
+          AppColors.moltenAmber,
+          isDark,
+        ),
+        const SizedBox(width: 12),
         Expanded(
           child: CPPressable(
             onTap: () => context.go('/student/results'),
-            child: _glassContainer(
+            child: _neoContainer(
               isDark: isDark,
               padding: const EdgeInsets.all(12),
               child: Column(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: AppColors.elitePrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.assignment_turned_in_outlined, size: 18, color: AppColors.elitePrimary),
+                    decoration: BoxDecoration(
+                      color: AppColors.elitePrimary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.assignment_turned_in_rounded,
+                      size: 22,
+                      color: AppColors.elitePrimary,
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Text('${stats['upcoming_exams_count'] ?? 0}', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.elitePrimary, letterSpacing: -0.5)),
-                  Text('Upcoming', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: CT.textM(context))),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${stats['upcoming_exams_count'] ?? 0}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.elitePrimary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Upcoming',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.elitePrimary.withValues(alpha: 0.6),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -816,7 +1151,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   ) => Expanded(
     child: CPPressable(
       onTap: () => ctx.push('/student/performance'),
-      child: _glassContainer(
+      child: _neoContainer(
         isDark: isDark,
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -824,25 +1159,26 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             CPAnimatedRing(
               progress: pct,
               color: c,
-              size: 48,
-              strokeWidth: 4,
+              size: 52,
+              strokeWidth: 5,
               child: Text(
                 val,
-                style: GoogleFonts.sora(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: c,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.elitePrimary,
                 ),
               ),
             ),
-            const SizedBox(height: AppDimensions.sm),
+            const SizedBox(height: 12),
             Text(
               label,
-              style: GoogleFonts.dmSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: CT.textM(ctx),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.elitePrimary.withValues(alpha: 0.6),
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -851,40 +1187,65 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   );
 
   // ═══════════════════════════════════════════════════════
-  // FEE BANNER — warm amber accent
+  // FEE BANNER
   // ═══════════════════════════════════════════════════════
-  Widget _buildFeeBanner(BuildContext context) {
+  Widget _buildFeeBanner(BuildContext context, bool isDark) {
     final pendingFees = _dashboardData?['pending_fees'] as List? ?? [];
     if (pendingFees.isEmpty) return const SizedBox.shrink();
 
     final totalVal = _dashboardData?['stats']?['pending_fees_total'] ?? 0;
-    
+
     return CPPressable(
       onTap: () => context.go('/student/fee-history'),
-      child: _glassContainer(
-        isDark: CT.isDark(context),
-        padding: const EdgeInsets.all(AppDimensions.md),
+      child: _neoContainer(
+        isDark: isDark,
+        bgColor: AppColors.coralRed,
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: AppColors.moltenAmber.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.account_balance_wallet_outlined, size: 20, color: AppColors.moltenAmber),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.black, width: 2),
+              ),
+              child: const Icon(
+                Icons.account_balance_wallet_rounded,
+                size: 24,
+                color: AppColors.coralRed,
+              ),
             ),
-            const SizedBox(width: AppDimensions.step),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('₹$totalVal pending fees', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -0.5)),
-                  Text('${pendingFees.length} record(s) need attention', style: GoogleFonts.inter(fontSize: 11, color: CT.textM(context))),
+                  Text(
+                    '₹$totalVal Pending Fees',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${pendingFees.length} record(s) need attention',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white70,
+                    ),
+                  ),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(color: AppColors.moltenAmber, borderRadius: BorderRadius.circular(10)),
-              child: Text('View', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white,
+              size: 18,
             ),
           ],
         ),
@@ -892,42 +1253,62 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     ).animate(delay: 600.ms).fadeIn(duration: 400.ms);
   }
 
-
-
   // ═══════════════════════════════════════════════════════
-  // ANNOUNCEMENTS — recent updates list
+  // ANNOUNCEMENTS
   // ═══════════════════════════════════════════════════════
-  Widget _buildAnnouncements(BuildContext context) {
+  Widget _buildAnnouncements(BuildContext context, bool isDark) {
     final list = _dashboardData?['announcements'] as List? ?? [];
-    final isDark = CT.isDark(context);
-    if (list.isEmpty) return const SizedBox.shrink();
+    if (list.isEmpty) return _emptyCard("No recent announcements", isDark);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Recent updates', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -0.5)),
-            CPPressable(
-              onTap: () => context.go('/student/announcements'),
-              child: Text('View All', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.elitePrimary)),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppDimensions.md),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: list.take(3).map((a) => Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: _annItem(context, a['title'] ?? 'Announcement', a['body'] ?? '', 'Recent', Icons.campaign_outlined, AppColors.elitePrimary, isDark),
-            )).toList(),
-          ),
-        ),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      child: Row(
+        children: list
+            .take(3)
+            .map(
+              (a) => Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: _annItem(
+                  context,
+                  a['title'] ?? 'Announcement',
+                  a['body'] ?? '',
+                  'Recent',
+                  Icons.campaign_rounded,
+                  AppColors.elitePrimary,
+                  isDark,
+                ),
+              ),
+            )
+            .toList(),
+      ),
     ).animate(delay: 800.ms).fadeIn(duration: 400.ms);
   }
+
+  Widget _emptyCard(String text, bool isDark) => _neoContainer(
+    isDark: isDark,
+    padding: const EdgeInsets.all(32),
+    child: Center(
+      child: Column(
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 24,
+            color: AppColors.elitePrimary.withValues(alpha: 0.26),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            text,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              color: AppColors.deepNavy.withValues(alpha: 0.45),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _annItem(
     BuildContext ctx,
@@ -939,26 +1320,47 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     bool isDark,
   ) => CPPressable(
     onTap: () => ctx.push('/announcements'),
-    child: _glassContainer(
+    child: _neoContainer(
       isDark: isDark,
-      padding: const EdgeInsets.all(AppDimensions.md),
+      padding: const EdgeInsets.all(16),
       child: SizedBox(
-        width: 280,
+        width: 250,
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: c.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-              child: Icon(ic, size: 18, color: c),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: c.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(ic, size: 20, color: c),
             ),
-            const SizedBox(width: AppDimensions.md),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: CT.textH(ctx)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    title,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : AppColors.elitePrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
-                  Text(body, style: GoogleFonts.inter(fontSize: 11, color: CT.textM(ctx)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    body,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
@@ -969,26 +1371,48 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   );
 
   // ═══════════════════════════════════════════════════════
-  // CONNECT WITH US — social links row
+  // CONNECT WITH US
   // ═══════════════════════════════════════════════════════
-  Widget _buildConnectWithUs(BuildContext context) {
-    return _glassContainer(
-      isDark: CT.isDark(context),
-      padding: const EdgeInsets.all(AppDimensions.md),
+  Widget _buildConnectWithUs(BuildContext context, bool isDark) {
+    return _neoContainer(
+      isDark: isDark,
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Connect with us', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: CT.textH(context), letterSpacing: -0.5)),
-          const SizedBox(height: AppDimensions.md),
           Row(
             children: [
-              _socialBtn(context, Icons.play_circle_filled_rounded, 'YouTube', const Color(0xFFFF0000)),
-              const SizedBox(width: AppDimensions.sm),
-              _socialBtn(context, Icons.facebook_rounded, 'Facebook', const Color(0xFF1877F2)),
-              const SizedBox(width: AppDimensions.sm),
-              _socialBtn(context, Icons.camera_alt_outlined, 'Instagram', const Color(0xFFE4405F)),
-              const SizedBox(width: AppDimensions.sm),
-              _socialBtn(context, Icons.language_rounded, 'Website', AppColors.elitePrimary),
+              _socialBtn(
+                context,
+                Icons.play_circle_filled_rounded,
+                'YouTube',
+                const Color(0xFFFF0000),
+                isDark,
+              ),
+              const SizedBox(width: 12),
+              _socialBtn(
+                context,
+                Icons.facebook_rounded,
+                'Facebook',
+                const Color(0xFF1877F2),
+                isDark,
+              ),
+              const SizedBox(width: 12),
+              _socialBtn(
+                context,
+                Icons.camera_alt_rounded,
+                'Instagram',
+                const Color(0xFFE4405F),
+                isDark,
+              ),
+              const SizedBox(width: 12),
+              _socialBtn(
+                context,
+                Icons.language_rounded,
+                'Website',
+                AppColors.elitePrimary,
+                isDark,
+              ),
             ],
           ),
         ],
@@ -1001,21 +1425,39 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     IconData icon,
     String label,
     Color color,
+    bool isDark,
   ) => Expanded(
     child: CPPressable(
-      onTap: () {},
+      onTap: () {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(
+            content: Text('$label link not configured yet'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      },
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, size: 20, color: color),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 24, color: color),
           ),
-          const SizedBox(height: 6),
-          Text(label, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: CT.textM(ctx)), maxLines: 1),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+            maxLines: 1,
+          ),
         ],
       ),
     ),
   );
-
 }

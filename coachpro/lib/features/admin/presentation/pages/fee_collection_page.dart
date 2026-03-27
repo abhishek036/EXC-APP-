@@ -38,7 +38,10 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   @override
   void initState() {
     super.initState();
-    _searchCtrl.addListener(() => setState(() => _searchQuery = _searchCtrl.text.trim().toLowerCase()));
+    _searchCtrl.addListener(
+      () =>
+          setState(() => _searchQuery = _searchCtrl.text.trim().toLowerCase()),
+    );
     _loadFeeRecords();
     _initRealtime();
   }
@@ -50,7 +53,10 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
       if (!mounted) return;
       final type = (event['type'] ?? '').toString();
       final reason = (event['reason'] ?? '').toString().toLowerCase();
-      if (type == 'dashboard_sync' || type == 'batch_sync' || reason.contains('fee') || reason.contains('payment')) {
+      if (type == 'dashboard_sync' ||
+          type == 'batch_sync' ||
+          reason.contains('fee') ||
+          reason.contains('payment')) {
         _loadFeeRecords();
       }
     });
@@ -59,12 +65,15 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   Future<void> _loadFeeRecords({bool silent = false}) async {
     final previousRecords = List<Map<String, dynamic>>.from(_records);
     if (!silent) {
-       setState(() { _loading = true; _error = ''; });
+      setState(() {
+        _loading = true;
+        _error = '';
+      });
     }
     try {
       final records = await _adminRepo.getFeeRecords();
       if (!mounted) return;
-      
+
       List<Map<String, dynamic>> effectiveRecords;
       if (records.isNotEmpty) {
         effectiveRecords = records;
@@ -72,12 +81,15 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
         effectiveRecords = previousRecords;
       }
 
-      setState(() { _records = effectiveRecords; _loading = false; });
+      setState(() {
+        _records = effectiveRecords;
+        _loading = false;
+      });
     } catch (e) {
       if (mounted) {
-        setState(() { 
-          _error = !silent ? 'Failed to sync data' : ''; 
-          _loading = false; 
+        setState(() {
+          _error = !silent ? 'Failed to sync data' : '';
+          _loading = false;
         });
       }
     }
@@ -96,12 +108,18 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     return '₹${amount.toInt()}';
   }
 
-  double _toDouble(dynamic v) => v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0;
+  double _toDouble(dynamic v) =>
+      v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0;
 
-  ({double total, double paid, double outstanding, String status}) _feeMetrics(Map<String, dynamic> record) {
+  ({double total, double paid, double outstanding, String status}) _feeMetrics(
+    Map<String, dynamic> record,
+  ) {
     final total = _toDouble(record['final_amount'] ?? record['amount']);
     final payments = (record['payments'] as List?) ?? const [];
-    final paid = payments.fold<double>(0, (sum, payment) => sum + _toDouble((payment as Map)['amount_paid']));
+    final paid = payments.fold<double>(
+      0,
+      (sum, payment) => sum + _toDouble((payment as Map)['amount_paid']),
+    );
     final outstanding = (total - paid).clamp(0, double.infinity).toDouble();
 
     final now = DateTime.now();
@@ -111,7 +129,8 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     String status;
     if (outstanding <= 0) {
       status = 'paid';
-    } else if (dueDate != null && dueDate.isBefore(DateTime(now.year, now.month, now.day))) {
+    } else if (dueDate != null &&
+        dueDate.isBefore(DateTime(now.year, now.month, now.day))) {
       status = 'overdue';
     } else if (rawStatus == 'partial') {
       status = 'partial';
@@ -133,14 +152,32 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
             child: NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) => [
                 SliverAppBar(
-                  floating: true, pinned: true,
-                  backgroundColor: Colors.transparent, elevation: 0,
+                  floating: true,
+                  pinned: true,
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
                   scrolledUnderElevation: 0,
-                  title: Text('Revenue Ledger', style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 24, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1)),
+                  title: Text(
+                    'Revenue Ledger',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 24,
+                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      letterSpacing: -1,
+                    ),
+                  ),
                   actions: [
-                    _appBarAction(Icons.auto_awesome_rounded, () => _showGenerateFeesSheet(context), isDark),
+                    _appBarAction(
+                      Icons.auto_awesome_rounded,
+                      () => _showGenerateFeesSheet(context),
+                      isDark,
+                    ),
                     const SizedBox(width: 12),
-                    _appBarAction(Icons.settings_suggest_rounded, () => _showFeeStructureSheet(context), isDark),
+                    _appBarAction(
+                      Icons.settings_suggest_rounded,
+                      () => _showFeeStructureSheet(context),
+                      isDark,
+                    ),
                     const SizedBox(width: 20),
                   ],
                 ),
@@ -149,41 +186,102 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const SizedBox(height: 12),
-                      _buildSummaryHeader(isDark),
-                      const SizedBox(height: 28),
-                      _buildFilters(isDark),
-                      const SizedBox(height: 16),
-                      _buildSearchBar(isDark),
-                    ]),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 12),
+                        _buildSummaryHeader(isDark),
+                        const SizedBox(height: 28),
+                        _buildFilters(isDark),
+                        const SizedBox(height: 16),
+                        _buildSearchBar(isDark),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Expanded(
-                    child: _loading 
-                      ? ListView.separated(padding: const EdgeInsets.all(20), itemCount: 5, separatorBuilder: (_, _) => const SizedBox(height: 16), itemBuilder: (_, _) => CPShimmer(width: double.infinity, height: 90, borderRadius: 24))
-                      : _error.isNotEmpty 
-                        ? Center(child: Text(_error, style: GoogleFonts.inter(color: AppColors.error, fontWeight: FontWeight.w800)))
-                        : RefreshIndicator(onRefresh: () => _loadFeeRecords(silent: false), color: AppColors.elitePrimary, child: _buildRecordsList(isDark)),
+                    child: _loading
+                        ? ListView.separated(
+                            padding: const EdgeInsets.all(20),
+                            itemCount: 5,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 16),
+                            itemBuilder: (_, _) => CPShimmer(
+                              width: double.infinity,
+                              height: 90,
+                              borderRadius: 24,
+                            ),
+                          )
+                        : _error.isNotEmpty
+                        ? Center(
+                            child: Text(
+                              _error,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: () => _loadFeeRecords(silent: false),
+                            color: AppColors.elitePrimary,
+                            child: _buildRecordsList(isDark),
+                          ),
                   ),
                 ],
               ),
             ),
           ),
           Positioned(
-            bottom: 30, right: 20,
+            bottom: 30,
+            right: 20,
             child: CPPressable(
               onTap: () {
                 HapticFeedback.heavyImpact();
                 _showCollectFeeSheet(context);
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                decoration: BoxDecoration(color: const Color(0xFF0D1282), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4), blurRadius: 0)]),
-                child: Row(children: [const Icon(Icons.add_rounded, color: Color(0xFFEEEDED), size: 24), const SizedBox(width: 8), Text('COLLECT FEE', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFFEEEDED), fontSize: 13, letterSpacing: 0.5))]),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D1282),
+                  border: Border.all(color: const Color(0xFF0D1282), width: 3),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0xFF0D1282),
+                      offset: Offset(4, 4),
+                      blurRadius: 0,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.add_rounded,
+                      color: Color(0xFFEEEDED),
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'COLLECT FEE',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFFEEEDED),
+                        fontSize: 13,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ).animate().slideY(begin: 1, duration: 600.ms, curve: Curves.easeOutBack),
+          ).animate().slideY(
+            begin: 1,
+            duration: 600.ms,
+            curve: Curves.easeOutBack,
+          ),
         ],
       ),
     );
@@ -195,8 +293,19 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     return CPPressable(
       onTap: onTap,
       child: Container(
-        width: 44, height: 44,
-        decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3), blurRadius: 0)]),
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0DE36),
+          border: Border.all(color: const Color(0xFF0D1282), width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0xFF0D1282),
+              offset: Offset(3, 3),
+              blurRadius: 0,
+            ),
+          ],
+        ),
         child: Icon(icon, size: 20, color: const Color(0xFF0D1282)),
       ),
     );
@@ -217,24 +326,62 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
       children: [
         _heroStat('Total Revenue', col, AppColors.premiumEliteGradient, isDark),
         const SizedBox(width: 12),
-        Expanded(child: Column(children: [
-          _miniStat('Pending', pen, AppColors.feePending, isDark),
-          const SizedBox(height: 8),
-          _miniStat('Overdue', over, AppColors.error, isDark),
-        ])),
+        Expanded(
+          child: Column(
+            children: [
+              _miniStat('Pending', pen, AppColors.feePending, isDark),
+              const SizedBox(height: 8),
+              _miniStat('Overdue', over, AppColors.error, isDark),
+            ],
+          ),
+        ),
       ],
     ).animate().fadeIn().scale(begin: const Offset(0.95, 0.95));
   }
 
   Widget _heroStat(String label, double val, Gradient grad, bool isDark) {
     return Container(
-      width: 170, height: 110, padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: const Color(0xFF0D1282), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4), blurRadius: 0)]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-        Text(label.toUpperCase(), style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFFF0DE36), letterSpacing: 0.5)),
-        const SizedBox(height: 6),
-        FittedBox(child: Text(_fmtCur(val), style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1.5))),
-      ]),
+      width: 170,
+      height: 110,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D1282),
+        border: Border.all(color: const Color(0xFF0D1282), width: 3),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0xFF0D1282),
+            offset: Offset(4, 4),
+            blurRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFFF0DE36),
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          FittedBox(
+            child: Text(
+              _fmtCur(val),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: -1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -242,11 +389,32 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     return SizedBox(
       height: 51,
       child: CPGlassCard(
-      isDark: isDark, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0), borderRadius: 20,
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 0.5)),
-        Text(_fmtCur(val), style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w900, color: color, letterSpacing: -0.5)),
-      ]),
+        isDark: isDark,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+        borderRadius: 20,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label.toUpperCase(),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white38 : Colors.black38,
+                letterSpacing: 0.5,
+              ),
+            ),
+            Text(
+              _fmtCur(val),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                color: color,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -259,15 +427,35 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
         itemCount: _statuses.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, i) => CPPressable(
-          onTap: () { HapticFeedback.selectionClick(); setState(() => _selectedStatus = i); },
+          onTap: () {
+            HapticFeedback.selectionClick();
+            setState(() => _selectedStatus = i);
+          },
           child: AnimatedContainer(
-            duration: 250.ms, padding: const EdgeInsets.symmetric(horizontal: 20),
+            duration: 250.ms,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-              color: _selectedStatus == i ? const Color(0xFFF0DE36) : const Color(0xFFEEEDED),
+              color: _selectedStatus == i
+                  ? const Color(0xFFF0DE36)
+                  : const Color(0xFFEEEDED),
               border: Border.all(color: const Color(0xFF0D1282), width: 2),
-              boxShadow: _selectedStatus == i ? const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))] : [],
+              boxShadow: _selectedStatus == i
+                  ? const [
+                      BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3)),
+                    ]
+                  : [],
             ),
-            child: Center(child: Text(_statuses[i].toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5))),
+            child: Center(
+              child: Text(
+                _statuses[i].toUpperCase(),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF0D1282),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -277,11 +465,39 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   Widget _buildSearchBar(bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))]),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEEDED),
+        border: Border.all(color: const Color(0xFF0D1282), width: 2),
+        boxShadow: const [
+          BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3)),
+        ],
+      ),
       child: TextField(
         controller: _searchCtrl,
-        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColors.deepNavy),
-        decoration: InputDecoration(hintText: 'Search ledger entries...', hintStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26)), prefixIcon: Icon(Icons.search_rounded, size: 20, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26)), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16)),
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: isDark ? Colors.white : AppColors.deepNavy,
+        ),
+        decoration: InputDecoration(
+          hintText: 'Search ledger entries...',
+          hintStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark
+                ? Colors.white24
+                : Colors.black.withValues(alpha: 0.26),
+          ),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            size: 20,
+            color: isDark
+                ? Colors.white24
+                : Colors.black.withValues(alpha: 0.26),
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+        ),
       ),
     );
   }
@@ -290,7 +506,9 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     var filtered = List<Map<String, dynamic>>.from(_records);
     if (_selectedStatus > 0) {
       final status = _statuses[_selectedStatus].toLowerCase();
-      filtered = filtered.where((r) => _feeMetrics(r).status == status).toList();
+      filtered = filtered
+          .where((r) => _feeMetrics(r).status == status)
+          .toList();
     }
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((r) {
@@ -318,40 +536,154 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     final status = metrics.status.toUpperCase();
     final total = metrics.total;
 
-
-    final sColor = status == 'PAID' ? AppColors.mintGreen : status == 'OVERDUE' ? AppColors.error : status == 'PARTIAL' ? AppColors.moltenAmber : AppColors.feePending;
+    final sColor = status == 'PAID'
+        ? AppColors.mintGreen
+        : status == 'OVERDUE'
+        ? AppColors.error
+        : status == 'PARTIAL'
+        ? AppColors.moltenAmber
+        : AppColors.feePending;
 
     return CPPressable(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        _showFeeDetailSheet(context, r);
-      },
-      child: CPGlassCard(
-        isDark: isDark, padding: const EdgeInsets.all(20), borderRadius: 28,
-        child: Row(children: [
-          Container(width: 52, height: 52, decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 2)), child: Center(child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282))))),
-          const SizedBox(width: 16),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(name, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: -0.5)),
-            const SizedBox(height: 4),
-            Text('${batch.toUpperCase()} • ${month.toUpperCase()}', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282), letterSpacing: 0.5)),
-          ])),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('₹${total.toInt()}', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: -0.8)),
-            const SizedBox(height: 6),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: sColor, width: 2), boxShadow: [BoxShadow(color: sColor, offset: const Offset(2, 2))]), child: Text(status, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5))),
-          ]),
-        ]),
-      ),
-    ).animate(delay: Duration(milliseconds: 30 * (i % 10))).fadeIn(duration: 500.ms).slideX(begin: 0.05);
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _showFeeDetailSheet(context, r);
+          },
+          child: CPGlassCard(
+            isDark: isDark,
+            padding: const EdgeInsets.all(20),
+            borderRadius: 28,
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0DE36),
+                    border: Border.all(
+                      color: const Color(0xFF0D1282),
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF0D1282),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF0D1282),
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${batch.toUpperCase()} • ${month.toUpperCase()}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0D1282),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '₹${total.toInt()}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF0D1282),
+                        letterSpacing: -0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEEDED),
+                        border: Border.all(color: sColor, width: 2),
+                        boxShadow: [
+                          BoxShadow(color: sColor, offset: const Offset(2, 2)),
+                        ],
+                      ),
+                      child: Text(
+                        status,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF0D1282),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        )
+        .animate(delay: Duration(milliseconds: 30 * (i % 10)))
+        .fadeIn(duration: 500.ms)
+        .slideX(begin: 0.05);
   }
 
   Widget _emptyState(bool isDark) {
-    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(padding: const EdgeInsets.all(28), decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03), shape: BoxShape.circle), child: Icon(Icons.receipt_long_rounded, size: 48, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.1))),
-      const SizedBox(height: 24),
-      Text('No ledger entries found', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26))),
-    ]));
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.03)
+                  : Colors.black.withValues(alpha: 0.03),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.receipt_long_rounded,
+              size: 48,
+              color: isDark
+                  ? Colors.white10
+                  : Colors.black.withValues(alpha: 0.1),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'No ledger entries found',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: isDark
+                  ? Colors.white24
+                  : Colors.black.withValues(alpha: 0.26),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showFeeDetailSheet(BuildContext context, Map<String, dynamic> fee) {
@@ -365,62 +697,186 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     final id = (fee['id'] ?? '').toString();
 
     showModalBottomSheet(
-      context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (ctx) => CPGlassCard(
-        isDark: isDark, padding: EdgeInsets.fromLTRB(28, 16, 28, MediaQuery.of(ctx).viewInsets.bottom + 40), borderRadius: 40,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)))),
-          const SizedBox(height: 32),
-          Text(name, style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1)),
-          const SizedBox(height: 6),
-          Text('${(fee['batch']?['name'] ?? 'Batch').toString().toUpperCase()} • ${_monthLabel(fee['month'], fee['year']).toUpperCase()}', style: GoogleFonts.inter(fontSize: 11, color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-          const SizedBox(height: 40),
-          Row(children: [
-            _detailStat('BILLED', '₹${amt.toInt()}', isDark),
-            _detailStat('CLEARED', '₹${paid.toInt()}', isDark),
-            _detailStat('PENDING', '₹${outstanding.toInt()}', isDark),
-          ]),
-          const SizedBox(height: 40),
-          if (status != 'PAID') ...[
-            CustomButton(text: 'Settle Full Amount', icon: Icons.offline_pin_rounded, onPressed: () async {
-              try {
-                final pend = outstanding;
-                if (pend <= 0) return;
-                
-                // Optimistic Local Update
-                setState(() {
-                  final idx = _records.indexWhere((r) => r['id'].toString() == id);
-                  if (idx != -1) {
-                    final updated = Map<String, dynamic>.from(_records[idx]);
-                    final payments = List<Map<String, dynamic>>.from((updated['payments'] as List?) ?? []);
-                    payments.add({'amount_paid': pend, 'payment_mode': 'cash'});
-                    updated['payments'] = payments;
-                    updated['status'] = 'paid';
-                    _records[idx] = updated;
-                  }
-                });
+        isDark: isDark,
+        padding: EdgeInsets.fromLTRB(
+          28,
+          16,
+          28,
+          MediaQuery.of(ctx).viewInsets.bottom + 40,
+        ),
+        borderRadius: 40,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 50,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white12
+                      : Colors.black.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              name,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white : AppColors.deepNavy,
+                letterSpacing: -1,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${(fee['batch']?['name'] ?? 'Batch').toString().toUpperCase()} • ${_monthLabel(fee['month'], fee['year']).toUpperCase()}',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                color: isDark ? Colors.white38 : Colors.black38,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 40),
+            Row(
+              children: [
+                _detailStat('BILLED', '₹${amt.toInt()}', isDark),
+                _detailStat('CLEARED', '₹${paid.toInt()}', isDark),
+                _detailStat('PENDING', '₹${outstanding.toInt()}', isDark),
+              ],
+            ),
+            const SizedBox(height: 40),
+            if (status != 'PAID') ...[
+              CustomButton(
+                text: 'Settle Full Amount',
+                icon: Icons.offline_pin_rounded,
+                onPressed: () async {
+                  try {
+                    final pend = outstanding;
+                    if (pend <= 0) return;
 
-                await _adminRepo.recordFeePayment(feeRecordId: id, amountPaid: pend, paymentMode: 'cash', note: 'Bulk update');
-                if (ctx.mounted) { Navigator.pop(ctx); CPToast.success(context, 'Ledger updated ✅'); _loadFeeRecords(silent: true); }
-              } catch (_) { if (ctx.mounted) { CPToast.error(ctx, 'Update failed'); _loadFeeRecords(silent: true); } }
-            }),
-            const SizedBox(height: 16),
+                    // Optimistic Local Update
+                    setState(() {
+                      final idx = _records.indexWhere(
+                        (r) => r['id'].toString() == id,
+                      );
+                      if (idx != -1) {
+                        final updated = Map<String, dynamic>.from(
+                          _records[idx],
+                        );
+                        final payments = List<Map<String, dynamic>>.from(
+                          (updated['payments'] as List?) ?? [],
+                        );
+                        payments.add({
+                          'amount_paid': pend,
+                          'payment_mode': 'cash',
+                        });
+                        updated['payments'] = payments;
+                        updated['status'] = 'paid';
+                        _records[idx] = updated;
+                      }
+                    });
+
+                    await _adminRepo.recordFeePayment(
+                      feeRecordId: id,
+                      amountPaid: pend,
+                      paymentMode: 'cash',
+                      note: 'Bulk update',
+                    );
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                      CPToast.success(context, 'Ledger updated ✅');
+                      _loadFeeRecords(silent: true);
+                    }
+                  } catch (_) {
+                    if (ctx.mounted) {
+                      CPToast.error(ctx, 'Update failed');
+                      _loadFeeRecords(silent: true);
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+            CPPressable(
+              onTap: () {
+                Navigator.pop(ctx);
+                PdfGenerator.generateFeeReceipt(fee);
+              },
+              child: Container(
+                width: double.infinity,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0DE36),
+                  border: Border.all(color: const Color(0xFF0D1282), width: 3),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3)),
+                  ],
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.print_rounded,
+                        size: 20,
+                        color: const Color(0xFF0D1282),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Generate Receipt',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF0D1282),
+                          fontSize: 13,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
           ],
-          CPPressable(
-            onTap: () { Navigator.pop(ctx); PdfGenerator.generateFeeReceipt(fee); }, 
-            child: Container(
-              width: double.infinity, height: 56, 
-              decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))]), 
-              child: Center(child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.print_rounded, size: 20, color: const Color(0xFF0D1282)), const SizedBox(width: 10), Text('Generate Receipt', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), fontSize: 13, letterSpacing: 0.5))]))
-            )
-          ),
-          const SizedBox(height: 20),
-        ]),
+        ),
       ),
     );
   }
 
-  Widget _detailStat(String l, String v, bool isDark) => Expanded(child: Column(children: [Text(v, style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)), const SizedBox(height: 6), Text(l, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 0.5))]));
+  Widget _detailStat(String l, String v, bool isDark) => Expanded(
+    child: Column(
+      children: [
+        Text(
+          v,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            color: isDark ? Colors.white : AppColors.deepNavy,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          l,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: isDark ? Colors.white38 : Colors.black38,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    ),
+  );
 
   void _showCollectFeeSheet(BuildContext context) {
     final isDark = CT.isDark(context);
@@ -438,166 +894,768 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
       amtC.text = pend > 0 ? pend.toInt().toString() : '';
     }
 
-    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (ctx) => StatefulBuilder(builder: (ctx, setS) => Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom), child: CPGlassCard(isDark: isDark, padding: EdgeInsets.fromLTRB(28, 16, 28, MediaQuery.of(ctx).viewInsets.bottom + 40), borderRadius: 40, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)))),
-      const SizedBox(height: 32),
-      Text('Immediate Collection', style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1)),
-      const SizedBox(height: 32),
-      _sheetLabel('ACTIVE DEBTORS', isDark),
-      const SizedBox(height: 10),
-      if (debtors.isEmpty) ...[
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05),
-            border: Border.all(color: const Color(0xFF0D1282), width: 2),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
-          child: Text(
-            'No outstanding accounts available',
-            style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.w600),
+          child: CPGlassCard(
+            isDark: isDark,
+            padding: EdgeInsets.fromLTRB(
+              28,
+              16,
+              28,
+              MediaQuery.of(ctx).viewInsets.bottom + 40,
+            ),
+            borderRadius: 40,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 50,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white12
+                            : Colors.black.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Immediate Collection',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  _sheetLabel('ACTIVE DEBTORS', isDark),
+                  const SizedBox(height: 10),
+                  if (debtors.isEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: (isDark ? Colors.white : AppColors.deepNavy)
+                            .withValues(alpha: 0.05),
+                        border: Border.all(
+                          color: const Color(0xFF0D1282),
+                          width: 2,
+                        ),
+                      ),
+                      child: Text(
+                        'No outstanding accounts available',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          color: isDark ? Colors.white38 : Colors.black38,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (isDark ? Colors.white : AppColors.deepNavy)
+                            .withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.black.withValues(alpha: 0.05),
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: sid,
+                          hint: Text(
+                            'Select outstanding account',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              color: isDark
+                                  ? Colors.white24
+                                  : Colors.black.withValues(alpha: 0.26),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          isExpanded: true,
+                          dropdownColor: isDark
+                              ? const Color(0xFF0D1282)
+                              : Colors.white,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                          items: debtors.map((r) {
+                            final pend = _feeMetrics(r).outstanding;
+                            return DropdownMenuItem(
+                              value: r['id'].toString(),
+                              child: Text(
+                                '${r['student']?['name']} • ₹${pend.toInt()}',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.deepNavy,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (v) {
+                            setS(() {
+                              sid = v;
+                              final matches = _records
+                                  .where((e) => e['id'].toString() == v)
+                                  .toList();
+                              if (matches.isEmpty) {
+                                amtC.text = '';
+                                return;
+                              }
+                              final r = matches.first;
+                              final pend = _feeMetrics(r).outstanding;
+                              amtC.text = pend.toInt().toString();
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  CustomTextField(
+                    label: 'Amount Tendered (₹)',
+                    hint: '0',
+                    controller: amtC,
+                    prefixIcon: Icons.currency_rupee_rounded,
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 28),
+                  _sheetLabel('TENDER TYPE', isDark),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: ['cash', 'upi', 'bank']
+                        .map(
+                          (m) => Expanded(
+                            child: CPPressable(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setS(() => mode = m);
+                              },
+                              child: AnimatedContainer(
+                                duration: 250.ms,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: mode == m
+                                      ? AppColors.elitePrimary
+                                      : (isDark
+                                                ? Colors.white
+                                                : AppColors.deepNavy)
+                                            .withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: mode == m
+                                        ? Colors.transparent
+                                        : (isDark
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.08,
+                                                )
+                                              : Colors.black.withValues(
+                                                  alpha: 0.05,
+                                                )),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    m.toUpperCase(),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      color: mode == m
+                                          ? Colors.white
+                                          : (isDark
+                                                ? Colors.white38
+                                                : Colors.black38),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 48),
+                  CustomButton(
+                    text: 'Process Payment',
+                    icon: Icons.offline_bolt_rounded,
+                    onPressed: () async {
+                      if (debtors.isEmpty) {
+                        CPToast.warning(
+                          ctx,
+                          'No outstanding accounts to collect',
+                        );
+                        return;
+                      }
+                      if (sid == null || amtC.text.isEmpty) {
+                        CPToast.warning(
+                          ctx,
+                          'Select an account and enter an amount',
+                        );
+                        return;
+                      }
+                      try {
+                        // Optimistic update
+                        setState(() {
+                          final idx = _records.indexWhere(
+                            (r) => r['id'].toString() == sid,
+                          );
+                          if (idx != -1) {
+                            final updated = Map<String, dynamic>.from(
+                              _records[idx],
+                            );
+                            final payments = List<Map<String, dynamic>>.from(
+                              (updated['payments'] as List?) ?? [],
+                            );
+                            final amt = double.tryParse(amtC.text) ?? 0;
+                            payments.add({
+                              'amount_paid': amt,
+                              'payment_mode': mode,
+                            });
+                            updated['payments'] = payments;
+                            _records[idx] = updated;
+                          }
+                        });
+
+                        await _adminRepo.recordFeePayment(
+                          feeRecordId: sid!,
+                          amountPaid: double.parse(amtC.text),
+                          paymentMode: mode,
+                          note: nC.text,
+                        );
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                          CPToast.success(context, 'Transaction Confirmed');
+                          _loadFeeRecords(silent: true);
+                        }
+                      } catch (_) {
+                        if (ctx.mounted) {
+                          CPToast.error(ctx, 'Transaction Error');
+                          _loadFeeRecords(silent: true);
+                        }
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
           ),
         ),
-      ] else ...[
-      Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), decoration: BoxDecoration(color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: sid, hint: Text('Select outstanding account', style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26), fontWeight: FontWeight.w600)), isExpanded: true, dropdownColor: isDark ? const Color(0xFF0D1282) : Colors.white, icon: const Icon(Icons.keyboard_arrow_down_rounded), items: debtors.map((r) {
-        final pend = _feeMetrics(r).outstanding;
-        return DropdownMenuItem(value: r['id'].toString(), child: Text('${r['student']?['name']} • ₹${pend.toInt()}', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy)));
-      }).toList(), onChanged: (v) { setS(() { sid = v; final matches = _records.where((e) => e['id'].toString() == v).toList(); if (matches.isEmpty) { amtC.text = ''; return; } final r = matches.first; final pend = _feeMetrics(r).outstanding; amtC.text = pend.toInt().toString(); }); }))),
-      ],
-      const SizedBox(height: 24),
-      CustomTextField(label: 'Amount Tendered (₹)', hint: '0', controller: amtC, prefixIcon: Icons.currency_rupee_rounded, keyboardType: TextInputType.number),
-      const SizedBox(height: 28),
-      _sheetLabel('TENDER TYPE', isDark),
-      const SizedBox(height: 12),
-      Row(children: ['cash', 'upi', 'bank'].map((m) => Expanded(child: CPPressable(onTap: () { HapticFeedback.selectionClick(); setS(() => mode = m); }, child: AnimatedContainer(duration: 250.ms, margin: const EdgeInsets.symmetric(horizontal: 4), padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(color: mode == m ? AppColors.elitePrimary : (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: mode == m ? Colors.transparent : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05)))), child: Center(child: Text(m.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: mode == m ? Colors.white : (isDark ? Colors.white38 : Colors.black38), letterSpacing: 0.5))))))).toList()),
-      const SizedBox(height: 48),
-      CustomButton(text: 'Process Payment', icon: Icons.offline_bolt_rounded, onPressed: () async {
-        if (debtors.isEmpty) { CPToast.warning(ctx, 'No outstanding accounts to collect'); return; }
-        if (sid == null || amtC.text.isEmpty) { CPToast.warning(ctx, 'Select an account and enter an amount'); return; }
-        try { 
-          // Optimistic update
-          setState(() {
-            final idx = _records.indexWhere((r) => r['id'].toString() == sid);
-            if (idx != -1) {
-              final updated = Map<String, dynamic>.from(_records[idx]);
-              final payments = List<Map<String, dynamic>>.from((updated['payments'] as List?) ?? []);
-              final amt = double.tryParse(amtC.text) ?? 0;
-              payments.add({'amount_paid': amt, 'payment_mode': mode});
-              updated['payments'] = payments;
-              _records[idx] = updated;
-            }
-          });
-
-          await _adminRepo.recordFeePayment(feeRecordId: sid!, amountPaid: double.parse(amtC.text), paymentMode: mode, note: nC.text); 
-          if (ctx.mounted) { Navigator.pop(ctx); CPToast.success(context, 'Transaction Confirmed'); _loadFeeRecords(silent: true); } 
-        } catch (_) { if (ctx.mounted) { CPToast.error(ctx, 'Transaction Error'); _loadFeeRecords(silent: true); } }
-      }),
-      const SizedBox(height: 12),
-    ]))))));
+      ),
+    );
   }
 
-  Widget _sheetLabel(String l, bool isDark) => Padding(padding: const EdgeInsets.only(left: 4), child: Text(l, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 0.5)));
+  Widget _sheetLabel(String l, bool isDark) => Padding(
+    padding: const EdgeInsets.only(left: 4),
+    child: Text(
+      l,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 10,
+        fontWeight: FontWeight.w900,
+        color: isDark ? Colors.white38 : Colors.black38,
+        letterSpacing: 0.5,
+      ),
+    ),
+  );
 
   void _showGenerateFeesSheet(BuildContext context) {
     final isDark = CT.isDark(context);
-    String? bid; int m = DateTime.now().month; int y = DateTime.now().year; bool loading = false;
+    String? bid;
+    int m = DateTime.now().month;
+    int y = DateTime.now().year;
+    bool loading = false;
 
     showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setS) => CPGlassCard(
-        isDark: isDark, padding: EdgeInsets.fromLTRB(28, 16, 28, MediaQuery.of(ctx).viewInsets.bottom + 40), borderRadius: 40,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)))),
-          const SizedBox(height: 32),
-          Text('Batch Propagation', style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1)),
-          const SizedBox(height: 8),
-          Text('Deploy fee contracts to all enrolled members.', style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 40),
-          _sheetLabel('TARGET OPERATION BATCH', isDark),
-          const SizedBox(height: 10),
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: _adminRepo.getBatches(),
-            builder: (ctx, snap) {
-              final batches = snap.data ?? [];
-              return Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), decoration: BoxDecoration(color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: bid, hint: Text('Select Academy Batch', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26))), isExpanded: true, dropdownColor: isDark ? const Color(0xFF0D1282) : Colors.white, items: batches.map((b) => DropdownMenuItem(value: b['id'].toString(), child: Text(b['name'].toString(), style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy)))).toList(), onChanged: (v) => setS(() => bid = v))));
-            }
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => CPGlassCard(
+          isDark: isDark,
+          padding: EdgeInsets.fromLTRB(
+            28,
+            16,
+            28,
+            MediaQuery.of(ctx).viewInsets.bottom + 40,
           ),
-          const SizedBox(height: 24),
-          Row(children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _sheetLabel('BILLING CYCLE', isDark),
+          borderRadius: 40,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 50,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white12
+                        : Colors.black.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Batch Propagation',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  letterSpacing: -1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Deploy fee contracts to all enrolled members.',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 40),
+              _sheetLabel('TARGET OPERATION BATCH', isDark),
               const SizedBox(height: 10),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), decoration: BoxDecoration(color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))), child: DropdownButtonHideUnderline(child: DropdownButton<int>(value: m, isExpanded: true, dropdownColor: isDark ? const Color(0xFF0D1282) : Colors.white, items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(DateFormat('MMMM').format(DateTime(2024, i + 1)), style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy)))), onChanged: (v) => setS(() => m = v!)))),
-            ])),
-            const SizedBox(width: 16),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _sheetLabel('TICK YEAR', isDark),
-              const SizedBox(height: 10),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), decoration: BoxDecoration(color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))), child: DropdownButtonHideUnderline(child: DropdownButton<int>(value: y, isExpanded: true, dropdownColor: isDark ? const Color(0xFF0D1282) : Colors.white, items: [y, y+1].map((year) => DropdownMenuItem(value: year, child: Text(year.toString(), style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy)))).toList(), onChanged: (v) => setS(() => y = v!)))),
-            ])),
-          ]),
-          const SizedBox(height: 48),
-          CustomButton(text: 'Deploy Contracts', isLoading: loading, icon: Icons.rocket_launch_rounded, onPressed: () async {
-            if (bid == null) { CPToast.warning(ctx, 'Identify a batch target'); return; }
-            setS(() => loading = true);
-            try {
-              await _adminRepo.generateMonthlyFees(batchId: bid!, month: m, year: y);
-              if (ctx.mounted) { Navigator.pop(ctx); CPToast.success(context, 'Propagation successful. 🌐'); _loadFeeRecords(silent: false); }
-            } catch (_) { if (ctx.mounted) { CPToast.error(ctx, 'Propagation protocol failed.'); setS(() => loading = false); } }
-          }),
-          const SizedBox(height: 12),
-        ]),
-      )),
+              FutureBuilder<List<Map<String, dynamic>>>(
+                future: _adminRepo.getBatches(),
+                builder: (ctx, snap) {
+                  final batches = snap.data ?? [];
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: (isDark ? Colors.white : AppColors.deepNavy)
+                          .withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.black.withValues(alpha: 0.05),
+                      ),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: bid,
+                        hint: Text(
+                          'Select Academy Batch',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? Colors.white24
+                                : Colors.black.withValues(alpha: 0.26),
+                          ),
+                        ),
+                        isExpanded: true,
+                        dropdownColor: isDark
+                            ? const Color(0xFF0D1282)
+                            : Colors.white,
+                        items: batches
+                            .map(
+                              (b) => DropdownMenuItem(
+                                value: b['id'].toString(),
+                                child: Text(
+                                  b['name'].toString(),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark
+                                        ? Colors.white
+                                        : AppColors.deepNavy,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) => setS(() => bid = v),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _sheetLabel('BILLING CYCLE', isDark),
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: (isDark ? Colors.white : AppColors.deepNavy)
+                                .withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Colors.black.withValues(alpha: 0.05),
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<int>(
+                              value: m,
+                              isExpanded: true,
+                              dropdownColor: isDark
+                                  ? const Color(0xFF0D1282)
+                                  : Colors.white,
+                              items: List.generate(
+                                12,
+                                (i) => DropdownMenuItem(
+                                  value: i + 1,
+                                  child: Text(
+                                    DateFormat(
+                                      'MMMM',
+                                    ).format(DateTime(2024, i + 1)),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark
+                                          ? Colors.white
+                                          : AppColors.deepNavy,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              onChanged: (v) => setS(() => m = v!),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _sheetLabel('TICK YEAR', isDark),
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: (isDark ? Colors.white : AppColors.deepNavy)
+                                .withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Colors.black.withValues(alpha: 0.05),
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<int>(
+                              value: y,
+                              isExpanded: true,
+                              dropdownColor: isDark
+                                  ? const Color(0xFF0D1282)
+                                  : Colors.white,
+                              items: [y, y + 1]
+                                  .map(
+                                    (year) => DropdownMenuItem(
+                                      value: year,
+                                      child: Text(
+                                        year.toString(),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: isDark
+                                              ? Colors.white
+                                              : AppColors.deepNavy,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) => setS(() => y = v!),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 48),
+              CustomButton(
+                text: 'Deploy Contracts',
+                isLoading: loading,
+                icon: Icons.rocket_launch_rounded,
+                onPressed: () async {
+                  if (bid == null) {
+                    CPToast.warning(ctx, 'Identify a batch target');
+                    return;
+                  }
+                  setS(() => loading = true);
+                  try {
+                    await _adminRepo.generateMonthlyFees(
+                      batchId: bid!,
+                      month: m,
+                      year: y,
+                    );
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                      CPToast.success(context, 'Propagation successful. 🌐');
+                      _loadFeeRecords(silent: false);
+                    }
+                  } catch (_) {
+                    if (ctx.mounted) {
+                      CPToast.error(ctx, 'Propagation protocol failed.');
+                      setS(() => loading = false);
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   void _showFeeStructureSheet(BuildContext context) {
     final isDark = CT.isDark(context);
-    String? bid; final fC = TextEditingController(); final aC = TextEditingController(); final lC = TextEditingController(); bool loading = false; bool saving = false;
+    String? bid;
+    final fC = TextEditingController();
+    final aC = TextEditingController();
+    final lC = TextEditingController();
+    bool loading = false;
+    bool saving = false;
 
     showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setSS) => Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom), child: CPGlassCard(
-        isDark: isDark, padding: EdgeInsets.fromLTRB(28, 16, 28, 40), borderRadius: 40,
-        child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 50, height: 6, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)))),
-          const SizedBox(height: 32),
-          Text('Financial Policy', style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1)),
-          const SizedBox(height: 32),
-          _sheetLabel('REGULATION BATCH', isDark),
-          const SizedBox(height: 10),
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: _adminRepo.getBatches(),
-            builder: (ctx, snap) {
-              final batches = snap.data ?? [];
-              return Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), decoration: BoxDecoration(color: (isDark ? Colors.white : AppColors.deepNavy).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05))), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: bid, hint: Text('Select Regulated Batch', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.26))), isExpanded: true, dropdownColor: isDark ? const Color(0xFF0D1282) : Colors.white, items: batches.map((b) => DropdownMenuItem(value: b['id'].toString(), child: Text(b['name'].toString(), style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy)))).toList(), onChanged: (v) async {
-                setSS(() { bid = v; loading = true; });
-                try {
-                  final struct = await _adminRepo.getFeeStructure(v!);
-                  setSS(() { fC.text = (struct['monthly_fee'] ?? '').toString(); aC.text = (struct['admission_fee'] ?? '').toString(); lC.text = (struct['late_fee_amount'] ?? '').toString(); loading = false; });
-                } catch (_) { setSS(() { fC.clear(); aC.clear(); lC.clear(); loading = false; }); }
-              })));
-            }
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSS) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
-          const SizedBox(height: 32),
-          if (loading) const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: AppColors.elitePrimary)))
-          else if (bid != null) ...[
-            CustomTextField(label: 'Monthly Tariff (₹)', controller: fC, keyboardType: TextInputType.number, prefixIcon: Icons.payments_rounded),
-            const SizedBox(height: 24),
-            CustomTextField(label: 'Registration Tariff (₹)', controller: aC, keyboardType: TextInputType.number, prefixIcon: Icons.how_to_reg_rounded),
-            const SizedBox(height: 24),
-            CustomTextField(label: 'Penalty Threshold (₹)', controller: lC, keyboardType: TextInputType.number, prefixIcon: Icons.gavel_rounded),
-            const SizedBox(height: 48),
-            CustomButton(text: 'Enforce Policy', isLoading: saving, icon: Icons.gavel_rounded, onPressed: () async {
-              setSS(() => saving = true);
-              try {
-                await _adminRepo.defineFeeStructure({'batch_id': bid, 'monthly_fee': double.tryParse(fC.text) ?? 0, 'admission_fee': double.tryParse(aC.text) ?? 0, 'late_fee_amount': double.tryParse(lC.text) ?? 0});
-                if (ctx.mounted) { Navigator.pop(ctx); CPToast.success(context, 'Regulations Enforced! ⚖️'); }
-              } catch (_) { if (ctx.mounted) { CPToast.error(ctx, 'Enforcement failure'); setSS(() => saving = false); } }
-            }),
-          ],
-        ])),
-      ))),
+          child: CPGlassCard(
+            isDark: isDark,
+            padding: EdgeInsets.fromLTRB(28, 16, 28, 40),
+            borderRadius: 40,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 50,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white12
+                            : Colors.black.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Financial Policy',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  _sheetLabel('REGULATION BATCH', isDark),
+                  const SizedBox(height: 10),
+                  FutureBuilder<List<Map<String, dynamic>>>(
+                    future: _adminRepo.getBatches(),
+                    builder: (ctx, snap) {
+                      final batches = snap.data ?? [];
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: (isDark ? Colors.white : AppColors.deepNavy)
+                              .withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.black.withValues(alpha: 0.05),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: bid,
+                            hint: Text(
+                              'Select Regulated Batch',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? Colors.white24
+                                    : Colors.black.withValues(alpha: 0.26),
+                              ),
+                            ),
+                            isExpanded: true,
+                            dropdownColor: isDark
+                                ? const Color(0xFF0D1282)
+                                : Colors.white,
+                            items: batches
+                                .map(
+                                  (b) => DropdownMenuItem(
+                                    value: b['id'].toString(),
+                                    child: Text(
+                                      b['name'].toString(),
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppColors.deepNavy,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) async {
+                              setSS(() {
+                                bid = v;
+                                loading = true;
+                              });
+                              try {
+                                final struct = await _adminRepo.getFeeStructure(
+                                  v!,
+                                );
+                                setSS(() {
+                                  fC.text = (struct['monthly_fee'] ?? '')
+                                      .toString();
+                                  aC.text = (struct['admission_fee'] ?? '')
+                                      .toString();
+                                  lC.text = (struct['late_fee_amount'] ?? '')
+                                      .toString();
+                                  loading = false;
+                                });
+                              } catch (_) {
+                                setSS(() {
+                                  fC.clear();
+                                  aC.clear();
+                                  lC.clear();
+                                  loading = false;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  if (loading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: CircularProgressIndicator(
+                          color: AppColors.elitePrimary,
+                        ),
+                      ),
+                    )
+                  else if (bid != null) ...[
+                    CustomTextField(
+                      label: 'Monthly Tariff (₹)',
+                      controller: fC,
+                      keyboardType: TextInputType.number,
+                      prefixIcon: Icons.payments_rounded,
+                    ),
+                    const SizedBox(height: 24),
+                    CustomTextField(
+                      label: 'Registration Tariff (₹)',
+                      controller: aC,
+                      keyboardType: TextInputType.number,
+                      prefixIcon: Icons.how_to_reg_rounded,
+                    ),
+                    const SizedBox(height: 24),
+                    CustomTextField(
+                      label: 'Penalty Threshold (₹)',
+                      controller: lC,
+                      keyboardType: TextInputType.number,
+                      prefixIcon: Icons.gavel_rounded,
+                    ),
+                    const SizedBox(height: 48),
+                    CustomButton(
+                      text: 'Enforce Policy',
+                      isLoading: saving,
+                      icon: Icons.gavel_rounded,
+                      onPressed: () async {
+                        setSS(() => saving = true);
+                        try {
+                          await _adminRepo.defineFeeStructure({
+                            'batch_id': bid,
+                            'monthly_fee': double.tryParse(fC.text) ?? 0,
+                            'admission_fee': double.tryParse(aC.text) ?? 0,
+                            'late_fee_amount': double.tryParse(lC.text) ?? 0,
+                          });
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                            CPToast.success(
+                              context,
+                              'Regulations Enforced! ⚖️',
+                            );
+                          }
+                        } catch (_) {
+                          if (ctx.mounted) {
+                            CPToast.error(ctx, 'Enforcement failure');
+                            setSS(() => saving = false);
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -608,5 +1666,3 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     return '';
   }
 }
-
-

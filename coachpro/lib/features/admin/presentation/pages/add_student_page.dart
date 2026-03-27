@@ -63,12 +63,10 @@ class _AddStudentPageState extends State<AddStudentPage> {
       final docs = await _adminRepo.getBatches();
       if (mounted) {
         setState(() {
-          _batches = docs
-              .where((b) {
-                final isActive = b['is_active'] ?? b['isActive'];
-                return isActive == true || isActive == null;
-              })
-              .toList();
+          _batches = docs.where((b) {
+            final isActive = b['is_active'] ?? b['isActive'];
+            return isActive == true || isActive == null;
+          }).toList();
           _loadingBatches = false;
         });
       }
@@ -92,9 +90,9 @@ class _AddStudentPageState extends State<AddStudentPage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: AppColors.primary,
-                ),
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: AppColors.primary),
           ),
           child: child!,
         );
@@ -134,8 +132,9 @@ class _AddStudentPageState extends State<AddStudentPage> {
         'batch_ids': _selectedBatchIds,
       };
 
-      payload.removeWhere((key, value) => value == null || (value is String && value.isEmpty));
-
+      payload.removeWhere(
+        (key, value) => value == null || (value is String && value.isEmpty),
+      );
 
       // 2. Call Repo
       final created = await _adminRepo.createStudent(payload);
@@ -146,7 +145,10 @@ class _AddStudentPageState extends State<AddStudentPage> {
       }
     } on DioException catch (e) {
       if (mounted) {
-        CPToast.error(context, e.message ?? e.error?.toString() ?? 'Failed to add student');
+        CPToast.error(
+          context,
+          e.message ?? e.error?.toString() ?? 'Failed to add student',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -183,12 +185,32 @@ class _AddStudentPageState extends State<AddStudentPage> {
       appBar: AppBar(
         backgroundColor: AppColors.elitePrimary,
         elevation: 0,
-        leading: CPPressable(onTap: () => Navigator.pop(context), child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20)),
+        leading: CPPressable(
+          onTap: () => Navigator.pop(context),
+          child: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Add Student', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 17, color: Colors.white)),
-            Text('Quick enrollment with batch assignment', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white60)),
+            Text(
+              'Add Student',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w800,
+                fontSize: 17,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              'Quick enrollment with batch assignment',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                color: Colors.white60,
+              ),
+            ),
           ],
         ),
       ),
@@ -205,15 +227,17 @@ class _AddStudentPageState extends State<AddStudentPage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: _cardDecor(),
-                child: Column(children: [
-                  CustomTextField(
+                child: Column(
+                  children: [
+                    CustomTextField(
                       label: 'Full Name *',
                       hint: 'Enter student name',
                       controller: _nameCtrl,
                       prefixIcon: Icons.person_outline,
-                      isRequired: true),
-                  const SizedBox(height: 16),
-                  CustomTextField(
+                      isRequired: true,
+                    ),
+                    const SizedBox(height: 16),
+                    CustomTextField(
                       label: 'Phone Number *',
                       hint: '10-digit mobile number',
                       controller: _phoneCtrl,
@@ -222,59 +246,74 @@ class _AddStudentPageState extends State<AddStudentPage> {
                       isRequired: true,
                       validator: (v) => v == null || v.trim().length < 10
                           ? 'Enter valid 10-digit number'
-                          : null),
-                  const SizedBox(height: 16),
-                  CustomTextField(
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    CustomTextField(
                       label: 'Roll Number',
                       hint: 'Auto-generated',
                       controller: _rollNumberCtrl,
-                      prefixIcon: Icons.badge_outlined),
-                  const SizedBox(height: 16),
-                  CustomTextField(
+                      prefixIcon: Icons.badge_outlined,
+                    ),
+                    const SizedBox(height: 16),
+                    CustomTextField(
                       label: 'Email (Optional)',
                       hint: 'student@example.com',
                       controller: _emailCtrl,
                       prefixIcon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress),
-                  const SizedBox(height: 16),
-                  Row(children: [
-                    Expanded(
-                        child: _buildDropdown('Gender', _genders,
-                            _selectedGender, (v) => setState(() => _selectedGender = v))),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: _pickDate,
-                        child: AbsorbPointer(
-                          child: CustomTextField(
-                            label: 'Date of Birth',
-                            hint: 'DD/MM/YYYY',
-                            controller: _dobCtrl,
-                            prefixIcon: Icons.cake_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildDropdown(
+                            'Gender',
+                            _genders,
+                            _selectedGender,
+                            (v) => setState(() => _selectedGender = v),
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _pickDate,
+                            child: AbsorbPointer(
+                              child: CustomTextField(
+                                label: 'Date of Birth',
+                                hint: 'DD/MM/YYYY',
+                                controller: _dobCtrl,
+                                prefixIcon: Icons.cake_outlined,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ]),
-                  const SizedBox(height: 16),
-                  Row(children: [
-                    Expanded(
-                      child: CustomTextField(
-                          label: 'Blood Group',
-                          hint: 'e.g. B+',
-                          controller: _bloodGroupCtrl,
-                          prefixIcon: Icons.bloodtype_outlined),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: CustomTextField(
+                            label: 'Blood Group',
+                            hint: 'e.g. B+',
+                            controller: _bloodGroupCtrl,
+                            prefixIcon: Icons.bloodtype_outlined,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: CustomTextField(
+                            label: 'Previous School',
+                            hint: 'School name',
+                            controller: _prevSchoolCtrl,
+                            prefixIcon: Icons.school_outlined,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: CustomTextField(
-                          label: 'Previous School',
-                          hint: 'School name',
-                          controller: _prevSchoolCtrl,
-                          prefixIcon: Icons.school_outlined),
-                    ),
-                  ]),
-                ]),
+                  ],
+                ),
               ).animate().fadeIn(duration: 400.ms),
 
               const SizedBox(height: 24),
@@ -293,72 +332,81 @@ class _AddStudentPageState extends State<AddStudentPage> {
                         ),
                       )
                     : _batches.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              'No batches found. Create a batch first.',
-                              style: GoogleFonts.dmSans(
-                                  fontSize: 14, color: CT.textM(context)),
-                            ),
-                          )
-                        : Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _batches.map((b) {
-                              final batchId = b['id'] as String;
-                              final batchName =
-                                  b['name'] as String? ?? 'Batch';
-                              final isSelected =
-                                  _selectedBatchIds.contains(batchId);
-                              return CPBatchChip(
-                                label: batchName,
-                                isSelected: isSelected,
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setState(() {
-                                    if (isSelected) {
-                                      _selectedBatchIds.remove(batchId);
-                                    } else {
-                                      _selectedBatchIds.add(batchId);
-                                    }
-                                  });
-                                },
-                              );
-                            }).toList(),
+                    ? Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'No batches found. Create a batch first.',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            color: CT.textM(context),
                           ),
+                        ),
+                      )
+                    : Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _batches.map((b) {
+                          final batchId = b['id'] as String;
+                          final batchName = b['name'] as String? ?? 'Batch';
+                          final isSelected = _selectedBatchIds.contains(
+                            batchId,
+                          );
+                          return CPBatchChip(
+                            label: batchName,
+                            isSelected: isSelected,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() {
+                                if (isSelected) {
+                                  _selectedBatchIds.remove(batchId);
+                                } else {
+                                  _selectedBatchIds.add(batchId);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
               ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
 
               const SizedBox(height: 24),
 
               // ── Section: Parent/Guardian Details ──
               _sectionHeader(
-                  'Father / Guardian', Icons.family_restroom_outlined),
+                'Father / Guardian',
+                Icons.family_restroom_outlined,
+              ),
               const SizedBox(height: 14),
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: _cardDecor(),
-                child: Column(children: [
-                  CustomTextField(
+                child: Column(
+                  children: [
+                    CustomTextField(
                       label: 'Father\'s Name *',
                       hint: 'Enter father\'s name',
                       controller: _parentNameCtrl,
                       prefixIcon: Icons.person_outline,
-                      isRequired: true),
-                  const SizedBox(height: 16),
-                  CustomTextField(
+                      isRequired: true,
+                    ),
+                    const SizedBox(height: 16),
+                    CustomTextField(
                       label: 'Father\'s Phone *',
                       hint: '10-digit mobile',
                       controller: _parentPhoneCtrl,
                       prefixIcon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
-                      isRequired: true),
-                  const SizedBox(height: 16),
-                  CustomTextField(
+                      isRequired: true,
+                    ),
+                    const SizedBox(height: 16),
+                    CustomTextField(
                       label: 'Father\'s Occupation',
                       hint: 'e.g. Business, Service',
                       controller: _fatherOccupationCtrl,
-                      prefixIcon: Icons.work_outline),
-                ]),
+                      prefixIcon: Icons.work_outline,
+                    ),
+                  ],
+                ),
               ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
 
               const SizedBox(height: 24),
@@ -369,37 +417,41 @@ class _AddStudentPageState extends State<AddStudentPage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: _cardDecor(),
-                child: Column(children: [
-                  CustomTextField(
+                child: Column(
+                  children: [
+                    CustomTextField(
                       label: 'Mother\'s Name',
                       hint: 'Enter mother\'s name',
                       controller: _motherNameCtrl,
-                      prefixIcon: Icons.person_outline),
-                  const SizedBox(height: 16),
-                  CustomTextField(
+                      prefixIcon: Icons.person_outline,
+                    ),
+                    const SizedBox(height: 16),
+                    CustomTextField(
                       label: 'Mother\'s Phone',
                       hint: '10-digit mobile',
                       controller: _motherPhoneCtrl,
                       prefixIcon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone),
-                ]),
+                      keyboardType: TextInputType.phone,
+                    ),
+                  ],
+                ),
               ).animate(delay: 250.ms).fadeIn(duration: 400.ms),
 
               const SizedBox(height: 24),
 
               // ── Section: Emergency Contact ──
-              _sectionHeader(
-                  'Emergency Contact', Icons.emergency_outlined),
+              _sectionHeader('Emergency Contact', Icons.emergency_outlined),
               const SizedBox(height: 14),
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: _cardDecor(),
                 child: CustomTextField(
-                    label: 'Emergency Contact Number',
-                    hint: '10-digit number',
-                    controller: _emergencyContactCtrl,
-                    prefixIcon: Icons.phone_callback_outlined,
-                    keyboardType: TextInputType.phone),
+                  label: 'Emergency Contact Number',
+                  hint: '10-digit number',
+                  controller: _emergencyContactCtrl,
+                  prefixIcon: Icons.phone_callback_outlined,
+                  keyboardType: TextInputType.phone,
+                ),
               ).animate(delay: 280.ms).fadeIn(duration: 400.ms),
 
               const SizedBox(height: 24),
@@ -411,20 +463,22 @@ class _AddStudentPageState extends State<AddStudentPage> {
                 padding: const EdgeInsets.all(20),
                 decoration: _cardDecor(),
                 child: CustomTextField(
-                    label: 'Full Address',
-                    hint: 'Enter full address',
-                    controller: _addressCtrl,
-                    prefixIcon: Icons.home_outlined,
-                    maxLines: 3),
+                  label: 'Full Address',
+                  hint: 'Enter full address',
+                  controller: _addressCtrl,
+                  prefixIcon: Icons.home_outlined,
+                  maxLines: 3,
+                ),
               ).animate(delay: 300.ms).fadeIn(duration: 400.ms),
 
               const SizedBox(height: 32),
 
               CustomButton(
-                  text: 'Send Invite / Add Student',
-                  icon: Icons.person_add,
-                  isLoading: _isSaving,
-                  onPressed: _submit),
+                text: 'Send Invite / Add Student',
+                icon: Icons.person_add,
+                isLoading: _isSaving,
+                onPressed: _submit,
+              ),
 
               const SizedBox(height: 32),
             ],
@@ -435,44 +489,95 @@ class _AddStudentPageState extends State<AddStudentPage> {
   }
 
   BoxDecoration _cardDecor() => BoxDecoration(
-        color: AppColors.eliteLightBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.elitePrimary, width: 1.5),
-        boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2), blurRadius: 0)],
-      );
+    color: AppColors.eliteLightBg,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: AppColors.elitePrimary, width: 1.5),
+    boxShadow: const [
+      BoxShadow(
+        color: AppColors.elitePrimary,
+        offset: Offset(2, 2),
+        blurRadius: 0,
+      ),
+    ],
+  );
 
-  Widget _sectionHeader(String title, IconData icon) => Row(children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.elitePrimary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, size: 16, color: AppColors.elitePrimary),
+  Widget _sectionHeader(String title, IconData icon) => Row(
+    children: [
+      Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.elitePrimary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
         ),
-        const SizedBox(width: 12),
-        Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.elitePrimary)),
-      ]);
+        child: Icon(icon, size: 16, color: AppColors.elitePrimary),
+      ),
+      const SizedBox(width: 12),
+      Text(
+        title,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 15,
+          fontWeight: FontWeight.w800,
+          color: AppColors.elitePrimary,
+        ),
+      ),
+    ],
+  );
 
-  Widget _buildDropdown(String label, List<String> items, String? value, ValueChanged<String?> onChanged) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.elitePrimary)),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(color: AppColors.eliteLightBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.elitePrimary, width: 1.5)),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: value,
-                hint: Text('Select', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.elitePrimary.withValues(alpha: 0.6))),
-                isExpanded: true,
-                icon: const Icon(Icons.keyboard_arrow_down, size: 20, color: AppColors.elitePrimary),
-                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.elitePrimary),
-                items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                onChanged: onChanged,
+  Widget _buildDropdown(
+    String label,
+    List<String> items,
+    String? value,
+    ValueChanged<String?> onChanged,
+  ) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: AppColors.elitePrimary,
+        ),
+      ),
+      const SizedBox(height: 6),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppColors.eliteLightBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.elitePrimary, width: 1.5),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: value,
+            hint: Text(
+              'Select',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.elitePrimary.withValues(alpha: 0.6),
               ),
             ),
+            isExpanded: true,
+            icon: const Icon(
+              Icons.keyboard_arrow_down,
+              size: 20,
+              color: AppColors.elitePrimary,
+            ),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.elitePrimary,
+            ),
+            items: items
+                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                .toList(),
+            onChanged: onChanged,
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 }
 
 /// Batch selection chip widget
@@ -507,12 +612,17 @@ class CPBatchChip extends StatelessWidget {
               const Icon(Icons.check_rounded, size: 14, color: Colors.white),
               const SizedBox(width: 6),
             ],
-            Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: isSelected ? Colors.white : AppColors.elitePrimary)),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: isSelected ? Colors.white : AppColors.elitePrimary,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 }
-
-

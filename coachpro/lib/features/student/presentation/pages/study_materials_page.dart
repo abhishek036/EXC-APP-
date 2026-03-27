@@ -38,23 +38,31 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
     final assignments = await _adminRepo.getAssignments();
 
     final noteMaterials = notes
-        .map((note) => _Material.fromMap({
-              'title': note['title'],
-              'subject': note['subject'],
-              'teacherName': 'Teacher',
-              'meta': note['file_size_kb'] != null ? '${note['file_size_kb']} KB' : '',
-              'type': (note['file_type'] ?? 'pdf').toString().toLowerCase(),
-            }))
+        .map(
+          (note) => _Material.fromMap({
+            'title': note['title'],
+            'subject': note['subject'],
+            'teacherName': 'Teacher',
+            'meta': note['file_size_kb'] != null
+                ? '${note['file_size_kb']} KB'
+                : '',
+            'type': (note['file_type'] ?? 'pdf').toString().toLowerCase(),
+          }),
+        )
         .toList();
 
     final assignmentMaterials = assignments
-        .map((assignment) => _Material.fromMap({
-              'title': assignment['title'],
-              'subject': assignment['subject'] ?? 'General',
-              'teacherName': 'Teacher',
-              'meta': assignment['due_date'] != null ? 'Due: ${assignment['due_date'].toString().split('T').first}' : '',
-              'type': 'assignment',
-            }))
+        .map(
+          (assignment) => _Material.fromMap({
+            'title': assignment['title'],
+            'subject': assignment['subject'] ?? 'General',
+            'teacherName': 'Teacher',
+            'meta': assignment['due_date'] != null
+                ? 'Due: ${assignment['due_date'].toString().split('T').first}'
+                : '',
+            'type': 'assignment',
+          }),
+        )
         .toList();
 
     return [...noteMaterials, ...assignmentMaterials];
@@ -65,10 +73,19 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
     return Scaffold(
       backgroundColor: CT.bg(context),
       appBar: AppBar(
-        title: Text('Study Materials', style: GoogleFonts.sora(fontWeight: FontWeight.w600)),
+        title: Text(
+          'Study Materials',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+        ),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.filter_list)),
+          IconButton(
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              // Cycle through subject filters
+              setState(() => _selectedSubject = (_selectedSubject + 1) % _subjects.length);
+            },
+            icon: const Icon(Icons.filter_list),
+          ),
         ],
       ),
       body: Column(
@@ -78,7 +95,10 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
             padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
             child: Container(
               height: 44,
-              decoration: BoxDecoration(color: CT.textM(context), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: CT.textM(context),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Row(
                 children: List.generate(
                   _types.length,
@@ -92,17 +112,32 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                         duration: const Duration(milliseconds: 200),
                         margin: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: _selectedType == i ? CT.bg(context) : Colors.transparent,
+                          color: _selectedType == i
+                              ? CT.bg(context)
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
-                          boxShadow: _selectedType == i ? [BoxShadow(color: CT.textH(context).withValues(alpha: 0.05), blurRadius: 4)] : [],
+                          boxShadow: _selectedType == i
+                              ? [
+                                  BoxShadow(
+                                    color: CT
+                                        .textH(context)
+                                        .withValues(alpha: 0.05),
+                                    blurRadius: 0,
+                                  ),
+                                ]
+                              : [],
                         ),
                         child: Center(
                           child: Text(
                             _types[i],
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
-                              fontWeight: _selectedType == i ? FontWeight.w800 : FontWeight.w600,
-                              color: _selectedType == i ? CT.textH(context) : CT.textS(context),
+                              fontWeight: _selectedType == i
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                              color: _selectedType == i
+                                  ? CT.textH(context)
+                                  : CT.textS(context),
                             ),
                           ),
                         ),
@@ -116,7 +151,9 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
           SizedBox(
             height: 38,
             child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.pagePaddingH,
+              ),
               scrollDirection: Axis.horizontal,
               itemCount: _subjects.length,
               separatorBuilder: (_, _) => const SizedBox(width: 10),
@@ -129,17 +166,25 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
-                    color: _selectedSubject == i ? AppColors.primary : Colors.transparent,
-                    border: Border.all(color: _selectedSubject == i ? AppColors.primary : CT.textM(context)),
+                    color: _selectedSubject == i
+                        ? AppColors.primary
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: _selectedSubject == i
+                          ? AppColors.primary
+                          : CT.textM(context),
+                    ),
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Center(
                     child: Text(
                       _subjects[i],
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: _selectedSubject == i ? Colors.white : CT.textS(context),
+                        color: _selectedSubject == i
+                            ? Colors.white
+                            : CT.textS(context),
                       ),
                     ),
                   ),
@@ -157,33 +202,52 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                 }
 
                 if (snapshot.hasError) {
-                  return Center(child: Text('Failed to load materials', style: GoogleFonts.dmSans(color: CT.textS(context))));
+                  return Center(
+                    child: Text(
+                      'Failed to load materials',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: CT.textS(context),
+                      ),
+                    ),
+                  );
                 }
 
                 final materials = snapshot.data ?? const [];
 
                 final selectedType = _types[_selectedType].toLowerCase();
-                final selectedSubject = _selectedSubject == 0 ? null : _subjects[_selectedSubject].toLowerCase();
+                final selectedSubject = _selectedSubject == 0
+                    ? null
+                    : _subjects[_selectedSubject].toLowerCase();
 
                 final filtered = materials.where((item) {
                   final typeMatch = selectedType == 'notes'
                       ? item.type == 'pdf' || item.type == 'note'
                       : selectedType == 'assignments'
-                          ? item.type == 'assignment'
-                          : item.type == 'video';
+                      ? item.type == 'assignment'
+                      : item.type == 'video';
 
-                  final subjectMatch = selectedSubject == null || item.subject.toLowerCase() == selectedSubject;
+                  final subjectMatch =
+                      selectedSubject == null ||
+                      item.subject.toLowerCase() == selectedSubject;
                   return typeMatch && subjectMatch;
                 }).toList();
 
                 if (filtered.isEmpty) {
                   return Center(
-                    child: Text('No materials available', style: GoogleFonts.dmSans(color: CT.textS(context))),
+                    child: Text(
+                      'No materials available',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: CT.textS(context),
+                      ),
+                    ),
                   );
                 }
 
                 return ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.pagePaddingH,
+                    vertical: 8,
+                  ),
                   itemCount: filtered.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 12),
                   itemBuilder: (_, i) => _buildMaterialCard(filtered[i], i),
@@ -198,54 +262,95 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
 
   Widget _buildMaterialCard(_Material material, int index) {
     return CPPressable(
-      onTap: () {
-        if (material.type == 'video') {
-          context.go('/student/video-player');
-        } else if (material.type == 'assignment') {
-          context.go('/student/assignment-submit');
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: CT.cardDecor(context),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(color: material.color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-              child: Icon(
-                material.type == 'video'
-                    ? Icons.play_circle_fill
-                    : material.type == 'assignment'
+          onTap: () {
+            if (material.type == 'video') {
+              context.go('/student/video-player');
+            } else if (material.type == 'assignment') {
+              context.go('/student/assignment-submit');
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: CT.cardDecor(context),
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: material.color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    material.type == 'video'
+                        ? Icons.play_circle_fill
+                        : material.type == 'assignment'
                         ? Icons.assignment
                         : Icons.picture_as_pdf,
-                color: material.color,
-                size: 28,
-              ),
+                    color: material.color,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        material.title,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: CT.textH(context),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${material.subject} • ${material.teacher}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: CT.textM(context),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        material.meta,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: CT.textM(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    HapticFeedback.mediumImpact();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Downloading ${material.title}...'),
+                        backgroundColor: AppColors.electricBlue,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.file_download_outlined,
+                    color: AppColors.primary,
+                    size: 26,
+                  ),
+                  style: IconButton.styleFrom(backgroundColor: CT.bg(context)),
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(material.title, style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Text('${material.subject} • ${material.teacher}', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context))),
-                  const SizedBox(height: 2),
-                  Text(material.meta, style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: CT.textM(context))),
-                ],
-              ),
-            ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.file_download_outlined, color: AppColors.primary, size: 26),
-              style: IconButton.styleFrom(backgroundColor: CT.bg(context)),
-            ),
-          ],
-        ),
-      ),
-    ).animate(delay: Duration(milliseconds: 100 * index)).fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0);
+          ),
+        )
+        .animate(delay: Duration(milliseconds: 100 * index))
+        .fadeIn(duration: 400.ms)
+        .slideY(begin: 0.05, end: 0);
   }
 }
 

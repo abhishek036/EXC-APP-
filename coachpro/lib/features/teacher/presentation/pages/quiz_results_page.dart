@@ -11,11 +11,7 @@ class QuizResultsPage extends StatefulWidget {
   final String quizId;
   final String? fallbackTitle;
 
-  const QuizResultsPage({
-    super.key,
-    required this.quizId,
-    this.fallbackTitle,
-  });
+  const QuizResultsPage({super.key, required this.quizId, this.fallbackTitle});
 
   @override
   State<QuizResultsPage> createState() => _QuizResultsPageState();
@@ -69,7 +65,10 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
   List<Map<String, dynamic>> get _questions {
     final quiz = (_report['quiz'] as Map?) ?? const {};
     final questions = (quiz['questions'] as List?) ?? const [];
-    return questions.whereType<Map>().map((q) => Map<String, dynamic>.from(q)).toList();
+    return questions
+        .whereType<Map>()
+        .map((q) => Map<String, dynamic>.from(q))
+        .toList();
   }
 
   List<Map<String, dynamic>> get _attempts {
@@ -87,22 +86,34 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
     return num.tryParse(value.toString()) ?? 0;
   }
 
-  int get _totalMarks => _questions.fold<int>(0, (sum, q) => sum + (_toNum(q['marks']).toInt() == 0 ? 1 : _toNum(q['marks']).toInt()));
+  int get _totalMarks => _questions.fold<int>(
+    0,
+    (sum, q) =>
+        sum +
+        (_toNum(q['marks']).toInt() == 0 ? 1 : _toNum(q['marks']).toInt()),
+  );
 
   double get _avgScore {
     if (_attempts.isEmpty) return 0;
-    final total = _attempts.fold<num>(0, (sum, a) => sum + _toNum(a['obtained_marks']));
+    final total = _attempts.fold<num>(
+      0,
+      (sum, a) => sum + _toNum(a['obtained_marks']),
+    );
     return total / _attempts.length;
   }
 
   int get _topScore {
     if (_attempts.isEmpty) return 0;
-    return _attempts.map((a) => _toNum(a['obtained_marks']).toInt()).reduce((a, b) => a > b ? a : b);
+    return _attempts
+        .map((a) => _toNum(a['obtained_marks']).toInt())
+        .reduce((a, b) => a > b ? a : b);
   }
 
   int get _lowScore {
     if (_attempts.isEmpty) return 0;
-    return _attempts.map((a) => _toNum(a['obtained_marks']).toInt()).reduce((a, b) => a < b ? a : b);
+    return _attempts
+        .map((a) => _toNum(a['obtained_marks']).toInt())
+        .reduce((a, b) => a < b ? a : b);
   }
 
   List<int> get _gradeBuckets {
@@ -163,12 +174,10 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
         if (selected == correctOption) correct += 1;
       }
 
-      final pct = totalAnswered == 0 ? 0 : ((correct / totalAnswered) * 100).round();
-      return {
-        'q': 'Q${idx + 1}',
-        'topic': text,
-        'pct': pct,
-      };
+      final pct = totalAnswered == 0
+          ? 0
+          : ((correct / totalAnswered) * 100).round();
+      return {'q': 'Q${idx + 1}', 'topic': text, 'pct': pct};
     }).toList();
   }
 
@@ -179,7 +188,9 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
     const yellow = Color(0xFFF0DE36);
 
     final quiz = (_report['quiz'] as Map?) ?? const {};
-    final title = (quiz['title'] ?? widget.fallbackTitle ?? 'QUIZ ANALYTICS').toString().toUpperCase();
+    final title = (quiz['title'] ?? widget.fallbackTitle ?? 'QUIZ ANALYTICS')
+        .toString()
+        .toUpperCase();
     final subject = (quiz['subject'] ?? 'GENERAL').toString().toUpperCase();
     final totalQuestions = _questions.length;
     final totalAttempts = _attempts.length;
@@ -190,44 +201,82 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
         backgroundColor: blue,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'QUIZ ANALYTICS',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.0),
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            color: Colors.white,
+            letterSpacing: 1.0,
+          ),
         ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: yellow))
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text('Failed to load analytics: $_error', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
-                  ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      _buildQuizOverview(blue, surface, yellow, title, subject, totalQuestions, totalAttempts),
-                      const SizedBox(height: 24),
-                      _buildPerformanceGrid(blue, surface, yellow),
-                      const SizedBox(height: 24),
-                      _buildChartSection('SCORE DISTRIBUTION', _buildBarChart(blue), blue, surface),
-                      const SizedBox(height: 24),
-                      _buildChartSection('QUESTION ANALYSIS', _buildQuestionStack(blue, yellow), blue, surface),
-                      const SizedBox(height: 24),
-                      _buildLeaderboard(blue, surface),
-                      const SizedBox(height: 40),
-                    ],
-                  ),
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Failed to load analytics: $_error',
+                  style: GoogleFonts.plusJakartaSans(color: Colors.white),
                 ),
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildQuizOverview(
+                    blue,
+                    surface,
+                    yellow,
+                    title,
+                    subject,
+                    totalQuestions,
+                    totalAttempts,
+                  ),
+                  const SizedBox(height: 24),
+                  _buildPerformanceGrid(blue, surface, yellow),
+                  const SizedBox(height: 24),
+                  _buildChartSection(
+                    'SCORE DISTRIBUTION',
+                    _buildBarChart(blue),
+                    blue,
+                    surface,
+                  ),
+                  const SizedBox(height: 24),
+                  _buildChartSection(
+                    'QUESTION ANALYSIS',
+                    _buildQuestionStack(blue, yellow),
+                    blue,
+                    surface,
+                  ),
+                  const SizedBox(height: 24),
+                  _buildLeaderboard(blue, surface),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
     );
   }
 
-  Widget _buildQuizOverview(Color blue, Color surface, Color yellow, String title, String subject, int totalQuestions, int totalAttempts) {
+  Widget _buildQuizOverview(
+    Color blue,
+    Color surface,
+    Color yellow,
+    String title,
+    String subject,
+    int totalQuestions,
+    int totalAttempts,
+  ) {
     final avg = _avgScore.toStringAsFixed(1);
     final top = _topScore;
     final low = _lowScore;
@@ -247,18 +296,53 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(4)),
-                child: Text(subject, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: blue,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  subject,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
               ),
               const Spacer(),
-              Text('ATTEMPTS: $totalAttempts', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.5))),
+              Text(
+                'ATTEMPTS: $totalAttempts',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: blue.withValues(alpha: 0.5),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w900, color: blue, letterSpacing: -0.5)),
+          Text(
+            title,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: blue,
+              letterSpacing: -0.5,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text('$totalQuestions QUESTIONS • TOTAL MARKS $_totalMarks', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: blue.withValues(alpha: 0.6))),
+          Text(
+            '$totalQuestions QUESTIONS • TOTAL MARKS $_totalMarks',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: blue.withValues(alpha: 0.6),
+            ),
+          ),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -275,11 +359,25 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
   }
 
   Widget _headerStat(String label, String val, Color blue) => Column(
-        children: [
-          Text(val, style: GoogleFonts.jetBrainsMono(fontSize: 15, fontWeight: FontWeight.w900, color: blue)),
-          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.4))),
-        ],
-      );
+    children: [
+      Text(
+        val,
+        style: GoogleFonts.jetBrainsMono(
+          fontSize: 15,
+          fontWeight: FontWeight.w900,
+          color: blue,
+        ),
+      ),
+      Text(
+        label,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          color: blue.withValues(alpha: 0.4),
+        ),
+      ),
+    ],
+  );
 
   Widget _buildPerformanceGrid(Color blue, Color surface, Color yellow) {
     final buckets = _gradeBuckets;
@@ -296,23 +394,50 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
     ).animate(delay: 100.ms).fadeIn();
   }
 
-  Widget _statBox(String grade, String count, Color color, Color blue, Color surface) => Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: surface,
-            border: Border.all(color: blue, width: 2.5),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
+  Widget _statBox(
+    String grade,
+    String count,
+    Color color,
+    Color blue,
+    Color surface,
+  ) => Expanded(
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border.all(color: blue, width: 2.5),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
+      ),
+      child: Column(
+        children: [
+          Text(
+            count,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
           ),
-          child: Column(children: [
-            Text(count, style: GoogleFonts.jetBrainsMono(fontSize: 24, fontWeight: FontWeight.w900, color: color)),
-            Text(grade, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.6))),
-          ]),
-        ),
-      );
+          Text(
+            grade,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: blue.withValues(alpha: 0.6),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
-  Widget _buildChartSection(String title, Widget chart, Color blue, Color surface) {
+  Widget _buildChartSection(
+    String title,
+    Widget chart,
+    Color blue,
+    Color surface,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -324,7 +449,15 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: blue, letterSpacing: 0.5)),
+          Text(
+            title,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: blue,
+              letterSpacing: 0.5,
+            ),
+          ),
           const SizedBox(height: 24),
           chart,
         ],
@@ -334,7 +467,11 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
 
   Widget _buildBarChart(Color blue) {
     final distribution = _scoreDistribution;
-    final maxY = (distribution.isEmpty ? 1 : distribution.reduce((a, b) => a > b ? a : b)) + 1;
+    final maxY =
+        (distribution.isEmpty
+            ? 1
+            : distribution.reduce((a, b) => a > b ? a : b)) +
+        1;
 
     return SizedBox(
       height: 180,
@@ -347,30 +484,69 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 25,
-                getTitlesWidget: (v, _) => Text('${v.toInt()}', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w900, color: blue.withValues(alpha: 0.5))),
+                getTitlesWidget: (v, _) => Text(
+                  '${v.toInt()}',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: blue.withValues(alpha: 0.5),
+                  ),
+                ),
               ),
             ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (v, _) {
-                  const labels = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
+                  const labels = [
+                    '0-20%',
+                    '21-40%',
+                    '41-60%',
+                    '61-80%',
+                    '81-100%',
+                  ];
                   return Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: Text(v.toInt() < labels.length ? labels[v.toInt()] : '', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: blue)),
+                    child: Text(
+                      v.toInt() < labels.length ? labels[v.toInt()] : '',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: blue,
+                      ),
+                    ),
                   );
                 },
               ),
             ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
           ),
           borderData: FlBorderData(show: false),
-          gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 1, getDrawingHorizontalLine: (v) => FlLine(color: blue.withValues(alpha: 0.1), strokeWidth: 2)),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: 1,
+            getDrawingHorizontalLine: (v) =>
+                FlLine(color: blue.withValues(alpha: 0.1), strokeWidth: 2),
+          ),
           barGroups: distribution.asMap().entries.map((e) {
-            return BarChartGroupData(x: e.key, barRods: [
-              BarChartRodData(toY: e.value.toDouble(), width: 24, borderRadius: BorderRadius.circular(2), color: blue, borderSide: BorderSide(color: blue, width: 1.5)),
-            ]);
+            return BarChartGroupData(
+              x: e.key,
+              barRods: [
+                BarChartRodData(
+                  toY: e.value.toDouble(),
+                  width: 24,
+                  borderRadius: BorderRadius.circular(2),
+                  color: blue,
+                  borderSide: BorderSide(color: blue, width: 1.5),
+                ),
+              ],
+            );
           }).toList(),
         ),
       ),
@@ -380,7 +556,13 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
   Widget _buildQuestionStack(Color blue, Color yellow) {
     final items = _questionStats;
     if (items.isEmpty) {
-      return Text('No submitted attempts yet.', style: GoogleFonts.plusJakartaSans(color: blue.withValues(alpha: 0.6), fontWeight: FontWeight.w800));
+      return Text(
+        'No submitted attempts yet.',
+        style: GoogleFonts.plusJakartaSans(
+          color: blue.withValues(alpha: 0.6),
+          fontWeight: FontWeight.w800,
+        ),
+      );
     }
 
     return Column(
@@ -390,21 +572,54 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
           padding: const EdgeInsets.only(bottom: 12),
           child: Row(
             children: [
-              SizedBox(width: 32, child: Text(q['q'] as String, style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.w900, color: blue))),
-              Expanded(
-                child: Stack(children: [
-                  Container(height: 12, decoration: BoxDecoration(color: blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2), border: Border.all(color: blue, width: 1))),
-                  FractionallySizedBox(
-                    widthFactor: pct / 100,
-                    child: Container(
-                      height: 12,
-                      decoration: BoxDecoration(color: pct < 40 ? AppColors.coralRed : yellow, borderRadius: BorderRadius.circular(2), border: Border.all(color: blue, width: 1)),
-                    ),
+              SizedBox(
+                width: 32,
+                child: Text(
+                  q['q'] as String,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: blue,
                   ),
-                ]),
+                ),
+              ),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Container(
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: blue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(2),
+                        border: Border.all(color: blue, width: 1),
+                      ),
+                    ),
+                    FractionallySizedBox(
+                      widthFactor: pct / 100,
+                      child: Container(
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: pct < 40 ? AppColors.coralRed : yellow,
+                          borderRadius: BorderRadius.circular(2),
+                          border: Border.all(color: blue, width: 1),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(width: 12),
-              SizedBox(width: 40, child: Text('$pct%', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w900, color: blue))),
+              SizedBox(
+                width: 40,
+                child: Text(
+                  '$pct%',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: blue,
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -418,20 +633,39 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('TOP PERFORMERS', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.0)),
+        Text(
+          'TOP PERFORMERS',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            letterSpacing: 1.0,
+          ),
+        ),
         const SizedBox(height: 16),
         if (top.isEmpty)
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: surface, borderRadius: BorderRadius.circular(10)),
-            child: Text('No submissions yet.', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue.withValues(alpha: 0.7))),
+            decoration: BoxDecoration(
+              color: surface,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              'No submissions yet.',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w800,
+                color: blue.withValues(alpha: 0.7),
+              ),
+            ),
           )
         else
           ...top.asMap().entries.map((entry) {
             final rank = entry.key + 1;
             final item = entry.value;
             final student = (item['student'] as Map?) ?? const {};
-            final name = (student['name'] ?? 'STUDENT').toString().toUpperCase();
+            final name = (student['name'] ?? 'STUDENT')
+                .toString()
+                .toUpperCase();
             final obtained = _toNum(item['obtained_marks']).toInt();
 
             return Container(
@@ -449,12 +683,39 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
                     width: 34,
                     height: 34,
                     alignment: Alignment.center,
-                    decoration: BoxDecoration(color: rank == 1 ? const Color(0xFFFFD54F) : Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: blue, width: 2)),
-                    child: Text('#$rank', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue, fontSize: 12)),
+                    decoration: BoxDecoration(
+                      color: rank == 1 ? const Color(0xFFFFD54F) : Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: blue, width: 2),
+                    ),
+                    child: Text(
+                      '#$rank',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w900,
+                        color: blue,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(child: Text(name, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue, fontSize: 13))),
-                  Text('$obtained/$_totalMarks', style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w900, color: blue, fontSize: 12)),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w900,
+                        color: blue,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '$obtained/$_totalMarks',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontWeight: FontWeight.w900,
+                      color: blue,
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             );

@@ -89,7 +89,8 @@ class _EditTeacherPageState extends State<EditTeacherPage> {
         Navigator.pop(context, true);
       }
     } on DioException catch (e) {
-      if (mounted) CPToast.error(context, e.message ?? 'Failed to update teacher');
+      if (mounted)
+        CPToast.error(context, e.message ?? 'Failed to update teacher');
     } catch (e) {
       if (mounted) CPToast.error(context, 'Error: $e');
     } finally {
@@ -104,13 +105,24 @@ class _EditTeacherPageState extends State<EditTeacherPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('${action.capitalize()} Teacher?', style: GoogleFonts.sora(fontWeight: FontWeight.w600)),
-        content: Text('Are you sure you want to $action "${_teacher!['name']}"?', style: GoogleFonts.dmSans()),
+        title: Text(
+          '${action.capitalize()} Teacher?',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'Are you sure you want to $action "${_teacher!['name']}"?',
+          style: GoogleFonts.plusJakartaSans(),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: current ? AppColors.error : AppColors.success),
+            style: TextButton.styleFrom(
+              foregroundColor: current ? AppColors.error : AppColors.success,
+            ),
             child: Text(action.capitalize()),
           ),
         ],
@@ -123,7 +135,10 @@ class _EditTeacherPageState extends State<EditTeacherPage> {
       await _adminRepo.toggleTeacherStatus(widget.teacherId, !current);
       if (!mounted) return;
       setState(() => _teacher!['is_active'] = !current);
-      CPToast.success(context, 'Teacher ${!current ? 'activated' : 'deactivated'}');
+      CPToast.success(
+        context,
+        'Teacher ${!current ? 'activated' : 'deactivated'}',
+      );
     } catch (e) {
       if (!mounted) return;
       CPToast.error(context, 'Failed: $e');
@@ -149,19 +164,37 @@ class _EditTeacherPageState extends State<EditTeacherPage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Edit Teacher', style: GoogleFonts.sora(fontWeight: FontWeight.w600, fontSize: 16)),
+            Text(
+              'Edit Teacher',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
             if (_teacher != null)
-              Text(_teacher!['name'] ?? '', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context))),
+              Text(
+                _teacher!['name'] ?? '',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  color: CT.textM(context),
+                ),
+              ),
           ],
         ),
         actions: [
           if (_teacher != null)
             IconButton(
               icon: Icon(
-                (_teacher!['is_active'] ?? true) ? Icons.person_off_outlined : Icons.person_outlined,
-                color: (_teacher!['is_active'] ?? true) ? AppColors.error : AppColors.success,
+                (_teacher!['is_active'] ?? true)
+                    ? Icons.person_off_outlined
+                    : Icons.person_outlined,
+                color: (_teacher!['is_active'] ?? true)
+                    ? AppColors.error
+                    : AppColors.success,
               ),
-              tooltip: (_teacher!['is_active'] ?? true) ? 'Deactivate Teacher' : 'Activate Teacher',
+              tooltip: (_teacher!['is_active'] ?? true)
+                  ? 'Deactivate Teacher'
+                  : 'Activate Teacher',
               onPressed: _toggleStatus,
             ),
         ],
@@ -180,46 +213,64 @@ class _EditTeacherPageState extends State<EditTeacherPage> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: _cardDecor(),
-                      child: Column(children: [
-                        CustomTextField(
-                          label: 'Full Name *', hint: 'Teacher name',
-                          controller: _nameCtrl, prefixIcon: Icons.person_outline, isRequired: true,
-                        ),
-                        const SizedBox(height: 16),
-                        CustomTextField(
-                          label: 'Phone *', hint: '10-digit mobile',
-                          controller: _phoneCtrl, prefixIcon: Icons.phone_outlined,
-                          keyboardType: TextInputType.phone, isRequired: true,
-                        ),
-                        const SizedBox(height: 16),
-                        CustomTextField(
-                          label: 'Email', hint: 'teacher@example.com',
-                          controller: _emailCtrl, prefixIcon: Icons.email_outlined,
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                        const SizedBox(height: 16),
-                        CustomTextField(
-                          label: 'Subjects (comma separated)', hint: 'Physics, Maths',
-                          controller: _subjectsCtrl, prefixIcon: Icons.book_outlined,
-                        ),
-                        const SizedBox(height: 16),
-                        Row(children: [
-                          Expanded(
-                            child: CustomTextField(
-                              label: 'Qualification', hint: 'e.g. M.Sc. Physics',
-                              controller: _qualificationCtrl, prefixIcon: Icons.workspace_premium_outlined,
-                            ),
+                      child: Column(
+                        children: [
+                          CustomTextField(
+                            label: 'Full Name *',
+                            hint: 'Teacher name',
+                            controller: _nameCtrl,
+                            prefixIcon: Icons.person_outline,
+                            isRequired: true,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: CustomTextField(
-                              label: 'Experience (years)', hint: 'e.g. 5',
-                              controller: _experienceCtrl, prefixIcon: Icons.timeline_outlined,
-                              keyboardType: TextInputType.number,
-                            ),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            label: 'Phone *',
+                            hint: '10-digit mobile',
+                            controller: _phoneCtrl,
+                            prefixIcon: Icons.phone_outlined,
+                            keyboardType: TextInputType.phone,
+                            isRequired: true,
                           ),
-                        ]),
-                      ]),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            label: 'Email',
+                            hint: 'teacher@example.com',
+                            controller: _emailCtrl,
+                            prefixIcon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            label: 'Subjects (comma separated)',
+                            hint: 'Physics, Maths',
+                            controller: _subjectsCtrl,
+                            prefixIcon: Icons.book_outlined,
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: CustomTextField(
+                                  label: 'Qualification',
+                                  hint: 'e.g. M.Sc. Physics',
+                                  controller: _qualificationCtrl,
+                                  prefixIcon: Icons.workspace_premium_outlined,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: CustomTextField(
+                                  label: 'Experience (years)',
+                                  hint: 'e.g. 5',
+                                  controller: _experienceCtrl,
+                                  prefixIcon: Icons.timeline_outlined,
+                                  keyboardType: TextInputType.number,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ).animate().fadeIn(duration: 400.ms),
 
                     const SizedBox(height: 32),
@@ -238,22 +289,35 @@ class _EditTeacherPageState extends State<EditTeacherPage> {
   }
 
   BoxDecoration _cardDecor() => BoxDecoration(
-        color: CT.card(context),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLG),
-        boxShadow: [BoxShadow(color: CT.textH(context).withValues(alpha: 0.04), blurRadius: 10)],
-      );
+    color: CT.card(context),
+    borderRadius: BorderRadius.circular(AppDimensions.radiusLG),
+    boxShadow: [
+      BoxShadow(
+        color: CT.textH(context).withValues(alpha: 0.04),
+        blurRadius: 0,
+      ),
+    ],
+  );
 
-  Widget _sectionHeader(String title, IconData icon) => Row(children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-              color: AppColors.electricBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, size: 16, color: AppColors.electricBlue),
+  Widget _sectionHeader(String title, IconData icon) => Row(
+    children: [
+      Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: AppColors.electricBlue.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
         ),
-        const SizedBox(width: 10),
-        Text(title, style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w600, color: CT.textH(context))),
-      ]);
+        child: Icon(icon, size: 16, color: AppColors.electricBlue),
+      ),
+      const SizedBox(width: 10),
+      Text(
+        title,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: CT.textH(context),
+        ),
+      ),
+    ],
+  );
 }
-
-

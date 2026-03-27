@@ -23,14 +23,19 @@ class DataExportPage extends StatefulWidget {
 
 class _DataExportPageState extends State<DataExportPage> {
   final AdminRepository _adminRepo = sl<AdminRepository>();
-  
+
   String _selectedReport = 'Fee Collection';
   String? _selectedBatchId;
   String _selectedFormat = 'PDF';
   bool _isExporting = false;
   bool _isLoadingBatches = true;
 
-  final _reportTypes = ['Fee Collection', 'Student List', 'Attendance', 'Exam Results'];
+  final _reportTypes = [
+    'Fee Collection',
+    'Student List',
+    'Attendance',
+    'Exam Results',
+  ];
   List<Map<String, dynamic>> _batches = [];
   final _formats = ['PDF', 'CSV'];
 
@@ -63,12 +68,16 @@ class _DataExportPageState extends State<DataExportPage> {
 
     try {
       final export = DataExportService.instance;
-      final matches = _batches.where((b) => (b['id'] ?? '').toString() == _selectedBatchId).toList();
-      final batchName = matches.isEmpty ? 'Selected Batch' : (matches.first['name'] ?? 'Selected Batch').toString();
+      final matches = _batches
+          .where((b) => (b['id'] ?? '').toString() == _selectedBatchId)
+          .toList();
+      final batchName = matches.isEmpty
+          ? 'Selected Batch'
+          : (matches.first['name'] ?? 'Selected Batch').toString();
 
       // 1. Fetch Real Data based on Report Type
       List<Map<String, dynamic>> reportData = [];
-      
+
       if (_selectedReport == 'Fee Collection') {
         final fees = await _adminRepo.getFeeRecords(
           batchId: _selectedBatchId == 'all' ? null : _selectedBatchId,
@@ -109,8 +118,13 @@ class _DataExportPageState extends State<DataExportPage> {
             'name': stu['name'] ?? 'Unknown',
             'phone': stu['phone'] ?? '—',
             'batch': batchNames.isEmpty ? '—' : batchNames,
-            'feeStatus': ((stu['fee_status'] ?? 'pending').toString()).toUpperCase(),
-            'joinedDate': stu['created_at'] != null ? DateFormat('dd MMM yyyy').format(DateTime.parse(stu['created_at'].toString())) : '—',
+            'feeStatus': ((stu['fee_status'] ?? 'pending').toString())
+                .toUpperCase(),
+            'joinedDate': stu['created_at'] != null
+                ? DateFormat(
+                    'dd MMM yyyy',
+                  ).format(DateTime.parse(stu['created_at'].toString()))
+                : '—',
           });
         }
       } else if (_selectedReport == 'Attendance') {
@@ -130,7 +144,9 @@ class _DataExportPageState extends State<DataExportPage> {
           );
 
           for (final session in sessions) {
-            final sessionDate = DateTime.tryParse((session['date'] ?? '').toString());
+            final sessionDate = DateTime.tryParse(
+              (session['date'] ?? '').toString(),
+            );
             final dateStr = sessionDate != null
                 ? DateFormat('dd MMM yyyy').format(sessionDate)
                 : '—';
@@ -138,13 +154,16 @@ class _DataExportPageState extends State<DataExportPage> {
             for (final row in records) {
               if (row is! Map) continue;
               final rowMap = Map<String, dynamic>.from(row);
-            reportData.add({
-              'student': rowMap['student_name'] ?? rowMap['studentName'] ?? 'Unknown',
-              'date': dateStr,
-              'status': rowMap['status'] ?? 'Absent',
-              'batch': batch['name'] ?? 'Unknown',
-            });
-          }
+              reportData.add({
+                'student':
+                    rowMap['student_name'] ??
+                    rowMap['studentName'] ??
+                    'Unknown',
+                'date': dateStr,
+                'status': rowMap['status'] ?? 'Absent',
+                'batch': batch['name'] ?? 'Unknown',
+              });
+            }
           }
         }
       } else if (_selectedReport == 'Exam Results') {
@@ -158,14 +177,14 @@ class _DataExportPageState extends State<DataExportPage> {
             pdfBytes = await export.generateFeeReport(
               fees: reportData,
               batchName: batchName,
-              instituteName: 'CoachPro Institute',
+              instituteName: 'Excellence Academy',
             );
             break;
           case 'Student List':
             pdfBytes = await export.generateStudentReport(
               students: reportData,
               batchName: batchName,
-              instituteName: 'CoachPro Institute',
+              instituteName: 'Excellence Academy',
             );
             break;
           case 'Attendance':
@@ -173,15 +192,23 @@ class _DataExportPageState extends State<DataExportPage> {
               records: reportData,
               batchName: batchName,
               dateRange: 'Full History',
-              instituteName: 'CoachPro Institute',
+              instituteName: 'Excellence Academy',
             );
             break;
           default:
             pdfBytes = await export.generatePDFReport(
               title: '$_selectedReport Report',
               subtitle: batchName,
-              headers: reportData.isNotEmpty ? reportData.first.keys.toList() : ['Item'],
-              rows: reportData.isNotEmpty ? reportData.map((e) => e.values.map((v) => v.toString()).toList()).toList() : [['No Data']],
+              headers: reportData.isNotEmpty
+                  ? reportData.first.keys.toList()
+                  : ['Item'],
+              rows: reportData.isNotEmpty
+                  ? reportData
+                        .map((e) => e.values.map((v) => v.toString()).toList())
+                        .toList()
+                  : [
+                      ['No Data'],
+                    ],
             );
         }
 
@@ -203,7 +230,9 @@ class _DataExportPageState extends State<DataExportPage> {
           default:
             if (reportData.isNotEmpty) {
               final headers = reportData.first.keys.join(',');
-              final rowsStr = reportData.map((e) => e.values.join(',')).join('\n');
+              final rowsStr = reportData
+                  .map((e) => e.values.join(','))
+                  .join('\n');
               csv = '$headers\n$rowsStr';
             } else {
               csv = 'No data';
@@ -212,19 +241,26 @@ class _DataExportPageState extends State<DataExportPage> {
 
         // Save CSV to temp and share
         final dir = await getTemporaryDirectory();
-        final file = File('${dir.path}/${_selectedReport.replaceAll(' ', '_').toLowerCase()}_report.csv');
+        final file = File(
+          '${dir.path}/${_selectedReport.replaceAll(' ', '_').toLowerCase()}_report.csv',
+        );
         await file.writeAsString(csv);
         if (mounted) {
-          await SharePlus.instance.share(ShareParams(
-            text: '$_selectedReport Report (CSV)',
-            files: [XFile(file.path)],
-          ));
+          await SharePlus.instance.share(
+            ShareParams(
+              text: '$_selectedReport Report (CSV)',
+              files: [XFile(file.path)],
+            ),
+          );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Export failed: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -241,8 +277,13 @@ class _DataExportPageState extends State<DataExportPage> {
       appBar: AppBar(
         backgroundColor: CT.bg(context),
         elevation: 0,
-        title: Text('Export Reports',
-            style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
+        title: Text(
+          'Export Reports',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w700,
+            color: CT.textH(context),
+          ),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
@@ -257,19 +298,41 @@ class _DataExportPageState extends State<DataExportPage> {
               onTap: () => setState(() => _selectedReport = type),
               child: Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: isActive ? accent.withValues(alpha: 0.1) : CT.card(context),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                  border: Border.all(color: isActive ? accent : CT.border(context), width: isActive ? 2 : 1),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
                 ),
-                child: Row(children: [
-                  Icon(_getReportIcon(type), color: isActive ? accent : CT.textS(context), size: 22),
-                  const SizedBox(width: 12),
-                  Text(type, style: GoogleFonts.dmSans(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
-                  const Spacer(),
-                  if (isActive) Icon(Icons.check_circle_rounded, color: accent, size: 22),
-                ]),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? accent.withValues(alpha: 0.1)
+                      : CT.card(context),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                  border: Border.all(
+                    color: isActive ? accent : CT.border(context),
+                    width: isActive ? 2 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _getReportIcon(type),
+                      color: isActive ? accent : CT.textS(context),
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      type,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: CT.textH(context),
+                      ),
+                    ),
+                    const Spacer(),
+                    if (isActive)
+                      Icon(Icons.check_circle_rounded, color: accent, size: 22),
+                  ],
+                ),
               ),
             ).animate().fadeIn(delay: (50 * e.key).ms);
           })),
@@ -285,23 +348,33 @@ class _DataExportPageState extends State<DataExportPage> {
                   child: Center(child: CircularProgressIndicator()),
                 )
               : Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: CT.card(context),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-              border: Border.all(color: CT.border(context)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedBatchId,
-                isExpanded: true,
-                dropdownColor: CT.card(context),
-                style: GoogleFonts.dmSans(fontSize: 14, color: CT.textH(context)),
-                items: _batches.map((b) => DropdownMenuItem(value: b['id'] as String, child: Text(b['name'] as String))).toList(),
-                onChanged: (v) => setState(() => _selectedBatchId = v!),
-              ),
-            ),
-          ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: CT.card(context),
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                    border: Border.all(color: CT.border(context)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedBatchId,
+                      isExpanded: true,
+                      dropdownColor: CT.card(context),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        color: CT.textH(context),
+                      ),
+                      items: _batches
+                          .map(
+                            (b) => DropdownMenuItem(
+                              value: b['id'] as String,
+                              child: Text(b['name'] as String),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedBatchId = v!),
+                    ),
+                  ),
+                ),
 
           const SizedBox(height: AppDimensions.lg),
 
@@ -319,19 +392,44 @@ class _DataExportPageState extends State<DataExportPage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       decoration: BoxDecoration(
-                        color: isActive ? accent.withValues(alpha: 0.12) : CT.card(context),
-                        borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                        border: Border.all(color: isActive ? accent : CT.border(context), width: isActive ? 2 : 1),
+                        color: isActive
+                            ? accent.withValues(alpha: 0.12)
+                            : CT.card(context),
+                        borderRadius: BorderRadius.circular(
+                          AppDimensions.radiusSM,
+                        ),
+                        border: Border.all(
+                          color: isActive ? accent : CT.border(context),
+                          width: isActive ? 2 : 1,
+                        ),
                       ),
-                      child: Column(children: [
-                        Icon(f == 'PDF' ? Icons.picture_as_pdf_rounded : Icons.table_chart_rounded,
-                            color: isActive ? accent : CT.textS(context), size: 28),
-                        const SizedBox(height: 6),
-                        Text(f, style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600,
-                            color: isActive ? accent : CT.textS(context))),
-                        Text(f == 'PDF' ? 'Styled report' : 'Spreadsheet data',
-                            style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context))),
-                      ]),
+                      child: Column(
+                        children: [
+                          Icon(
+                            f == 'PDF'
+                                ? Icons.picture_as_pdf_rounded
+                                : Icons.table_chart_rounded,
+                            color: isActive ? accent : CT.textS(context),
+                            size: 28,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            f,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isActive ? accent : CT.textS(context),
+                            ),
+                          ),
+                          Text(
+                            f == 'PDF' ? 'Styled report' : 'Spreadsheet data',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              color: CT.textM(context),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -350,15 +448,31 @@ class _DataExportPageState extends State<DataExportPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: accent,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusSM)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                ),
                 elevation: 0,
               ),
               icon: _isExporting
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : Icon(_selectedFormat == 'PDF' ? Icons.picture_as_pdf_rounded : Icons.file_download_rounded),
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(
+                      _selectedFormat == 'PDF'
+                          ? Icons.picture_as_pdf_rounded
+                          : Icons.file_download_rounded,
+                    ),
               label: Text(
                 _isExporting ? 'Generating...' : 'Export $_selectedFormat',
-                style: GoogleFonts.sora(fontWeight: FontWeight.w600, fontSize: 15),
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
               ),
             ),
           ).animate().fadeIn(delay: 300.ms),
@@ -369,9 +483,21 @@ class _DataExportPageState extends State<DataExportPage> {
           _buildSectionTitle('Recent Exports'),
           const SizedBox(height: AppDimensions.sm),
           ...[
-            {'name': 'Fee_Collection_Mar2026.pdf', 'date': '5 Mar 2026', 'size': '124 KB'},
-            {'name': 'Student_List_Feb2026.csv', 'date': '28 Feb 2026', 'size': '45 KB'},
-            {'name': 'Attendance_Feb2026.pdf', 'date': '25 Feb 2026', 'size': '89 KB'},
+            {
+              'name': 'Fee_Collection_Mar2026.pdf',
+              'date': '5 Mar 2026',
+              'size': '124 KB',
+            },
+            {
+              'name': 'Student_List_Feb2026.csv',
+              'date': '28 Feb 2026',
+              'size': '45 KB',
+            },
+            {
+              'name': 'Attendance_Feb2026.pdf',
+              'date': '25 Feb 2026',
+              'size': '89 KB',
+            },
           ].asMap().entries.map((e) {
             final item = e.value;
             final isPDF = (item['name'] as String).endsWith('.pdf');
@@ -383,16 +509,41 @@ class _DataExportPageState extends State<DataExportPage> {
                 borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
                 border: Border.all(color: CT.border(context)),
               ),
-              child: Row(children: [
-                Icon(isPDF ? Icons.picture_as_pdf_rounded : Icons.table_chart_rounded,
-                    color: isPDF ? Colors.red : Colors.green, size: 24),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(item['name']!, style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: CT.textH(context))),
-                  Text('${item['date']} · ${item['size']}', style: GoogleFonts.dmSans(fontSize: 11, color: CT.textS(context))),
-                ])),
-                Icon(Icons.share_rounded, color: CT.textM(context), size: 20),
-              ]),
+              child: Row(
+                children: [
+                  Icon(
+                    isPDF
+                        ? Icons.picture_as_pdf_rounded
+                        : Icons.table_chart_rounded,
+                    color: isPDF ? Colors.red : Colors.green,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item['name']!,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: CT.textH(context),
+                          ),
+                        ),
+                        Text(
+                          '${item['date']} · ${item['size']}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            color: CT.textS(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.share_rounded, color: CT.textM(context), size: 20),
+                ],
+              ),
             ).animate().fadeIn(delay: (60 * e.key).ms);
           }),
         ],
@@ -401,18 +552,28 @@ class _DataExportPageState extends State<DataExportPage> {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(title, style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context)));
+    return Text(
+      title,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: CT.textH(context),
+      ),
+    );
   }
 
   IconData _getReportIcon(String type) {
     switch (type) {
-      case 'Fee Collection': return Icons.currency_rupee_rounded;
-      case 'Student List': return Icons.people_rounded;
-      case 'Attendance': return Icons.fact_check_rounded;
-      case 'Exam Results': return Icons.assessment_rounded;
-      default: return Icons.description_rounded;
+      case 'Fee Collection':
+        return Icons.currency_rupee_rounded;
+      case 'Student List':
+        return Icons.people_rounded;
+      case 'Attendance':
+        return Icons.fact_check_rounded;
+      case 'Exam Results':
+        return Icons.assessment_rounded;
+      default:
+        return Icons.description_rounded;
     }
   }
 }
-
-

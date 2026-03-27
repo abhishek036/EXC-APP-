@@ -27,7 +27,9 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
 
   String? get _safeSelectedBatchId {
     if (_selectedBatchId == null || _selectedBatchId!.isEmpty) return null;
-    final hasSelected = _batches.any((b) => ((b['id'] ?? b['batch_id'] ?? '').toString() == _selectedBatchId));
+    final hasSelected = _batches.any(
+      (b) => ((b['id'] ?? b['batch_id'] ?? '').toString() == _selectedBatchId),
+    );
     return hasSelected ? _selectedBatchId : null;
   }
 
@@ -81,17 +83,32 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
   Future<void> _submitAttendance(String teacherUid) async {
     final batchId = _safeSelectedBatchId;
     if (batchId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a batch first')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a batch first')),
+      );
       return;
     }
     setState(() => _isSubmitting = true);
 
     final now = DateTime.now();
-    final sessionDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    const statusMap = {'P': 'present', 'A': 'absent', 'L': 'late', 'Lv': 'excused'};
+    final sessionDate =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    const statusMap = {
+      'P': 'present',
+      'A': 'absent',
+      'L': 'late',
+      'Lv': 'excused',
+    };
 
     try {
-      final records = _students.map((s) => {'student_id': s.id, 'status': statusMap[s.status] ?? 'present'}).toList();
+      final records = _students
+          .map(
+            (s) => {
+              'student_id': s.id,
+              'status': statusMap[s.status] ?? 'present',
+            },
+          )
+          .toList();
 
       await _teacherRepo.markAttendance(
         batchId: batchId,
@@ -101,11 +118,19 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attendance submitted successfully')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Attendance submitted successfully')),
+      );
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to submit: ${e.toString().split(':').last.trim()}')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to submit: ${e.toString().split(':').last.trim()}',
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -119,7 +144,9 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
 
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
-        final teacherUid = authState is AuthAuthenticated ? authState.user.id : '';
+        final teacherUid = authState is AuthAuthenticated
+            ? authState.user.id
+            : '';
 
         return Scaffold(
           backgroundColor: blue,
@@ -127,12 +154,21 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
             backgroundColor: blue,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
               'ATTENDANCE',
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.0),
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                color: Colors.white,
+                letterSpacing: 1.0,
+              ),
             ),
           ),
           body: Column(
@@ -140,14 +176,30 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
               _buildControlPanel(blue, surface, yellow),
               Expanded(
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator(color: yellow))
+                    ? const Center(
+                        child: CircularProgressIndicator(color: yellow),
+                      )
                     : _students.isEmpty
-                        ? Center(child: _PremiumCard(child: Text('NO STUDENTS FOUND', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue))))
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                            itemCount: _students.length,
-                            itemBuilder: (ctx, i) => _studentRow(_students[i], i, blue, surface, yellow),
+                    ? Center(
+                        child: _PremiumCard(
+                          child: Text(
+                            'NO STUDENTS FOUND',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w900,
+                              color: blue,
+                            ),
                           ),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        itemCount: _students.length,
+                        itemBuilder: (ctx, i) =>
+                            _studentRow(_students[i], i, blue, surface, yellow),
+                      ),
               ),
               _buildBottomBar(teacherUid, blue, surface, yellow),
             ],
@@ -175,17 +227,36 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: _batches.isEmpty
-                    ? Text('LOADING BATCHES...', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12))
+                    ? Text(
+                        'LOADING BATCHES...',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
+                      )
                     : DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _safeSelectedBatchId,
                           isExpanded: true,
-                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF0D1282)),
-                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: blue),
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: Color(0xFF0D1282),
+                          ),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: blue,
+                          ),
                           items: _batches.map((b) {
-                            final id = (b['id'] ?? b['batch_id'] ?? '').toString();
-                            final name = (b['name'] ?? 'Batch').toString().toUpperCase();
-                            return DropdownMenuItem<String>(value: id, child: Text(name));
+                            final id = (b['id'] ?? b['batch_id'] ?? '')
+                                .toString();
+                            final name = (b['name'] ?? 'Batch')
+                                .toString()
+                                .toUpperCase();
+                            return DropdownMenuItem<String>(
+                              value: id,
+                              child: Text(name),
+                            );
                           }).toList(),
                           onChanged: (val) {
                             if (val == null || val == _selectedBatchId) return;
@@ -206,11 +277,26 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
             children: [
               Row(
                 children: [
-                  _SummaryCount(label: 'P', count: _presentCount, color: AppColors.mintGreen, blue: blue),
+                  _SummaryCount(
+                    label: 'P',
+                    count: _presentCount,
+                    color: AppColors.mintGreen,
+                    blue: blue,
+                  ),
                   const SizedBox(width: 8),
-                  _SummaryCount(label: 'A', count: _absentCount, color: AppColors.coralRed, blue: blue),
+                  _SummaryCount(
+                    label: 'A',
+                    count: _absentCount,
+                    color: AppColors.coralRed,
+                    blue: blue,
+                  ),
                   const SizedBox(width: 8),
-                  _SummaryCount(label: 'L', count: _lateCount, color: Color(0xFFC0A000), blue: blue),
+                  _SummaryCount(
+                    label: 'L',
+                    count: _lateCount,
+                    color: Color(0xFFC0A000),
+                    blue: blue,
+                  ),
                 ],
               ),
               _ActionBtn(
@@ -231,42 +317,90 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
     );
   }
 
-  Widget _studentRow(_AttStudent student, int index, Color blue, Color surface, Color yellow) {
+  Widget _studentRow(
+    _AttStudent student,
+    int index,
+    Color blue,
+    Color surface,
+    Color yellow,
+  ) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: surface,
-        border: Border.all(color: blue, width: 2),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32, height: 32,
-            decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(4)),
-            alignment: Alignment.center,
-            child: Text('${index + 1}', style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: surface,
+            border: Border.all(color: blue, width: 2),
+            borderRadius: BorderRadius.circular(10),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              student.name.toUpperCase(),
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 13, color: blue),
-              maxLines: 1, overflow: TextOverflow.ellipsis,
-            ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: blue,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${index + 1}',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  student.name.toUpperCase(),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    color: blue,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              _StatusToggle(
+                status: 'P',
+                current: student.status,
+                color: AppColors.mintGreen,
+                blue: blue,
+                onTap: () => setState(() => student.status = 'P'),
+              ),
+              const SizedBox(width: 6),
+              _StatusToggle(
+                status: 'A',
+                current: student.status,
+                color: AppColors.coralRed,
+                blue: blue,
+                onTap: () => setState(() => student.status = 'A'),
+              ),
+              const SizedBox(width: 6),
+              _StatusToggle(
+                status: 'L',
+                current: student.status,
+                color: yellow,
+                blue: blue,
+                onTap: () => setState(() => student.status = 'L'),
+              ),
+            ],
           ),
-          _StatusToggle(status: 'P', current: student.status, color: AppColors.mintGreen, blue: blue, onTap: () => setState(() => student.status = 'P')),
-          const SizedBox(width: 6),
-          _StatusToggle(status: 'A', current: student.status, color: AppColors.coralRed, blue: blue, onTap: () => setState(() => student.status = 'A')),
-          const SizedBox(width: 6),
-          _StatusToggle(status: 'L', current: student.status, color: yellow, blue: blue, onTap: () => setState(() => student.status = 'L')),
-        ],
-      ),
-    ).animate(delay: Duration(milliseconds: 30 * index)).fadeIn(duration: 300.ms).slideX(begin: 0.1);
+        )
+        .animate(delay: Duration(milliseconds: 30 * index))
+        .fadeIn(duration: 300.ms)
+        .slideX(begin: 0.1);
   }
 
-  Widget _buildBottomBar(String teacherUid, Color blue, Color surface, Color yellow) {
+  Widget _buildBottomBar(
+    String teacherUid,
+    Color blue,
+    Color surface,
+    Color yellow,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -284,7 +418,16 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
                   activeColor: blue,
                   checkColor: yellow,
                 ),
-                Expanded(child: Text('SEND WHATSAPP ALERTS TO ABSENTEES', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue))),
+                Expanded(
+                  child: Text(
+                    'SEND WHATSAPP ALERTS TO ABSENTEES',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 10,
+                      color: blue,
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -292,17 +435,27 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _isSubmitting || teacherUid.isEmpty ? null : () => _submitAttendance(teacherUid),
+                onPressed: _isSubmitting || teacherUid.isEmpty
+                    ? null
+                    : () => _submitAttendance(teacherUid),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: blue,
                   foregroundColor: yellow,
                   elevation: 0,
                   side: BorderSide(color: blue, width: 2),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: _isSubmitting
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : Text('SUBMIT ATTENDANCE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 16)),
+                    : Text(
+                        'SUBMIT ATTENDANCE',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -317,14 +470,33 @@ class _SummaryCount extends StatelessWidget {
   final int count;
   final Color color;
   final Color blue;
-  const _SummaryCount({required this.label, required this.count, required this.color, required this.blue});
+  const _SummaryCount({
+    required this.label,
+    required this.count,
+    required this.color,
+    required this.blue,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue.withValues(alpha: 0.5))),
-        Text('$count', style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w900, fontSize: 16, color: color)),
+        Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            fontSize: 10,
+            color: blue.withValues(alpha: 0.5),
+          ),
+        ),
+        Text(
+          '$count',
+          style: GoogleFonts.jetBrainsMono(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            color: color,
+          ),
+        ),
       ],
     );
   }
@@ -337,7 +509,13 @@ class _StatusToggle extends StatelessWidget {
   final Color blue;
   final VoidCallback onTap;
 
-  const _StatusToggle({required this.status, required this.current, required this.color, required this.blue, required this.onTap});
+  const _StatusToggle({
+    required this.status,
+    required this.current,
+    required this.color,
+    required this.blue,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -346,15 +524,27 @@ class _StatusToggle extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: 150.ms,
-        width: 32, height: 32,
+        width: 32,
+        height: 32,
         decoration: BoxDecoration(
           color: active ? color : Colors.transparent,
           border: Border.all(color: blue, width: 2),
           borderRadius: BorderRadius.circular(4),
-          boxShadow: active ? [BoxShadow(color: blue, offset: const Offset(2, 2))] : [],
+          boxShadow: active
+              ? [BoxShadow(color: blue, offset: const Offset(2, 2))]
+              : [],
         ),
         alignment: Alignment.center,
-        child: Text(status, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12, color: active ? (status == 'L' ? blue : Colors.white) : blue.withValues(alpha: 0.4))),
+        child: Text(
+          status,
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            fontSize: 12,
+            color: active
+                ? (status == 'L' ? blue : Colors.white)
+                : blue.withValues(alpha: 0.4),
+          ),
+        ),
       ),
     );
   }
@@ -369,7 +559,12 @@ class _PremiumCard extends StatelessWidget {
     const blue = Color(0xFF0D1282);
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Color(0xFFEEEDED), border: Border.all(color: blue, width: 2.5), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))]),
+      decoration: BoxDecoration(
+        color: Color(0xFFEEEDED),
+        border: Border.all(color: blue, width: 2.5),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
+      ),
       child: child,
     );
   }
@@ -382,7 +577,13 @@ class _ActionBtn extends StatelessWidget {
   final Color yellow;
   final VoidCallback onPressed;
 
-  const _ActionBtn({required this.label, required this.icon, required this.blue, required this.yellow, required this.onPressed});
+  const _ActionBtn({
+    required this.label,
+    required this.icon,
+    required this.blue,
+    required this.yellow,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -390,12 +591,23 @@ class _ActionBtn extends StatelessWidget {
       onTap: onPressed,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(6)),
+        decoration: BoxDecoration(
+          color: yellow,
+          border: Border.all(color: blue, width: 2),
+          borderRadius: BorderRadius.circular(6),
+        ),
         child: Row(
           children: [
             Icon(icon, size: 14, color: blue),
             const SizedBox(width: 6),
-            Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue)),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                fontSize: 10,
+                color: blue,
+              ),
+            ),
           ],
         ),
       ),
@@ -410,12 +622,23 @@ class _AttStudent {
   final int attPct;
   String status;
 
-  _AttStudent({required this.id, required this.name, required this.batch, required this.attPct, this.status = 'P'});
+  _AttStudent({
+    required this.id,
+    required this.name,
+    required this.batch,
+    required this.attPct,
+    this.status = 'P',
+  });
 
   factory _AttStudent.fromMap(Map<String, dynamic> map) {
     final studentBatches = (map['student_batches'] as List<dynamic>? ?? []);
-    final firstBatch = studentBatches.isNotEmpty ? studentBatches.first as Map<dynamic, dynamic>? : null;
-    final batchName = (firstBatch?['batch'] as Map<dynamic, dynamic>?)?['name'] ?? map['batch'] ?? 'General';
+    final firstBatch = studentBatches.isNotEmpty
+        ? studentBatches.first as Map<dynamic, dynamic>?
+        : null;
+    final batchName =
+        (firstBatch?['batch'] as Map<dynamic, dynamic>?)?['name'] ??
+        map['batch'] ??
+        'General';
     return _AttStudent(
       id: (map['id'] ?? map['studentId'] ?? map['student_id'] ?? '').toString(),
       name: (map['name'] ?? 'Student').toString(),

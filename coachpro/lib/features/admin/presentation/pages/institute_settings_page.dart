@@ -30,7 +30,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
-  
+
   final _currencyCtrl = TextEditingController(text: '₹');
   final _lateFeeCtrl = TextEditingController(text: '50');
   final _dueDayCtrl = TextEditingController(text: '10');
@@ -48,14 +48,18 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
   Future<void> _loadSettings() async {
     try {
       final doc = await _adminRepo.getInstituteConfig();
-      _nameCtrl.text = doc['name'] ?? doc['instituteName'] ?? 'Excellence Academy';
-      _emailCtrl.text = doc['email'] ?? doc['contactEmail'] ?? 'info@excellence.academy';
+      _nameCtrl.text =
+          doc['name'] ?? doc['instituteName'] ?? 'Excellence Academy';
+      _emailCtrl.text =
+          doc['email'] ?? doc['contactEmail'] ?? 'info@excellence.academy';
       _phoneCtrl.text = doc['phone'] ?? doc['contactPhone'] ?? '+91 9876543210';
       _addressCtrl.text = doc['address'] ?? '123 Education Hub, Knowledge City';
 
       _currencyCtrl.text = doc['currency'] ?? '₹';
-      _lateFeeCtrl.text = (doc['late_fee_amount'] ?? doc['lateFeeAmount'] ?? 50).toString();
-      _dueDayCtrl.text = (doc['default_due_day'] ?? doc['defaultDueDay'] ?? 10).toString();
+      _lateFeeCtrl.text = (doc['late_fee_amount'] ?? doc['lateFeeAmount'] ?? 50)
+          .toString();
+      _dueDayCtrl.text = (doc['default_due_day'] ?? doc['defaultDueDay'] ?? 10)
+          .toString();
 
       _notifyOnAbsent = doc['notify_absent'] ?? doc['notifyAbsent'] ?? true;
       _notifyOnFeeDue = doc['notify_fee_due'] ?? doc['notifyFeeDue'] ?? true;
@@ -110,70 +114,193 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
               children: [
                 // ── HEADER ──
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
                   child: Row(
                     children: [
                       CPPressable(
                         onTap: () => context.pop(),
                         child: Container(
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: const Color(0xFF0D1282), width: 2), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2))]),
-                          child: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Color(0xFF0D1282)),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEEEDED),
+                            border: Border.all(
+                              color: const Color(0xFF0D1282),
+                              width: 2,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0xFF0D1282),
+                                offset: Offset(2, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: 20,
+                            color: Color(0xFF0D1282),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Institute Configuration', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: -1.0)),
-                          Text('Core system parameters', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF0D1282))),
+                          Text(
+                            'Institute Configuration',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF0D1282),
+                              letterSpacing: -1.0,
+                            ),
+                          ),
+                          Text(
+                            'Core system parameters',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF0D1282),
+                            ),
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                
+
                 Expanded(
                   child: _isLoading
-                      ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        )
                       : SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 8,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _sectionTitle('GENERAL INFORMATION', Icons.business_rounded, isDark),
+                              _sectionTitle(
+                                'GENERAL INFORMATION',
+                                Icons.business_rounded,
+                                isDark,
+                              ),
                               const SizedBox(height: 16),
-                              CustomTextField(label: 'Institute Name *', hint: 'Excellence Academy', controller: _nameCtrl, prefixIcon: Icons.account_balance_rounded),
+                              CustomTextField(
+                                label: 'Institute Name *',
+                                hint: 'Excellence Academy',
+                                controller: _nameCtrl,
+                                prefixIcon: Icons.account_balance_rounded,
+                              ),
                               const SizedBox(height: 16),
-                              CustomTextField(label: 'Contact Email', hint: 'info@excellence.academy', controller: _emailCtrl, prefixIcon: Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
+                              CustomTextField(
+                                label: 'Contact Email',
+                                hint: 'info@excellence.academy',
+                                controller: _emailCtrl,
+                                prefixIcon: Icons.alternate_email_rounded,
+                                keyboardType: TextInputType.emailAddress,
+                              ),
                               const SizedBox(height: 16),
-                              CustomTextField(label: 'Contact Phone', hint: '+91 ...', controller: _phoneCtrl, prefixIcon: Icons.phone_rounded, keyboardType: TextInputType.phone),
+                              CustomTextField(
+                                label: 'Contact Phone',
+                                hint: '+91 ...',
+                                controller: _phoneCtrl,
+                                prefixIcon: Icons.phone_rounded,
+                                keyboardType: TextInputType.phone,
+                              ),
                               const SizedBox(height: 16),
-                              CustomTextField(label: 'Physical Address', hint: 'Street, City, Code...', controller: _addressCtrl, prefixIcon: Icons.place_rounded, maxLines: 2),
-                              
+                              CustomTextField(
+                                label: 'Physical Address',
+                                hint: 'Street, City, Code...',
+                                controller: _addressCtrl,
+                                prefixIcon: Icons.place_rounded,
+                                maxLines: 2,
+                              ),
+
                               const SizedBox(height: 48),
 
-                              _sectionTitle('FINANCIAL ENGINE', Icons.account_balance_wallet_rounded, isDark),
+                              _sectionTitle(
+                                'FINANCIAL ENGINE',
+                                Icons.account_balance_wallet_rounded,
+                                isDark,
+                              ),
                               const SizedBox(height: 16),
                               Row(
                                 children: [
-                                  Expanded(child: CustomTextField(label: 'Currency', hint: '₹', controller: _currencyCtrl, prefixIcon: Icons.currency_rupee_rounded)),
+                                  Expanded(
+                                    child: CustomTextField(
+                                      label: 'Currency',
+                                      hint: '₹',
+                                      controller: _currencyCtrl,
+                                      prefixIcon: Icons.currency_rupee_rounded,
+                                    ),
+                                  ),
                                   const SizedBox(width: 16),
-                                  Expanded(child: CustomTextField(label: 'Late Penalty', hint: '50', controller: _lateFeeCtrl, prefixIcon: Icons.warning_rounded, keyboardType: TextInputType.number)),
+                                  Expanded(
+                                    child: CustomTextField(
+                                      label: 'Late Penalty',
+                                      hint: '50',
+                                      controller: _lateFeeCtrl,
+                                      prefixIcon: Icons.warning_rounded,
+                                      keyboardType: TextInputType.number,
+                                    ),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 16),
-                              CustomTextField(label: 'Standard Installment Day (1-28)', hint: '10', controller: _dueDayCtrl, prefixIcon: Icons.calendar_today_rounded, keyboardType: TextInputType.number),
-                              
+                              CustomTextField(
+                                label: 'Standard Installment Day (1-28)',
+                                hint: '10',
+                                controller: _dueDayCtrl,
+                                prefixIcon: Icons.calendar_today_rounded,
+                                keyboardType: TextInputType.number,
+                              ),
+
                               const SizedBox(height: 48),
 
-                              _sectionTitle('AUTOMATED COMMUNICATIONS', Icons.campaign_rounded, isDark),
+                              _sectionTitle(
+                                'AUTOMATED COMMUNICATIONS',
+                                Icons.campaign_rounded,
+                                isDark,
+                              ),
                               const SizedBox(height: 16),
-                              _settingsToggle(Icons.person_off_rounded, 'Attendance Alerts', 'Trigger SMS/Push when student is marked absent', _notifyOnAbsent, (val) => setState(() => _notifyOnAbsent = val), AppColors.error, isDark),
-                              _settingsToggle(Icons.receipt_long_rounded, 'Invoice Reminders', 'Auto-dispatch notices 3 days prior to due date', _notifyOnFeeDue, (val) => setState(() => _notifyOnFeeDue = val), AppColors.warning, isDark),
-                              _settingsToggle(Icons.task_rounded, 'Assessment Grades', 'Instant broadcast of grades upon upload', _notifyOnExam, (val) => setState(() => _notifyOnExam = val), AppColors.primary, isDark),
-                              
-                              const SizedBox(height: 120), // Padding for bottom nav
+                              _settingsToggle(
+                                Icons.person_off_rounded,
+                                'Attendance Alerts',
+                                'Trigger SMS/Push when student is marked absent',
+                                _notifyOnAbsent,
+                                (val) => setState(() => _notifyOnAbsent = val),
+                                AppColors.error,
+                                isDark,
+                              ),
+                              _settingsToggle(
+                                Icons.receipt_long_rounded,
+                                'Invoice Reminders',
+                                'Auto-dispatch notices 3 days prior to due date',
+                                _notifyOnFeeDue,
+                                (val) => setState(() => _notifyOnFeeDue = val),
+                                AppColors.warning,
+                                isDark,
+                              ),
+                              _settingsToggle(
+                                Icons.task_rounded,
+                                'Assessment Grades',
+                                'Instant broadcast of grades upon upload',
+                                _notifyOnExam,
+                                (val) => setState(() => _notifyOnExam = val),
+                                AppColors.primary,
+                                isDark,
+                              ),
+
+                              const SizedBox(
+                                height: 120,
+                              ), // Padding for bottom nav
                             ],
                           ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
                         ),
@@ -181,14 +308,29 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
               ],
             ),
           ),
-          
+
           // Custom Bottom Navigation Action
           Positioned(
-            bottom: 0, left: 0, right: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
             child: Container(
-              padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).padding.bottom + 16),
+              padding: EdgeInsets.fromLTRB(
+                24,
+                16,
+                24,
+                MediaQuery.of(context).padding.bottom + 16,
+              ),
               decoration: BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg, (isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg).withValues(alpha: 0)]),
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
+                    (isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg)
+                        .withValues(alpha: 0),
+                  ],
+                ),
               ),
               child: CPPressable(
                 onTap: () {
@@ -198,17 +340,47 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(color: const Color(0xFFF0DE36), border: Border.all(color: const Color(0xFF0D1282), width: 3), boxShadow: const [BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3))]),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0DE36),
+                    border: Border.all(
+                      color: const Color(0xFF0D1282),
+                      width: 3,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3)),
+                    ],
+                  ),
                   child: _isSaving
-                    ? const Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)))
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.shield_rounded, color: Color(0xFF0D1282), size: 20),
-                          const SizedBox(width: 8),
-                          Text('Commit System Configuration', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: -0.5)),
-                        ],
-                      ),
+                      ? const Center(
+                          child: SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.shield_rounded,
+                              color: Color(0xFF0D1282),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Commit System Configuration',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                color: const Color(0xFF0D1282),
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
               ),
             ),
@@ -219,26 +391,54 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
   }
 
   Widget _sectionTitle(String title, IconData icon, bool isDark) => Row(
-        children: [
-          Icon(icon, size: 16, color: isDark ? Colors.white54 : Colors.black54),
-          const SizedBox(width: 8),
-          Text(title, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w900, color: isDark ? Colors.white54 : Colors.black54, letterSpacing: 1.0)),
-        ],
-      );
+    children: [
+      Icon(icon, size: 16, color: isDark ? Colors.white54 : Colors.black54),
+      const SizedBox(width: 8),
+      Text(
+        title,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          color: isDark ? Colors.white54 : Colors.black54,
+          letterSpacing: 1.0,
+        ),
+      ),
+    ],
+  );
 
-  Widget _settingsToggle(IconData icon, String title, String subtitle, bool value, ValueChanged<bool> onChanged, Color accentColor, bool isDark) {
+  Widget _settingsToggle(
+    IconData icon,
+    String title,
+    String subtitle,
+    bool value,
+    ValueChanged<bool> onChanged,
+    Color accentColor,
+    bool isDark,
+  ) {
     return CPGlassCard(
       isDark: isDark,
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(bottom: 12),
       borderRadius: 20,
-      border: Border.all(color: value ? accentColor.withValues(alpha: 0.3) : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05))),
+      border: Border.all(
+        color: value
+            ? accentColor.withValues(alpha: 0.3)
+            : (isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.05)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFFEEEDED), border: Border.all(color: accentColor, width: 2), boxShadow: [BoxShadow(color: accentColor, offset: const Offset(2, 2))]),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEEDED),
+              border: Border.all(color: accentColor, width: 2),
+              boxShadow: [
+                BoxShadow(color: accentColor, offset: const Offset(2, 2)),
+              ],
+            ),
             child: Icon(icon, color: accentColor, size: 24),
           ),
           const SizedBox(width: 16),
@@ -246,25 +446,44 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282), letterSpacing: -0.5)),
+                Text(
+                  title,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0D1282),
+                    letterSpacing: -0.5,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF0D1282), height: 1.3)),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF0D1282),
+                    height: 1.3,
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(width: 16),
           Switch.adaptive(
             value: value,
-            onChanged: (v) { HapticFeedback.selectionClick(); onChanged(v); },
+            onChanged: (v) {
+              HapticFeedback.selectionClick();
+              onChanged(v);
+            },
             activeThumbColor: Colors.white,
             activeTrackColor: accentColor,
             inactiveThumbColor: isDark ? Colors.white38 : Colors.black38,
-            inactiveTrackColor: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.12),
+            inactiveTrackColor: isDark
+                ? Colors.white12
+                : Colors.black.withValues(alpha: 0.12),
           ),
         ],
       ),
     );
   }
 }
-
-

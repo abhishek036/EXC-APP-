@@ -175,18 +175,18 @@ class _OtpPageState extends State<OtpPage> {
       builder: (context, state) {
         final isLoading = state is AuthLoading;
         return Scaffold(
-          backgroundColor: const Color(0xFF080C1F), // Match login page background
+          backgroundColor: AppColors.elitePrimary, // Match login page background
           body: Stack(
             children: [
               // Ambient glows to match login page
               Positioned(top: -80, right: -80,
                 child: Container(width: 260, height: 260,
                   decoration: BoxDecoration(shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: const Color(0xFF0D1282).withValues(alpha: 0.25), blurRadius: 120, spreadRadius: 60)]))),
+                    boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.15), blurRadius: 120, spreadRadius: 60)]))),
               Positioned(bottom: -40, left: -40,
                 child: Container(width: 200, height: 200,
                   decoration: BoxDecoration(shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: const Color(0xFF4C6EF5).withValues(alpha: 0.12), blurRadius: 90, spreadRadius: 40)]))),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 90, spreadRadius: 40)]))),
 
               SafeArea(
                 child: SingleChildScrollView(
@@ -238,12 +238,15 @@ class _OtpPageState extends State<OtpPage> {
 
                       const SizedBox(height: 40),
 
-                      // ── Verification Card ────────────────
+                       // ── Verification Card ────────────────
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.offWhite,
                           borderRadius: BorderRadius.circular(24),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 32, offset: const Offset(0, 12))],
+                          boxShadow: [
+                            const BoxShadow(color: Colors.black, offset: Offset(8, 8)),
+                          ],
+                          border: Border.all(color: Colors.black, width: 2),
                         ),
                         padding: const EdgeInsets.all(24),
                         child: Column(
@@ -267,9 +270,9 @@ class _OtpPageState extends State<OtpPage> {
                                         filled: true,
                                         fillColor: const Color(0xFFF4F5FA),
                                         contentPadding: EdgeInsets.zero,
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE3E4EE), width: 1.5)),
-                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE3E4EE), width: 1.5)),
-                                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF0D1282), width: 2)),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 2)),
+                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 1.5)),
+                                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accent, width: 3)),
                                       ),
                                       inputFormatters: [
                                         FilteringTextInputFormatter.digitsOnly,
@@ -334,19 +337,20 @@ class _OtpPageState extends State<OtpPage> {
         duration: const Duration(milliseconds: 150),
         height: 54, width: double.infinity,
         decoration: BoxDecoration(
-          color: onTap == null ? const Color(0xFFE3E4EE) : const Color(0xFF0D1282),
+          color: onTap == null ? AppColors.offWhite : AppColors.accent,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: onTap == null ? null : [BoxShadow(color: const Color(0xFF0D1282).withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 6))],
+          border: Border.all(color: Colors.black, width: 2),
+          boxShadow: onTap == null ? null : [const BoxShadow(color: Colors.black, offset: Offset(4, 4))],
         ),
         child: Center(
           child: isLoading 
-              ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)) 
+              ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: AppColors.elitePrimary, strokeWidth: 2.5)) 
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: onTap == null ? const Color(0xFF8F97B8) : Colors.white, letterSpacing: -0.3)),
+                    Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: onTap == null ? AppColors.elitePrimary.withValues(alpha: 0.3) : AppColors.elitePrimary, letterSpacing: -0.3)),
                     const SizedBox(width: 10),
-                    Icon(icon, color: onTap == null ? const Color(0xFF8F97B8) : Colors.white, size: 20),
+                    Icon(icon, color: onTap == null ? AppColors.elitePrimary.withValues(alpha: 0.3) : AppColors.elitePrimary, size: 20),
                   ],
                 ),
         ),

@@ -28,8 +28,11 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
   int _index = 0;
 
   String? get _safeSelectedAssignmentId {
-    if (_selectedAssignmentId == null || _selectedAssignmentId!.isEmpty) return null;
-    final hasSelected = _assignments.any((a) => (a['id'] ?? '').toString() == _selectedAssignmentId);
+    if (_selectedAssignmentId == null || _selectedAssignmentId!.isEmpty)
+      return null;
+    final hasSelected = _assignments.any(
+      (a) => (a['id'] ?? '').toString() == _selectedAssignmentId,
+    );
     return hasSelected ? _selectedAssignmentId : null;
   }
 
@@ -51,7 +54,9 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
     setState(() => _loading = true);
     try {
       final assignments = await _repo.getAssignments(batchId: widget.batchId);
-      final selected = assignments.isNotEmpty ? (assignments.first['id'] ?? '').toString() : null;
+      final selected = assignments.isNotEmpty
+          ? (assignments.first['id'] ?? '').toString()
+          : null;
       if (!mounted) return;
       setState(() {
         _assignments = assignments;
@@ -96,7 +101,8 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
   }
 
   Map<String, dynamic>? get _current {
-    if (_submissions.isEmpty || _index < 0 || _index >= _submissions.length) return null;
+    if (_submissions.isEmpty || _index < 0 || _index >= _submissions.length)
+      return null;
     return _submissions[_index];
   }
 
@@ -142,10 +148,14 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
         }
       });
       _applyCurrent();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reviewed and saved')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Reviewed and saved')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Review failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Review failed: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -176,10 +186,20 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
       appBar: AppBar(
         backgroundColor: blue,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 22,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('ASSIGNMENT REVIEW', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: Text(
+          'ASSIGNMENT REVIEW',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+          ),
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: yellow))
@@ -192,17 +212,24 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
                     color: surface,
                     border: Border.all(color: blue, width: 2.5),
                     borderRadius: BorderRadius.circular(10),
-                    boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
+                    boxShadow: [
+                      BoxShadow(color: blue, offset: const Offset(4, 4)),
+                    ],
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _safeSelectedAssignmentId,
                       isExpanded: true,
                       items: _assignments
-                          .map((a) => DropdownMenuItem<String>(
-                                value: (a['id'] ?? '').toString(),
-                                child: Text((a['title'] ?? 'Assignment').toString(), overflow: TextOverflow.ellipsis),
-                              ))
+                          .map(
+                            (a) => DropdownMenuItem<String>(
+                              value: (a['id'] ?? '').toString(),
+                              child: Text(
+                                (a['title'] ?? 'Assignment').toString(),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
                           .toList(),
                       onChanged: (val) {
                         if (val == null || val.isEmpty) return;
@@ -218,7 +245,13 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
                 if (_submissions.isEmpty)
                   Expanded(
                     child: Center(
-                      child: Text('NO SUBMISSIONS FOUND', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w800)),
+                      child: Text(
+                        'NO SUBMISSIONS FOUND',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                   )
                 else
@@ -249,7 +282,8 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
 
   Widget _leftSubmissionCard(Color blue, Color surface, Color yellow) {
     final current = _current ?? {};
-    final student = ((current['student'] as Map?)?['name'] ?? 'Student').toString();
+    final student = ((current['student'] as Map?)?['name'] ?? 'Student')
+        .toString();
     final text = (current['submission_text'] ?? '').toString();
     final fileUrl = (current['file_url'] ?? '').toString();
 
@@ -266,17 +300,45 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
         children: [
           Row(
             children: [
-              Expanded(child: Text(student.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue))),
-              Text('${_index + 1}/${_submissions.length}', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue.withValues(alpha: 0.6))),
+              Expanded(
+                child: Text(
+                  student.toUpperCase(),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w900,
+                    color: blue,
+                  ),
+                ),
+              ),
+              Text(
+                '${_index + 1}/${_submissions.length}',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w800,
+                  color: blue.withValues(alpha: 0.6),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
-          Text('Submission', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue)),
+          Text(
+            'Submission',
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w800,
+              color: blue,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(text.isEmpty ? 'No text submitted.' : text, style: GoogleFonts.plusJakartaSans(color: blue.withValues(alpha: 0.8))),
+          Text(
+            text.isEmpty ? 'No text submitted.' : text,
+            style: GoogleFonts.plusJakartaSans(
+              color: blue.withValues(alpha: 0.8),
+            ),
+          ),
           if (fileUrl.isNotEmpty) ...[
             const SizedBox(height: 8),
-            SelectableText(fileUrl, style: GoogleFonts.jetBrainsMono(fontSize: 11, color: blue)),
+            SelectableText(
+              fileUrl,
+              style: GoogleFonts.jetBrainsMono(fontSize: 11, color: blue),
+            ),
           ],
         ],
       ),
@@ -295,7 +357,13 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Review', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
+          Text(
+            'Review',
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w900,
+              color: blue,
+            ),
+          ),
           const SizedBox(height: 10),
           TextField(
             controller: _marksCtrl,
@@ -317,12 +385,15 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
               OutlinedButton(onPressed: _next, child: const Text('Next')),
               const Spacer(),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: yellow, foregroundColor: blue),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: yellow,
+                  foregroundColor: blue,
+                ),
                 onPressed: _saving ? null : _saveAndNext,
                 child: Text(_saving ? 'Saving...' : 'Save & Next'),
               ),
             ],
-          )
+          ),
         ],
       ),
     );

@@ -14,7 +14,7 @@ import '../../data/repositories/admin_repository.dart';
 
 class BulkResultEntryPage extends StatefulWidget {
   final Map<String, dynamic> exam;
-  
+
   const BulkResultEntryPage({super.key, required this.exam});
 
   @override
@@ -46,7 +46,8 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
     setState(() => _isLoading = true);
     try {
       final batchId = widget.exam['batchId']?.toString();
-      if (batchId == null || batchId.isEmpty) throw Exception('No associated batch');
+      if (batchId == null || batchId.isEmpty)
+        throw Exception('No associated batch');
 
       final students = await _adminRepo.getStudents();
       // Only keep students in the exam's batch
@@ -56,7 +57,7 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
       }).toList();
 
       if (!mounted) return;
-      
+
       setState(() {
         _students = batchStudents;
         for (var student in _students) {
@@ -76,7 +77,7 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
 
   Future<void> _saveResults() async {
     final maxMarks = widget.exam['totalMarks'] as int? ?? 100;
-    
+
     final results = <Map<String, dynamic>>[];
     for (var entry in _controllers.entries) {
       final text = entry.value.text.trim();
@@ -84,13 +85,13 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
         final score = double.tryParse(text);
         if (score != null) {
           if (score < 0 || score > maxMarks) {
-            CPToast.error(context, 'Invalid score for some entries (Max: $maxMarks)');
+            CPToast.error(
+              context,
+              'Invalid score for some entries (Max: $maxMarks)',
+            );
             return;
           }
-          results.add({
-            'studentId': entry.key,
-            'score': score,
-          });
+          results.add({'studentId': entry.key, 'score': score});
         }
       }
     }
@@ -111,7 +112,7 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
           maxMarks: maxMarks,
         );
       }
-      
+
       if (!mounted) return;
       CPToast.success(context, 'Batch results deployed successfully');
       Navigator.pop(context, true);
@@ -134,8 +135,12 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
       body: Stack(
         children: [
           if (isDark) ...[
-            Positioned(top: -100, left: -50, child: _glow(300, AppColors.electricBlue.withValues(alpha: 0.1))),
-            Positioned(bottom: 100, right: -100, child: _glow(350, AppColors.elitePrimary.withValues(alpha: 0.05))),
+            Positioned(top: -100, left: -50, child: const SizedBox.shrink()),
+            Positioned(
+              bottom: 100,
+              right: -100,
+              child: const SizedBox.shrink(),
+            ),
           ],
           SafeArea(
             child: Column(
@@ -146,8 +151,12 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: CPGlassCard(
-                    isDark: isDark, padding: const EdgeInsets.all(16), borderRadius: 20,
-                    border: Border.all(color: AppColors.electricBlue.withValues(alpha: 0.3)),
+                    isDark: isDark,
+                    padding: const EdgeInsets.all(16),
+                    borderRadius: 20,
+                    border: Border.all(
+                      color: AppColors.electricBlue.withValues(alpha: 0.3),
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -155,21 +164,61 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Evaluation Parameters', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: isDark ? Colors.white54 : Colors.black54, letterSpacing: 0.5)),
+                              Text(
+                                'Evaluation Parameters',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark
+                                      ? Colors.white54
+                                      : Colors.black54,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
                               const SizedBox(height: 6),
-                              Text(examName, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
+                              Text(
+                                examName,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.deepNavy,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(color: AppColors.electricBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.electricBlue.withValues(
+                              alpha: 0.1,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.stars_rounded, size: 14, color: AppColors.electricBlue),
+                              const Icon(
+                                Icons.stars_rounded,
+                                size: 14,
+                                color: AppColors.electricBlue,
+                              ),
                               const SizedBox(width: 4),
-                              Text('MAX $totalMarks', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.electricBlue, letterSpacing: 0.5)),
+                              Text(
+                                'MAX $totalMarks',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.electricBlue,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -187,8 +236,12 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
                   Padding(
                     padding: const EdgeInsets.all(20),
                     child: CustomButton(
-                      text: _isSaving ? 'Processing Protocol...' : 'Deploy Bulk Results',
-                      icon: _isSaving ? Icons.hourglass_empty_rounded : Icons.check_circle_rounded,
+                      text: _isSaving
+                          ? 'Processing Protocol...'
+                          : 'Deploy Bulk Results',
+                      icon: _isSaving
+                          ? Icons.hourglass_empty_rounded
+                          : Icons.check_circle_rounded,
                       onPressed: _isSaving ? () {} : _saveResults,
                     ),
                   ),
@@ -200,8 +253,6 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
     );
   }
 
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
-
   Widget _buildAppBar(BuildContext context, bool isDark) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
@@ -209,10 +260,24 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
         children: [
           CPPressable(
             onTap: () => Navigator.pop(context),
-            child: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: isDark ? Colors.white : AppColors.deepNavy),
+            child: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 20,
+              color: isDark ? Colors.white : AppColors.deepNavy,
+            ),
           ),
           const SizedBox(width: 16),
-          Expanded(child: Text('Bulk Grading', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.8))),
+          Expanded(
+            child: Text(
+              'Bulk Grading',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white : AppColors.deepNavy,
+                letterSpacing: -0.8,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -223,7 +288,8 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
       padding: const EdgeInsets.all(20),
       itemCount: 8,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) => CPShimmer(width: double.infinity, height: 80, borderRadius: 16),
+      itemBuilder: (context, index) =>
+          CPShimmer(width: double.infinity, height: 80, borderRadius: 16),
     );
   }
 
@@ -233,9 +299,20 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.group_off_rounded, size: 48, color: isDark ? Colors.white24 : Colors.black26),
+            Icon(
+              Icons.group_off_rounded,
+              size: 48,
+              color: isDark ? Colors.white24 : Colors.black26,
+            ),
             const SizedBox(height: 16),
-            Text('No scholars found in batch', style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white38 : Colors.black45, fontWeight: FontWeight.w600)),
+            Text(
+              'No scholars found in batch',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: isDark ? Colors.white38 : Colors.black45,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       );
@@ -250,40 +327,80 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
         final name = student['name'] ?? 'Student';
         final roll = student['rollNumber'] ?? 'Unknown Roll';
         final sid = student['id'].toString();
-        
+
         return CPGlassCard(
-          isDark: isDark, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), borderRadius: 20,
-          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
-          child: Row(
-            children: [
-              Container(width: 44, height: 44, decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(14)), child: const Center(child: Icon(Icons.person_rounded, size: 20, color: AppColors.electricBlue))),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -0.5)),
-                    const SizedBox(height: 2),
-                    Text(roll, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black45)),
-                  ],
-                ),
+              isDark: isDark,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              borderRadius: 20,
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.05),
               ),
-              const SizedBox(width: 16),
-              SizedBox(
-                width: 80,
-                child: CustomTextField(
-                  hint: 'Score',
-                  controller: _controllers[sid],
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  textAlign: TextAlign.center,
-                ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.person_rounded,
+                        size: 20,
+                        color: AppColors.electricBlue,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : AppColors.deepNavy,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          roll,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white38 : Colors.black45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  SizedBox(
+                    width: 80,
+                    child: CustomTextField(
+                      hint: 'Score',
+                      controller: _controllers[sid],
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ).animate(delay: (30 * i).ms).fadeIn(duration: 400.ms).slideY(begin: 0.1);
+            )
+            .animate(delay: (30 * i).ms)
+            .fadeIn(duration: 400.ms)
+            .slideY(begin: 0.1);
       },
     );
   }
 }
-
-

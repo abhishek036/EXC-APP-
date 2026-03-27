@@ -20,7 +20,8 @@ class TeacherProfilePage extends StatefulWidget {
   State<TeacherProfilePage> createState() => _TeacherProfilePageState();
 }
 
-class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTickerProviderStateMixin {
+class _TeacherProfilePageState extends State<TeacherProfilePage>
+    with SingleTickerProviderStateMixin {
   final AdminRepository _adminRepo = sl<AdminRepository>();
   late TabController _tabController;
 
@@ -86,7 +87,9 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final data = await _adminRepo.getTeacherProfileDashboard(widget.teacherId);
+      final data = await _adminRepo.getTeacherProfileDashboard(
+        widget.teacherId,
+      );
       final teacher = Map<String, dynamic>.from(data['teacher'] as Map? ?? {});
       final subjects = ((teacher['subjects'] as List?) ?? const [])
           .map((e) => e.toString())
@@ -99,7 +102,9 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
       _emailCtrl.text = (teacher['email'] ?? '').toString();
       _qualificationCtrl.text = (teacher['qualification'] ?? '').toString();
 
-      final compensation = Map<String, dynamic>.from(data['compensation'] as Map? ?? {});
+      final compensation = Map<String, dynamic>.from(
+        data['compensation'] as Map? ?? {},
+      );
       _salaryCtrl.text = compensation['salary']?.toString() ?? '';
       _revenueCtrl.text = compensation['revenue_share']?.toString() ?? '';
 
@@ -107,9 +112,15 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
       setState(() {
         _teacher = teacher;
         _stats = Map<String, dynamic>.from(data['stats'] as Map? ?? {});
-        _attendance = Map<String, dynamic>.from(data['attendance'] as Map? ?? {});
-        _permissions = Map<String, dynamic>.from(data['permissions'] as Map? ?? {});
-        _feedbackSummary = Map<String, dynamic>.from(data['feedback_summary'] as Map? ?? {});
+        _attendance = Map<String, dynamic>.from(
+          data['attendance'] as Map? ?? {},
+        );
+        _permissions = Map<String, dynamic>.from(
+          data['permissions'] as Map? ?? {},
+        );
+        _feedbackSummary = Map<String, dynamic>.from(
+          data['feedback_summary'] as Map? ?? {},
+        );
         _activityTimeline = ((data['activity_timeline'] as List?) ?? const [])
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList();
@@ -187,8 +198,12 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
       await _adminRepo.addTeacherFeedback(
         teacherId: widget.teacherId,
         rating: _feedbackRating,
-        comment: _feedbackCommentCtrl.text.trim().isEmpty ? null : _feedbackCommentCtrl.text.trim(),
-        studentName: _feedbackStudentCtrl.text.trim().isEmpty ? null : _feedbackStudentCtrl.text.trim(),
+        comment: _feedbackCommentCtrl.text.trim().isEmpty
+            ? null
+            : _feedbackCommentCtrl.text.trim(),
+        studentName: _feedbackStudentCtrl.text.trim().isEmpty
+            ? null
+            : _feedbackStudentCtrl.text.trim(),
       );
       if (!mounted) return;
       _feedbackCommentCtrl.clear();
@@ -215,7 +230,10 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
     }
 
     final teacherName = (_teacher!['name'] ?? 'Teacher').toString();
-    final subjects = (( _teacher!['subjects'] as List?) ?? const []).map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
+    final subjects = ((_teacher!['subjects'] as List?) ?? const [])
+        .map((e) => e.toString())
+        .where((e) => e.isNotEmpty)
+        .toList();
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
@@ -227,7 +245,11 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
             backgroundColor: const Color(0xFF0D1282),
             leading: CPPressable(
               onTap: () => context.pop(),
-              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
             actions: [
               CPPressable(
@@ -241,17 +263,40 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
                 },
                 child: Container(
                   margin: const EdgeInsets.only(right: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(color: const Color(0xFFF0DE36), borderRadius: BorderRadius.circular(20)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0DE36),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   child: Row(
                     children: [
                       _saving
-                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0D1282)))
-                          : Icon(_editMode ? Icons.check_rounded : Icons.edit_rounded, size: 14, color: const Color(0xFF0D1282)),
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF0D1282),
+                              ),
+                            )
+                          : Icon(
+                              _editMode
+                                  ? Icons.check_rounded
+                                  : Icons.edit_rounded,
+                              size: 14,
+                              color: const Color(0xFF0D1282),
+                            ),
                       const SizedBox(width: 6),
                       Text(
                         _editMode ? (_saving ? 'SAVING...' : 'SAVE') : 'EDIT',
-                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282)),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0D1282),
+                        ),
                       ),
                     ],
                   ),
@@ -260,9 +305,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF0D1282), Color(0xFF1A1F71)]),
-                ),
+                decoration: const BoxDecoration(color: Color(0xFF0D1282)),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -270,16 +313,42 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
                     Container(
                       width: 80,
                       height: 80,
-                      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3), color: Colors.white24),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        color: Colors.white24,
+                      ),
                       alignment: Alignment.center,
                       child: Text(
-                        teacherName.isNotEmpty ? teacherName[0].toUpperCase() : 'T',
-                        style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white),
+                        teacherName.isNotEmpty
+                            ? teacherName[0].toUpperCase()
+                            : 'T',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(teacherName, style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
-                    Text(subjects.isNotEmpty ? subjects.join(', ') : 'Faculty Mentor', style: GoogleFonts.inter(fontSize: 14, color: Colors.white70, fontWeight: FontWeight.w600)),
+                    Text(
+                      teacherName,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      subjects.isNotEmpty
+                          ? subjects.join(', ')
+                          : 'Faculty Mentor',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -320,7 +389,10 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
         unselectedLabelColor: Colors.grey,
         indicatorColor: const Color(0xFFF0DE36),
         indicatorWeight: 4,
-        labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 13),
+        labelStyle: GoogleFonts.plusJakartaSans(
+          fontWeight: FontWeight.w800,
+          fontSize: 13,
+        ),
         tabs: const [
           Tab(text: 'PROFILE'),
           Tab(text: 'BATCHES'),
@@ -343,10 +415,32 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
         _sectionHeader('Editable Profile Details'),
         const SizedBox(height: 16),
         _field('Full Name', _nameCtrl, Icons.person_rounded, isDark),
-        _field('Subject Expertise (comma separated)', _subjectsCtrl, Icons.book_rounded, isDark),
-        _field('Phone', _phoneCtrl, Icons.phone_rounded, isDark, keyboard: TextInputType.phone),
-        _field('Email', _emailCtrl, Icons.email_rounded, isDark, keyboard: TextInputType.emailAddress),
-        _field('Qualification', _qualificationCtrl, Icons.workspace_premium_rounded, isDark),
+        _field(
+          'Subject Expertise (comma separated)',
+          _subjectsCtrl,
+          Icons.book_rounded,
+          isDark,
+        ),
+        _field(
+          'Phone',
+          _phoneCtrl,
+          Icons.phone_rounded,
+          isDark,
+          keyboard: TextInputType.phone,
+        ),
+        _field(
+          'Email',
+          _emailCtrl,
+          Icons.email_rounded,
+          isDark,
+          keyboard: TextInputType.emailAddress,
+        ),
+        _field(
+          'Qualification',
+          _qualificationCtrl,
+          Icons.workspace_premium_rounded,
+          isDark,
+        ),
         const SizedBox(height: 20),
         _sectionHeader('Performance Snapshot'),
         const SizedBox(height: 12),
@@ -357,9 +451,24 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _metricItem(avgRating, 'Rating', Icons.star_rounded, Colors.orange),
-              _metricItem('$classesWeek', 'Classes (7d)', Icons.event_available_rounded, Colors.green),
-              _metricItem('$pendingDoubts', 'Pending Doubts', Icons.help_center_rounded, Colors.blue),
+              _metricItem(
+                avgRating,
+                'Rating',
+                Icons.star_rounded,
+                Colors.orange,
+              ),
+              _metricItem(
+                '$classesWeek',
+                'Classes (7d)',
+                Icons.event_available_rounded,
+                Colors.green,
+              ),
+              _metricItem(
+                '$pendingDoubts',
+                'Pending Doubts',
+                Icons.help_center_rounded,
+                Colors.blue,
+              ),
             ],
           ),
         ),
@@ -378,7 +487,9 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final batch = _batches[index];
-        final studentCount = _toNum(((batch['_count'] as Map?)?['student_batches'])).toInt();
+        final studentCount = _toNum(
+          ((batch['_count'] as Map?)?['student_batches']),
+        ).toInt();
         return CPPressable(
           onTap: () {
             context.push('/admin/batches/${batch['id']}').then((_) {
@@ -398,13 +509,31 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text((batch['name'] ?? 'Batch').toString(), style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 14, color: const Color(0xFF0D1282))),
+                      Text(
+                        (batch['name'] ?? 'Batch').toString(),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: const Color(0xFF0D1282),
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text('Students: $studentCount', style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
+                      Text(
+                        'Students: $studentCount',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Color(0xFF0D1282)),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 12,
+                  color: Color(0xFF0D1282),
+                ),
               ],
             ),
           ),
@@ -429,11 +558,32 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Total sessions marked: $totalSessions', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
+              Text(
+                'Total sessions marked: $totalSessions',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0D1282),
+                ),
+              ),
               const SizedBox(height: 8),
-              Text('Sessions in last 30 days: $sessionsLast30', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
+              Text(
+                'Sessions in last 30 days: $sessionsLast30',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0D1282),
+                ),
+              ),
               const SizedBox(height: 8),
-              Text('Batches currently assigned: ${_batches.length}', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0D1282))),
+              Text(
+                'Batches currently assigned: ${_batches.length}',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0D1282),
+                ),
+              ),
             ],
           ),
         ),
@@ -461,8 +611,20 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
             children: [
               Column(
                 children: [
-                  Container(width: 12, height: 12, decoration: const BoxDecoration(color: Color(0xFFF0DE36), shape: BoxShape.circle)),
-                  Expanded(child: Container(width: 2, color: Colors.grey.withValues(alpha: 0.3))),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF0DE36),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      color: Colors.grey.withValues(alpha: 0.3),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(width: 14),
@@ -476,15 +638,33 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 13, color: const Color(0xFF0D1282))),
+                        Text(
+                          title,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: const Color(0xFF0D1282),
+                          ),
+                        ),
                         if (batchName.isNotEmpty) ...[
                           const SizedBox(height: 4),
-                          Text(batchName, style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.w700)),
+                          Text(
+                            batchName,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ],
                         const SizedBox(height: 4),
                         Text(
                           '${type.toUpperCase()} • ${at != null ? '${at.year}-${at.month.toString().padLeft(2, '0')}-${at.day.toString().padLeft(2, '0')} ${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}' : 'Unknown time'}',
-                          style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
@@ -499,9 +679,10 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
   }
 
   Widget _buildAccessAndFeedbackTab(bool isDark) {
-    final recentFeedbacks = ((_feedbackSummary['recent_feedbacks'] as List?) ?? const [])
-        .map((e) => Map<String, dynamic>.from(e as Map))
-        .toList();
+    final recentFeedbacks =
+        ((_feedbackSummary['recent_feedbacks'] as List?) ?? const [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -510,18 +691,41 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
         const SizedBox(height: 12),
         _toggleRow('Can edit attendance', 'can_edit_attendance', isDark),
         _toggleRow('Can see fee data', 'can_see_fee_data', isDark),
-        _toggleRow('Can upload study material', 'can_upload_study_material', isDark),
+        _toggleRow(
+          'Can upload study material',
+          'can_upload_study_material',
+          isDark,
+        ),
         _toggleRow('Can create exams', 'can_create_exams', isDark),
         _toggleRow('Can manage students', 'can_manage_students', isDark),
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(child: _field('Salary', _salaryCtrl, Icons.payments_rounded, isDark, keyboard: TextInputType.number)),
+            Expanded(
+              child: _field(
+                'Salary',
+                _salaryCtrl,
+                Icons.payments_rounded,
+                isDark,
+                keyboard: TextInputType.number,
+              ),
+            ),
             const SizedBox(width: 8),
-            Expanded(child: _field('Revenue %', _revenueCtrl, Icons.percent_rounded, isDark, keyboard: TextInputType.number)),
+            Expanded(
+              child: _field(
+                'Revenue %',
+                _revenueCtrl,
+                Icons.percent_rounded,
+                isDark,
+                keyboard: TextInputType.number,
+              ),
+            ),
           ],
         ),
-        CustomButton(text: 'Save Access Settings', onPressed: _updatePermissions),
+        CustomButton(
+          text: 'Save Access Settings',
+          onPressed: _updatePermissions,
+        ),
         const SizedBox(height: 20),
         _sectionHeader('Performance / Feedback'),
         const SizedBox(height: 12),
@@ -532,8 +736,18 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _metricItem(_toNum(_feedbackSummary['average_rating']).toStringAsFixed(2), 'Avg Rating', Icons.star_rounded, Colors.orange),
-              _metricItem('${_toNum(_feedbackSummary['feedback_count']).toInt()}', 'Feedback Count', Icons.rate_review_rounded, Colors.blue),
+              _metricItem(
+                _toNum(_feedbackSummary['average_rating']).toStringAsFixed(2),
+                'Avg Rating',
+                Icons.star_rounded,
+                Colors.orange,
+              ),
+              _metricItem(
+                '${_toNum(_feedbackSummary['feedback_count']).toInt()}',
+                'Feedback Count',
+                Icons.rate_review_rounded,
+                Colors.blue,
+              ),
             ],
           ),
         ),
@@ -561,7 +775,13 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
         const SizedBox(height: 8),
         Row(
           children: [
-            Text('Rating', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))),
+            Text(
+              'Rating',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0D1282),
+              ),
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Slider(
@@ -580,10 +800,18 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
         CustomButton(text: 'Add Feedback', onPressed: _submitFeedback),
         const SizedBox(height: 12),
         if (recentFeedbacks.isEmpty)
-          Text('No feedback entries yet.', style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600))
+          Text(
+            'No feedback entries yet.',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          )
         else
           ...recentFeedbacks.map((item) {
-            final createdAt = DateTime.tryParse((item['created_at'] ?? '').toString());
+            final createdAt = DateTime.tryParse(
+              (item['created_at'] ?? '').toString(),
+            );
             return CPGlassCard(
               isDark: isDark,
               padding: const EdgeInsets.all(12),
@@ -593,17 +821,32 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('⭐ ${_toNum(item['rating']).toStringAsFixed(1)}  ${item['student_name'] ?? ''}', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))),
+                    Text(
+                      '⭐ ${_toNum(item['rating']).toStringAsFixed(1)}  ${item['student_name'] ?? ''}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0D1282),
+                      ),
+                    ),
                     if ((item['comment'] ?? '').toString().isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Text((item['comment'] ?? '').toString(), style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade800)),
+                      Text(
+                        (item['comment'] ?? '').toString(),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 4),
                     Text(
                       createdAt == null
                           ? 'Unknown date'
                           : '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}',
-                      style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                   ],
                 ),
@@ -614,20 +857,34 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
     );
   }
 
-  Widget _field(String label, TextEditingController controller, IconData icon, bool isDark, {TextInputType keyboard = TextInputType.text}) {
+  Widget _field(
+    String label,
+    TextEditingController controller,
+    IconData icon,
+    bool isDark, {
+    TextInputType keyboard = TextInputType.text,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: controller,
         enabled: _editMode || label == 'Salary' || label == 'Revenue %',
         keyboardType: keyboard,
-        style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy),
+        style: GoogleFonts.plusJakartaSans(
+          fontWeight: FontWeight.w700,
+          color: isDark ? Colors.white : AppColors.deepNavy,
+        ),
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, size: 18, color: const Color(0xFF0D1282)),
           filled: true,
-          fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.withValues(alpha: 0.05),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          fillColor: isDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.grey.withValues(alpha: 0.05),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
     );
@@ -644,7 +901,12 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(child: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w700))),
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+              ),
+            ),
             Switch(
               value: current,
               onChanged: (value) {
@@ -664,8 +926,21 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
       children: [
         Icon(icon, color: color, size: 22),
         const SizedBox(height: 6),
-        Text(value, style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900)),
-        Text(label, style: GoogleFonts.inter(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w700)),
+        Text(
+          value,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            color: Colors.grey,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ],
     );
   }
@@ -673,7 +948,12 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
   Widget _sectionHeader(String title) {
     return Text(
       title.toUpperCase(),
-      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 1.1),
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 12,
+        fontWeight: FontWeight.w900,
+        color: const Color(0xFF0D1282),
+        letterSpacing: 1.1,
+      ),
     );
   }
 
@@ -684,11 +964,15 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> with SingleTick
         children: [
           Icon(icon, size: 48, color: Colors.grey.withValues(alpha: 0.3)),
           const SizedBox(height: 16),
-          Text(message, style: GoogleFonts.inter(color: Colors.grey, fontWeight: FontWeight.w600)),
+          Text(
+            message,
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.grey,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
   }
 }
-
-

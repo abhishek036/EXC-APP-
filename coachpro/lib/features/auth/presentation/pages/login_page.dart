@@ -111,19 +111,19 @@ class _LoginPageState extends State<LoginPage> {
       builder: (context, state) {
         final isLoading = state is AuthLoading;
         return Scaffold(
-          backgroundColor: const Color(0xFF080C1F), // Very deep navy
+          backgroundColor: AppColors.elitePrimary, // Deep Blue Base
           body: Stack(
             children: [
-              // Subtle ambient glow — top right
+              // Soft Yellow ambient glow — top right
               Positioned(top: -80, right: -80,
                 child: Container(width: 260, height: 260,
                   decoration: BoxDecoration(shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: const Color(0xFF0D1282).withValues(alpha: 0.25), blurRadius: 120, spreadRadius: 60)]))),
-              // Subtle ambient glow — bottom left
+                    boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.15), blurRadius: 120, spreadRadius: 60)]))),
+              // Deep Blue ambient glow — bottom left
               Positioned(bottom: -40, left: -40,
                 child: Container(width: 200, height: 200,
                   decoration: BoxDecoration(shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: const Color(0xFF4C6EF5).withValues(alpha: 0.12), blurRadius: 90, spreadRadius: 40)]))),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 90, spreadRadius: 40)]))),
 
               SafeArea(
                 child: SingleChildScrollView(
@@ -147,7 +147,7 @@ class _LoginPageState extends State<LoginPage> {
                       ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.85, 0.85), curve: Curves.easeOutBack),
 
                       const SizedBox(height: 16),
-                      Text('CoachPro Elite',
+                      Text('Excellence Academy',
                         style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.8),
                       ).animate(delay: 150.ms).fadeIn(),
                       const SizedBox(height: 4),
@@ -160,9 +160,12 @@ class _LoginPageState extends State<LoginPage> {
                       // ── Login Card ───────────────────────
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.offWhite,
                           borderRadius: BorderRadius.circular(24),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 32, offset: const Offset(0, 12))],
+                          boxShadow: [
+                            const BoxShadow(color: Colors.black, offset: Offset(8, 8)), // Neo-brutalist shadow
+                          ],
+                          border: Border.all(color: Colors.black, width: 2),
                         ),
                         padding: const EdgeInsets.all(24),
                         child: Column(
@@ -196,11 +199,11 @@ class _LoginPageState extends State<LoginPage> {
                                       margin: EdgeInsets.only(right: role != UserRole.parent ? 8 : 0),
                                       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                                       decoration: BoxDecoration(
-                                        color: isSelected ? const Color(0xFF0D1282) : const Color(0xFFF4F5FA),
+                                        color: isSelected ? AppColors.accent : Colors.white,
                                         borderRadius: BorderRadius.circular(14),
                                         border: Border.all(
-                                          color: isSelected ? const Color(0xFF0D1282) : const Color(0xFFE3E4EE),
-                                          width: 1.5,
+                                          color: Colors.black,
+                                          width: 2,
                                         ),
                                       ),
                                       child: Column(
@@ -208,20 +211,20 @@ class _LoginPageState extends State<LoginPage> {
                                         children: [
                                           Icon(meta['icon'] as IconData,
                                             size: 20,
-                                            color: isSelected ? Colors.white : const Color(0xFF0D1282)),
+                                            color: isSelected ? AppColors.elitePrimary : AppColors.elitePrimary.withValues(alpha: 0.6)),
                                           const SizedBox(height: 5),
                                           Text(meta['label'] as String,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                              color: isSelected ? Colors.white : const Color(0xFF0A0C1E),
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.elitePrimary,
                                             )),
                                           const SizedBox(height: 2),
                                           Text(meta['sub'] as String,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 8,
-                                              fontWeight: FontWeight.w500,
-                                              color: isSelected ? Colors.white.withValues(alpha: 0.75) : const Color(0xFF8F97B8),
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.elitePrimary.withValues(alpha: 0.7),
                                             ),
                                             textAlign: TextAlign.center,
                                             overflow: TextOverflow.ellipsis),
@@ -346,7 +349,7 @@ class _LoginPageState extends State<LoginPage> {
                       ).animate(delay: 500.ms).fadeIn(),
 
                       const SizedBox(height: 36),
-                      Text('© 2026 CoachPro Elite. All Rights Reserved.',
+                      Text('© 2026 Excellence Academy. All Rights Reserved.',
                         style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white.withValues(alpha: 0.3), fontWeight: FontWeight.w500)),
                       const SizedBox(height: 24),
                     ],
@@ -433,19 +436,20 @@ class _LoginPageState extends State<LoginPage> {
         height: 54,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFF0D1282),
+          color: AppColors.accent,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(color: const Color(0xFF0D1282).withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 6))],
+          border: Border.all(color: Colors.black, width: 2),
+          boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(4, 4))],
         ),
         child: Center(
           child: isLoading
-            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: AppColors.elitePrimary, strokeWidth: 2.5))
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: -0.3)),
+                  Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.elitePrimary, letterSpacing: -0.3)),
                   const SizedBox(width: 10),
-                  const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                  const Icon(Icons.arrow_forward_rounded, color: AppColors.elitePrimary, size: 20),
                 ],
               ),
         ),

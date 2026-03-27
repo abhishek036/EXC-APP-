@@ -37,7 +37,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
       _error = '';
     });
     try {
-      final doubts = await _studentRepo.getMyDoubts(); 
+      final doubts = await _studentRepo.getMyDoubts();
       if (!mounted) return;
       setState(() {
         _doubts = doubts;
@@ -47,7 +47,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
       if (!mounted) return;
       setState(() {
         // Fallback for demo purposes if backend method not fully implemented in student repo
-        _doubts = []; 
+        _doubts = [];
         _error = 'Failed to load doubts network Error';
         _isLoading = false;
       });
@@ -63,8 +63,12 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
       body: Stack(
         children: [
           if (isDark) ...[
-            Positioned(top: -100, left: -50, child: _glow(300, AppColors.electricBlue.withValues(alpha: 0.1))),
-            Positioned(bottom: 200, right: -150, child: _glow(400, AppColors.elitePurple.withValues(alpha: 0.05))),
+            const Positioned(top: -100, left: -50, child: SizedBox.shrink()),
+            const Positioned(
+              bottom: 200,
+              right: -150,
+              child: SizedBox.shrink(),
+            ),
           ],
           SafeArea(
             child: Column(
@@ -75,8 +79,16 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
                   child: _isLoading
                       ? _buildShimmer()
                       : _error.isNotEmpty && _doubts.isEmpty
-                          ? Center(child: Text(_error, style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white38 : Colors.black45)))
-                          : _buildDoubtsList(isDark),
+                      ? Center(
+                          child: Text(
+                            _error,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              color: isDark ? Colors.white38 : Colors.black45,
+                            ),
+                          ),
+                        )
+                      : _buildDoubtsList(isDark),
                 ),
               ],
             ),
@@ -90,12 +102,16 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
         },
         backgroundColor: AppColors.electricBlue,
         icon: const Icon(Icons.add_comment_rounded, color: Colors.white),
-        label: Text('Ask Doubt', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: Colors.white)),
+        label: Text(
+          'Ask Doubt',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }
-
-  Widget _glow(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: size / 2)]));
 
   Widget _buildAppBar(BuildContext context, bool isDark) {
     return Padding(
@@ -103,13 +119,30 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('My Doubts', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.deepNavy, letterSpacing: -1)),
+          Text(
+            'My Doubts',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: isDark ? Colors.white : AppColors.deepNavy,
+              letterSpacing: -1,
+            ),
+          ),
           CPPressable(
             onTap: _loadDoubts,
             child: Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05), shape: BoxShape.circle),
-              child: Icon(Icons.refresh_rounded, size: 20, color: isDark ? Colors.white : AppColors.deepNavy),
+              decoration: BoxDecoration(
+                color: (isDark ? Colors.white : Colors.black).withValues(
+                  alpha: 0.05,
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.refresh_rounded,
+                size: 20,
+                color: isDark ? Colors.white : AppColors.deepNavy,
+              ),
             ),
           ),
         ],
@@ -122,7 +155,11 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
       padding: const EdgeInsets.all(20),
       itemCount: 6,
       separatorBuilder: (context, index) => const SizedBox(height: 16),
-      itemBuilder: (context, index) => const CPShimmer(width: double.infinity, height: 120, borderRadius: 20),
+      itemBuilder: (context, index) => const CPShimmer(
+        width: double.infinity,
+        height: 120,
+        borderRadius: 20,
+      ),
     );
   }
 
@@ -134,13 +171,36 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
           children: [
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.02), shape: BoxShape.circle),
-              child: Icon(Icons.forum_outlined, size: 64, color: isDark ? Colors.white24 : Colors.black26),
+              decoration: BoxDecoration(
+                color: (isDark ? Colors.white : Colors.black).withValues(
+                  alpha: 0.02,
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.forum_outlined,
+                size: 64,
+                color: isDark ? Colors.white24 : Colors.black26,
+              ),
             ),
             const SizedBox(height: 16),
-            Text('No questions asked yet.', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white38 : Colors.black45)),
+            Text(
+              'No questions asked yet.',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white38 : Colors.black45,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text('Tap the + button to ask a new doubt.', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: isDark ? Colors.white24 : Colors.black26)),
+            Text(
+              'Tap the + button to ask a new doubt.',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white24 : Colors.black26,
+              ),
+            ),
           ],
         ),
       );
@@ -150,63 +210,138 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
       onRefresh: _loadDoubts,
       color: AppColors.electricBlue,
       child: ListView.separated(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 100),
+        padding: const EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 10,
+          bottom: 100,
+        ),
         itemCount: _doubts.length,
         separatorBuilder: (context, index) => const SizedBox(height: 16),
         itemBuilder: (context, i) {
           final doubt = _doubts[i];
-          final question = (doubt['questionText'] ?? doubt['question_text'] ?? '').toString();
-          final status = (doubt['status'] ?? 'pending').toString().toLowerCase();
-          final dt = DateTime.tryParse((doubt['createdAt'] ?? doubt['created_at'] ?? '').toString());
-          final dateStr = dt != null ? DateFormat('MMM d, h:mm a').format(dt) : '—';
-          
+          final question =
+              (doubt['questionText'] ?? doubt['question_text'] ?? '')
+                  .toString();
+          final status = (doubt['status'] ?? 'pending')
+              .toString()
+              .toLowerCase();
+          final dt = DateTime.tryParse(
+            (doubt['createdAt'] ?? doubt['created_at'] ?? '').toString(),
+          );
+          final dateStr = dt != null
+              ? DateFormat('MMM d, h:mm a').format(dt)
+              : '—';
+
           final isResolved = status == 'resolved';
           final sColor = isResolved ? AppColors.success : AppColors.warning;
 
           return CPGlassCard(
-            isDark: isDark, padding: const EdgeInsets.all(20), borderRadius: 24,
-            border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: sColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                      child: Text(isResolved ? 'RESOLVED' : 'PENDING', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: sColor, letterSpacing: 0.5)),
-                    ),
-                    const Spacer(),
-                    Text(dateStr, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black38)),
-                  ],
+                isDark: isDark,
+                padding: const EdgeInsets.all(20),
+                borderRadius: 24,
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.05),
                 ),
-                const SizedBox(height: 16),
-                Text(question, style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColors.deepNavy, height: 1.4)),
-                if (isResolved && doubt['answerText'] != null) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03), borderRadius: BorderRadius.circular(16)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.reply_rounded, size: 14, color: AppColors.success),
-                            const SizedBox(width: 8),
-                            Text('Instructor Reply', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.success, letterSpacing: 0.5)),
-                          ],
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: sColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            isResolved ? 'RESOLVED' : 'PENDING',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              color: sColor,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(doubt['answerText'].toString(), style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black87, height: 1.4)),
+                        const Spacer(),
+                        Text(
+                          dateStr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white38 : Colors.black38,
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                ],
-              ],
-            ),
-          ).animate(delay: (40 * i).ms).fadeIn(duration: 400.ms).slideX(begin: 0.05);
+                    const SizedBox(height: 16),
+                    Text(
+                      question,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : AppColors.deepNavy,
+                        height: 1.4,
+                      ),
+                    ),
+                    if (isResolved && doubt['answerText'] != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: (isDark ? Colors.white : Colors.black)
+                              .withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.reply_rounded,
+                                  size: 14,
+                                  color: AppColors.success,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Instructor Reply',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.success,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              doubt['answerText'].toString(),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white70 : Colors.black87,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              )
+              .animate(delay: (40 * i).ms)
+              .fadeIn(duration: 400.ms)
+              .slideX(begin: 0.05);
         },
       ),
     );

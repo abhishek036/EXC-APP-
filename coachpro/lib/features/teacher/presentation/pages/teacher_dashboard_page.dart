@@ -30,7 +30,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   StreamSubscription<Map<String, dynamic>>? _syncSub;
   Timer? _pollingTimer;
   bool _isLoadInFlight = false;
-  
+
   Map<String, dynamic>? _dashboardData;
   List<Map<String, dynamic>> _pendingDoubts = [];
   bool _isLoading = true;
@@ -105,16 +105,20 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         _teacherRepo.getDashboardStats(),
         _teacherRepo.getPendingDoubts(),
       ]);
-      final data = Map<String, dynamic>.from(results[0] as Map<String, dynamic>);
-      final doubts = List<Map<String, dynamic>>.from(results[1] as List<Map<String, dynamic>>);
-      
+      final data = Map<String, dynamic>.from(
+        results[0] as Map<String, dynamic>,
+      );
+      final doubts = List<Map<String, dynamic>>.from(
+        results[1] as List<Map<String, dynamic>>,
+      );
+
       if (!mounted) return;
-      
+
       // Merge logic: preserve existing data if server response is surprisingly empty
       final previousSchedules = List.from(_dashboardData?['schedules'] ?? []);
       final currentSchedules = List.from(data['schedules'] ?? []);
-      
-      // If we had schedules and now server says 0, it might be stale. 
+
+      // If we had schedules and now server says 0, it might be stale.
       // Keep old ones for one cycle unless it's a manual refresh.
       if (currentSchedules.isEmpty && previousSchedules.isNotEmpty && silent) {
         data['schedules'] = previousSchedules;
@@ -148,7 +152,8 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: AppColors.eliteLightBg, // Match Admin's light background assumption
+      backgroundColor:
+          AppColors.eliteLightBg, // Match Admin's light background assumption
       drawer: _buildDrawer(),
       body: Stack(
         children: [
@@ -165,7 +170,20 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                   children: [
                     const SizedBox(height: 16),
                     _buildAppBar(),
-                    if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Center(child: Text(_error!, style: GoogleFonts.plusJakartaSans(color: AppColors.error, fontSize: 11, fontWeight: FontWeight.w700)))),
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Center(
+                          child: Text(
+                            _error!,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: AppColors.error,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 32),
                     _buildSummaryStats(),
                     const SizedBox(height: 32),
@@ -175,11 +193,17 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                     const SizedBox(height: 16),
                     _buildManagementHub(),
                     const SizedBox(height: 40),
-                    _buildSectionHeader("Academic Flow", () => context.push('/teacher/schedule')),
+                    _buildSectionHeader(
+                      "Academic Flow",
+                      () => context.push('/teacher/schedule'),
+                    ),
                     const SizedBox(height: 16),
                     _buildScheduleList(),
                     const SizedBox(height: 40),
-                    _buildSectionHeader("Pending Doubts Alerts", () => context.push('/teacher/doubts')),
+                    _buildSectionHeader(
+                      "Pending Doubts Alerts",
+                      () => context.push('/teacher/doubts'),
+                    ),
                     const SizedBox(height: 16),
                     _buildDoubtsSection(),
                     const SizedBox(height: 120),
@@ -196,11 +220,15 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   Widget _buildAppBar() {
     final authState = context.read<AuthBloc>().state;
     String initials = 'F';
-    String userName = _dashboardData?['teacher']?['name']?.toString() ?? (authState is AuthAuthenticated ? authState.user.name : 'Faculty');
-    
+    String userName =
+        _dashboardData?['teacher']?['name']?.toString() ??
+        (authState is AuthAuthenticated ? authState.user.name : 'Faculty');
+
     if (userName.isNotEmpty) {
       final parts = userName.split(' ');
-      initials = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0][0].toUpperCase();
+      initials = parts.length > 1
+          ? (parts[0][0] + parts[1][0]).toUpperCase()
+          : parts[0][0].toUpperCase();
     }
 
     return Row(
@@ -212,15 +240,36 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           },
           child: Padding(
             padding: const EdgeInsets.only(right: 12, top: 4, bottom: 4),
-            child: Icon(Icons.menu_rounded, color: AppColors.elitePrimary, size: 28),
+            child: Icon(
+              Icons.menu_rounded,
+              color: AppColors.elitePrimary,
+              size: 28,
+            ),
           ),
         ),
         CPPressable(
           onTap: () => context.push('/teacher/profile'),
           child: Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.elitePrimary, border: Border.all(color: AppColors.elitePrimary, width: 2), boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2))]),
-            child: Center(child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.elitePrimary,
+              border: Border.all(color: AppColors.elitePrimary, width: 2),
+              boxShadow: const [
+                BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2)),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                initials,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -228,29 +277,76 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('$_greeting, 👋', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black54)),
-              Text(userName, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.deepNavy, letterSpacing: -0.5), overflow: TextOverflow.ellipsis),
+              Text(
+                '$_greeting, 👋',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black54,
+                ),
+              ),
+              Text(
+                userName,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.deepNavy,
+                  letterSpacing: -0.5,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),
-        _appBarAction(Icons.search_rounded, () { HapticFeedback.mediumImpact(); }),
+        _appBarAction(Icons.search_rounded, () {
+          HapticFeedback.mediumImpact();
+        }),
         const SizedBox(width: 8),
-        _appBarAction(Icons.notifications_none_rounded, () { HapticFeedback.mediumImpact(); context.push('/teacher/notifications'); }, badge: _pendingDoubts.isNotEmpty),
+        _appBarAction(Icons.notifications_none_rounded, () {
+          HapticFeedback.mediumImpact();
+          context.push('/teacher/notifications');
+        }, badge: _pendingDoubts.isNotEmpty),
       ],
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);
   }
 
-  Widget _appBarAction(IconData icon, VoidCallback onTap, {bool badge = false}) {
+  Widget _appBarAction(
+    IconData icon,
+    VoidCallback onTap, {
+    bool badge = false,
+  }) {
     return CPPressable(
       onTap: onTap,
       child: Container(
-        width: 44, height: 44,
-        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: AppColors.elitePrimary, width: 2), boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2))]),
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.elitePrimary, width: 2),
+          boxShadow: const [
+            BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2)),
+          ],
+        ),
         child: Stack(
           alignment: Alignment.center,
           children: [
             Icon(icon, size: 21, color: AppColors.elitePrimary),
-            if (badge) const Positioned(top: 8, right: 8, child: SizedBox(width: 8, height: 8, child: DecoratedBox(decoration: BoxDecoration(color: AppColors.coralRed, shape: BoxShape.circle)))),
+            if (badge)
+              const Positioned(
+                top: 8,
+                right: 8,
+                child: SizedBox(
+                  width: 8,
+                  height: 8,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.coralRed,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -259,7 +355,16 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
 
   Widget _buildSummaryStats() {
     if (_isLoading) {
-      return SizedBox(height: 120, child: ListView.separated(scrollDirection: Axis.horizontal, itemCount: 3, separatorBuilder: (_, _) => const SizedBox(width: 12), itemBuilder: (_, _) => CPShimmer(width: 160, height: 120, borderRadius: 16)));
+      return SizedBox(
+        height: 120,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: 3,
+          separatorBuilder: (_, _) => const SizedBox(width: 12),
+          itemBuilder: (_, _) =>
+              CPShimmer(width: 160, height: 120, borderRadius: 16),
+        ),
+      );
     }
     final stats = _dashboardData?['stats'] ?? {};
     final batchesCount = stats['total_batches'] ?? 0;
@@ -275,9 +380,19 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         children: [
           _heroStat('MY BATCHES', '$batchesCount', AppColors.moltenAmber),
           const SizedBox(width: 14),
-          _glassStat('STUDENTS', '$studentCount', AppColors.mintGreen, Icons.people_rounded),
+          _glassStat(
+            'STUDENTS',
+            '$studentCount',
+            AppColors.mintGreen,
+            Icons.people_rounded,
+          ),
           const SizedBox(width: 14),
-          _glassStat('DOUBTS PENDING', '$doubtsCount', AppColors.coralRed, Icons.help_outline_rounded),
+          _glassStat(
+            'DOUBTS PENDING',
+            '$doubtsCount',
+            AppColors.coralRed,
+            Icons.help_outline_rounded,
+          ),
         ],
       ),
     ).animate().fadeIn().slideX(begin: 0.05);
@@ -285,26 +400,48 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
 
   Widget _heroStat(String label, String value, Color accent) {
     return Container(
-      width: 180, padding: const EdgeInsets.all(20),
+      width: 180,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.elitePrimary,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.elitePrimary, width: 3),
-        boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4))]
+        boxShadow: const [
+          BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
-             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-             children: [
-                Expanded(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: accent, letterSpacing: 0.5), overflow: TextOverflow.ellipsis)),
-                Icon(Icons.star_rounded, size: 16, color: accent),
-             ],
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                    letterSpacing: 0.5,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Icon(Icons.star_rounded, size: 16, color: accent),
+            ],
           ),
           const SizedBox(height: 8),
-          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1.2)),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: -1.2,
+            ),
+          ),
         ],
       ),
     );
@@ -318,21 +455,43 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.elitePrimary, width: 3),
-        boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4))],
+        boxShadow: const [
+          BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.elitePrimary.withValues(alpha: 0.65), letterSpacing: 0.5), overflow: TextOverflow.ellipsis)),
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.elitePrimary.withValues(alpha: 0.65),
+                    letterSpacing: 0.5,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               const SizedBox(width: 8),
               Icon(icon, size: 18, color: color),
             ],
           ),
           const SizedBox(height: 10),
-          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.elitePrimary, letterSpacing: -0.5)),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: AppColors.elitePrimary,
+              letterSpacing: -0.5,
+            ),
+          ),
         ],
       ),
     );
@@ -345,8 +504,10 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         Text(
           'QUICK ACTIONS',
           style: GoogleFonts.plusJakartaSans(
-            fontSize: 11, fontWeight: FontWeight.w800,
-            color: AppColors.elitePrimary.withValues(alpha: 0.65), letterSpacing: 1.2,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: AppColors.elitePrimary.withValues(alpha: 0.65),
+            letterSpacing: 1.2,
           ),
         ),
         const SizedBox(height: 16),
@@ -357,24 +518,60 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               child: CPPressable(
                 onTap: () => context.push('/teacher/attendance'),
                 child: Container(
-                  height: 88, padding: const EdgeInsets.all(16),
+                  height: 88,
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: AppColors.moltenAmber,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppColors.elitePrimary, width: 3),
-                    boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4))],
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.elitePrimary,
+                        offset: Offset(4, 4),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
-                      Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.3), shape: BoxShape.circle), child: const Icon(Icons.fact_check_rounded, color: AppColors.elitePrimary, size: 24)),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.fact_check_rounded,
+                          color: AppColors.elitePrimary,
+                          size: 24,
+                        ),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('Take Attendance', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.elitePrimary), overflow: TextOverflow.ellipsis),
+                            Text(
+                              'Take Attendance',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.elitePrimary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                             const SizedBox(height: 2),
-                            Text('Mark class records', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.elitePrimary.withValues(alpha: 0.7)), overflow: TextOverflow.ellipsis),
+                            Text(
+                              'Mark class records',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.elitePrimary.withValues(
+                                  alpha: 0.7,
+                                ),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ],
                         ),
                       ),
@@ -389,23 +586,41 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               child: CPPressable(
                 onTap: () => context.push('/teacher/upload-material'),
                 child: Container(
-                  height: 88, padding: const EdgeInsets.all(12),
+                  height: 88,
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppColors.elitePrimary, width: 3),
-                    boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4))],
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.elitePrimary,
+                        offset: Offset(4, 4),
+                      ),
+                    ],
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.cloud_upload_rounded, size: 22, color: AppColors.elitePrimary),
+                      const Icon(
+                        Icons.cloud_upload_rounded,
+                        size: 22,
+                        color: AppColors.elitePrimary,
+                      ),
                       const Spacer(),
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
-                        child: Text('Upload Material', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.elitePrimary)),
-                      )
+                        child: Text(
+                          'Upload Material',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.elitePrimary,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -421,25 +636,93 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Expanded(child: Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.deepNavy, letterSpacing: -0.6), overflow: TextOverflow.ellipsis)),
-        CPPressable(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: AppColors.moltenAmber, border: Border.all(color: AppColors.elitePrimary, width: 2), boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2))]), child: Row(children: [Text('Explore', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.elitePrimary)), const SizedBox(width: 4), const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: AppColors.elitePrimary)])))
+        Expanded(
+          child: Text(
+            title,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: AppColors.deepNavy,
+              letterSpacing: -0.6,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        CPPressable(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.moltenAmber,
+              border: Border.all(color: AppColors.elitePrimary, width: 2),
+              boxShadow: const [
+                BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2)),
+              ],
+            ),
+            child: Row(
+              children: [
+                Text(
+                  'Explore',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.elitePrimary,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 10,
+                  color: AppColors.elitePrimary,
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildManagementHub() {
     final modules = [
-      {'label': 'My Batches', 'icon': Icons.groups_2_rounded, 'color': AppColors.elitePrimary, 'route': '/teacher/batches', 'desc': 'Manage classes'}, 
-      {'label': 'Create Quiz', 'icon': Icons.quiz_rounded, 'color': AppColors.coralRed, 'route': '/teacher/create-quiz', 'desc': 'Assessments'}, 
-      {'label': 'Pending Doubts', 'icon': Icons.help_rounded, 'color': AppColors.moltenAmber, 'route': '/teacher/doubts', 'desc': 'Unresolved'}, 
-      {'label': 'Notice Board', 'icon': Icons.campaign_rounded, 'color': AppColors.mintGreen, 'route': '/teacher/notifications', 'desc': 'Announcements'}, 
+      {
+        'label': 'My Batches',
+        'icon': Icons.groups_2_rounded,
+        'color': AppColors.elitePrimary,
+        'route': '/teacher/batches',
+        'desc': 'Manage classes',
+      },
+      {
+        'label': 'Create Quiz',
+        'icon': Icons.quiz_rounded,
+        'color': AppColors.coralRed,
+        'route': '/teacher/create-quiz',
+        'desc': 'Assessments',
+      },
+      {
+        'label': 'Pending Doubts',
+        'icon': Icons.help_rounded,
+        'color': AppColors.moltenAmber,
+        'route': '/teacher/doubts',
+        'desc': 'Unresolved',
+      },
+      {
+        'label': 'Notice Board',
+        'icon': Icons.campaign_rounded,
+        'color': AppColors.mintGreen,
+        'route': '/teacher/notifications',
+        'desc': 'Announcements',
+      },
     ];
 
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.3,
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.3,
       ),
       itemCount: modules.length,
       itemBuilder: (ctx, i) {
@@ -453,27 +736,59 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.elitePrimary, width: 3),
-              boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4))],
+              boxShadow: const [
+                BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Row(
-                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                   children: [
-                      Container(
-                         width: 36, height: 36,
-                         decoration: BoxDecoration(color: col.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), 
-                         child: Icon(m['icon'] as IconData, color: col, size: 18)
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: col.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.elitePrimary.withValues(alpha: 0.65)),
-                   ]
+                      child: Icon(m['icon'] as IconData, color: col, size: 18),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 14,
+                      color: AppColors.elitePrimary.withValues(alpha: 0.65),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(m['label'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.elitePrimary)))),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      m['label'] as String,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.elitePrimary,
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(m['desc'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.elitePrimary.withValues(alpha: 0.65)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  m['desc'] as String,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.elitePrimary.withValues(alpha: 0.65),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -486,9 +801,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     final batches = _dashboardData?['batches'] as List? ?? [];
     if (batches.isEmpty) return _emptyCard('No classes scheduled for today');
 
-    return Column(
-      children: batches.map((b) => _classItem(b)).toList(),
-    );
+    return Column(children: batches.map((b) => _classItem(b)).toList());
   }
 
   Widget _classItem(Map<String, dynamic> c) {
@@ -496,25 +809,70 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: CPPressable(
-        onTap: batchId.isEmpty ? null : () => context.go('/teacher/batches/$batchId'),
+        onTap: batchId.isEmpty
+            ? null
+            : () => context.go('/teacher/batches/$batchId'),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.elitePrimary, width: 3),
-            boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4))],
+            boxShadow: const [
+              BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
+            ],
           ),
           child: Row(
             children: [
-              Container(width: 52, height: 52, decoration: BoxDecoration(color: AppColors.elitePrimary, borderRadius: BorderRadius.circular(12)), child: Center(child: Text((c['start_time'] ?? '10:00 AM').toString().split(' ')[0], style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.w900)))),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.elitePrimary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    (c['start_time'] ?? '10:00 AM').toString().split(' ')[0],
+                    style: GoogleFonts.jetBrainsMono(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(c['name'] ?? 'BATCH', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.deepNavy), overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text(c['subject'] ?? 'SUBJECT', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.black45, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
-              ])),
-              const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.elitePrimary),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      c['name'] ?? 'BATCH',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.deepNavy,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      c['subject'] ?? 'SUBJECT',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        color: Colors.black45,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: AppColors.elitePrimary,
+              ),
             ],
           ),
         ),
@@ -534,27 +892,83 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         itemCount: doubts.length,
         itemBuilder: (context, i) {
           final d = doubts[i];
-          final studentName = ((d['student'] as Map?)?['name'] ?? d['student_name'] ?? 'STUDENT').toString();
+          final studentName =
+              ((d['student'] as Map?)?['name'] ??
+                      d['student_name'] ??
+                      'STUDENT')
+                  .toString();
           final qText = (d['question_text'] ?? d['question'] ?? '').toString();
           return InkWell(
             onTap: () => context.go('/teacher/doubts'),
             child: Container(
-              width: 240, margin: const EdgeInsets.only(right: 14), padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.elitePrimary, width: 3), borderRadius: BorderRadius.circular(16), boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4))]),
+              width: 240,
+              margin: const EdgeInsets.only(right: 14),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: AppColors.elitePrimary, width: 3),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(
+                    color: AppColors.elitePrimary,
+                    offset: Offset(4, 4),
+                  ),
+                ],
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(radius: 12, backgroundColor: AppColors.elitePrimary, child: Text(studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S', style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold))),
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: AppColors.elitePrimary,
+                        child: Text(
+                          studentName.isNotEmpty
+                              ? studentName[0].toUpperCase()
+                              : 'S',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                       const SizedBox(width: 8),
-                      Expanded(child: Text(studentName.toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.elitePrimary), overflow: TextOverflow.ellipsis)),
+                      Expanded(
+                        child: Text(
+                          studentName.toUpperCase(),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.elitePrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(qText, style: GoogleFonts.plusJakartaSans(fontSize: 12, height: 1.3, fontWeight: FontWeight.w600, color: Colors.black87), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(
+                    qText,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const Spacer(),
-                  Text('ANSWER NOW →', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.coralRed)),
+                  Text(
+                    'ANSWER NOW →',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.coralRed,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -564,7 +978,37 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     );
   }
 
-  Widget _emptyCard(String text) => Container(padding: const EdgeInsets.all(32), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: AppColors.elitePrimary, width: 3), boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4))]), child: Center(child: Column(children: [Icon(Icons.inventory_2_outlined, size: 24, color: AppColors.elitePrimary.withValues(alpha: 0.26)), const SizedBox(height: 12), Text(text, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.deepNavy.withValues(alpha: 0.45), fontWeight: FontWeight.w600))])));
+  Widget _emptyCard(String text) => Container(
+    padding: const EdgeInsets.all(32),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(color: AppColors.elitePrimary, width: 3),
+      boxShadow: const [
+        BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
+      ],
+    ),
+    child: Center(
+      child: Column(
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 24,
+            color: AppColors.elitePrimary.withValues(alpha: 0.26),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            text,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              color: AppColors.deepNavy.withValues(alpha: 0.45),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _buildDrawer() {
     return Drawer(
@@ -576,25 +1020,98 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               padding: const EdgeInsets.all(24),
               child: Row(
                 children: [
-                  Container(width: 54, height: 54, decoration: BoxDecoration(color: AppColors.moltenAmber, border: Border.all(color: AppColors.elitePrimary, width: 3), shape: BoxShape.circle), alignment: Alignment.center, child: const Icon(Icons.person_rounded, size: 28)),
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: AppColors.moltenAmber,
+                      border: Border.all(
+                        color: AppColors.elitePrimary,
+                        width: 3,
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.person_rounded, size: 28),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: Text('FACULTY\nPANEL', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.elitePrimary, height: 1.1))),
+                  Expanded(
+                    child: Text(
+                      'FACULTY\nPANEL',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.elitePrimary,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Divider(color: AppColors.elitePrimary, thickness: 2, height: 1),
-            _drawerTile(Icons.dashboard_rounded, 'DASHBOARD', AppColors.elitePrimary, () => Navigator.pop(context)),
-            _drawerTile(Icons.schedule_rounded, 'SCHEDULE', AppColors.elitePrimary, () { Navigator.pop(context); context.go('/teacher/schedule'); }),
-            _drawerTile(Icons.groups_2_rounded, 'MY BATCHES', AppColors.elitePrimary, () { Navigator.pop(context); context.go('/teacher/batches'); }),
-            _drawerTile(Icons.notifications_rounded, 'NOTICES', AppColors.elitePrimary, () { Navigator.pop(context); context.go('/teacher/notifications'); }),
-            _drawerTile(Icons.person_rounded, 'PROFILE', AppColors.elitePrimary, () { Navigator.pop(context); context.go('/teacher/profile'); }),
+            const Divider(
+              color: AppColors.elitePrimary,
+              thickness: 2,
+              height: 1,
+            ),
+            _drawerTile(
+              Icons.dashboard_rounded,
+              'DASHBOARD',
+              AppColors.elitePrimary,
+              () => Navigator.pop(context),
+            ),
+            _drawerTile(
+              Icons.schedule_rounded,
+              'SCHEDULE',
+              AppColors.elitePrimary,
+              () {
+                Navigator.pop(context);
+                context.go('/teacher/schedule');
+              },
+            ),
+            _drawerTile(
+              Icons.groups_2_rounded,
+              'MY BATCHES',
+              AppColors.elitePrimary,
+              () {
+                Navigator.pop(context);
+                context.go('/teacher/batches');
+              },
+            ),
+            _drawerTile(
+              Icons.notifications_rounded,
+              'NOTICES',
+              AppColors.elitePrimary,
+              () {
+                Navigator.pop(context);
+                context.go('/teacher/notifications');
+              },
+            ),
+            _drawerTile(
+              Icons.person_rounded,
+              'PROFILE',
+              AppColors.elitePrimary,
+              () {
+                Navigator.pop(context);
+                context.go('/teacher/profile');
+              },
+            ),
             const Spacer(),
-            const Divider(thickness: 2, color: AppColors.elitePrimary, height: 1),
-            _drawerTile(Icons.logout_rounded, 'SIGN OUT', AppColors.coralRed, () async {
-              Navigator.pop(context);
-              await sl<SecureStorageService>().clearAll();
-              if (mounted) context.go('/login');
-            }),
+            const Divider(
+              thickness: 2,
+              color: AppColors.elitePrimary,
+              height: 1,
+            ),
+            _drawerTile(
+              Icons.logout_rounded,
+              'SIGN OUT',
+              AppColors.coralRed,
+              () async {
+                Navigator.pop(context);
+                await sl<SecureStorageService>().clearAll();
+                if (mounted) context.go('/login');
+              },
+            ),
             const SizedBox(height: 24),
           ],
         ),
@@ -602,7 +1119,12 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     );
   }
 
-  Widget _drawerTile(IconData icon, String label, Color color, VoidCallback onTap) => InkWell(
+  Widget _drawerTile(
+    IconData icon,
+    String label,
+    Color color,
+    VoidCallback onTap,
+  ) => InkWell(
     onTap: onTap,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -610,7 +1132,14 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         children: [
           Icon(icon, color: color, size: 24),
           const SizedBox(width: 16),
-          Text(label, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: color, fontSize: 16)),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w900,
+              color: color,
+              fontSize: 16,
+            ),
+          ),
         ],
       ),
     ),

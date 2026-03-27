@@ -68,10 +68,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
 
     return {
       ...entry,
-      'batch': {
-        'name': batch['name'],
-        'subject': batch['subject'],
-      },
+      'batch': {'name': batch['name'], 'subject': batch['subject']},
     };
   }
 
@@ -95,7 +92,8 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     _syncSub = _realtime.updates.listen((event) {
       if (!mounted) return;
       final reason = (event['reason'] ?? '').toString();
-      if (reason.startsWith('lecture_schedule_') || reason.contains('lecture_')) {
+      if (reason.startsWith('lecture_schedule_') ||
+          reason.contains('lecture_')) {
         _scheduleSilentReload();
       }
     });
@@ -136,7 +134,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
 
       final fetched = List<Map<String, dynamic>>.from(results[0] as List);
       final batches = List<Map<String, dynamic>>.from(results[1] as List);
-      
+
       // Merge logic: prefer newly fetched data, but don't lose recent optimistic additions
       // if the fetched list is empty (potentially stale secondary read).
       List<Map<String, dynamic>> effectiveEntries;
@@ -144,7 +142,9 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         effectiveEntries = fetched;
       } else {
         // If server returns empty, keep what we have if it matches the current date
-        effectiveEntries = previousEntries.where((entry) => _matchesSelectedDate(entry['scheduled_at'])).toList();
+        effectiveEntries = previousEntries
+            .where((entry) => _matchesSelectedDate(entry['scheduled_at']))
+            .toList();
       }
 
       if (!mounted) return;
@@ -187,14 +187,30 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         backgroundColor: blue,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 22,
+          ),
           onPressed: _handleBack,
         ),
-        title: Text('DAILY SCHEDULE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1.2)),
+        title: Text(
+          'DAILY SCHEDULE',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            color: Colors.white,
+            letterSpacing: 1.2,
+          ),
+        ),
         actions: [
           IconButton(
             onPressed: _showClearPastConfirm,
-            icon: const Icon(Icons.cleaning_services_rounded, color: Colors.white, size: 20),
+            icon: const Icon(
+              Icons.cleaning_services_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
             tooltip: 'Clear Past',
           ),
           const SizedBox(width: 8),
@@ -205,38 +221,55 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         backgroundColor: yellow,
         foregroundColor: blue,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: blue, width: 3)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: blue, width: 3),
+        ),
         child: const Icon(Icons.add_rounded, size: 32),
       ),
       body: _isLoading && _entries.isEmpty
           ? const Center(child: CircularProgressIndicator(color: yellow))
           : _error != null
-              ? _buildErrorState(blue, yellow)
-              : Stack(
+          ? _buildErrorState(blue, yellow)
+          : Stack(
+              children: [
+                ListView(
+                  padding: const EdgeInsets.all(24),
                   children: [
-                    ListView(
-                      padding: const EdgeInsets.all(24),
-                      children: [
-                        _buildWeekStrip(blue, surface, yellow),
-                        const SizedBox(height: 32),
-                        _buildSectionTitle('CLASSES • ${_formatSelectedDate(_selectedDate)}', yellow),
-                        const SizedBox(height: 16),
-                        if (_entries.isEmpty)
-                          _buildEmptyState(blue, surface)
-                        else
-                          ..._entries.asMap().entries.map((entry) => _buildClassCard(entry.value, entry.key, blue, surface, yellow)),
-                        const SizedBox(height: 40),
-                        _buildAlertsCard(blue, surface, yellow),
-                      ],
+                    _buildWeekStrip(blue, surface, yellow),
+                    const SizedBox(height: 32),
+                    _buildSectionTitle(
+                      'CLASSES • ${_formatSelectedDate(_selectedDate)}',
+                      yellow,
                     ),
+                    const SizedBox(height: 16),
+                    if (_entries.isEmpty)
+                      _buildEmptyState(blue, surface)
+                    else
+                      ..._entries.asMap().entries.map(
+                        (entry) => _buildClassCard(
+                          entry.value,
+                          entry.key,
+                          blue,
+                          surface,
+                          yellow,
+                        ),
+                      ),
+                    const SizedBox(height: 40),
+                    _buildAlertsCard(blue, surface, yellow),
                   ],
                 ),
+              ],
+            ),
     );
   }
 
   Widget _buildWeekStrip(Color blue, Color surface, Color yellow) {
     final base = _selectedDate;
-    final days = List.generate(7, (i) => base.add(Duration(days: i - base.weekday + 1)));
+    final days = List.generate(
+      7,
+      (i) => base.add(Duration(days: i - base.weekday + 1)),
+    );
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -253,7 +286,9 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
               InkWell(
                 onTap: () {
                   setState(() {
-                    _selectedDate = _selectedDate.subtract(const Duration(days: 7));
+                    _selectedDate = _selectedDate.subtract(
+                      const Duration(days: 7),
+                    );
                   });
                   _load(silent: true);
                 },
@@ -265,7 +300,11 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                     border: Border.all(color: blue, width: 2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.chevron_left_rounded, color: blue, size: 20),
+                  child: Icon(
+                    Icons.chevron_left_rounded,
+                    color: blue,
+                    size: 20,
+                  ),
                 ),
               ),
               Expanded(
@@ -275,17 +314,26 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                       final picked = await showDatePicker(
                         context: context,
                         initialDate: _selectedDate,
-                        firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                        firstDate: DateTime.now().subtract(
+                          const Duration(days: 365),
+                        ),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
                       );
                       if (picked == null) return;
                       setState(() {
-                        _selectedDate = DateTime(picked.year, picked.month, picked.day);
+                        _selectedDate = DateTime(
+                          picked.year,
+                          picked.month,
+                          picked.day,
+                        );
                       });
                       _load(silent: true);
                     },
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
                       child: Text(
                         _formatSelectedDate(_selectedDate),
                         style: GoogleFonts.plusJakartaSans(
@@ -314,7 +362,11 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                     border: Border.all(color: blue, width: 2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.chevron_right_rounded, color: blue, size: 20),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: blue,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -323,14 +375,26 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: days.map((d) {
-              final isSelected = d.year == _selectedDate.year && d.month == _selectedDate.month && d.day == _selectedDate.day;
+              final isSelected =
+                  d.year == _selectedDate.year &&
+                  d.month == _selectedDate.month &&
+                  d.day == _selectedDate.day;
               return Column(
                 children: [
-                  Text(_dayShort(d.weekday), style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: blue.withOpacity(0.5))),
+                  Text(
+                    _dayShort(d.weekday),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: blue.withOpacity(0.5),
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   InkWell(
                     onTap: () {
-                      setState(() => _selectedDate = DateTime(d.year, d.month, d.day));
+                      setState(
+                        () => _selectedDate = DateTime(d.year, d.month, d.day),
+                      );
                       _load(silent: true);
                     },
                     child: Container(
@@ -338,11 +402,20 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                       height: 36,
                       decoration: BoxDecoration(
                         color: isSelected ? yellow : Colors.transparent,
-                        border: isSelected ? Border.all(color: blue, width: 2) : null,
+                        border: isSelected
+                            ? Border.all(color: blue, width: 2)
+                            : null,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       alignment: Alignment.center,
-                      child: Text('${d.day}', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: blue)),
+                      child: Text(
+                        '${d.day}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: blue,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -359,25 +432,46 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       children: [
         Container(width: 4, height: 16, color: yellow),
         const SizedBox(width: 12),
-        Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
+        Text(
+          title,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            letterSpacing: 1,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildClassCard(Map<String, dynamic> item, int index, Color blue, Color surface, Color yellow) {
-    final scheduled = DateTime.tryParse((item['scheduled_at'] ?? '').toString());
+  Widget _buildClassCard(
+    Map<String, dynamic> item,
+    int index,
+    Color blue,
+    Color surface,
+    Color yellow,
+  ) {
+    final scheduled = DateTime.tryParse(
+      (item['scheduled_at'] ?? '').toString(),
+    );
     final start = scheduled != null
         ? '${scheduled.hour.toString().padLeft(2, '0')}:${scheduled.minute.toString().padLeft(2, '0')}'
         : '--';
     final duration = (item['duration_minutes'] ?? 60) as num;
     final endTime = scheduled?.add(Duration(minutes: duration.toInt()));
     final end = endTime == null
-      ? '--'
-      : '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
+        ? '--'
+        : '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
 
     final batch = item['batch'] as Map?;
-    final name = (batch?['name'] ?? item['name'] ?? item['batch_name'] ?? 'BATCH').toString().toUpperCase();
-    final subject = (batch?['subject'] ?? item['subject'] ?? 'SUBJECT').toString().toUpperCase();
+    final name =
+        (batch?['name'] ?? item['name'] ?? item['batch_name'] ?? 'BATCH')
+            .toString()
+            .toUpperCase();
+    final subject = (batch?['subject'] ?? item['subject'] ?? 'SUBJECT')
+        .toString()
+        .toUpperCase();
 
     return InkWell(
       onTap: _isSaving ? null : () => _openScheduleSheet(item: item),
@@ -394,21 +488,53 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(color: yellow, border: Border.all(color: blue, width: 2), borderRadius: BorderRadius.circular(8)),
-              child: Text(start, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: blue)),
+              decoration: BoxDecoration(
+                color: yellow,
+                border: Border.all(color: blue, width: 2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                start,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: blue,
+                ),
+              ),
             ),
             const SizedBox(width: 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w900, color: blue)),
+                  Text(
+                    name,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: blue,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Text(subject, style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w900, color: blue.withOpacity(0.5))),
+                      Text(
+                        subject,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: blue.withOpacity(0.5),
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Text('$start - $end', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w800, color: blue.withOpacity(0.5))),
+                      Text(
+                        '$start - $end',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: blue.withOpacity(0.5),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -423,15 +549,26 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
 
   Future<void> _openScheduleSheet({Map<String, dynamic>? item}) async {
     final isEdit = item != null;
-    final titleCtrl = TextEditingController(text: (item?['title'] ?? '').toString());
-    final durationCtrl = TextEditingController(text: ((item?['duration_minutes'] ?? 60)).toString());
+    final titleCtrl = TextEditingController(
+      text: (item?['title'] ?? '').toString(),
+    );
+    final durationCtrl = TextEditingController(
+      text: ((item?['duration_minutes'] ?? 60)).toString(),
+    );
     String? selectedBatchId = (item?['batch_id'] ?? '').toString();
     if (selectedBatchId.isEmpty && _batches.isNotEmpty) {
       selectedBatchId = (_batches.first['id'] ?? '').toString();
     }
     final now = DateTime.now();
-    DateTime scheduledAt = DateTime.tryParse((item?['scheduled_at'] ?? '').toString())
-      ?? DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, now.hour, now.minute);
+    DateTime scheduledAt =
+        DateTime.tryParse((item?['scheduled_at'] ?? '').toString()) ??
+        DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
+          now.hour,
+          now.minute,
+        );
 
     await showModalBottomSheet<void>(
       context: context,
@@ -444,7 +581,12 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
             const offWhite = Color(0xFFEEEDED);
 
             return Container(
-              padding: EdgeInsets.fromLTRB(24, 20, 24, 32 + MediaQuery.of(context).viewInsets.bottom),
+              padding: EdgeInsets.fromLTRB(
+                24,
+                20,
+                24,
+                32 + MediaQuery.of(context).viewInsets.bottom,
+              ),
               decoration: const BoxDecoration(
                 color: offWhite,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -459,20 +601,38 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Center(child: Container(width: 48, height: 6, decoration: BoxDecoration(color: blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)))),
-                    const SizedBox(height: 24),
-                    Text(
-                      isEdit ? 'REFINE LECTURE' : 'NEW SESSION', 
-                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 22, color: blue, letterSpacing: -0.5)
+                    Center(
+                      child: Container(
+                        width: 48,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 24),
-                    
+                    Text(
+                      isEdit ? 'REFINE LECTURE' : 'NEW SESSION',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        color: blue,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
                     _sheetLabel('LECTURE TOPIC'),
                     const SizedBox(height: 8),
-                    _sheetTextField(titleCtrl, 'e.g., Organic Chemistry Basics', blue),
-                    
+                    _sheetTextField(
+                      titleCtrl,
+                      'e.g., Organic Chemistry Basics',
+                      blue,
+                    ),
+
                     const SizedBox(height: 20),
-                    
+
                     Row(
                       children: [
                         Expanded(
@@ -481,7 +641,11 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                             children: [
                               _sheetLabel('TARGET BATCH'),
                               const SizedBox(height: 8),
-                              _sheetDropdown(selectedBatchId, (v) => setModal(() => selectedBatchId = v), blue),
+                              _sheetDropdown(
+                                selectedBatchId,
+                                (v) => setModal(() => selectedBatchId = v),
+                                blue,
+                              ),
                             ],
                           ),
                         ),
@@ -492,15 +656,20 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                             children: [
                               _sheetLabel('DURATION (MIN)'),
                               const SizedBox(height: 8),
-                              _sheetTextField(durationCtrl, '60', blue, keyboardType: TextInputType.number),
+                              _sheetTextField(
+                                durationCtrl,
+                                '60',
+                                blue,
+                                keyboardType: TextInputType.number,
+                              ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     _sheetLabel('SCHEDULED TIME'),
                     const SizedBox(height: 8),
                     CPPressable(
@@ -508,73 +677,121 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                         final date = await showDatePicker(
                           context: ctx,
                           initialDate: scheduledAt,
-                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          firstDate: DateTime.now().subtract(
+                            const Duration(days: 365),
+                          ),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 365),
+                          ),
                           builder: (context, child) => Theme(
-                            data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: blue)),
+                            data: Theme.of(context).copyWith(
+                              colorScheme: const ColorScheme.light(
+                                primary: blue,
+                              ),
+                            ),
                             child: child!,
                           ),
                         );
                         if (date == null) return;
                         if (!ctx.mounted) return;
                         final time = await showTimePicker(
-                          context: ctx, 
+                          context: ctx,
                           initialTime: TimeOfDay.fromDateTime(scheduledAt),
                           builder: (context, child) => Theme(
-                            data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: blue)),
+                            data: Theme.of(context).copyWith(
+                              colorScheme: const ColorScheme.light(
+                                primary: blue,
+                              ),
+                            ),
                             child: child!,
                           ),
                         );
                         if (time == null) return;
                         setModal(() {
-                          scheduledAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                          scheduledAt = DateTime(
+                            date.year,
+                            date.month,
+                            date.day,
+                            time.hour,
+                            time.minute,
+                          );
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           border: Border.all(color: blue, width: 2),
-                          boxShadow: const [BoxShadow(color: blue, offset: Offset(3, 3))],
+                          boxShadow: const [
+                            BoxShadow(color: blue, offset: Offset(3, 3)),
+                          ],
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.calendar_today_rounded, size: 18, color: blue),
+                            const Icon(
+                              Icons.calendar_today_rounded,
+                              size: 18,
+                              color: blue,
+                            ),
                             const SizedBox(width: 12),
                             Text(
                               '${scheduledAt.day.toString().padLeft(2, '0')}/${scheduledAt.month.toString().padLeft(2, '0')} @ ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}',
-                              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue, fontSize: 14),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w800,
+                                color: blue,
+                                fontSize: 14,
+                              ),
                             ),
                             const Spacer(),
-                            const Icon(Icons.edit_rounded, size: 16, color: blue),
+                            const Icon(
+                              Icons.edit_rounded,
+                              size: 16,
+                              color: blue,
+                            ),
                           ],
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     Row(
                       children: [
                         if (isEdit) ...[
                           Expanded(
                             flex: 1,
                             child: CPPressable(
-                              onTap: _isSaving ? null : () async {
-                                final confirm = await _showDeleteConfirm();
-                                if (confirm == true && ctx.mounted) {
-                                  Navigator.pop(ctx);
-                                  await _deleteSchedule((item['id'] ?? '').toString());
-                                }
-                              },
+                              onTap: _isSaving
+                                  ? null
+                                  : () async {
+                                      final confirm =
+                                          await _showDeleteConfirm();
+                                      if (confirm == true && ctx.mounted) {
+                                        Navigator.pop(ctx);
+                                        await _deleteSchedule(
+                                          (item['id'] ?? '').toString(),
+                                        );
+                                      }
+                                    },
                               child: Container(
                                 height: 56,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFD71313),
                                   border: Border.all(color: blue, width: 2),
-                                  boxShadow: const [BoxShadow(color: blue, offset: Offset(3, 3))],
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: blue,
+                                      offset: Offset(3, 3),
+                                    ),
+                                  ],
                                 ),
-                                child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                                child: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -583,13 +800,18 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                         Expanded(
                           flex: 3,
                           child: CustomButton(
-                            text: isEdit ? 'UPDATE SESSION' : 'CONFIRM SCHEDULE',
+                            text: isEdit
+                                ? 'UPDATE SESSION'
+                                : 'CONFIRM SCHEDULE',
                             isLoading: _isSaving,
                             onPressed: () async {
                               final title = titleCtrl.text.trim();
                               final dur = int.tryParse(durationCtrl.text) ?? 60;
                               if (title.isEmpty || selectedBatchId == null) {
-                                CPToast.warning(ctx, 'Title and Batch required');
+                                CPToast.warning(
+                                  ctx,
+                                  'Title and Batch required',
+                                );
                                 return;
                               }
                               if (isEdit) {
@@ -634,12 +856,45 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFFEEEDED),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: blue, width: 3)),
-        title: Text('CLEAR PAST?', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
-        content: Text('THIS WILL HIDE ALL COMPLETED LECTURES FROM YOUR LIST. CONTINUE?', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: blue.withOpacity(0.7))),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: blue, width: 3),
+        ),
+        title: Text(
+          'CLEAR PAST?',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            color: blue,
+          ),
+        ),
+        content: Text(
+          'THIS WILL HIDE ALL COMPLETED LECTURES FROM YOUR LIST. CONTINUE?',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w700,
+            color: blue.withOpacity(0.7),
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('CANCEL', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('CLEAR', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: const Color(0xFFD71313)))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'CANCEL',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                color: blue,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'CLEAR',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFFD71313),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -670,23 +925,66 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFFEEEDED),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: blue, width: 3)),
-        title: Text('DELETE LECTURE?', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue)),
-        content: Text('THIS ACTION CANNOT BE UNDONE. REMOVE FROM SCHEDULE?', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: blue.withOpacity(0.7))),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: blue, width: 3),
+        ),
+        title: Text(
+          'DELETE LECTURE?',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            color: blue,
+          ),
+        ),
+        content: Text(
+          'THIS ACTION CANNOT BE UNDONE. REMOVE FROM SCHEDULE?',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w700,
+            color: blue.withOpacity(0.7),
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('CANCEL', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('DELETE', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: const Color(0xFFD71313)))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'CANCEL',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                color: blue,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'DELETE',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFFD71313),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _sheetLabel(String text) => Text(
-    text, 
-    style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: const Color(0xFF0D1282), letterSpacing: 0.5)
+    text,
+    style: GoogleFonts.plusJakartaSans(
+      fontSize: 10,
+      fontWeight: FontWeight.w900,
+      color: const Color(0xFF0D1282),
+      letterSpacing: 0.5,
+    ),
   );
 
-  Widget _sheetTextField(TextEditingController ctrl, String hint, Color blue, {TextInputType? keyboardType}) => Container(
+  Widget _sheetTextField(
+    TextEditingController ctrl,
+    String hint,
+    Color blue, {
+    TextInputType? keyboardType,
+  }) => Container(
     decoration: BoxDecoration(
       color: Colors.white,
       border: Border.all(color: blue, width: 2),
@@ -695,17 +993,31 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     child: TextField(
       controller: ctrl,
       keyboardType: keyboardType,
-      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 14, color: blue),
+      style: GoogleFonts.plusJakartaSans(
+        fontWeight: FontWeight.w700,
+        fontSize: 14,
+        color: blue,
+      ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.plusJakartaSans(color: blue.withOpacity(0.3), fontWeight: FontWeight.w600),
+        hintStyle: GoogleFonts.plusJakartaSans(
+          color: blue.withOpacity(0.3),
+          fontWeight: FontWeight.w600,
+        ),
         border: InputBorder.none,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     ),
   );
 
-  Widget _sheetDropdown(String? value, ValueChanged<String?> onChanged, Color blue) => Container(
+  Widget _sheetDropdown(
+    String? value,
+    ValueChanged<String?> onChanged,
+    Color blue,
+  ) => Container(
     decoration: BoxDecoration(
       color: Colors.white,
       border: Border.all(color: blue, width: 2),
@@ -716,12 +1028,23 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         value: value,
         isExpanded: true,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF0D1282)),
-        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13, color: blue),
-        items: _batches.map((b) => DropdownMenuItem<String>(
-          value: (b['id'] ?? '').toString(),
-          child: Text((b['name'] ?? 'Batch').toString().toUpperCase()),
-        )).toList(),
+        icon: const Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: Color(0xFF0D1282),
+        ),
+        style: GoogleFonts.plusJakartaSans(
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+          color: blue,
+        ),
+        items: _batches
+            .map(
+              (b) => DropdownMenuItem<String>(
+                value: (b['id'] ?? '').toString(),
+                child: Text((b['name'] ?? 'Batch').toString().toUpperCase()),
+              ),
+            )
+            .toList(),
         onChanged: onChanged,
       ),
     ),
@@ -735,7 +1058,11 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   }) async {
     setState(() {
       _isSaving = true;
-      _selectedDate = DateTime(scheduledAt.year, scheduledAt.month, scheduledAt.day);
+      _selectedDate = DateTime(
+        scheduledAt.year,
+        scheduledAt.month,
+        scheduledAt.day,
+      );
     });
     try {
       final created = await _repo.createMyScheduleEntry(
@@ -748,17 +1075,25 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
 
       // 1. Immediately update UI locally (Optimistic / Realtime backup)
       if (_matchesSelectedDate(created['scheduled_at'])) {
-        final entry = _decorateEntryWithBatch(Map<String, dynamic>.from(created));
+        final entry = _decorateEntryWithBatch(
+          Map<String, dynamic>.from(created),
+        );
         setState(() {
           // Check if already exists (might have come via silent load or socket)
-          final exists = _entries.any((e) => e['id']?.toString() == entry['id']?.toString());
+          final exists = _entries.any(
+            (e) => e['id']?.toString() == entry['id']?.toString(),
+          );
           if (!exists) {
             _entries = [..._entries, entry];
             // Sort by time
-            _entries.sort((a,b) {
-               final da = DateTime.tryParse((a['scheduled_at'] ?? '').toString()) ?? DateTime(2000);
-               final db = DateTime.tryParse((b['scheduled_at'] ?? '').toString()) ?? DateTime(2000);
-               return da.compareTo(db);
+            _entries.sort((a, b) {
+              final da =
+                  DateTime.tryParse((a['scheduled_at'] ?? '').toString()) ??
+                  DateTime(2000);
+              final db =
+                  DateTime.tryParse((b['scheduled_at'] ?? '').toString()) ??
+                  DateTime(2000);
+              return da.compareTo(db);
             });
           }
         });
@@ -768,12 +1103,16 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       await _load(silent: true, refreshBatches: false);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule created')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Schedule created')));
       }
       return true;
     } catch (e) {
       if (!mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed: $e')));
       return false;
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -790,7 +1129,11 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     if (lectureId.isEmpty) return false;
     setState(() {
       _isSaving = true;
-      _selectedDate = DateTime(scheduledAt.year, scheduledAt.month, scheduledAt.day);
+      _selectedDate = DateTime(
+        scheduledAt.year,
+        scheduledAt.month,
+        scheduledAt.day,
+      );
     });
     try {
       final updated = await _repo.updateMyScheduleEntry(
@@ -804,26 +1147,38 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
 
       // Optimistically update local entry
       setState(() {
-         final index = _entries.indexWhere((e) => e['id']?.toString() == lectureId);
-         if (index != -1) {
-            _entries[index] = _decorateEntryWithBatch(Map<String, dynamic>.from(updated));
-            // Resort in case time changed
-            _entries.sort((a,b) {
-               final da = DateTime.tryParse((a['scheduled_at'] ?? '').toString()) ?? DateTime(2000);
-               final db = DateTime.tryParse((b['scheduled_at'] ?? '').toString()) ?? DateTime(2000);
-               return da.compareTo(db);
-            });
-         }
+        final index = _entries.indexWhere(
+          (e) => e['id']?.toString() == lectureId,
+        );
+        if (index != -1) {
+          _entries[index] = _decorateEntryWithBatch(
+            Map<String, dynamic>.from(updated),
+          );
+          // Resort in case time changed
+          _entries.sort((a, b) {
+            final da =
+                DateTime.tryParse((a['scheduled_at'] ?? '').toString()) ??
+                DateTime(2000);
+            final db =
+                DateTime.tryParse((b['scheduled_at'] ?? '').toString()) ??
+                DateTime(2000);
+            return da.compareTo(db);
+          });
+        }
       });
 
       await _load(silent: true, refreshBatches: false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule updated')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Schedule updated')));
       }
       return true;
     } catch (e) {
       if (!mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed: $e')));
       return false;
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -835,7 +1190,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     try {
       await _repo.deleteMyScheduleEntry(lectureId);
       if (!mounted) return true;
-      
+
       // Optimistically remove local entry
       setState(() {
         _entries.removeWhere((e) => e['id']?.toString() == lectureId);
@@ -843,12 +1198,16 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
 
       await _load(silent: true, refreshBatches: false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule deleted')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Schedule deleted')));
       }
       return true;
     } catch (e) {
       if (!mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed: $e')));
       return false;
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -858,7 +1217,11 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   Widget _buildAlertsCard(Color blue, Color surface, Color yellow) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), border: Border.all(color: Colors.white24, width: 2), borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        border: Border.all(color: Colors.white24, width: 2),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Row(
         children: [
           Icon(Icons.notifications_active_rounded, color: yellow, size: 24),
@@ -866,7 +1229,12 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
           Expanded(
             child: Text(
               'REMAINDERS: ALL CLASSES FOR TODAY ARE ON TRACK. NO SUBSTITUTIONS ASSIGNED.',
-              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white.withOpacity(0.7), height: 1.4),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Colors.white.withOpacity(0.7),
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -877,47 +1245,100 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   Widget _buildEmptyState(Color blue, Color surface) {
     return Container(
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(color: surface.withOpacity(0.1), border: Border.all(color: Colors.white24, width: 2, style: BorderStyle.solid), borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: surface.withOpacity(0.1),
+        border: Border.all(
+          color: Colors.white24,
+          width: 2,
+          style: BorderStyle.solid,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Center(
         child: Text(
           'NO CLASSES SCHEDULED FOR ${_formatSelectedDate(_selectedDate)}',
           textAlign: TextAlign.center,
-          style: GoogleFonts.plusJakartaSans(color: Colors.white54, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+          style: GoogleFonts.plusJakartaSans(
+            color: Colors.white54,
+            fontWeight: FontWeight.w900,
+            fontSize: 12,
+            letterSpacing: 1,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildErrorState(Color blue, Color yellow) {
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.error_outline_rounded, color: Colors.white, size: 48),
-      const SizedBox(height: 16),
-      Text('FAILED TO LOAD SCHEDULE', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w900)),
-      const SizedBox(height: 24),
-      _btn('RETRY', () => _load(silent: true), yellow, blue, blue),
-    ]));
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Colors.white,
+            size: 48,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'FAILED TO LOAD SCHEDULE',
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 24),
+          _btn('RETRY', () => _load(silent: true), yellow, blue, blue),
+        ],
+      ),
+    );
   }
 
-  Widget _btn(String label, VoidCallback onTap, Color bg, Color fg, Color blue) {
+  Widget _btn(
+    String label,
+    VoidCallback onTap,
+    Color bg,
+    Color fg,
+    Color blue,
+  ) {
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-        decoration: BoxDecoration(color: bg, border: Border.all(color: blue, width: 2.5), borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: blue, offset: const Offset(3, 3))]),
-        child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: fg)),
+        decoration: BoxDecoration(
+          color: bg,
+          border: Border.all(color: blue, width: 2.5),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [BoxShadow(color: blue, offset: const Offset(3, 3))],
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            color: fg,
+          ),
+        ),
       ),
     );
   }
 
   String _dayShort(int weekday) {
     switch (weekday) {
-      case DateTime.monday: return 'MON';
-      case DateTime.tuesday: return 'TUE';
-      case DateTime.wednesday: return 'WED';
-      case DateTime.thursday: return 'THU';
-      case DateTime.friday: return 'FRI';
-      case DateTime.saturday: return 'SAT';
-      default: return 'SUN';
+      case DateTime.monday:
+        return 'MON';
+      case DateTime.tuesday:
+        return 'TUE';
+      case DateTime.wednesday:
+        return 'WED';
+      case DateTime.thursday:
+        return 'THU';
+      case DateTime.friday:
+        return 'FRI';
+      case DateTime.saturday:
+        return 'SAT';
+      default:
+        return 'SUN';
     }
   }
 }
