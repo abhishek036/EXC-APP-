@@ -37,10 +37,9 @@ class _TimetablePageState extends State<TimetablePage> {
     });
     try {
       // For now, the backend provides "today" schedule.
-      // In a real prod app, you'd pass a date or day index.
-      final data = await _studentRepo.getDashboardStats();
+      final data = await _studentRepo.getTodaySchedule();
       setState(() {
-        _todaySchedule = data['batches'] as List<Map<String, dynamic>>? ?? [];
+        _todaySchedule = data;
         _isLoading = false;
       });
     } catch (e) {

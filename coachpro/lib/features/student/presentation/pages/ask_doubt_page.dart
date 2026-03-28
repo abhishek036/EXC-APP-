@@ -18,12 +18,30 @@ class AskDoubtPage extends StatefulWidget {
 }
 
 class _AskDoubtPageState extends State<AskDoubtPage> {
-  final _subjects = ['Physics', 'Chemistry', 'Mathematics', 'Biology'];
-  String _selectedSubject = 'Physics';
+  List<Map<String, dynamic>> _batches = [];
+  Map<String, dynamic>? _selectedBatch;
   final _questionController = TextEditingController();
   String? _questionError;
   bool _isSubmitting = false;
   final _studentRepo = sl<StudentRepository>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBatches();
+  }
+
+  Future<void> _loadBatches() async {
+    try {
+      final batches = await _studentRepo.getMyBatches();
+      if (mounted) {
+        setState(() {
+          _batches = batches;
+          if (batches.isNotEmpty) _selectedBatch = batches[0];
+        });
+      }
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -40,11 +58,17 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
           : null;
     });
     if (_questionError != null) return;
+    if (_selectedBatch == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No batch selected')));
+      }
+      return;
+    }
 
     setState(() => _isSubmitting = true);
     try {
       await _studentRepo.submitDoubt(
-        batchId: 'global', // Temporary fallback
+        batchId: _selectedBatch!['id'] as String,
         question: _questionController.text.trim(),
       );
       if (!mounted) return;
@@ -138,9 +162,9 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
             ).animate().fadeIn(duration: 400.ms),
             const SizedBox(height: 24),
 
-            // Subject Selection
+            // Batch Selection
             Text(
-              'Select Subject',
+              'Select Batch/Subject',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -148,30 +172,36 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
               ),
             ),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: _subjects
-                  .map(
-                    (sub) => CPPressable(
-                      onTap: () => setState(() => _selectedSubject = sub),
-                      child: AnimatedContainer(
+            if (_batches.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text('Loading batches or none found...', style: GoogleFonts.plusJakartaSans(color: CT.textS(context))),
+              )
+            else
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: _batches
+                    .map(
+                      (batch) => CPPressable(
+                        onTap: () => setState(() => _selectedBatch = batch),
+                        child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: _selectedSubject == sub
+                          color: _selectedBatch == batch
                               ? AppColors.primary
                               : CT.card(context),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _selectedSubject == sub
+                            color: _selectedBatch == batch
                                 ? AppColors.primary
                                 : CT.border(context),
                           ),
-                          boxShadow: _selectedSubject == sub
+                          boxShadow: _selectedBatch == batch
                               ? [
                                   BoxShadow(
                                     color: AppColors.primary.withValues(
@@ -183,11 +213,11 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
                               : [],
                         ),
                         child: Text(
-                          sub,
+                          batch['subject'] ?? batch['name'] ?? 'Batch',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: _selectedSubject == sub
+                            color: _selectedBatch == batch
                                 ? Colors.white
                                 : CT.textS(context),
                           ),
