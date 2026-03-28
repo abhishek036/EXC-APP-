@@ -9,6 +9,7 @@ import 'attendance_marking_page.dart';
 import 'create_quiz_page.dart';
 import 'quiz_results_page.dart';
 import 'upload_material_page.dart';
+import 'youtube_broadcast_page.dart';
 
 class TeacherBatchPanelPage extends StatefulWidget {
   final String batchId;
@@ -330,6 +331,39 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          YoutubeBroadcastPage(batchId: widget.batchId),
+                    ),
+                  ),
+                  icon: const Icon(Icons.videocam, color: Colors.black),
+                  label: Text(
+                    'GO LIVE ON YOUTUBE',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      color: Colors.black,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: yellow,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(color: blue, width: 2),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

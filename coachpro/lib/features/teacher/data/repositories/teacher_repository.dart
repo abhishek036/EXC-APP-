@@ -472,4 +472,21 @@ class TeacherRepository {
       throw Exception(response.data['message'] ?? 'Failed to update topic status');
     }
   }
+
+  // ── YouTube Integration ────────────────────────────────────
+  Future<Map<String, dynamic>> createYoutubeLiveStream({
+    required String title,
+    required String description,
+    required String privacyStatus,
+  }) async {
+    final response = await _api.dio.post('youtube/live', data: {
+      'title': title,
+      'description': description,
+      'privacyStatus': privacyStatus,
+    });
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to create YouTube Live Stream');
+  }
 }

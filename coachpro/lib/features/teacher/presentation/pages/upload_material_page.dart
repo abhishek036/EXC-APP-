@@ -1,6 +1,12 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as p;
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/firebase_storage_service.dart';
 import '../../data/repositories/teacher_repository.dart';
 
 class UploadMaterialPage extends StatefulWidget {
@@ -28,6 +34,7 @@ class UploadMaterialPage extends StatefulWidget {
 
 class _UploadMaterialPageState extends State<UploadMaterialPage> {
   final _repo = sl<TeacherRepository>();
+  final _storage = sl<FirebaseStorageService>();
 
   String _selectedType = 'note'; // note, assignment, video
   String? _selectedBatchId;
@@ -38,6 +45,8 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _descCtrl = TextEditingController();
   final TextEditingController _linkCtrl = TextEditingController();
+  
+  PlatformFile? _selectedFile;
 
   bool _isUploading = false;
 
@@ -112,35 +121,57 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       return;
     }
 
-    final rawLink = _linkCtrl.text.trim();
-    if (rawLink.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please provide a valid link.')),
-      );
-      return;
-    }
+    String formattedLink = '';
 
-    final normalizedLink = _normalizeUrl(rawLink);
-    if (normalizedLink == null || !_isValidHttpUrl(normalizedLink)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Invalid link. Use full URL like https://example.com/file.pdf',
-          ),
-        ),
-      );
-      return;
+    if (_selectedType == 'video') {
+       final rawLink = _linkCtrl.text.trim();
+       if (rawLink.isEmpty) {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please provide a video link.')));
+         return;
+       }
+       final normalized = _normalizeUrl(rawLink);
+       if (normalized == null || !_isValidHttpUrl(normalized)) {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid link.')));
+         return;
+       }
+       formattedLink = normalized;
+    } else {
+       if (_selectedFile == null && _linkCtrl.text.trim().isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please upload a file or provide a link.')));
+          return;
+       }
+       if (_selectedFile == null) {
+          final rawLink = _linkCtrl.text.trim();
+          final normalized = _normalizeUrl(rawLink);
+          if (normalized == null || !_isValidHttpUrl(normalized)) {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid link.')));
+             return;
+          }
+          formattedLink = normalized;
+       }
     }
 
     setState(() => _isUploading = true);
     try {
+      if (_selectedType != 'video' && _selectedFile != null) {
+          if (kIsWeb && _selectedFile!.bytes != null) {
+            formattedLink = await _storage.uploadBytes(_selectedFile!.bytes!, 'materials', _selectedFile!.name);
+          } else if (!kIsWeb && _selectedFile!.path != null) {
+            formattedLink = await _storage.uploadFile(File(_selectedFile!.path!), 'materials');
+          } else if (_selectedFile!.bytes != null) {
+            formattedLink = await _storage.uploadBytes(_selectedFile!.bytes!, 'materials', _selectedFile!.name);
+          } else {
+            throw Exception('Invalid file data chosen');
+          }
+      }
+
       await _repo.uploadMaterial(
         batchId: _selectedBatchId,
         subject: _selectedSubject ?? 'General',
         title: _titleCtrl.text.trim(),
         description: _descCtrl.text.trim(),
         type: _selectedType,
-        fileUrl: normalizedLink,
+        fileUrl: formattedLink,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -427,40 +458,69 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     );
   }
 
+  Future<void> _pickFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
+        withData: true,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        setState(() {
+          _selectedFile = result.files.first;
+          _linkCtrl.clear();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error picking file: $e')));
+      }
+    }
+  }
+
   Widget _buildFileDropzone(Color blue, Color yellow) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: blue.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: blue.withValues(alpha: 0.2),
-          width: 2,
-          style: BorderStyle.solid,
+    return GestureDetector(
+      onTap: _pickFile,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: _selectedFile != null ? yellow.withValues(alpha: 0.1) : blue.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _selectedFile != null ? yellow : blue.withValues(alpha: 0.2),
+            width: 2,
+            style: BorderStyle.solid,
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.cloud_upload_outlined, color: blue, size: 32),
-          const SizedBox(height: 12),
-          Text(
-            'UPLOAD FILE',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: blue,
+        child: Column(
+          children: [
+            Icon(
+              _selectedFile != null ? Icons.check_circle : Icons.cloud_upload_outlined, 
+              color: _selectedFile != null ? blue : blue, 
+              size: 32
             ),
-          ),
-          Text(
-            '(MAX 10MB)',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: blue.withValues(alpha: 0.5),
+            const SizedBox(height: 12),
+            Text(
+              _selectedFile != null ? _selectedFile!.name : 'UPLOAD FILE',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: blue,
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+            if (_selectedFile == null)
+              Text(
+                '(MAX 10MB)',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: blue.withValues(alpha: 0.5),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

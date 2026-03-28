@@ -1,13 +1,16 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/firebase_storage_service.dart';
 import '../../../student/data/repositories/student_repository.dart';
 
 class AskDoubtPage extends StatefulWidget {
@@ -22,8 +25,10 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
   Map<String, dynamic>? _selectedBatch;
   final _questionController = TextEditingController();
   String? _questionError;
+  XFile? _selectedImage;
   bool _isSubmitting = false;
   final _studentRepo = sl<StudentRepository>();
+  final _storage = sl<FirebaseStorageService>();
 
   @override
   void initState() {
@@ -49,6 +54,22 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (picked != null) {
+        setState(() {
+          _selectedImage = picked;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+      }
+    }
+  }
+
   Future<void> _submitDoubt() async {
     setState(() {
       _questionError = _questionController.text.trim().isEmpty
@@ -67,9 +88,16 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
 
     setState(() => _isSubmitting = true);
     try {
+      String? imageUrl;
+      if (_selectedImage != null) {
+        final bytes = await _selectedImage!.readAsBytes();
+        imageUrl = await _storage.uploadBytes(bytes, 'doubts', _selectedImage!.name);
+      }
+
       await _studentRepo.submitDoubt(
         batchId: _selectedBatch!['id'] as String,
         question: _questionController.text.trim(),
+        imageUrl: imageUrl,
       );
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -290,39 +318,44 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
               ),
             ),
             const SizedBox(height: 12),
-            Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  decoration: BoxDecoration(
-                    color: CT.card(context),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                      width: 1.5,
+            GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    decoration: BoxDecoration(
+                      color: CT.card(context),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _selectedImage != null 
+                            ? AppColors.primary
+                            : AppColors.primary.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.camera_alt_outlined,
-                        color: AppColors.primary,
-                        size: 32,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tap to select image',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                    child: Column(
+                      children: [
+                        Icon(
+                          _selectedImage != null ? Icons.check_circle : Icons.camera_alt_outlined,
                           color: AppColors.primary,
+                          size: 32,
                         ),
-                      ),
-                    ],
-                  ),
-                )
-                .animate(delay: 200.ms)
-                .fadeIn(duration: 400.ms)
-                .slideY(begin: 0.05, end: 0),
+                        const SizedBox(height: 8),
+                        Text(
+                          _selectedImage != null ? 'Image Attached' : 'Tap to select image',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                  .animate(delay: 200.ms)
+                  .fadeIn(duration: 400.ms)
+                  .slideY(begin: 0.05, end: 0),
+            ),
 
             const SizedBox(height: 40),
             CustomButton(
