@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import '../../../../core/di/injection_container.dart';
-import '../../../../core/services/firebase_storage_service.dart';
+import '../../../../core/services/cloud_storage_service.dart';
 import '../../data/repositories/teacher_repository.dart';
 
 class UploadMaterialPage extends StatefulWidget {
@@ -34,7 +34,7 @@ class UploadMaterialPage extends StatefulWidget {
 
 class _UploadMaterialPageState extends State<UploadMaterialPage> {
   final _repo = sl<TeacherRepository>();
-  final _storage = sl<FirebaseStorageService>();
+  final _storage = sl<CloudStorageService>();
 
   String _selectedType = 'note'; // note, assignment, video
   String? _selectedBatchId;
@@ -541,7 +541,14 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         ),
         onPressed: _isUploading ? null : _handleUpload,
         child: _isUploading
-            ? const CircularProgressIndicator()
+            ? SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                  color: blue,
+                  strokeWidth: 3,
+                ),
+              )
             : Text(
                 'UPLOAD CONTENT',
                 style: GoogleFonts.plusJakartaSans(

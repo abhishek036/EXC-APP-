@@ -10,7 +10,7 @@ import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/di/injection_container.dart';
-import '../../../../core/services/firebase_storage_service.dart';
+import '../../../../core/services/cloud_storage_service.dart';
 import '../../../student/data/repositories/student_repository.dart';
 
 class AskDoubtPage extends StatefulWidget {
@@ -28,7 +28,7 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
   XFile? _selectedImage;
   bool _isSubmitting = false;
   final _studentRepo = sl<StudentRepository>();
-  final _storage = sl<FirebaseStorageService>();
+  final _storage = sl<CloudStorageService>();
 
   @override
   void initState() {

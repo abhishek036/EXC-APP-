@@ -181,6 +181,8 @@ app.get('/api', (req: Request, res: Response) => {
 // Import and use routes here:
 import youtubeRoutes from './modules/youtube/youtube.routes';
 
+import uploadRoutes from './modules/upload/upload.routes';
+
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/batches', batchRoutes);
 app.use('/api/students', studentRoutes);
@@ -208,6 +210,7 @@ app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/app-update', appUpdateRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/youtube', youtubeRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // 404 Catcher
 app.all('*', (req: Request, res: Response, next: NextFunction) => {

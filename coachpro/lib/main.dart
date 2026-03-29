@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'core/constants/app_colors.dart';
 import 'core/di/injection_container.dart';
 import 'core/router/app_router.dart';
@@ -20,6 +22,14 @@ final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint("Firebase init error: $e");
+  }
 
   // Initialise dependency injection
   await initDependencies();

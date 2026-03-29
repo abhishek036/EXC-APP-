@@ -11,6 +11,7 @@ import '../di/injection_container.dart';
 import '../network/api_client.dart';
 import '../network/api_endpoints.dart';
 import 'secure_storage_service.dart';
+import '../../firebase_options.dart';
 
 enum NotificationCategory {
   feeReminder,
@@ -102,7 +103,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (kIsWeb) return;
 
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (_) {}
 
   final prefs = await SharedPreferences.getInstance();
@@ -153,14 +156,10 @@ class PushNotificationService {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    if (kIsWeb) {
-      debugPrint('PushNotificationService skipped on web: Firebase web options not configured');
-      _initialized = true;
-      return;
-    }
-
     try {
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
     } catch (error) {
       debugPrint('Firebase initialize skipped/failure: $error');
       return;

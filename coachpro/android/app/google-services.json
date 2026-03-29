@@ -12,7 +12,12 @@
           "package_name": "excellence.academy"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "100598842137-jl0dju99g63i2c11g6mpeis8bkde7sv4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDZxE4wPdAG8EMBV3NtC-6J52VVs_k7VpU"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "100598842137-jl0dju99g63i2c11g6mpeis8bkde7sv4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

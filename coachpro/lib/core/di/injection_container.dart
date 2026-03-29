@@ -10,7 +10,7 @@ import '../services/auto_notification_service.dart';
 import '../services/data_export_service.dart';
 import '../services/app_update_service.dart';
 import '../services/realtime_sync_service.dart';
-import '../services/firebase_storage_service.dart';
+import '../services/cloud_storage_service.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/admin/data/repositories/admin_repository.dart';
 import '../../features/student/data/repositories/student_repository.dart';
@@ -63,8 +63,8 @@ Future<void> initDependencies() async {
     () => AppUpdateService(),
   );
 
-  sl.registerLazySingleton<FirebaseStorageService>(
-    () => FirebaseStorageService.instance,
+  sl.registerLazySingleton<CloudStorageService>(
+    () => CloudStorageService.instance,
   );
 
   sl.registerLazySingleton<RealtimeSyncService>(
