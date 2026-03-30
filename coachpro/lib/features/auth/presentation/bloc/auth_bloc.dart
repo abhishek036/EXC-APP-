@@ -25,6 +25,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   String? _pendingPhone;
   String? _pendingJoinCode;
+  String? _pendingRole;
 
   AuthBloc({
     required SecureStorageService storage,
@@ -198,11 +199,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final phone = event.phone.startsWith('+') ? event.phone : '+91${event.phone}';
     _pendingPhone = phone;
     _pendingJoinCode = event.joinCode;
+    _pendingRole = event.role.name;
 
     try {
       await _apiAuth.sendOtp(
         phone: phone,
         joinCode: _pendingJoinCode,
+        role: _pendingRole,
       );
       emit(const AuthOtpSent());
     } catch (e) {
@@ -223,6 +226,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         phone: _pendingPhone!,
         otp: event.otp,
         joinCode: event.joinCode ?? _pendingJoinCode,
+        role: _pendingRole,
       );
       
       final token = data['accessToken'];

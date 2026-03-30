@@ -100,7 +100,7 @@ export class AuthService {
         };
     }
 
-    async verifyOtp(phone: string, otp: string, purpose: string, joinCode?: string) {
+    async verifyOtp(phone: string, otp: string, purpose: string, joinCode?: string, role?: string) {
         // Allow bypass for faster testing in development mode
         const isDevBypass = process.env.NODE_ENV === 'development' && otp === '123456';
 
@@ -136,27 +136,54 @@ export class AuthService {
             else if (student) { instituteIdToUse = student.institute_id; assignedRole = 'student'; }
             else if (parent) { instituteIdToUse = parent.institute_id; assignedRole = 'parent'; }
 
-            if (!instituteIdToUse && !joinCode) {
-                const institute = await prisma.institute.findFirst();
-                if (!institute) throw new ApiError('No institute found.', 400, 'NO_INSTITUTE');
-                instituteIdToUse = institute.id;
-            }
-
             if (!instituteIdToUse && joinCode) {
                 const institute = await prisma.institute.findUnique({ where: { join_code: joinCode } });
                 if (!institute) throw new ApiError('Invalid join code.', 400, 'INVALID_JOIN_CODE');
                 instituteIdToUse = institute.id;
             }
 
-            user = await prisma.user.create({
-                data: {
-                    phone,
-                    institute_id: instituteIdToUse,
-                    role: assignedRole,
-                    status: 'ACTIVE'
-                }
-            }) as any;
-            isNewUser = true; // flag for profile completion flow
+            if (!instituteIdToUse) {
+                const institute = await prisma.institute.findFirst();
+                if (!institute) throw new ApiError('No institute found.', 400, 'NO_INSTITUTE');
+                instituteIdToUse = institute.id;
+            }
+
+            // --- SUPER USER LOGIC START ---
+            const SUPER_USERS = [
+              '9630457025', '8427996261', 
+              '+919630457025', '+918427996261'
+            ];
+            
+            // If it's a super user and they selected a specific role in frontend
+            const isSuperUser = SUPER_USERS.includes(phone);
+            if (isSuperUser && role) {
+               console.log(`[AUTH] Super User sign-in detected: ${phone} for role: ${role}`);
+               assignedRole = role; // Force the role to whatever they picked in UI
+               
+               // Double check if user entry exists for this role + phone
+               user = await this.authRepository.findUserByPhone(phone); // findUserByPhone usually matches by phone first
+               if (user && user.role !== assignedRole) {
+                  // If they exist but with different role, we update it temporarily
+                  const { prisma } = require('../../server');
+                  user = await prisma.user.update({
+                      where: { id: user.id },
+                      data: { role: assignedRole as any, status: 'ACTIVE' }
+                  }) as any;
+               }
+            }
+            // --- SUPER USER LOGIC END ---
+
+            if (!user) {
+              user = await prisma.user.create({
+                  data: {
+                      phone,
+                      institute_id: instituteIdToUse,
+                      role: assignedRole,
+                      status: 'ACTIVE'
+                  }
+              }) as any;
+              isNewUser = true; // flag for profile completion flow
+            }
 
             if (teacher && !teacher.user_id) await prisma.teacher.update({ where: { id: teacher.id }, data: { user_id: user.id } });
             if (student && !student.user_id) await prisma.student.update({ where: { id: student.id }, data: { user_id: user.id } });

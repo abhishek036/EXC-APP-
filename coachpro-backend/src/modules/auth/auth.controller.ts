@@ -12,7 +12,7 @@ export class AuthController {
   sendOtp = async (req: Request, res: Response, next: NextFunction) => {
     console.log(`[CONTROLLER] Received sendOtp request: ${req.method} ${req.url}`);
     try {
-      const { phone, purpose, joinCode } = req.body;
+      const { phone, purpose, joinCode, role } = req.body;
       const data = await this.authService.sendOtp(phone, purpose, joinCode);
       return sendResponse({ res, data, message: 'OTP sent successfully' });
     } catch (error) {
@@ -23,8 +23,8 @@ export class AuthController {
   verifyOtp = async (req: Request, res: Response, next: NextFunction) => {
     console.log(`[CONTROLLER] Received verifyOtp request for phone: "${req.body.phone}", otp: "${req.body.otp}"`);
     try {
-      const { phone, otp, purpose, joinCode } = req.body;
-      const data = await this.authService.verifyOtp(phone, otp, purpose, joinCode);
+      const { phone, otp, purpose, joinCode, role } = req.body;
+      const data = await this.authService.verifyOtp(phone, otp, purpose, joinCode, role);
       return sendResponse({ res, data, message: 'OTP verified successfully' });
     } catch (error) {
       next(error);

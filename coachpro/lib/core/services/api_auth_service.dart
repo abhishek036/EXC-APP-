@@ -11,6 +11,7 @@ class ApiAuthService {
     required String phone,
     String purpose = 'login',
     String? joinCode,
+    String? role,
   }) async {
     final response = await _api.dio.post(
       ApiEndpoints.sendOtp,
@@ -18,6 +19,7 @@ class ApiAuthService {
         'phone': phone,
         'purpose': purpose,
         if (joinCode != null && joinCode.isNotEmpty) 'joinCode': joinCode,
+        if (role != null) 'role': role,
       },
     );
 
@@ -32,6 +34,7 @@ class ApiAuthService {
     required String otp,
     String purpose = 'login',
     String? joinCode,
+    String? role,
   }) async {
     final response = await _api.dio.post(
       ApiEndpoints.verifyOtp,
@@ -40,6 +43,7 @@ class ApiAuthService {
         'otp': otp,
         'purpose': purpose,
         if (joinCode != null && joinCode.isNotEmpty) 'joinCode': joinCode,
+        if (role != null) 'role': role,
       },
     );
 
