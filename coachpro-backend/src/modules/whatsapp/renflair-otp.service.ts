@@ -55,6 +55,7 @@ export class RenflairOtpService {
           API: apiKey,
           PHONE: cleanPhone,
           OTP: otp,
+          COUNTRY: this.countryCode,
         },
         timeout: 15000, // 15s timeout
       });
