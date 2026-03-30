@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { UploadController } from './upload.controller';
-import { upload } from '../../middleware/upload';
+import { generalUpload } from '../../middleware/upload';
 import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
 
 const router = Router();
@@ -13,6 +13,6 @@ router.get('/file/:key(*)', (req, res, next) => controller.downloadFile(req, res
 router.use(authenticateJWT);
 
 // Only admins and teachers should upload study materials
-router.post('/', requireRole('admin', 'teacher'), upload.single('file'), (req, res, next) => controller.uploadFile(req, res).catch(next));
+router.post('/', requireRole('admin', 'teacher'), generalUpload.single('file'), (req, res, next) => controller.uploadFile(req, res).catch(next));
 
 export default router;

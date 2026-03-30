@@ -5,7 +5,7 @@ import { createStudentSchema, updateStudentSchema } from './student.validator';
 import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
 import { tenantMiddleware } from '../../middleware/tenant.middleware';
 
-import { upload } from '../../middleware/upload';
+import { excelUpload } from '../../middleware/upload';
 
 const router = Router();
 const studentController = new StudentController();
@@ -30,7 +30,7 @@ router.get('/me/notifications', requireRole('student'), studentController.getNot
 // ── Admin/Teacher management routes ────────────────────────
 router.get('/', requireRole('admin', 'teacher'), studentController.list);
 router.post('/', requireRole('admin'), validate(createStudentSchema), studentController.create);
-router.post('/import', requireRole('admin'), upload.single('file'), studentController.importStudents);
+router.post('/import', requireRole('admin'), excelUpload.single('file'), studentController.importStudents);
 router.get('/:id', requireRole('admin', 'teacher'), studentController.getById);
 router.put('/:id', requireRole('admin'), validate(updateStudentSchema), studentController.update);
 router.patch('/:id/status', requireRole('admin'), studentController.toggleStatus);

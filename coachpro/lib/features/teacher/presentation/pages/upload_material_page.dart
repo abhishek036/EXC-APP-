@@ -461,8 +461,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   Future<void> _pickFile() async {
     try {
       final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
+        type: FileType.any,
         withData: true,
       );
       if (result != null && result.files.isNotEmpty) {
@@ -512,7 +511,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
             ),
             if (_selectedFile == null)
               Text(
-                '(MAX 10MB)',
+                '(MAX 50MB)',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,

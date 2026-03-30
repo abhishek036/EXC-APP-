@@ -3,7 +3,7 @@ import path from 'path';
 
 const storage = multer.memoryStorage();
 
-export const upload = multer({
+export const excelUpload = multer({
     storage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
     fileFilter: (_req, file, cb) => {
@@ -15,5 +15,14 @@ export const upload = multer({
             return cb(null, true);
         }
         cb(new Error('Only Excel (.xlsx, .xls) or CSV files are allowed!'));
+    }
+});
+
+export const generalUpload = multer({
+    storage,
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+    fileFilter: (_req, file, cb) => {
+        // Accept any file for generic study material uploads
+        cb(null, true);
     }
 });
