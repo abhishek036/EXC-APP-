@@ -186,12 +186,13 @@ export class UsersService {
           } else {
             const oldProf = await tx.student.findFirst({ where: { phone: user.phone, institute_id: instituteId } })
               || await tx.teacher.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+            
             await tx.parent.create({
               data: {
-                institute_id: instituteId,
-                user_id: userId,
+                institute: { connect: { id: instituteId } },
+                user: { connect: { id: userId } },
                 phone: user.phone,
-                name: oldProf?.name || 'New Parent'
+                name: (oldProf as any)?.name || 'New Parent'
               }
             });
           }
