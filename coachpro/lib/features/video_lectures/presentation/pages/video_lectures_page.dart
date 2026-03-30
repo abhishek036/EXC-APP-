@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../student/data/repositories/student_repository.dart';
 
 class VideoLecturesPage extends StatefulWidget {
   const VideoLecturesPage({super.key});
@@ -16,115 +21,80 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
   String _selectedSubject = 'All';
   String _sortBy = 'Recent';
 
-  final _subjects = ['All', 'Physics', 'Chemistry', 'Mathematics', 'Biology'];
+  List<Map<String, dynamic>> _lectures = [];
+  bool _isLoading = true;
+  String? _error;
 
-  // Mock video lectures data with progress tracking
-  final List<Map<String, dynamic>> _lectures = [
-    {
-      'id': '1',
-      'title': 'Rotational Mechanics — Complete Theory',
-      'subject': 'Physics',
-      'chapter': 'Rotational Motion',
-      'teacher': 'Mr. Sharma',
-      'duration': '1h 25m',
-      'durationSec': 5100,
-      'watchedSec': 5100,
-      'uploadDate': '5 Mar 2026',
-      'views': 342,
-      'isCompleted': true,
-    },
-    {
-      'id': '2',
-      'title': 'Organic Chemistry — Naming Reactions',
-      'subject': 'Chemistry',
-      'chapter': 'Organic Chemistry',
-      'teacher': 'Mrs. Gupta',
-      'duration': '58m',
-      'durationSec': 3480,
-      'watchedSec': 2088,
-      'uploadDate': '4 Mar 2026',
-      'views': 256,
-      'isCompleted': false,
-    },
-    {
-      'id': '3',
-      'title': 'Definite Integration — JEE Level Problems',
-      'subject': 'Mathematics',
-      'chapter': 'Integration',
-      'teacher': 'Mr. Verma',
-      'duration': '1h 12m',
-      'durationSec': 4320,
-      'watchedSec': 1080,
-      'uploadDate': '3 Mar 2026',
-      'views': 189,
-      'isCompleted': false,
-    },
-    {
-      'id': '4',
-      'title': 'Electromagnetic Induction — Faraday\'s Law',
-      'subject': 'Physics',
-      'chapter': 'EMI',
-      'teacher': 'Mr. Sharma',
-      'duration': '45m',
-      'durationSec': 2700,
-      'watchedSec': 0,
-      'uploadDate': '2 Mar 2026',
-      'views': 145,
-      'isCompleted': false,
-    },
-    {
-      'id': '5',
-      'title': 'Thermodynamics — PV Diagrams & Problems',
-      'subject': 'Chemistry',
-      'chapter': 'Thermodynamics',
-      'teacher': 'Mrs. Gupta',
-      'duration': '1h 05m',
-      'durationSec': 3900,
-      'watchedSec': 0,
-      'uploadDate': '1 Mar 2026',
-      'views': 203,
-      'isCompleted': false,
-    },
-    {
-      'id': '6',
-      'title': 'Human Physiology — Digestive System',
-      'subject': 'Biology',
-      'chapter': 'Human Physiology',
-      'teacher': 'Dr. Nair',
-      'duration': '52m',
-      'durationSec': 3120,
-      'watchedSec': 3120,
-      'uploadDate': '28 Feb 2026',
-      'views': 178,
-      'isCompleted': true,
-    },
-    {
-      'id': '7',
-      'title': 'Differential Equations — First Order Linear',
-      'subject': 'Mathematics',
-      'chapter': 'Differential Equations',
-      'teacher': 'Mr. Verma',
-      'duration': '1h 18m',
-      'durationSec': 4680,
-      'watchedSec': 2340,
-      'uploadDate': '27 Feb 2026',
-      'views': 167,
-      'isCompleted': false,
-    },
-    {
-      'id': '8',
-      'title': 'Modern Physics — Photoelectric Effect',
-      'subject': 'Physics',
-      'chapter': 'Modern Physics',
-      'teacher': 'Mr. Sharma',
-      'duration': '55m',
-      'durationSec': 3300,
-      'watchedSec': 0,
-      'uploadDate': '25 Feb 2026',
-      'views': 134,
-      'isCompleted': false,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchLectures();
+  }
+
+  Future<void> _fetchLectures() async {
+    try {
+      final repo = sl<StudentRepository>();
+      // Fetch lectures and progress in parallel
+      final results = await Future.wait([
+        repo.getLectures(),
+        repo.getLectureProgress().catchError((_) => <Map<String, dynamic>>[]),
+      ]);
+
+      final data = results[0];
+      final progressList = results[1];
+
+      // Build a progress lookup map by lecture_id
+      final progressMap = <String, Map<String, dynamic>>{};
+      for (final p in progressList) {
+        final lid = p['lecture_id']?.toString() ?? '';
+        if (lid.isNotEmpty) progressMap[lid] = p;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+         _lectures = data.map((e) {
+            final lid = e['id']?.toString() ?? '';
+            final progress = progressMap[lid];
+            final watchedSec = (progress?['watched_sec'] as int?) ?? 0;
+            final isCompleted = (progress?['is_completed'] as bool?) ?? false;
+            final lastPosition = (progress?['last_position'] as int?) ?? 0;
+
+            return {
+               'id': lid,
+               'title': e['title'] ?? 'Recordings',
+               'subject': e['subject'] ?? 'General',
+               'chapter': e['description'] ?? 'Theory Class',
+               'teacher': e['teacher_name'] ?? 'Class Teacher',
+               'duration': '${e['duration_minutes'] ?? 60}m',
+               'durationSec': ((e['duration_minutes'] as int?) ?? 60) * 60,
+               'watchedSec': watchedSec,
+               'lastPosition': lastPosition,
+               'uploadDate': e['created_at'] != null ? DateFormat('d MMM yyyy').format(DateTime.parse(e['created_at'])) : 'Unknown',
+               'views': 0,
+               'isCompleted': isCompleted,
+               'link': e['link']
+            };
+         }).toList();
+         _isLoading = false;
+      });
+    } catch(e) {
+      if (!mounted) return;
+      setState(() {
+         _error = e.toString();
+         _isLoading = false;
+      });
+    }
+  }
+
+  List<String> get _subjects {
+     final set = {'All'};
+     for (final l in _lectures) {
+       final sub = l['subject']?.toString().trim();
+       if (sub != null && sub.isNotEmpty) set.add(sub);
+     }
+     return set.toList();
+  }
 
   List<Map<String, dynamic>> get _filtered {
     var list = _selectedSubject == 'All'
@@ -188,7 +158,13 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
           ),
         ],
       ),
-      body: CustomScrollView(
+      body: _isLoading 
+         ? const Center(child: CircularProgressIndicator()) 
+         : _error != null 
+             ? Center(child: Text(_error!, style: GoogleFonts.dmSans(color: Colors.red)))
+             : _lectures.isEmpty
+                 ? Center(child: Text('No recorded lectures found.', style: GoogleFonts.dmSans(color: CT.textS(context))))
+                 : CustomScrollView(
         slivers: [
           // Progress overview
           SliverToBoxAdapter(
@@ -325,13 +301,30 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
     );
   }
 
+  Future<void> _launchURL(String? url) async {
+    if (url == null || url.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Video link not available.')));
+      return;
+    }
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not open link: $url')));
+    }
+  }
+
   Widget _buildContinueCard(Map<String, dynamic> lecture, Color accent) {
     final progress = (lecture['watchedSec'] as int) / (lecture['durationSec'] as int);
     final watchedMin = ((lecture['watchedSec'] as int) / 60).round();
     final totalMin = ((lecture['durationSec'] as int) / 60).round();
 
-    return Container(
-      width: 260,
+    return CPPressable(
+      onTap: () => _launchURL(lecture['link']?.toString()),
+      child: Container(
+        width: 260,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
         color: CT.card(context),
@@ -393,7 +386,7 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildLectureCard(Map<String, dynamic> lecture, Color accent, bool isDark) {
@@ -403,8 +396,10 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
     final isCompleted = lecture['isCompleted'] as bool;
     final isStarted = (lecture['watchedSec'] as int) > 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    return CPPressable(
+      onTap: () => _launchURL(lecture['link']?.toString()),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: CT.card(context),
@@ -490,7 +485,7 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Color _getSubjectColor(String subject) {

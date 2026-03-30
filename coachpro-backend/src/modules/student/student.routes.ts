@@ -23,9 +23,13 @@ router.get('/me/exams/upcoming', requireRole('student'), studentController.getUp
 router.get('/me/performance', requireRole('student'), studentController.getMyPerformance);
 router.get('/me/fees', requireRole('student'), studentController.getMyFees);
 router.get('/me/fees/history', requireRole('student'), studentController.getFeeHistory);
+router.get('/me/lectures', requireRole('student'), studentController.getMyLectures);
 router.get('/me/results', requireRole('student'), studentController.getMyResults);
 router.get('/me/doubts', requireRole('student'), studentController.getMyDoubts);
 router.get('/me/notifications', requireRole('student'), studentController.getNotifications);
+router.get('/me/lecture-progress', requireRole('student'), studentController.getLectureProgress);
+router.put('/me/lecture-progress', requireRole('student'), studentController.updateLectureProgress);
+router.get('/me/live-sessions', requireRole('student'), studentController.getActiveLiveSessions);
 
 // ── Admin/Teacher management routes ────────────────────────
 router.get('/', requireRole('admin', 'teacher'), studentController.list);

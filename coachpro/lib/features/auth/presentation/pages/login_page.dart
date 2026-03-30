@@ -174,7 +174,7 @@ class _LoginPageState extends State<LoginPage> {
 
                             // ── Card Title ──────────────────
                             Text(
-                              _loginMethod == LoginMethod.otp ? 'Login with OTP' : 'Login with Password',
+                              _loginMethod == LoginMethod.otp ? 'Login via WhatsApp OTP' : 'Login with Password',
                               style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF0A0C1E), letterSpacing: -0.5),
                             ),
                             const SizedBox(height: 4),
@@ -251,7 +251,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               const SizedBox(height: 20),
                               _buildPrimaryButton(
-                                label: 'Send OTP',
+                                label: 'Send WhatsApp OTP',
                                 icon: Icons.arrow_forward_rounded,
                                 isLoading: isLoading,
                                 onTap: _handleSendOtp,

@@ -1033,7 +1033,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Revenue Distribution (Mock)',
+          'Revenue Distribution',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w900,

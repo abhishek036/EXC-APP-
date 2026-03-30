@@ -179,44 +179,7 @@ class _ProfilePageState extends State<ProfilePage> {
           AppRole.student => 'Student',
           AppRole.parent => 'Parent',
         };
-        final profileStats = switch (role) {
-          AppRole.admin => [
-            _stat('450', 'Students', const Color(0xFF0D1282)),
-            _statDivider(),
-            _stat('12', 'Teachers', const Color(0xFFF5D90A)),
-            _statDivider(),
-            _stat('8', 'Batches', const Color(0xFF4C6EF5)),
-            _statDivider(),
-            _stat('₹12L', 'Revenue', const Color(0xFF16A34A)),
-          ],
-          AppRole.teacher => [
-            _stat('18', 'Classes', const Color(0xFF0D1282)),
-            _statDivider(),
-            _stat('126', 'Students', const Color(0xFFF5D90A)),
-            _statDivider(),
-            _stat('7', 'Pending', const Color(0xFF4C6EF5)),
-            _statDivider(),
-            _stat('92%', 'Attendance', const Color(0xFF16A34A)),
-          ],
-          AppRole.parent => [
-            _stat('2', 'Children', const Color(0xFF0D1282)),
-            _statDivider(),
-            _stat('96%', 'Attendance', const Color(0xFFF5D90A)),
-            _statDivider(),
-            _stat('3', 'Pending', const Color(0xFF4C6EF5)),
-            _statDivider(),
-            _stat('1', 'Fee Due', const Color(0xFFD71313)),
-          ],
-          AppRole.student => [
-            _stat('88%', 'Attendance', const Color(0xFF0D1282)),
-            _statDivider(),
-            _stat('12', 'Tests', const Color(0xFFF5D90A)),
-            _statDivider(),
-            _stat('#5', 'Rank', const Color(0xFF4C6EF5)),
-            _statDivider(),
-            _stat('15d', 'Streak', const Color(0xFFD71313)),
-          ],
-        };
+
         final initials = displayName.trim().isEmpty ? 'A'
             : displayName.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase();
 
@@ -307,21 +270,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
 
               SliverToBoxAdapter(child: Column(children: [
-                // ── Stats Bar ────────────────────────────────
-                Transform.translate(
-                  offset: const Offset(0, -1),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
-                    ),
-                    child: Row(children: profileStats),
-                  ),
-                ).animate(delay: 100.ms).fadeIn().slideY(begin: 0.05),
-
                 const SizedBox(height: 24),
 
                 // ── Personal Information ──────────────────────
@@ -332,18 +280,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   _editableField(label: 'Date of Birth', icon: Icons.cake_rounded, controller: _dobCtrl, editing: _editMode, editable: false),
                   _editableField(label: 'Address', icon: Icons.home_rounded, controller: _addressCtrl, editing: _editMode, editable: false),
                 ]).animate(delay: 150.ms).fadeIn().slideY(begin: 0.05),
-
-                const SizedBox(height: 20),
-
-                // ── Admin Details ─────────────────────────────
-                if (isAdmin) _section('Administrative Details', [
-                  _staticRow(Icons.business_rounded, 'Institute', 'Excellence Academy'),
-                  _staticRow(Icons.calendar_today_rounded, 'Since', 'March 2018'),
-                  _staticRow(Icons.admin_panel_settings_rounded, 'Access Level', 'Full Admin'),
-                  _staticRow(Icons.location_on_rounded, 'Branch', 'Main Campus'),
-                ]).animate(delay: 200.ms).fadeIn().slideY(begin: 0.05),
-
-                if (isAdmin) const SizedBox(height: 20),
 
                 // ── Quick Actions ────────────────────────────
                 _section(
@@ -403,15 +339,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // ── Helpers ─────────────────────────────────────────────────
 
-  Widget _stat(String value, String label, Color color) => Expanded(
-    child: Column(children: [
-      Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 19, fontWeight: FontWeight.w800, color: color)),
-      const SizedBox(height: 2),
-      Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF8F97B8), fontWeight: FontWeight.w500)),
-    ]),
-  );
 
-  Widget _statDivider() => Container(width: 1, height: 32, color: const Color(0xFFE3E4EE));
 
   Widget _section(String title, List<Widget> children) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -468,18 +396,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _staticRow(IconData icon, String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    child: Row(children: [
-      Icon(icon, size: 20, color: const Color(0xFF8F97B8)),
-      const SizedBox(width: 14),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF8F97B8), fontWeight: FontWeight.w600)),
-        const SizedBox(height: 2),
-        Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E))),
-      ])),
-    ]),
-  );
+
 
   Widget _quickRow(BuildContext context, IconData icon, String label, {String? route, VoidCallback? onTap}) => CPPressable(
     onTap: () {

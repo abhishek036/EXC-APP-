@@ -271,6 +271,40 @@ export class StudentController {
       } catch (error) { next(error); }
   };
 
+  getMyLectures = async (req: Request, res: Response, next: NextFunction) => {
+      try {
+          const student = await prisma.student.findFirst({
+              where: { user_id: req.user!.userId, institute_id: req.instituteId! },
+              include: { student_batches: { where: { is_active: true } } }
+          });
+          if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
+
+          const batchIds = student.student_batches.map(sb => sb.batch_id);
+
+          const lectures = await prisma.lecture.findMany({
+              where: {
+                  batch_id: { in: batchIds },
+                  institute_id: req.instituteId!,
+                  is_active: true,
+                  link: { not: null }
+              },
+              include: { teacher: { select: { name: true } } },
+              orderBy: { created_at: 'desc' }
+          });
+
+          return sendResponse({ 
+              res, 
+              data: lectures.map(l => ({...l, teacher_name: l.teacher?.name})), 
+              message: 'Lectures fetched' 
+          });
+      } catch (error) { 
+        if ((error as any)?.code === 'P2021' || (error as any)?.code === 'P2022') {
+          return sendResponse({res, data: [], message: 'Lectures unavailable due to missing backend table. Array mocked.'});
+        }
+        next(error); 
+      }
+  };
+
   getTodaySchedule = async (req: Request, res: Response, next: NextFunction) => {
       try {
           const student = await prisma.student.findFirst({
@@ -460,5 +494,115 @@ export class StudentController {
       const result = await this.studentService.importExcel(req.instituteId!, req.file.buffer, batchId);
       return sendResponse({ res, data: result, message: 'Import process completed' });
     } catch (error) { next(error); }
+  };
+
+  // ── Lecture Progress ─────────────────────────────────────
+  getLectureProgress = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const student = await prisma.student.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! },
+      });
+      if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
+
+      const progress = await prisma.lectureProgress.findMany({
+        where: { student_id: student.id, institute_id: req.instituteId! },
+        orderBy: { updated_at: 'desc' },
+      });
+
+      return sendResponse({ res, data: progress, message: 'Lecture progress fetched' });
+    } catch (error) {
+      if ((error as any)?.code === 'P2021') {
+        return sendResponse({ res, data: [], message: 'Progress table not available yet' });
+      }
+      next(error);
+    }
+  };
+
+  updateLectureProgress = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const student = await prisma.student.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! },
+      });
+      if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
+
+      const { lecture_id, watched_sec, total_sec, last_position, is_completed } = req.body;
+      if (!lecture_id) throw new ApiError('lecture_id is required', 400, 'MISSING_FIELD');
+
+      const progress = await prisma.lectureProgress.upsert({
+        where: {
+          student_id_lecture_id: {
+            student_id: student.id,
+            lecture_id: lecture_id,
+          },
+        },
+        create: {
+          student_id: student.id,
+          lecture_id: lecture_id,
+          institute_id: req.instituteId!,
+          watched_sec: watched_sec ?? 0,
+          total_sec: total_sec ?? 0,
+          last_position: last_position ?? 0,
+          is_completed: is_completed ?? false,
+        },
+        update: {
+          watched_sec: watched_sec ?? undefined,
+          total_sec: total_sec ?? undefined,
+          last_position: last_position ?? undefined,
+          is_completed: is_completed ?? undefined,
+        },
+      });
+
+      return sendResponse({ res, data: progress, message: 'Progress updated' });
+    } catch (error) {
+      if ((error as any)?.code === 'P2021') {
+        return sendResponse({ res, data: null, message: 'Progress table not available yet' });
+      }
+      next(error);
+    }
+  };
+
+  // ── Live Sessions ────────────────────────────────────────
+  getActiveLiveSessions = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const student = await prisma.student.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! },
+        include: { student_batches: { where: { is_active: true } } },
+      });
+      if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
+
+      const batchIds = student.student_batches.map(sb => sb.batch_id);
+
+      // Find lectures that are 'live' type and scheduled within the last 4 hours
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+      const lectures = await prisma.lecture.findMany({
+        where: {
+          batch_id: { in: batchIds },
+          institute_id: req.instituteId!,
+          is_active: true,
+          lecture_type: 'live',
+          scheduled_at: { gte: fourHoursAgo },
+        },
+        include: {
+          teacher: { select: { name: true } },
+          batch: { select: { name: true } },
+        },
+        orderBy: { scheduled_at: 'desc' },
+      });
+
+      return sendResponse({
+        res,
+        data: lectures.map(l => ({
+          ...l,
+          teacher_name: l.teacher?.name,
+          batch_name: l.batch?.name,
+        })),
+        message: 'Active live sessions fetched',
+      });
+    } catch (error) {
+      if ((error as any)?.code === 'P2021' || (error as any)?.code === 'P2022') {
+        return sendResponse({ res, data: [], message: 'Live sessions unavailable' });
+      }
+      next(error);
+    }
   };
 }

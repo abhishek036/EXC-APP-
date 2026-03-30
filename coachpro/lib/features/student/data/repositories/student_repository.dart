@@ -60,6 +60,14 @@ class StudentRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch schedule');
   }
 
+  Future<List<Map<String, dynamic>>> getLectures() async {
+    final response = await _api.dio.get('students/me/lectures');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch lectures');
+  }
+
   // ── Attendance ───────────────────────────────────────────
   Future<Map<String, dynamic>> getMyAttendance({String? batchId}) async {
     final response = await _api.dio.get(
@@ -195,7 +203,7 @@ class StudentRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch results');
   }
 
-  // ── Study Materials ──────────────────────────────────────
+  // ── Study Materials & Assignments ────────────────────────
   Future<List<Map<String, dynamic>>> getStudyMaterials({
     String? subject,
   }) async {
@@ -209,6 +217,35 @@ class StudentRepository {
       return _extractList(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch materials');
+  }
+
+  Future<List<Map<String, dynamic>>> getAssignments() async {
+    final response = await _api.dio.get('content/assignments');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch assignments');
+  }
+
+  Future<Map<String, dynamic>> submitAssignment({
+    required String assignmentId,
+    String? fileUrl,
+    String? submissionText,
+  }) async {
+    final payload = <String, dynamic>{
+      'file_url': fileUrl?.trim(),
+      'submission_text': submissionText?.trim(),
+    };
+    payload.removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+
+    final response = await _api.dio.post(
+      'content/assignments/$assignmentId/submit',
+      data: payload,
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to submit assignment');
   }
 
   // ── Announcements ────────────────────────────────────────
@@ -306,5 +343,46 @@ class StudentRepository {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
     throw Exception(response.data['message'] ?? 'Failed to send notification');
+  }
+
+  // ── Lecture Progress ─────────────────────────────────────
+  Future<List<Map<String, dynamic>>> getLectureProgress() async {
+    final response = await _api.dio.get('students/me/lecture-progress');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch progress');
+  }
+
+  Future<Map<String, dynamic>> updateLectureProgress({
+    required String lectureId,
+    required int watchedSec,
+    required int totalSec,
+    required int lastPosition,
+    bool isCompleted = false,
+  }) async {
+    final response = await _api.dio.put(
+      'students/me/lecture-progress',
+      data: {
+        'lecture_id': lectureId,
+        'watched_sec': watchedSec,
+        'total_sec': totalSec,
+        'last_position': lastPosition,
+        'is_completed': isCompleted,
+      },
+    );
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update progress');
+  }
+
+  // ── Live Sessions ────────────────────────────────────────
+  Future<List<Map<String, dynamic>>> getActiveLiveSessions() async {
+    final response = await _api.dio.get('students/me/live-sessions');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch live sessions');
   }
 }

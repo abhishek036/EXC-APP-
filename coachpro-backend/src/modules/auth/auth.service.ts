@@ -79,9 +79,19 @@ export class AuthService {
 
         if (process.env.NODE_ENV === 'development') {
             console.log(`[DEV OTP]: Sent ${otp} to ${phone} for ${purpose}`);
-        } else {
-            await import('../whatsapp/whatsapp.service').then(w => w.WhatsAppService.sendOTP(phone, otp));
-            console.log(`Sent WhatsApp OTP to ${phone}`);
+        }
+
+        // Always attempt to send via WhatsApp (even in dev, if API key is configured)
+        try {
+            const { RenflairOtpService } = await import('../whatsapp/renflair-otp.service');
+            const sent = await RenflairOtpService.sendOTP(phone, otp);
+            if (sent) {
+                console.log(`[AUTH] ✅ WhatsApp OTP sent via Renflair to ${phone}`);
+            } else {
+                console.warn(`[AUTH] ⚠️ Renflair send failed for ${phone} — OTP was saved to DB, user can check console in dev`);
+            }
+        } catch (e: any) {
+            console.error(`[AUTH] Renflair OTP delivery error:`, e.message);
         }
 
         return {

@@ -231,7 +231,7 @@ class _OtpPageState extends State<OtpPage> {
                         style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.8)
                       ).animate(delay: 200.ms).fadeIn(),
                       const SizedBox(height: 6),
-                      Text('We sent a secure code to\n$_maskedPhone', 
+                      Text('We sent a code via WhatsApp to\n$_maskedPhone', 
                         textAlign: TextAlign.center, 
                         style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.white.withValues(alpha: 0.55), fontWeight: FontWeight.w500, height: 1.5)
                       ).animate(delay: 300.ms).fadeIn(),

@@ -9,7 +9,7 @@ import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
-import '../../../admin/data/repositories/admin_repository.dart';
+import '../../data/repositories/student_repository.dart';
 
 class StudyMaterialsPage extends StatefulWidget {
   const StudyMaterialsPage({super.key});
@@ -21,7 +21,7 @@ class StudyMaterialsPage extends StatefulWidget {
 class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
   int _selectedType = 0;
   int _selectedSubject = 0;
-  final _adminRepo = sl<AdminRepository>();
+  final _studentRepo = sl<StudentRepository>();
   late Future<List<_Material>> _materialsFuture;
 
   final _types = ['Notes', 'Assignments', 'Videos'];
@@ -34,8 +34,8 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
   }
 
   Future<List<_Material>> _loadMaterials() async {
-    final notes = await _adminRepo.getMaterials();
-    final assignments = await _adminRepo.getAssignments();
+    final notes = await _studentRepo.getStudyMaterials();
+    final assignments = await _studentRepo.getAssignments();
 
     final noteMaterials = notes
         .map(

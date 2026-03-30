@@ -57,6 +57,7 @@ model Institute {
   notifications             Notification[]
   user_device_tokens        UserDeviceToken[]
   notification_delivery_logs NotificationDeliveryLog[]
+  lecture_progress           LectureProgress[]
 
   @@map("institutes")
 }
@@ -234,6 +235,7 @@ model Student {
   certificates      Certificate[]
   syllabus_progress StudentSyllabusProgress[]
   assignment_submissions AssignmentSubmission[]
+  lecture_progress       LectureProgress[]
 
   @@map("students")
 }
@@ -664,8 +666,29 @@ model Lecture {
   duration_minutes Int?      @default(60)
   is_active        Boolean?  @default(true)
   created_at       DateTime? @default(now()) @db.Timestamptz
+  lecture_progress LectureProgress[]
 
   @@map("lectures")
+}
+
+model LectureProgress {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student_id    String    @db.Uuid
+  student       Student   @relation(fields: [student_id], references: [id])
+  lecture_id    String    @db.Uuid
+  lecture       Lecture   @relation(fields: [lecture_id], references: [id])
+  institute_id  String    @db.Uuid
+  institute     Institute @relation(fields: [institute_id], references: [id])
+  watched_sec   Int       @default(0)
+  total_sec     Int       @default(0)
+  is_completed  Boolean   @default(false)
+  last_position Int       @default(0)
+  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamptz
+
+  @@unique([student_id, lecture_id])
+  @@index([student_id])
+  @@index([lecture_id])
+  @@map("lecture_progress")
 }
 
 model Announcement {

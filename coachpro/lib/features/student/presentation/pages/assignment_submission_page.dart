@@ -8,7 +8,7 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
-import '../../../admin/data/repositories/admin_repository.dart';
+import '../../data/repositories/student_repository.dart';
 
 class AssignmentSubmissionPage extends StatefulWidget {
   const AssignmentSubmissionPage({super.key});
@@ -19,7 +19,7 @@ class AssignmentSubmissionPage extends StatefulWidget {
 }
 
 class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
-  final _adminRepo = sl<AdminRepository>();
+  final _studentRepo = sl<StudentRepository>();
 
   bool _isLoading = true;
   bool _isSubmitting = false;
@@ -51,7 +51,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
       _error = null;
     });
     try {
-      final list = await _adminRepo.getAssignments();
+      final list = await _studentRepo.getAssignments();
       if (!mounted) return;
       setState(() {
         _assignments = list;
@@ -82,7 +82,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
 
     setState(() => _isSubmitting = true);
     try {
-      await _adminRepo.submitAssignment(
+      await _studentRepo.submitAssignment(
         assignmentId: assignmentId,
         fileUrl: _fileUrlCtrl.text.trim().isNotEmpty
             ? _fileUrlCtrl.text.trim()

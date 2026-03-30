@@ -893,7 +893,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        exam['title'] ?? 'Mock Test',
+                        exam['title'] ?? 'Upcoming Exam',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,

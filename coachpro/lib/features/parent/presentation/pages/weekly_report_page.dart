@@ -88,9 +88,6 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                         const SizedBox(height: AppDimensions.lg),
                         _buildResults(context),
                         const SizedBox(height: AppDimensions.lg),
-                        _teacherNotes(context),
-                        const SizedBox(height: AppDimensions.lg),
-                        _nextWeekPlan(context),
                         const SizedBox(height: 100),
                       ],
                     ),
@@ -241,91 +238,5 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
     );
   }
 
-  Widget _teacherNotes(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppDimensions.md),
-      decoration: CT.cardDecor(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Teacher Notes',
-            style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context)),
-          ),
-          const SizedBox(height: AppDimensions.sm),
-          Text(
-            'Your child is showing consistent performance. Attendance is good. We recommend focusing more on the upcoming mock tests for better preparation.',
-            style: GoogleFonts.dmSans(fontSize: 13, height: 1.55, color: CT.textS(context)),
-          ),
-        ],
-      ),
-    ).animate(delay: 300.ms).fadeIn();
-  }
 
-  Widget _nextWeekPlan(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppDimensions.md),
-      decoration: BoxDecoration(
-        color: AppColors.success.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-        border: Border.all(color: AppColors.success.withValues(alpha: 0.18)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Next Week Focus',
-            style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context)),
-          ),
-          const SizedBox(height: AppDimensions.sm),
-          _point(context, 'Mock Test Series starts this Monday'),
-          _point(context, 'Special doubt sessions for Science subjects'),
-          _point(context, 'Assignment submission deadline: Friday'),
-          const SizedBox(height: AppDimensions.md),
-          CPPressable(
-            onTap: () => context.go('/parent/chat-list'),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: CT.accent(context),
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Text(
-                'Message Class Teacher',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).animate(delay: 400.ms).fadeIn();
-  }
-
-  Widget _point(BuildContext context, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 7,
-            height: 7,
-            margin: const EdgeInsets.only(top: 6),
-            decoration: BoxDecoration(color: CT.accent(context), shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: GoogleFonts.dmSans(fontSize: 13, color: CT.textS(context)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
