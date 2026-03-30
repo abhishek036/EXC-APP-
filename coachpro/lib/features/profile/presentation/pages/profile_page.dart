@@ -175,6 +175,7 @@ class _ProfilePageState extends State<ProfilePage> {
           phone: oldUser.phone,
           role: oldUser.role,
           email: effectiveEmail,
+          avatarUrl: (profileData['avatar_url'] ?? profileData['avatarUrl'] ?? oldUser.avatarUrl),
         );
         
         // 2. Persist locally
@@ -222,8 +223,8 @@ class _ProfilePageState extends State<ProfilePage> {
           AppRole.parent => 'Parent',
         };
 
-        final initials = displayName.trim().isEmpty ? 'A'
-            : displayName.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase();
+        final initials = displayName.trim().isEmpty ? 'U'
+            : displayName.trim().split(' ').where((s) => s.isNotEmpty).map((w) => w[0]).take(2).join().toUpperCase();
 
         return Scaffold(
           backgroundColor: const Color(0xFFF4F5FA),

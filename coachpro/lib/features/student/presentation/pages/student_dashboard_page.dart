@@ -709,9 +709,9 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   // TODAY'S SCHEDULE — horizontal class cards
   // ═══════════════════════════════════════════════════════
   Widget _buildTodaysClasses(BuildContext context, bool isDark) {
-    final batches = _dashboardData?['batches'] as List? ?? [];
+    final lectures = _dashboardData?['today_schedule'] as List? ?? [];
 
-    if (batches.isEmpty) {
+    if (lectures.isEmpty) {
       return _neoContainer(
         isDark: isDark,
         padding: const EdgeInsets.all(24),
@@ -733,12 +733,12 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
-        itemCount: batches.length,
+        itemCount: lectures.length,
         itemBuilder: (context, index) {
-          final b = batches[index];
-          final subject = b['subject'] ?? 'No Subject';
-          final time = '${b['start_time'] ?? ''} - ${b['end_time'] ?? ''}';
-          final teacher = b['teacher_name'] ?? 'TBA';
+          final l = lectures[index];
+          final subject = (l['title'] ?? l['subject'] ?? 'No Subject').toString();
+          final time = '${l['start_time'] ?? '00:00'} - ${l['end_time'] ?? '00:00'}';
+          final teacher = l['teacher_name'] ?? 'TBA';
 
           Color c = AppColors.elitePrimary;
           if (subject.toLowerCase().contains('physics')) {

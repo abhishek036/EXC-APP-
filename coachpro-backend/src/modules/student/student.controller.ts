@@ -90,17 +90,28 @@ export class StudentController {
 
       // Run aggregations in parallel
       const [
-        batches,
+        todayLectures,
         attendanceStats,
         upcomingExams,
         pendingFees,
         recentAnnouncements,
         pendingDoubts
       ] = await Promise.all([
-        // Active batches with schedule
-        prisma.studentBatch.findMany({
-          where: { student_id: studentId, is_active: true },
-          include: { batch: { include: { teacher: { select: { name: true } } } } }
+        // Today's lectures
+        prisma.lecture.findMany({
+          where: { 
+              batch: { student_batches: { some: { student_id: studentId, is_active: true } } },
+              is_active: true,
+              scheduled_at: {
+                  gte: new Date(new Date().setHours(0, 0, 0, 0)),
+                  lte: new Date(new Date().setHours(23, 59, 59, 999))
+              }
+          },
+          include: { 
+              teacher: { select: { name: true } },
+              batch: { select: { name: true } }
+          },
+          orderBy: { scheduled_at: 'asc' }
         }),
         // Attendance summary (last 30 days)
         prisma.attendanceRecord.groupBy({
@@ -152,10 +163,17 @@ export class StudentController {
         res,
         data: {
           student: { id: student.id, name: student.name, phone: student.phone, photo_url: student.photo_url },
-          batches: batches.map(sb => ({
-            ...sb.batch,
-            teacher_name: sb.batch.teacher?.name || null
-          })),
+          today_schedule: todayLectures.map((l: any) => {
+            const start = l.scheduled_at;
+            const end = start ? new Date(start.getTime() + (l.duration_minutes || 60) * 60000) : null;
+            return {
+              ...l,
+              batch_name: l.batch?.name,
+              teacher_name: l.teacher?.name,
+              start_time: start ? `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}` : '00:00',
+              end_time: end ? `${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}` : '00:00'
+            };
+          }),
           stats: {
             attendance_percentage: attendancePercentage,
             total_classes_30d: totalClasses,
@@ -317,20 +335,37 @@ export class StudentController {
           const expectedDay = req.query.day ? parseInt(req.query.day as string) : new Date().getDay();
           const dayIndex = isNaN(expectedDay) ? new Date().getDay() : expectedDay;
 
-          const schedule = await prisma.batch.findMany({
+          const lectures = await prisma.lecture.findMany({
               where: {
-                  id: { in: batchIds },
+                  batch_id: { in: batchIds },
                   institute_id: req.instituteId!,
                   is_active: true,
-                  days_of_week: { has: dayIndex }
+                  scheduled_at: {
+                      gte: new Date(new Date().setHours(0, 0, 0, 0)),
+                      lte: new Date(new Date().setHours(23, 59, 59, 999))
+                  }
               },
-              include: { teacher: { select: { name: true } } },
-              orderBy: { start_time: 'asc' }
+              include: {
+                  teacher: { select: { name: true } },
+                  batch: { select: { name: true } }
+              },
+              orderBy: { scheduled_at: 'asc' }
           });
 
           return sendResponse({ 
               res, 
-              data: schedule.map(b => ({...b, teacher_name: b.teacher?.name})), 
+              data: lectures.map(l => {
+                  const start = l.scheduled_at;
+                  const end = start ? new Date(start.getTime() + (l.duration_minutes || 60) * 60000) : null;
+                  
+                  return {
+                      ...l,
+                      batch_name: l.batch?.name,
+                      teacher_name: l.teacher?.name,
+                      start_time: start ? `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}` : '00:00',
+                      end_time: end ? `${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}` : '00:00'
+                  };
+              }), 
               message: 'Schedule fetched' 
           });
       } catch (error) { next(error); }

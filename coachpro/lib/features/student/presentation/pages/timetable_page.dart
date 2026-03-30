@@ -286,12 +286,12 @@ class _TimetablePageState extends State<TimetablePage> {
   }
 
   Widget _buildClassCard(Map<String, dynamic> cls, int index) {
-    final subject = cls['subject'] ?? 'Subject';
+    final subject = (cls['title'] ?? cls['subject'] ?? 'Subject').toString();
     final startTime = cls['start_time'] ?? '00:00';
     final endTime = cls['end_time'] ?? '00:00';
     final teacher = cls['teacher_name'] ?? 'TBA';
-    final batch = cls['name'] ?? 'Batch';
-    final room = cls['room'] ?? 'Online';
+    final batch = cls['batch_name'] ?? cls['name'] ?? 'Batch';
+    final room = cls['class_room'] ?? cls['room'] ?? 'Online';
 
     Color c = AppColors.elitePrimary;
     if (subject.toLowerCase().contains('physics')) {
@@ -380,51 +380,54 @@ class _TimetablePageState extends State<TimetablePage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              subject,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: CT.textH(context),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    subject,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: CT.textH(context),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: c.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      room,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: c,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: c.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                room,
+                              const SizedBox(height: 6),
+                              Text(
+                                teacher,
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: c,
+                                  fontSize: 13,
+                                  color: CT.textS(context),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          teacher,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            color: CT.textS(context),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          batch,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            color: CT.textM(context),
+                              const SizedBox(height: 4),
+                              Text(
+                                batch,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  color: CT.textM(context),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
