@@ -1,4 +1,3 @@
-import 'dart:io';
 import '../network/api_client.dart';
 import '../network/api_endpoints.dart';
 import '../di/injection_container.dart';
@@ -16,14 +15,20 @@ class ApiAuthService {
     String? joinCode,
     String? role,
   }) async {
+    final data = <String, dynamic>{
+      'phone': phone,
+      'purpose': purpose,
+    };
+    if (joinCode?.isNotEmpty ?? false) {
+      data['joinCode'] = joinCode;
+    }
+    if (role?.isNotEmpty ?? false) {
+      data['role'] = role;
+    }
+
     final response = await _api.dio.post(
       ApiEndpoints.sendOtp,
-      data: {
-        'phone': phone,
-        'purpose': purpose,
-        if (joinCode != null && joinCode.isNotEmpty) 'joinCode': joinCode,
-        if (role != null) 'role': role,
-      },
+      data: data,
     );
 
     if (response.statusCode != 200) {
@@ -39,15 +44,21 @@ class ApiAuthService {
     String? joinCode,
     String? role,
   }) async {
+    final data = <String, dynamic>{
+      'phone': phone,
+      'otp': otp,
+      'purpose': purpose,
+    };
+    if (joinCode?.isNotEmpty ?? false) {
+      data['joinCode'] = joinCode;
+    }
+    if (role?.isNotEmpty ?? false) {
+      data['role'] = role;
+    }
+
     final response = await _api.dio.post(
       ApiEndpoints.verifyOtp,
-      data: {
-        'phone': phone,
-        'otp': otp,
-        'purpose': purpose,
-        if (joinCode != null && joinCode.isNotEmpty) 'joinCode': joinCode,
-        if (role != null) 'role': role,
-      },
+      data: data,
     );
 
     if (response.statusCode != 200) {
@@ -63,13 +74,17 @@ class ApiAuthService {
     required String password,
     String? joinCode,
   }) async {
+    final data = <String, dynamic>{
+      'phone': phone,
+      'password': password,
+    };
+    if (joinCode?.isNotEmpty ?? false) {
+      data['joinCode'] = joinCode;
+    }
+
     final response = await _api.dio.post(
       ApiEndpoints.login,
-      data: {
-        'phone': phone,
-        'password': password,
-        if (joinCode != null && joinCode.isNotEmpty) 'joinCode': joinCode,
-      },
+      data: data,
     );
 
     if (response.statusCode != 200) {
@@ -164,19 +179,25 @@ class ApiAuthService {
   }
 
   /// Uploads a profile picture and returns the avatar URL.
-  Future<String> uploadAvatar(File imageFile) async {
-    final fileName = p.basename(imageFile.path);
-    final ext = p.extension(imageFile.path).toLowerCase();
+  Future<String> uploadAvatar({
+    required List<int> bytes,
+    required String fileName,
+    String? mimeType,
+  }) async {
+    final ext = p.extension(fileName).toLowerCase();
 
-    String mimeType = 'image/jpeg';
-    if (ext == '.png') mimeType = 'image/png';
-    else if (ext == '.webp') mimeType = 'image/webp';
+    final resolvedMimeType = mimeType ??
+        (ext == '.png'
+            ? 'image/png'
+            : ext == '.webp'
+                ? 'image/webp'
+                : 'image/jpeg');
 
     final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(
-        imageFile.path,
+      'file': MultipartFile.fromBytes(
+        bytes,
         filename: fileName,
-        contentType: MediaType.parse(mimeType),
+        contentType: MediaType.parse(resolvedMimeType),
       ),
     });
 

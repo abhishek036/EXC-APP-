@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -66,8 +65,10 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() => _uploadingAvatar = true);
       HapticFeedback.mediumImpact();
 
-      final file = File(picked.path);
-      final avatarUrl = await sl<ApiAuthService>().uploadAvatar(file);
+        await sl<ApiAuthService>().uploadAvatar(
+          bytes: await picked.readAsBytes(),
+          fileName: picked.name,
+        );
 
       if (!mounted) return;
 
