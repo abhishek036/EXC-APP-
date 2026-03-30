@@ -46,8 +46,7 @@ export class UploadController {
 
   // GET /api/upload/file/:key(*)
   async downloadFile(req: Request, res: Response) {
-    let fileKey = req.params.key;
-    if (req.params[0]) fileKey += req.params[0];
+    const fileKey = req.params.key || req.params[0];
 
     const bucketName = process.env.B2_BUCKET_NAME!;
 
