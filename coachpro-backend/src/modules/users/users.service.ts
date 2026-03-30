@@ -189,10 +189,10 @@ export class UsersService {
             
             await tx.parent.create({
               data: {
-                institute: { connect: { id: instituteId } },
-                user: { connect: { id: userId } },
+                institute_id: instituteId,
+                user_id: userId,
                 phone: user.phone,
-                name: (oldProf as any)?.name || 'New Parent'
+                name: (oldProf as any)?.name || 'New Parent',
               }
             });
           }
