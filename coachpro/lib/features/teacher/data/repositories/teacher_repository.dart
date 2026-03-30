@@ -242,6 +242,16 @@ class TeacherRepository {
     throw Exception(response.data['message'] ?? 'Failed to upload material');
   }
 
+  Future<List<Map<String, dynamic>>> getBatchNotes(String batchId) async {
+    final response = await _api.dio.get('content/notes', queryParameters: {
+      'batchId': batchId,
+    });
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch notes');
+  }
+
   // ── Create Quiz ──────────────────────────────────────────
   Future<Map<String, dynamic>> createQuiz({
     required String title,

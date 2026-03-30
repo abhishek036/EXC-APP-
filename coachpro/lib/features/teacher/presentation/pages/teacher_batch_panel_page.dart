@@ -36,6 +36,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   List<Map<String, dynamic>> _doubts = [];
   List<Map<String, dynamic>> _practiceQuizzes = [];
   List<Map<String, dynamic>> _scheduledTests = [];
+  List<Map<String, dynamic>> _notes = [];
   final Set<String> _completedTopicIds = {};
   final Set<String> _manualWeakIds = {};
   final Set<String> _removedWeakIds = {};
@@ -69,12 +70,14 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         widget.batchId,
         assessmentType: 'TEST',
       );
+      final notesFuture = _teacherRepo.getBatchNotes(widget.batchId);
 
       final batches = await batchesFuture;
       final students = await studentsFuture;
       final execution = await executionFuture;
       final practiceQuizzes = await practiceQuizzesFuture;
       final scheduledTests = await scheduledTestsFuture;
+      final notes = await notesFuture;
 
       final selected = batches
           .where((b) => (b['id'] ?? '').toString() == widget.batchId)
@@ -113,6 +116,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         _doubts = pendingDoubts;
         _practiceQuizzes = practiceQuizzes;
         _scheduledTests = scheduledTests;
+        _notes = notes;
         _completedTopicIds
           ..clear()
           ..addAll(completedTopicIds);
@@ -580,6 +584,16 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
 
   Widget _simpleListPane(String title, Color bg, Color yellow, Color blue) {
     final contentType = title.toLowerCase() == 'notes' ? 'note' : 'video';
+    
+    // Filter notes based on the current tab type
+    final items = _notes.where((n) {
+      final type = (n['file_type'] ?? '').toString().toLowerCase();
+      // 'note' and 'materials' can both map to 'note' or 'assignment' or others
+      // For simplicity, handle video vs non-video
+      if (contentType == 'video') return type == 'video';
+      return type != 'video'; // document, note, assignment, etc.
+    }).toList();
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -612,30 +626,79 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                           initialSubject: (_batch?['subject'] ?? '').toString(),
                         ),
                       ),
-                    ),
+                    ).then((_) => _load()),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-              Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.folder_open_rounded,
-                      size: 48,
-                      color: blue.withValues(alpha: 0.2),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'No $title uploaded yet',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: blue.withValues(alpha: 0.4),
-                        fontWeight: FontWeight.bold,
+              if (items.isEmpty)
+                Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.folder_open_rounded,
+                        size: 48,
+                        color: blue.withValues(alpha: 0.2),
                       ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No $title uploaded yet',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: blue.withValues(alpha: 0.4),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ...items.map((item) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: blue.withValues(alpha: 0.2)),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
-                ),
-              ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          contentType == 'video' ? Icons.play_circle_fill : Icons.description,
+                          color: blue,
+                          size: 32,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                (item['title'] ?? 'Untitled').toString(),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                  color: blue,
+                                ),
+                              ),
+                              if ((item['description'] ?? '').toString().isNotEmpty)
+                                Text(
+                                  item['description'].toString(),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 11,
+                                    color: blue.withValues(alpha: 0.6),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
             ],
           ),
         ),
