@@ -132,29 +132,15 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
     const SizedBox(width: AppDimensions.sm),
     CPPressable(
       onTap: () => context.go('/parent/notifications'),
-      child: Stack(children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: CT.card(context),
-            borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-            boxShadow: AppDimensions.shadowSm(isDark),
-          ),
-          child: Icon(Icons.notifications_outlined, size: 20, color: CT.textH(context)),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: CT.card(context),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+          boxShadow: AppDimensions.shadowSm(isDark),
         ),
-        Positioned(
-          top: 4, right: 4,
-          child: Container(
-            width: 18, height: 18,
-            decoration: BoxDecoration(
-              color: AppColors.error,
-              shape: BoxShape.circle,
-              border: Border.all(color: CT.card(context), width: 2),
-            ),
-            child: Center(child: Text('1', style: GoogleFonts.dmSans(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white))),
-          ),
-        ),
-      ]),
+        child: Icon(Icons.notifications_outlined, size: 20, color: CT.textH(context)),
+      ),
     ),
     const SizedBox(width: AppDimensions.sm),
     CPPressable(
@@ -237,7 +223,13 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
       )),
       const SizedBox(width: AppDimensions.step),
       Expanded(child: CPPressable(
-        onTap: () => context.go('/parent/payment-history'),
+        onTap: () {
+          if (pendingFee > 0) {
+            context.go('/parent/fee-payment');
+          } else {
+            context.go('/parent/payment-history');
+          }
+        },
         child: Container(
           padding: const EdgeInsets.all(AppDimensions.md),
           decoration: BoxDecoration(
@@ -268,11 +260,21 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
 
   Widget _buildLatestResult(bool isDark) {
     final results = _dashboardData?['upcomingExams'] as List? ?? []; // upcomingExams already used
-    if (results.isEmpty) return const SizedBox.shrink();
+    if (results.isEmpty) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Upcoming Exam', style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
+        const SizedBox(height: AppDimensions.step),
+        _buildEmptyState(context, "No upcoming exams", Icons.analytics_outlined),
+      ]).animate(delay: 400.ms).fadeIn(duration: 500.ms);
+    }
     final latest = results.first;
 
     return CPPressable(
-      onTap: () => context.go('/parent/results'),
+      onTap: () {
+        if (_children.isNotEmpty) {
+          context.go('/parent/weekly-report/${_children[_selectedChild]['id']}');
+        }
+      },
       child: Container(
         padding: const EdgeInsets.all(AppDimensions.md),
         decoration: CT.cardDecor(context),
@@ -362,12 +364,13 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
 
   Widget _buildTodaySchedule(bool isDark) {
     final schedules = _dashboardData?['todaySchedule'] as List? ?? []; // Changed 'schedule' to 'todaySchedule' and variable name
-    if (schedules.isEmpty) return const SizedBox.shrink(); // Changed 'schedule' to 'schedules'
-
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text("Schedule", style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
       const SizedBox(height: AppDimensions.step),
-      ...schedules.take(3).map((item) => Padding( // Changed 'schedule' to 'schedules'
+      if (schedules.isEmpty)
+        _buildEmptyState(context, "No classes scheduled today", Icons.calendar_today_rounded)
+      else
+        ...schedules.take(3).map((item) => Padding( // Changed 'schedule' to 'schedules'
         padding: const EdgeInsets.only(bottom: AppDimensions.sm),
         child: _schedItem(
           'Active', 
@@ -396,7 +399,10 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
 
   Widget _buildAnnouncement(bool isDark) {
     final announcements = _dashboardData?['announcements'] as List? ?? [];
-    if (announcements.isEmpty) return const SizedBox.shrink();
+    if (announcements.isEmpty) {
+      return _buildEmptyState(context, "No new announcements", Icons.campaign_outlined)
+        .animate(delay: 600.ms).fadeIn(duration: 500.ms);
+    }
     final latest = announcements.first;
 
     return CPPressable(
@@ -425,5 +431,20 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
         ]),
       ),
     ).animate(delay: 600.ms).fadeIn(duration: 500.ms);
+  }
+
+  Widget _buildEmptyState(BuildContext context, String message, IconData icon) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppDimensions.lg),
+      decoration: CT.cardDecor(context),
+      child: Column(
+        children: [
+          Icon(icon, size: 36, color: CT.textS(context).withValues(alpha: 0.3)),
+          const SizedBox(height: AppDimensions.sm),
+          Text(message, style: GoogleFonts.dmSans(fontSize: 13, color: CT.textS(context))),
+        ],
+      ),
+    );
   }
 }

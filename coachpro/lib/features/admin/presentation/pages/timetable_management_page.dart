@@ -383,7 +383,7 @@ class _TimetableManagementPageState extends State<TimetableManagementPage> {
       backgroundColor: CT.bg(context),
       appBar: AppBar(
         leading: CPPressable(
-          onTap: () => context.pop(),
+          onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
           child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
         ),
         title: Text(

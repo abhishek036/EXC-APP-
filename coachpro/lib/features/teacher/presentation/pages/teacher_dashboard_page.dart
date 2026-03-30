@@ -1106,10 +1106,9 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               Icons.logout_rounded,
               'SIGN OUT',
               AppColors.coralRed,
-              () async {
+              () {
                 Navigator.pop(context);
-                await sl<SecureStorageService>().clearAll();
-                if (mounted) context.go('/login');
+                context.read<AuthBloc>().add(AuthLogoutRequested());
               },
             ),
             const SizedBox(height: 24),

@@ -97,7 +97,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   children: [
                     const SizedBox(height: 24),
                     CPPressable(
-                      onTap: () => context.pop(),
+                      onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/'); } },
                       child: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(

@@ -406,7 +406,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       child: Row(
         children: [
           CPPressable(
-            onTap: () => context.pop(),
+            onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(

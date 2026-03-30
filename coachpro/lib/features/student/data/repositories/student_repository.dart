@@ -52,8 +52,13 @@ class StudentRepository {
   }
 
   // ── Schedule / Timetable ─────────────────────────────────
-  Future<List<Map<String, dynamic>>> getTodaySchedule() async {
-    final response = await _api.dio.get('students/me/schedule/today');
+  Future<List<Map<String, dynamic>>> getTodaySchedule({int? dayIndex}) async {
+    final response = await _api.dio.get(
+      'students/me/schedule/today',
+      queryParameters: {
+        if (dayIndex != null) 'day': dayIndex,
+      },
+    );
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -385,4 +390,25 @@ class StudentRepository {
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch live sessions');
   }
+
+  // ── Feedbacks ──────────────────────────────────────────
+  Future<void> addTeacherFeedback({
+    required String teacherId,
+    required double rating,
+    String? comment,
+    String? studentName,
+  }) async {
+    final response = await _api.dio.post(
+      'teachers/$teacherId/feedback',
+      data: {
+        'rating': rating,
+        if (comment != null && comment.isNotEmpty) 'comment': comment,
+        if (studentName != null && studentName.isNotEmpty) 'student_name': studentName,
+      },
+    );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception(response.data['message'] ?? 'Failed to submit feedback');
+    }
+  }
 }
+

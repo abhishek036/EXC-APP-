@@ -413,7 +413,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () => context.pop(),
+                              onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/student'); } },
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,

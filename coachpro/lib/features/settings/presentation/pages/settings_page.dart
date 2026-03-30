@@ -65,7 +65,7 @@ class _SettingsPageState extends State<SettingsPage> {
       backgroundColor: CT.bg(context),
       appBar: AppBar(
         leading: CPPressable(
-          onTap: () => context.pop(),
+          onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/'); } },
           child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
         ),
         title: Text('Settings', style: GoogleFonts.sora(fontWeight: FontWeight.w600, color: CT.textH(context))),

@@ -314,7 +314,8 @@ export class StudentController {
           if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
 
           const batchIds = student.student_batches.map(sb => sb.batch_id);
-          const dayIndex = new Date().getDay();
+          const expectedDay = req.query.day ? parseInt(req.query.day as string) : new Date().getDay();
+          const dayIndex = isNaN(expectedDay) ? new Date().getDay() : expectedDay;
 
           const schedule = await prisma.batch.findMany({
               where: {

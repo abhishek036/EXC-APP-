@@ -52,7 +52,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         backgroundColor: CT.bg(context),
         elevation: 0,
         leading: IconButton(
-          onPressed: () => context.pop(),
+          onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/parent'); } },
           icon: Icon(Icons.arrow_back_rounded, color: CT.textH(context)),
         ),
         title: Text(
@@ -276,7 +276,7 @@ class _PaymentItem {
       description: batchInfo.toString().isNotEmpty
           ? 'Batch: $batchInfo'
           : (map['description'] ?? 'Fee Payment').toString(),
-      amount: (map['amount_due'] ?? map['amount'] ?? 0).toString(),
+      amount: (map['final_amount'] ?? map['amount_due'] ?? map['amount'] ?? 0).toString(),
       date: formattedDate,
       status: status,
     );

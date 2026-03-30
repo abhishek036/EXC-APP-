@@ -244,7 +244,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
             pinned: true,
             backgroundColor: const Color(0xFF0D1282),
             leading: CPPressable(
-              onTap: () => context.pop(),
+              onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 color: Colors.white,
@@ -685,7 +685,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
             .toList();
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 120),
       children: [
         _sectionHeader('Permission Toggles'),
         const SizedBox(height: 12),
@@ -751,54 +751,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
             ],
           ),
         ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: _feedbackStudentCtrl,
-          decoration: InputDecoration(
-            hintText: 'Student name (optional)',
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _feedbackCommentCtrl,
-          maxLines: 3,
-          decoration: InputDecoration(
-            hintText: 'Add feedback comment',
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Text(
-              'Rating',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0D1282),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Slider(
-                value: _feedbackRating,
-                min: 1,
-                max: 5,
-                divisions: 4,
-                label: _feedbackRating.toStringAsFixed(1),
-                activeColor: const Color(0xFFF0DE36),
-                inactiveColor: const Color(0xFF0D1282).withValues(alpha: 0.2),
-                onChanged: (value) => setState(() => _feedbackRating = value),
-              ),
-            ),
-          ],
-        ),
-        CustomButton(text: 'Add Feedback', onPressed: _submitFeedback),
-        const SizedBox(height: 12),
+         const SizedBox(height: 12),
         if (recentFeedbacks.isEmpty)
           Text(
             'No feedback entries yet.',

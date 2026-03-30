@@ -62,10 +62,47 @@ export class UsersService {
     const user = await prisma.user.findFirst({ where: { id: userId, institute_id: instituteId } });
     if (!user) throw new ApiError('User not found', 404, 'NOT_FOUND');
 
-    return (prisma.user as any).update({
-      where: { id: userId },
-      data: { status, is_active: status === 'ACTIVE' },
-      select: USER_SELECT,
+    const isActive = status === 'ACTIVE';
+
+    // Transaction to update user and all correlated data
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id: userId },
+        data: { status, is_active: isActive },
+        select: USER_SELECT as any,
+      });
+
+      // Mirror the activation state to the user's primary profiles based on their role
+      if (user.role === 'student') {
+        await tx.student.updateMany({
+           where: { phone: user.phone, institute_id: instituteId },
+           data: { is_active: isActive }
+        });
+        if (!isActive) {
+           const student = await tx.student.findFirst({ where: { phone: user.phone, institute_id: instituteId }});
+           if (student) {
+              await tx.studentBatch.updateMany({
+                  where: { student_id: student.id, is_active: true },
+                  data: { is_active: false, left_date: new Date() }
+              });
+           }
+        }
+      } else if (user.role === 'teacher') {
+        await tx.teacher.updateMany({
+           where: { phone: user.phone, institute_id: instituteId },
+           data: { is_active: isActive }
+        });
+      }
+
+      // 🛡️ SECURITY: If the user is being blocked or deactivated, revoke their current active login sessions immediately
+      if (!isActive) {
+        await tx.refreshToken.updateMany({
+          where: { user_id: userId, revoked_at: null },
+          data: { revoked_at: new Date() }
+        });
+      }
+
+      return updated;
     });
   }
 
@@ -77,10 +114,114 @@ export class UsersService {
     const user = await prisma.user.findFirst({ where: { id: userId, institute_id: instituteId } });
     if (!user) throw new ApiError('User not found', 404, 'NOT_FOUND');
 
-    return prisma.user.update({
-      where: { id: userId },
-      data: { role },
-      select: { id: true, phone: true, role: true, is_active: true } as any,
+    return prisma.$transaction(async (tx) => {
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { role },
+        select: { id: true, phone: true, role: true, is_active: true, email: true } as any,
+      });
+
+      if (role === 'teacher') {
+        // Look for existing teacher
+        const existingTeacher = await tx.teacher.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+        if (existingTeacher) {
+          await tx.teacher.update({ where: { id: existingTeacher.id }, data: { user_id: userId, is_active: true } });
+        } else {
+          // Get name from student if available
+          const student = await tx.student.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+          await tx.teacher.create({
+            data: {
+              institute_id: instituteId,
+              user_id: userId,
+              phone: user.phone,
+              name: student?.name || 'New Teacher',
+              email: user.email,
+              is_active: true
+            }
+          });
+        }
+        // Disable student profile so they don't appear in active student lists
+        await tx.student.updateMany({
+          where: { phone: user.phone, institute_id: instituteId },
+          data: { is_active: false }
+        });
+        // Remove from active batches
+        const oldStudent = await tx.student.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+        if (oldStudent) {
+            await tx.studentBatch.updateMany({
+                where: { student_id: oldStudent.id, is_active: true },
+                data: { is_active: false, left_date: new Date() }
+            });
+        }
+      } else if (role === 'student') {
+        // Look for existing student
+        const existingStudent = await tx.student.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+        if (existingStudent) {
+          await tx.student.update({ where: { id: existingStudent.id }, data: { user_id: userId, is_active: true } });
+        } else {
+          // Get name from teacher if available
+          const teacher = await tx.teacher.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+          await tx.student.create({
+            data: {
+              institute_id: instituteId,
+              user_id: userId,
+              phone: user.phone,
+              name: teacher?.name || 'New Student',
+              is_active: true
+            }
+          });
+        }
+        // Disable teacher profile so they don't appear in active teacher contexts
+        await tx.teacher.updateMany({
+          where: { phone: user.phone, institute_id: instituteId },
+          data: { is_active: false }
+        });
+        // Optional: Admin needs to manually reassign batches taught by this teacher
+      } else {
+        // If changing to parent, link or create a parent profile
+        if (role === 'parent') {
+          const existingParent = await tx.parent.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+          if (existingParent) {
+            await tx.parent.update({ where: { id: existingParent.id }, data: { user_id: userId } });
+          } else {
+            const oldProf = await tx.student.findFirst({ where: { phone: user.phone, institute_id: instituteId } })
+              || await tx.teacher.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+            await tx.parent.create({
+              data: {
+                institute_id: instituteId,
+                user_id: userId,
+                phone: user.phone,
+                name: oldProf?.name || 'New Parent'
+              }
+            });
+          }
+        }
+
+        // Deactivate both teacher and student to avoid listing them
+        await tx.teacher.updateMany({
+          where: { phone: user.phone, institute_id: instituteId },
+          data: { is_active: false }
+        });
+        await tx.student.updateMany({
+          where: { phone: user.phone, institute_id: instituteId },
+          data: { is_active: false }
+        });
+        const oldStudent = await tx.student.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+        if (oldStudent) {
+            await tx.studentBatch.updateMany({
+                where: { student_id: oldStudent.id, is_active: true },
+                data: { is_active: false, left_date: new Date() }
+            });
+        }
+      }
+
+      // 🛡️ SECURITY: Revoke all refresh tokens for this user so they are forced to log in again with their new role capabilities
+      await tx.refreshToken.updateMany({
+        where: { user_id: userId, revoked_at: null },
+        data: { revoked_at: new Date() }
+      });
+
+      return updatedUser;
     });
   }
 }

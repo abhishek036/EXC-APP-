@@ -24,10 +24,10 @@ router.post('/me/batches/:batchId/topics/:topicId/status', requireRole('teacher'
 router.get('/', requireRole('admin'), teacherController.list);
 router.post('/', requireRole('admin'), validate(createTeacherSchema), teacherController.create);
 router.get('/:id', requireRole('admin', 'teacher'), teacherController.getById);
-router.get('/:id/profile-dashboard', requireRole('admin', 'teacher'), teacherController.getProfileDashboard);
+router.get('/:id/profile-dashboard', requireRole('admin', 'teacher', 'student'), teacherController.getProfileDashboard);
 router.put('/:id', requireRole('admin'), validate(updateTeacherSchema), teacherController.update);
 router.put('/:id/settings', requireRole('admin'), validate(updateTeacherSettingsSchema), teacherController.updateSettings);
-router.post('/:id/feedback', requireRole('admin', 'teacher'), validate(addTeacherFeedbackSchema), teacherController.addFeedback);
+router.post('/:id/feedback', requireRole('student'), validate(addTeacherFeedbackSchema), teacherController.addFeedback);
 router.patch('/:id/status', requireRole('admin'), teacherController.toggleStatus);
 router.delete('/:id', requireRole('admin'), teacherController.remove);
 

@@ -213,6 +213,9 @@ class _BatchesPageState extends State<BatchesPage> {
     final teacher = b['teacher_name'] ?? 'TBA';
     final time = '${b['start_time'] ?? ''} - ${b['end_time'] ?? ''}';
 
+    final teacherId = b['teacher_id'];
+    final isDark = CT.isDark(context);
+
     return CPPressable(
       onTap: () => context.go('/student/timetable'),
       child: Container(
@@ -288,12 +291,130 @@ class _BatchesPageState extends State<BatchesPage> {
                     color: CT.textS(context),
                   ),
                 ),
+                const Spacer(),
+                if (teacherId != null)
+                  TextButton.icon(
+                    onPressed: () => _showRateTeacherDialog(teacherId.toString(), teacher),
+                    icon: const Icon(Icons.star_outline_rounded, size: 16),
+                    label: Text(
+                      'Rate',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.moltenAmber,
+                      backgroundColor: isDark ? AppColors.moltenAmber.withValues(alpha: 0.1) : AppColors.eliteDarkBg,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
               ],
             ),
           ],
         ),
       ),
     ).animate().fadeIn().slideX(begin: 0.05, end: 0);
+  }
+
+  void _showRateTeacherDialog(String teacherId, String teacherName) {
+    double rating = 5.0;
+    final commentCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: CT.bg(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Rate $teacherName',
+            style: GoogleFonts.plusJakartaSans(
+              color: CT.textH(context),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'Rating',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w800,
+                      color: CT.textH(context),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Slider(
+                      value: rating,
+                      min: 1,
+                      max: 5,
+                      divisions: 4,
+                      label: rating.toStringAsFixed(1),
+                      activeColor: const Color(0xFFF0DE36),
+                      inactiveColor: CT.textS(context).withValues(alpha: 0.2),
+                      onChanged: (value) => setState(() => rating = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: commentCtrl,
+                maxLines: 3,
+                style: GoogleFonts.plusJakartaSans(color: CT.textH(context)),
+                decoration: InputDecoration(
+                  hintText: 'Add a comment (optional)...',
+                  hintStyle: GoogleFonts.plusJakartaSans(color: CT.textM(context), fontSize: 14),
+                  filled: true,
+                  fillColor: CT.card(context),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: CT.textS(context))),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                Navigator.pop(ctx);
+                try {
+                  await _studentRepo.addTeacherFeedback(
+                    teacherId: teacherId,
+                    rating: rating,
+                    comment: commentCtrl.text,
+                    studentName: 'Student',
+                  );
+                  if (mounted) {
+                    scaffoldMessenger.showSnackBar(
+                      const SnackBar(content: Text('Thank you for your feedback!'), backgroundColor: Colors.green),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    scaffoldMessenger.showSnackBar(
+                      SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.elitePrimary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Submit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildErrorState() {

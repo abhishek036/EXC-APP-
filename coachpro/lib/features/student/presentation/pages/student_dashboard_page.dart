@@ -12,6 +12,8 @@ import '../../../../features/shared/presentation/widgets/global_search_overlay.d
 import '../../../../features/student/data/repositories/student_repository.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/secure_storage_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 
 class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
@@ -391,10 +393,9 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
               Icons.logout_rounded,
               'SIGN OUT',
               AppColors.coralRed,
-              () async {
+              () {
                 Navigator.pop(context);
-                await sl<SecureStorageService>().clearAll();
-                if (mounted) context.go('/login');
+                context.read<AuthBloc>().add(AuthLogoutRequested());
               },
             ),
             const SizedBox(height: 24),

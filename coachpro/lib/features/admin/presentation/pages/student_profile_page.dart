@@ -525,7 +525,7 @@ class _StudentProfilePageState extends State<StudentProfilePage>
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: CPPressable(
-            onTap: () => context.pop(),
+            onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
             child: const Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
@@ -645,7 +645,7 @@ class _StudentProfilePageState extends State<StudentProfilePage>
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: CPPressable(
-            onTap: () => context.pop(),
+            onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
             child: const Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,

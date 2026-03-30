@@ -21,6 +21,8 @@ class _TimetablePageState extends State<TimetablePage> {
   List<Map<String, dynamic>> _todaySchedule = [];
   bool _isLoading = true;
   String? _error;
+  int _selectedDayIndex = DateTime.now().weekday - 1; // 0 (Mon) to 6 (Sun)
+  DateTime _selectedDate = DateTime.now();
 
   final _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -36,8 +38,10 @@ class _TimetablePageState extends State<TimetablePage> {
       _error = null;
     });
     try {
-      // For now, the backend provides "today" schedule.
-      final data = await _studentRepo.getTodaySchedule();
+      final flutterWeekday = _selectedDayIndex + 1; // 1 to 7
+      final jsDay = flutterWeekday == 7 ? 0 : flutterWeekday;
+
+      final data = await _studentRepo.getTodaySchedule(dayIndex: jsDay);
       setState(() {
         _todaySchedule = data;
         _isLoading = false;
@@ -142,47 +146,72 @@ class _TimetablePageState extends State<TimetablePage> {
 
   Widget _buildDaySelector() {
     final now = DateTime.now();
-    final todayIndex = now.weekday - 1;
-
+    final isDark = CT.isDark(context);
+    // Generate dates: 7 days ago to 30 days ahead
+    final dates = List.generate(38, (i) => now.subtract(const Duration(days: 7)).add(Duration(days: i)));
+    
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: CT.card(context),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-          boxShadow: [
-            BoxShadow(
-              color: CT.textH(context).withValues(alpha: 0.04),
-              blurRadius: 0,
-            ),
-          ],
-        ),
-        child: Row(
-          children: List.generate(7, (i) {
-            final isSelected =
-                i == todayIndex; // For now we only show today's real data
-            return Expanded(
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+      child: SizedBox(
+        height: 70,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: dates.length,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          // Scroll to current date initially
+          controller: ScrollController(initialScrollOffset: 7 * 60.0), 
+          itemBuilder: (context, i) {
+            final date = dates[i];
+            final isSelected = date.year == _selectedDate.year && date.month == _selectedDate.month && date.day == _selectedDate.day;
+            final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+            
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                   _selectedDate = date;
+                   _selectedDayIndex = date.weekday - 1;
+                });
+                _loadSchedule();
+              },
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                width: 55,
+                margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.electricBlue
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  _days[i],
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected ? Colors.white : CT.textS(context),
+                  color: isSelected ? AppColors.electricBlue : (isDark ? AppColors.eliteDarkBg : Colors.white),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: isSelected ? AppColors.electricBlue : (isToday ? AppColors.moltenAmber : (isDark ? Colors.grey.shade800 : Colors.grey.shade300)),
+                      width: isToday && !isSelected ? 2 : 1,
                   ),
+                  boxShadow: isSelected ? [
+                    const BoxShadow(color: AppColors.electricBlue, blurRadius: 4, offset: Offset(0, 2))
+                  ] : null,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _days[date.weekday - 1],
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? Colors.white : (isDark ? Colors.white54 : Colors.black54),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${date.day}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );
-          }),
+          },
         ),
       ),
     ).animate(delay: 100.ms).fadeIn();

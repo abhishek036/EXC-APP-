@@ -60,7 +60,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     return Scaffold(
       backgroundColor: CT.bg(context),
       appBar: AppBar(
-        leading: CPPressable(onTap: () => context.pop(), child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context))),
+        leading: CPPressable(onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/'); } }, child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context))),
         title: Text('Change Password', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
         backgroundColor: CT.bg(context), elevation: 0,
       ),

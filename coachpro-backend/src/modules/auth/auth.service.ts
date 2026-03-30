@@ -169,6 +169,55 @@ export class AuthService {
                       where: { id: user.id },
                       data: { role: assignedRole as any, status: 'ACTIVE' }
                   }) as any;
+                  
+                  // Make sure that their profile exists!
+                  if (assignedRole === 'teacher') {
+                      const existingProfile = await prisma.teacher.findFirst({ where: { user_id: user.id, institute_id: user.institute_id } });
+                      if (!existingProfile) {
+                          await prisma.teacher.create({
+                              data: {
+                                  institute_id: user.institute_id,
+                                  user_id: user.id,
+                                  phone: user.phone,
+                                  name: 'Super Teacher',
+                                  is_active: true
+                              }
+                          });
+                      } else {
+                          await prisma.teacher.update({ where: { id: existingProfile.id }, data: { is_active: true } });
+                      }
+                  } else if (assignedRole === 'admin') {
+                      const existingProfile = await prisma.staff.findFirst({ where: { user_id: user.id, institute_id: user.institute_id } });
+                      if (!existingProfile) {
+                          await prisma.staff.create({
+                              data: {
+                                  institute_id: user.institute_id,
+                                  user_id: user.id,
+                                  name: 'Super Admin',
+                                  phone: user.phone,
+                                  role: 'admin',
+                                  status: 'active'
+                              }
+                          });
+                      } else {
+                          await prisma.staff.update({ where: { id: existingProfile.id }, data: { status: 'active' } });
+                      }
+                  } else if (assignedRole === 'student') {
+                      const existingProfile = await prisma.student.findFirst({ where: { user_id: user.id, institute_id: user.institute_id } });
+                      if (!existingProfile) {
+                           await prisma.student.create({
+                               data: {
+                                   institute_id: user.institute_id,
+                                   user_id: user.id,
+                                   name: 'Super Student',
+                                   phone: user.phone,
+                                   is_active: true
+                               }
+                           });
+                      } else {
+                           await prisma.student.update({ where: { id: existingProfile.id }, data: { is_active: true } });
+                      }
+                  }
                }
             }
             // --- SUPER USER LOGIC END ---
@@ -195,6 +244,26 @@ export class AuthService {
                         user_id: user.id,
                         institute_id: instituteIdToUse,
                         name: 'New Student',
+                        phone
+                    }
+                });
+            }
+            if (!teacher && assignedRole === 'teacher') {
+                await prisma.teacher.create({
+                    data: {
+                        user_id: user.id,
+                        institute_id: instituteIdToUse,
+                        name: 'New Teacher',
+                        phone
+                    }
+                });
+            }
+            if (!parent && assignedRole === 'parent') {
+                await prisma.parent.create({
+                    data: {
+                        user_id: user.id,
+                        institute_id: instituteIdToUse,
+                        name: 'New Parent',
                         phone
                     }
                 });

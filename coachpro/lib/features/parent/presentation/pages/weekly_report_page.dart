@@ -57,7 +57,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
         backgroundColor: CT.bg(context),
         elevation: 0,
         leading: IconButton(
-          onPressed: () => context.pop(),
+          onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/parent'); } },
           icon: Icon(Icons.arrow_back_rounded, color: CT.textH(context)),
         ),
         title: Text(

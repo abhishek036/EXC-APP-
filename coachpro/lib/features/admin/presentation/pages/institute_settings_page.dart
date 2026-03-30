@@ -121,7 +121,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                   child: Row(
                     children: [
                       CPPressable(
-                        onTap: () => context.pop(),
+                        onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(

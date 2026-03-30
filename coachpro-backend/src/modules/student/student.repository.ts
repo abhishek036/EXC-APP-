@@ -246,9 +246,21 @@ export class StudentRepository {
   }
 
   async toggleStatus(studentId: string, isActive: boolean) {
-    return prisma.student.update({
-      where: { id: studentId },
-      data: { is_active: isActive }
+    return prisma.$transaction(async (tx: any) => {
+      const student = await tx.student.update({
+        where: { id: studentId },
+        data: { is_active: isActive }
+      });
+
+      if (!isActive) {
+        // Automatically remove the student from active batches if deactivated
+        await tx.studentBatch.updateMany({
+          where: { student_id: studentId, is_active: true },
+          data: { is_active: false, left_date: new Date() }
+        });
+      }
+
+      return student;
     });
   }
 }

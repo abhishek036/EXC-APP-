@@ -135,7 +135,7 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
-          onPressed: () => context.pop(),
+          onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/student'); } },
         ),
         title: Text(
           'Ask a Doubt',

@@ -127,7 +127,14 @@ export class TeacherController {
         }),
         // Pending doubts assigned to me
         prisma.doubt.count({
-          where: { assigned_to_id: teacherId, institute_id: instituteId, status: 'pending' }
+          where: { 
+            institute_id: instituteId, 
+            status: 'pending',
+            OR: [
+              { assigned_to_id: teacherId },
+              { batch: { teacher_id: teacherId } }
+            ]
+          }
         }),
         prisma.assignmentSubmission.count({
           where: {

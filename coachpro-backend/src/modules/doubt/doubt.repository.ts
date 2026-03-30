@@ -25,9 +25,12 @@ export class DoubtRepository {
   static async listForTeacher(teacherId: string, instituteId: string, status?: string) {
     return prisma.doubt.findMany({
       where: {
-        assigned_to_id: teacherId,
         institute_id: instituteId,
         ...(status ? { status } : {}),
+        OR: [
+          { assigned_to_id: teacherId },
+          { batch: { teacher_id: teacherId } }
+        ]
       },
       include: {
         batch: { select: { name: true } },

@@ -512,11 +512,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             }),
             const Spacer(),
             const Divider(color: AppColors.elitePrimary, height: 1),
-            _drawerItem(Icons.logout_rounded, 'Sign Out', () async {
+            _drawerItem(Icons.logout_rounded, 'Sign Out', () {
               Navigator.pop(context);
-              final storage = sl<SecureStorageService>();
-              await storage.clearAll();
-              if (context.mounted) context.go('/login');
+              context.read<AuthBloc>().add(AuthLogoutRequested());
             }, isDestructive: true),
             const SizedBox(height: 24),
           ],

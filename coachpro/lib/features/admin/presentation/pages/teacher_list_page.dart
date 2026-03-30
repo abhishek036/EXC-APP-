@@ -146,7 +146,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
       child: Row(
         children: [
           CPPressable(
-            onTap: () => context.pop(),
+            onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
