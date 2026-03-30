@@ -1,14 +1,14 @@
 import app from './app';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
 import http from 'http';
 import { initSocket } from './config/socket';
 import { initializeFirebaseAdmin } from './config/firebase-admin';
+import { prisma } from './config/prisma';
 
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
-export const prisma = new PrismaClient();
+export { prisma };
 
 function validateCriticalEnv() {
     if (!process.env.JWT_SECRET || process.env.JWT_SECRET.trim().length < 16) {
