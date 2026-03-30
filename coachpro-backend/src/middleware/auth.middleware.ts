@@ -56,6 +56,7 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
     }
 
     req.user = decoded;
+    req.instituteId = decoded.instituteId || activeUser.institute_id;
     next();
   } catch (error: any) {
     if (error?.name === 'TokenExpiredError') {

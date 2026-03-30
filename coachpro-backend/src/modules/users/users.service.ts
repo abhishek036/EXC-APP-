@@ -11,10 +11,19 @@ const USER_SELECT: any = {
 };
 
 export class UsersService {
+  private ensureInstituteId(instituteId?: string): string {
+    const normalized = instituteId?.trim();
+    if (!normalized) {
+      throw new ApiError('Institute context is required', 400, 'INSTITUTE_ID_REQUIRED');
+    }
+    return normalized;
+  }
+
   async listUsers(
     instituteId: string,
     filters: { role?: string; status?: string; search?: string; page: number; perPage: number }
   ) {
+    instituteId = this.ensureInstituteId(instituteId);
     const { page, perPage } = filters;
     const skip = (page - 1) * perPage;
 
@@ -46,6 +55,7 @@ export class UsersService {
   }
 
   async getUserById(userId: string, instituteId: string) {
+    instituteId = this.ensureInstituteId(instituteId);
     const user = await (prisma.user as any).findFirst({
       where: { id: userId, institute_id: instituteId },
       select: USER_SELECT,
@@ -55,6 +65,7 @@ export class UsersService {
   }
 
   async updateStatus(userId: string, instituteId: string, status: string) {
+    instituteId = this.ensureInstituteId(instituteId);
     if (!VALID_STATUSES.includes(status)) {
       throw new ApiError(`Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`, 400, 'INVALID_STATUS');
     }
@@ -107,6 +118,7 @@ export class UsersService {
   }
 
   async changeRole(userId: string, instituteId: string, role: string) {
+    instituteId = this.ensureInstituteId(instituteId);
     if (!VALID_ROLES.includes(role)) {
       throw new ApiError(`Invalid role. Must be one of: ${VALID_ROLES.join(', ')}`, 400, 'INVALID_ROLE');
     }
