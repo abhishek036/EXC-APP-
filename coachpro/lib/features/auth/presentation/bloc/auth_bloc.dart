@@ -169,12 +169,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ? (cached?.role.name ?? 'student')
       : serverRole;
 
+    // Avatar: prefer server's avatar_url, fall back to cached
+    final serverAvatar = userData['avatar_url']?.toString();
+    final effectiveAvatar = (serverAvatar == null || serverAvatar.trim().isEmpty)
+      ? cached?.avatarUrl
+      : serverAvatar.trim();
+
     final user = UserModel.fromJson({
       'id': userData['id'],
       'name': effectiveName,
       'phone': effectivePhone,
       'email': effectiveEmail,
       'role': effectiveRole,
+      'avatarUrl': effectiveAvatar,
       'createdAt': userData['created_at'],
     });
 

@@ -1,7 +1,10 @@
+import 'dart:io';
 import '../network/api_client.dart';
 import '../network/api_endpoints.dart';
 import '../di/injection_container.dart';
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:path/path.dart' as p;
 
 class ApiAuthService {
   final ApiClient _api = sl<ApiClient>();
@@ -158,5 +161,34 @@ class ApiAuthService {
       }
       rethrow;
     }
+  }
+
+  /// Uploads a profile picture and returns the avatar URL.
+  Future<String> uploadAvatar(File imageFile) async {
+    final fileName = p.basename(imageFile.path);
+    final ext = p.extension(imageFile.path).toLowerCase();
+
+    String mimeType = 'image/jpeg';
+    if (ext == '.png') mimeType = 'image/png';
+    else if (ext == '.webp') mimeType = 'image/webp';
+
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        imageFile.path,
+        filename: fileName,
+        contentType: MediaType.parse(mimeType),
+      ),
+    });
+
+    final response = await _api.dio.post(
+      ApiEndpoints.uploadAvatar,
+      data: formData,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(response.data['message'] ?? 'Failed to upload avatar');
+    }
+
+    return response.data['data']['avatar_url'] as String;
   }
 }

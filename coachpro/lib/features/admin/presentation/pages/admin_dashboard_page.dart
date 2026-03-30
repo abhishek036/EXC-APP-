@@ -19,6 +19,7 @@ import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/widgets/cp_user_avatar.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -392,15 +393,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     final userName = authState is AuthAuthenticated
         ? authState.user.name
         : 'Admin';
-    final initials = userName.trim().isNotEmpty
-        ? userName
-              .trim()
-              .split(' ')
-              .map((w) => w[0])
-              .take(2)
-              .join()
-              .toUpperCase()
-        : 'EA';
+    final avatarUrl = authState is AuthAuthenticated
+        ? authState.user.avatarUrl
+        : null;
     return Drawer(
       backgroundColor: isDark ? AppColors.eliteDarkBg : Colors.white,
       child: SafeArea(
@@ -416,23 +411,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 padding: const EdgeInsets.all(24.0),
                 child: Row(
                   children: [
-                    Container(
-                      width: 54,
-                      height: 54,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF0D1282),
-                      ),
-                      child: Center(
-                        child: Text(
-                          initials,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
+                    CpUserAvatar(
+                      name: userName,
+                      avatarUrl: avatarUrl,
+                      size: 54,
+                      showShadow: false,
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -557,17 +540,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Widget _buildAppBar(BuildContext context, bool isDark) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        String initials = 'A';
         String userName = 'Admin';
+        String? avatarUrl;
 
         if (state is AuthAuthenticated) {
           userName = state.user.name;
-          if (userName.isNotEmpty) {
-            final parts = userName.split(' ');
-            initials = parts.length > 1
-                ? (parts[0][0] + parts[1][0]).toUpperCase()
-                : parts[0][0].toUpperCase();
-          }
+          avatarUrl = state.user.avatarUrl;
         }
 
         return Row(
@@ -576,9 +554,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               onTap: () {
                 HapticFeedback.lightImpact();
                 _scaffoldKey.currentState
-                    ?.openDrawer(); // ← Fixed: use GlobalKey
+                    ?.openDrawer();
               },
-              child: Padding(
+              child: const Padding(
                 padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
                 child: Icon(
                   Icons.menu_rounded,
@@ -589,27 +567,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
             CPPressable(
               onTap: () => context.push('/admin/profile'),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF0D1282),
-                  border: Border.all(color: Colors.black, width: 2),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black, offset: Offset(2, 2)),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    initials,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
+              child: CpUserAvatar(
+                name: userName,
+                avatarUrl: avatarUrl,
+                size: 44,
               ),
             ),
             const SizedBox(width: 12),

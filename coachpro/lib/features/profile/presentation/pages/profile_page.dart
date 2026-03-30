@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/secure_storage_service.dart';
@@ -48,6 +50,46 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  bool _uploadingAvatar = false;
+
+  Future<void> _pickAndUploadImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (picked == null || !mounted) return;
+
+      setState(() => _uploadingAvatar = true);
+      HapticFeedback.mediumImpact();
+
+      final file = File(picked.path);
+      final avatarUrl = await sl<ApiAuthService>().uploadAvatar(file);
+
+      if (!mounted) return;
+
+      // Refresh AuthBloc so the new avatar propagates everywhere
+      context.read<AuthBloc>().add(const AuthRefreshRequested());
+
+      setState(() => _uploadingAvatar = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Profile picture updated!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: Colors.white)),
+        backgroundColor: const Color(0xFF16A34A),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+    } catch (e) {
+      if (mounted) {
+        setState(() => _uploadingAvatar = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+      }
+    }
+  }
+
   void _showImageOptions() {
     showModalBottomSheet<void>(
       context: context,
@@ -63,7 +105,7 @@ class _ProfilePageState extends State<ProfilePage> {
               title: Text('Take Photo', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
               onTap: () {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Camera option selected')));
+                _pickAndUploadImage(ImageSource.camera);
               },
             ),
             ListTile(
@@ -71,7 +113,7 @@ class _ProfilePageState extends State<ProfilePage> {
               title: Text('Choose from Gallery', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
               onTap: () {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gallery option selected')));
+                _pickAndUploadImage(ImageSource.gallery);
               },
             ),
             const SizedBox(height: 8),
@@ -240,9 +282,21 @@ class _ProfilePageState extends State<ProfilePage> {
                               shape: BoxShape.circle,
                               color: Colors.white.withValues(alpha: 0.15),
                               border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2.5),
+                              image: (user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty)
+                                  ? DecorationImage(
+                                      image: NetworkImage(user.avatarUrl!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
                             ),
-                            child: Center(child: Text(initials,
-                              style: GoogleFonts.plusJakartaSans(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.white))),
+                            child: (user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty)
+                                ? (_uploadingAvatar
+                                    ? const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)))
+                                    : null)
+                                : Center(child: _uploadingAvatar
+                                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                    : Text(initials,
+                                        style: GoogleFonts.plusJakartaSans(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.white))),
                           ),
                           if (_editMode)
                             CPPressable(

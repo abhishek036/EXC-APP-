@@ -37,7 +37,7 @@ class _SplashPageState extends State<SplashPage> {
   /// Play animations for 2.8 s then tell AuthBloc to check stored session.
   /// GoRouter redirect handles the navigation based on the resulting state.
   Future<void> _initAuth() async {
-    await Future.delayed(const Duration(milliseconds: 2800));
+    await Future.delayed(const Duration(milliseconds: 800));
 
     final updateDecision = await sl<AppUpdateService>().checkPolicy();
     if (!mounted) return;

@@ -15,6 +15,7 @@ import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_shimmer.dart';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/widgets/cp_user_avatar.dart';
 
 class TeacherDashboardPage extends StatefulWidget {
   const TeacherDashboardPage({super.key});
@@ -219,17 +220,12 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
 
   Widget _buildAppBar() {
     final authState = context.read<AuthBloc>().state;
-    String initials = 'F';
     String userName =
         _dashboardData?['teacher']?['name']?.toString() ??
         (authState is AuthAuthenticated ? authState.user.name : 'Faculty');
-
-    if (userName.isNotEmpty) {
-      final parts = userName.split(' ');
-      initials = parts.length > 1
-          ? (parts[0][0] + parts[1][0]).toUpperCase()
-          : parts[0][0].toUpperCase();
-    }
+    final avatarUrl = authState is AuthAuthenticated
+        ? authState.user.avatarUrl
+        : null;
 
     return Row(
       children: [
@@ -238,8 +234,8 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
             HapticFeedback.lightImpact();
             _scaffoldKey.currentState?.openDrawer();
           },
-          child: Padding(
-            padding: const EdgeInsets.only(right: 12, top: 4, bottom: 4),
+          child: const Padding(
+            padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
             child: Icon(
               Icons.menu_rounded,
               color: AppColors.elitePrimary,
@@ -249,27 +245,11 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         ),
         CPPressable(
           onTap: () => context.push('/teacher/profile'),
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.elitePrimary,
-              border: Border.all(color: AppColors.elitePrimary, width: 2),
-              boxShadow: const [
-                BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2)),
-              ],
-            ),
-            child: Center(
-              child: Text(
-                initials,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
+          child: CpUserAvatar(
+            name: userName,
+            avatarUrl: avatarUrl,
+            size: 44,
+            borderColor: AppColors.elitePrimary,
           ),
         ),
         const SizedBox(width: 12),
@@ -1011,6 +991,13 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   );
 
   Widget _buildDrawer() {
+    final authState = context.read<AuthBloc>().state;
+    final userName = authState is AuthAuthenticated
+        ? authState.user.name
+        : 'Faculty';
+    final avatarUrl = authState is AuthAuthenticated
+        ? authState.user.avatarUrl
+        : null;
     return Drawer(
       backgroundColor: AppColors.eliteLightBg,
       child: SafeArea(
@@ -1020,19 +1007,15 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               padding: const EdgeInsets.all(24),
               child: Row(
                 children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: AppColors.moltenAmber,
-                      border: Border.all(
-                        color: AppColors.elitePrimary,
-                        width: 3,
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(Icons.person_rounded, size: 28),
+                  CpUserAvatar(
+                    name: userName,
+                    avatarUrl: avatarUrl,
+                    size: 54,
+                    backgroundColor: AppColors.moltenAmber,
+                    textColor: AppColors.elitePrimary,
+                    borderColor: AppColors.elitePrimary,
+                    borderWidth: 3,
+                    showShadow: false,
                   ),
                   const SizedBox(width: 16),
                   Expanded(

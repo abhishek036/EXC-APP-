@@ -3,6 +3,7 @@ import { AuthController } from './auth.controller';
 import { validate } from '../../middleware/validate.middleware';
 import { sendOtpSchema, verifyOtpSchema, loginSchema, passwordChangeSchema, passwordResetSchema, updateMeSchema } from './auth.validator';
 import { authenticateJWT } from '../../middleware/auth.middleware';
+import { generalUpload } from '../../middleware/upload';
 
 const router = Router();
 const authController = new AuthController();
@@ -22,5 +23,6 @@ router.get('/me', authenticateJWT, authController.getMe);
 router.patch('/me', authenticateJWT, validate(updateMeSchema), authController.updateMe);
 router.post('/password/change', authenticateJWT, validate(passwordChangeSchema), authController.changePassword);
 router.patch('/me/name', authenticateJWT, authController.updateName);
+router.post('/me/avatar', authenticateJWT, generalUpload.single('file'), authController.updateAvatar);
 
 export default router;

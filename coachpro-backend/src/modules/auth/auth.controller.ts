@@ -1,6 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
 import { sendResponse } from '../../utils/response';
+import { S3Client } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+import { v4 as uuidv4 } from 'uuid';
+import { extname } from 'path';
+
+const s3 = new S3Client({
+  region: process.env.B2_REGION || 'us-east-005',
+  endpoint: process.env.B2_ENDPOINT || 'https://s3.us-east-005.backblazeb2.com',
+  credentials: {
+    accessKeyId: process.env.B2_KEY_ID!,
+    secretAccessKey: process.env.B2_APP_KEY!,
+  },
+});
 
 export class AuthController {
   private authService: AuthService;
@@ -121,6 +134,43 @@ export class AuthController {
 
       const data = await this.authService.updateMe(userId, role, { name, email, phone });
       return sendResponse({ res, data, message: 'Profile updated successfully' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateAvatar = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.file) {
+        return next({ message: 'No image file provided', status: 400 });
+      }
+
+      const userId = req.user!.userId;
+      const role = req.user!.role;
+
+      // Upload to B2
+      const bucketName = process.env.B2_BUCKET_NAME!;
+      const ext = extname(req.file.originalname) || '.jpg';
+      const fileKey = `avatars/${userId}${ext}`;
+
+      const uploader = new Upload({
+        client: s3,
+        params: {
+          Bucket: bucketName,
+          Key: fileKey,
+          Body: req.file.buffer,
+          ContentType: req.file.mimetype,
+        },
+      });
+
+      await uploader.done();
+
+      // Build proxied URL
+      const avatarUrl = `${req.protocol}://${req.get('host')}/api/upload/file/${encodeURIComponent(fileKey)}`;
+
+      // Persist in DB
+      const data = await this.authService.updateAvatar(userId, role, avatarUrl);
+      return sendResponse({ res, data, message: 'Avatar updated successfully' });
     } catch (error) {
       next(error);
     }

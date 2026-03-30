@@ -512,7 +512,7 @@ export class AuthService {
         const { prisma } = require('../../server');
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: { id: true, role: true, phone: true, email: true, institute_id: true, created_at: true }
+            select: { id: true, role: true, phone: true, email: true, institute_id: true, created_at: true, avatar_url: true }
         });
 
         if (!user) return null;
@@ -526,6 +526,7 @@ export class AuthService {
             : [];
 
         let name = 'User';
+        let photo_url: string | null = null;
         if (user.role === 'admin') {
             const staff = await prisma.staff.findFirst({
                 where: {
@@ -548,7 +549,10 @@ export class AuthService {
                     await prisma.student.update({ where: { id: student.id }, data: { user_id: userId } });
                 }
             }
-            if (student) name = student.name;
+            if (student) {
+                name = student.name;
+                photo_url = student.photo_url;
+            }
         } else if (user.role === 'teacher') {
             let teacher = await prisma.teacher.findFirst({ where: { user_id: userId } });
             if (!teacher && phonesToSearch.length > 0) {
@@ -562,7 +566,10 @@ export class AuthService {
                     await prisma.teacher.update({ where: { id: teacher.id }, data: { user_id: userId } });
                 }
             }
-            if (teacher) name = teacher.name;
+            if (teacher) {
+                name = teacher.name;
+                photo_url = teacher.photo_url;
+            }
         } else if (user.role === 'parent') {
             let parent = await prisma.parent.findFirst({ where: { user_id: userId } });
             if (!parent && phonesToSearch.length > 0) {
@@ -579,7 +586,29 @@ export class AuthService {
             if (parent) name = parent.name;
         }
 
-        return { ...user, name };
+        // Use user-level avatar_url as primary, fall back to role-profile photo_url
+        const avatar_url = user.avatar_url || photo_url || null;
+
+        return { ...user, name, avatar_url };
+    }
+
+    async updateAvatar(userId: string, role: string, avatarUrl: string) {
+        const { prisma } = require('../../server');
+
+        // 1. Store on User table (unified source of truth)
+        await prisma.user.update({
+            where: { id: userId },
+            data: { avatar_url: avatarUrl },
+        });
+
+        // 2. Also sync to role profile's photo_url if applicable
+        if (role === 'student') {
+            await prisma.student.updateMany({ where: { user_id: userId }, data: { photo_url: avatarUrl } });
+        } else if (role === 'teacher') {
+            await prisma.teacher.updateMany({ where: { user_id: userId }, data: { photo_url: avatarUrl } });
+        }
+
+        return { avatar_url: avatarUrl };
     }
 
     async changePassword(userId: string, oldPass: string, newPass: string) {

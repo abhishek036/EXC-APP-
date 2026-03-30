@@ -14,6 +14,7 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/secure_storage_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../../../core/widgets/cp_user_avatar.dart';
 
 class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
@@ -259,9 +260,10 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   // ═══════════════════════════════════════════════════════
   Widget _buildDrawer(BuildContext context, bool isDark) {
     final name = _dashboardData?['student']?['name'] ?? 'Student';
-    final initials = name.isNotEmpty
-        ? name.split(' ').map((e) => e[0]).take(2).join().toUpperCase()
-        : 'S';
+    final authState = context.read<AuthBloc>().state;
+    final avatarUrl = authState is AuthAuthenticated
+        ? authState.user.avatarUrl
+        : null;
     return Drawer(
       backgroundColor: isDark ? AppColors.eliteDarkBg : Colors.white,
       child: SafeArea(
@@ -271,26 +273,15 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
               padding: const EdgeInsets.all(24),
               child: Row(
                 children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: AppColors.moltenAmber,
-                      border: Border.all(
-                        color: AppColors.elitePrimary,
-                        width: 3,
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      initials,
-                      style: const TextStyle(
-                        color: AppColors.elitePrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
+                  CpUserAvatar(
+                    name: name,
+                    avatarUrl: avatarUrl,
+                    size: 54,
+                    backgroundColor: AppColors.moltenAmber,
+                    textColor: AppColors.elitePrimary,
+                    borderColor: AppColors.elitePrimary,
+                    borderWidth: 3,
+                    showShadow: false,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -437,7 +428,10 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   Widget _buildAppBar(BuildContext context, bool isDark) {
     final name =
         (_dashboardData?['student']?['name']?.split(' ').first) ?? 'Student';
-    final initials = name.isNotEmpty ? name[0].toUpperCase() : 'S';
+    final authState = context.read<AuthBloc>().state;
+    final avatarUrl = authState is AuthAuthenticated
+        ? authState.user.avatarUrl
+        : null;
 
     return Row(
       children: [
@@ -457,27 +451,11 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         ),
         CPPressable(
           onTap: () => context.go('/student/profile'),
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.elitePrimary,
-              border: Border.all(color: AppColors.elitePrimary, width: 2),
-              boxShadow: const [
-                BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2)),
-              ],
-            ),
-            child: Center(
-              child: Text(
-                initials,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
+          child: CpUserAvatar(
+            name: name,
+            avatarUrl: avatarUrl,
+            size: 44,
+            borderColor: AppColors.elitePrimary,
           ),
         ),
         const SizedBox(width: 12),

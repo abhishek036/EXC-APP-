@@ -19,6 +19,7 @@ class ApiEndpoints {
   static const String updateProfile   = 'auth/me';
   // Some deployments expose name update at a dedicated route
   static const String updateProfileName = 'auth/me/name';
+  static const String uploadAvatar     = 'auth/me/avatar';
   static const String changePassword  = 'auth/password/change';
 
   // Students
