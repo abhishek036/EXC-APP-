@@ -1,12 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/student_repository.dart';
 
 class TimetablePage extends StatefulWidget {
@@ -18,6 +20,8 @@ class TimetablePage extends StatefulWidget {
 
 class _TimetablePageState extends State<TimetablePage> {
   final _studentRepo = sl<StudentRepository>();
+  final _realtime = sl<RealtimeSyncService>();
+  StreamSubscription? _syncSub;
   List<Map<String, dynamic>> _todaySchedule = [];
   bool _isLoading = true;
   String? _error;
@@ -30,6 +34,31 @@ class _TimetablePageState extends State<TimetablePage> {
   void initState() {
     super.initState();
     _loadSchedule();
+    _initRealtime();
+  }
+
+  @override
+  void dispose() {
+    _syncSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final type = (event['type'] ?? '').toString();
+      final reason = (event['reason'] ?? '').toString().toLowerCase();
+      
+      // Refresh on schedule updates or batch syncs
+      if (type == 'lecture_schedule_updated' || 
+          type == 'batch_sync' || 
+          reason.contains('schedule') || 
+          reason.contains('lecture')) {
+        _loadSchedule();
+      }
+    });
   }
 
   Future<void> _loadSchedule() async {
@@ -321,17 +350,36 @@ class _TimetablePageState extends State<TimetablePage> {
                       borderRadius: BorderRadius.circular(
                         AppDimensions.radiusMD,
                       ),
-                      border: Border(left: BorderSide(color: c, width: 4)),
-                      boxShadow: [
+                      border: Border.all(color: Colors.black, width: 2),
+                      boxShadow: const [
                         BoxShadow(
-                          color: CT.textH(context).withValues(alpha: 0.04),
-                          blurRadius: 0,
+                          color: Colors.black,
+                          offset: Offset(3, 3),
                         ),
                       ],
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Stack(
                       children: [
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 4,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: c,
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(12),
+                                bottomLeft: Radius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [

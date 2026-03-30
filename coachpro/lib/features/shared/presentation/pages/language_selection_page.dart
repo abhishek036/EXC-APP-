@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_dimensions.dart';
@@ -24,6 +25,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
   }
 
   Future<void> _saveSelection() async {
+    HapticFeedback.heavyImpact();
     final locale = AppLocales.supported.firstWhere(
       (l) => l.languageCode == _selectedCode,
       orElse: () => AppLocales.english,
@@ -35,111 +37,143 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
   @override
   Widget build(BuildContext context) {
     final accent = CT.accent(context);
+    final isDark = CT.isDark(context);
 
     return Scaffold(
       backgroundColor: CT.bg(context),
       appBar: AppBar(
         backgroundColor: CT.bg(context),
         elevation: 0,
-        title: Text('Choose Language',
-            style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
-        actions: [
-          CPPressable(
-            onTap: _saveSelection,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppDimensions.md),
-              child: Center(
-                child: Text('Save',
-                    style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w700, color: accent)),
-              ),
+        title: Text('Languages',
+            style: GoogleFonts.sora(fontWeight: FontWeight.w800, color: CT.textH(context))),
+        centerTitle: false,
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+              children: [
+                // Minimal Header
+                Text(
+                  'SYSTEM LOCALES',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: CT.textS(context),
+                    letterSpacing: 2,
+                  ),
+                ).animate().fadeIn(duration: 400.ms),
+                const SizedBox(height: 16),
+
+                // Language list
+                ...AppLocales.languageNames.entries.toList().asMap().entries.map((entry) {
+                  final langCode = entry.value.key;
+                  final langName = entry.value.value;
+                  final isSelected = _selectedCode == langCode;
+
+                  return CPPressable(
+                    onTap: () {
+                      HapticFeedback.mediumImpact();
+                      setState(() => _selectedCode = langCode);
+                    },
+                    child: AnimatedContainer(
+                      duration: 200.ms,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isSelected 
+                            ? accent.withValues(alpha: isDark ? 0.15 : 0.08) 
+                            : CT.card(context),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? accent : CT.border(context),
+                          width: isSelected ? 2 : 1,
+                        ),
+                        boxShadow: isSelected 
+                            ? [BoxShadow(color: accent.withValues(alpha: 0.1), blurRadius: 10)] 
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          // Mono Language Indicator
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                langCode.toUpperCase(),
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: isSelected ? accent : CT.textS(context),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              langName,
+                              style: GoogleFonts.sora(
+                                fontSize: 16,
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                                color: CT.textH(context),
+                              ),
+                            ),
+                          ),
+                          if (isSelected)
+                            Icon(Icons.check_circle_rounded, color: accent, size: 22)
+                          else
+                            Icon(Icons.radio_button_off_rounded, color: CT.textS(context).withValues(alpha: 0.3), size: 22),
+                        ],
+                      ),
+                    ),
+                  ).animate().fadeIn(delay: (40 * entry.key).ms).slideY(begin: 0.05, end: 0);
+                }),
+              ],
             ),
           ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-        children: [
-          // Info card
+          
+          // Action Block
           Container(
-            padding: const EdgeInsets.all(AppDimensions.md),
+            padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+              color: CT.bg(context),
+              border: Border(top: BorderSide(color: CT.border(context))),
             ),
-            child: Row(children: [
-              Icon(Icons.translate_rounded, color: accent, size: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Choose your preferred language. The app interface will update accordingly.',
-                  style: GoogleFonts.dmSans(fontSize: 13, color: CT.textH(context)),
-                ),
-              ),
-            ]),
-          ).animate().fadeIn(duration: 300.ms),
-
-          const SizedBox(height: AppDimensions.lg),
-
-          // Language list
-          ...AppLocales.languageNames.entries.toList().asMap().entries.map((entry) {
-            final langCode = entry.value.key;
-            final langName = entry.value.value;
-            final isSelected = _selectedCode == langCode;
-
-            return CPPressable(
-              onTap: () => setState(() => _selectedCode = langCode),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: isSelected ? accent.withValues(alpha: 0.12) : CT.card(context),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                  border: Border.all(
-                    color: isSelected ? accent : CT.border(context),
-                    width: isSelected ? 2 : 1,
+            child: SafeArea(
+              child: CPPressable(
+                onTap: _saveSelection,
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.black, width: 2),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black, offset: Offset(3, 3)),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      'APPLY SELECTION',
+                      style: GoogleFonts.sora(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 1,
+                      ),
+                    ),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    // Language icon
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: Text(
-                          langCode.toUpperCase(),
-                          style: GoogleFonts.sora(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: accent,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        langName,
-                        style: GoogleFonts.dmSans(
-                          fontSize: 16,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: CT.textH(context),
-                        ),
-                      ),
-                    ),
-                    if (isSelected)
-                      Icon(Icons.check_circle_rounded, color: accent, size: 24)
-                    else
-                      Icon(Icons.radio_button_unchecked_rounded, color: CT.border(context), size: 24),
-                  ],
-                ),
               ),
-            ).animate().fadeIn(delay: (50 * entry.key).ms);
-          }),
+            ).animate().slideY(begin: 0.5, end: 0, delay: 200.ms),
+          ),
         ],
       ),
     );

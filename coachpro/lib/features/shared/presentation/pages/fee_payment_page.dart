@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -20,127 +21,218 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = CT.isDark(context);
+    final accent = CT.accent(context);
+
     return Scaffold(
       backgroundColor: CT.bg(context),
       appBar: AppBar(
-        title: Text('Pay Fees', style: GoogleFonts.sora(fontWeight: FontWeight.w600)),
+        title: Text('SECURE CHECKOUT', 
+          style: GoogleFonts.sora(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 1.5)),
+        centerTitle: true,
+        backgroundColor: CT.bg(context),
+        elevation: 0,
       ),
       body: Column(children: [
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Summary Card
+              const SizedBox(height: 12),
+              
+              // NEO-BRUTALIST BILL CARD
               Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF047857)]),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: AppColors.success.withValues(alpha: 0.3), blurRadius: 20)],
+                  color: AppColors.success,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.black, width: 2.5),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black, offset: Offset(5, 5)),
+                  ],
                 ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Installment 2', style: GoogleFonts.dmSans(fontSize: 14, color: Colors.white70, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  Text('₹ 12,500.00', style: GoogleFonts.sora(fontSize: 32, color: Colors.white, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  Divider(color: Colors.white.withValues(alpha: 0.2)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('INSTALLMENT #2', 
+                        style: GoogleFonts.jetBrainsMono(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 1)),
+                      const Icon(Icons.verified_user_outlined, color: Colors.white, size: 18),
+                    ],
+                  ),
                   const SizedBox(height: 12),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Text('Due Date', style: GoogleFonts.dmSans(fontSize: 14, color: Colors.white70)),
-                    Text('15 Aug, 2026', style: GoogleFonts.sora(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w600)),
-                  ]),
+                  Text('₹12,500.00', 
+                    style: GoogleFonts.sora(fontSize: 36, color: Colors.white, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.event_available, color: Colors.white, size: 14),
+                      const SizedBox(width: 8),
+                      Text('DUE BY 15 AUG, 2026', 
+                        style: GoogleFonts.sora(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
                 ]),
               ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.05, end: 0),
               
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
               
-              Text('Payment Method', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
+              Text('SELECT GATEWAY', 
+                style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w800, color: CT.textH(context), letterSpacing: 1)),
               const SizedBox(height: 16),
               
               // Payment Methods
-              _buildPaymentOption('UPI', 'Google Pay, PhonePe, Paytm', Icons.qr_code_scanner),
+              _buildPaymentOption('UPI', 'VPA / QR SCANNER', Icons.qr_code_scanner),
               const SizedBox(height: 12),
-              _buildPaymentOption('Card', 'Credit or Debit Card', Icons.credit_card),
+              _buildPaymentOption('CARD', 'CREDIT / DEBIT', Icons.credit_card),
               const SizedBox(height: 12),
-              _buildPaymentOption('Net Banking', 'All major banks supported', Icons.account_balance),
+              _buildPaymentOption('NET BANKING', 'INSTANT BANK TRANSFER', Icons.account_balance),
               
               const SizedBox(height: 32),
               
-              // Conditional Form logic based on selected method
-              if (_selectedMethod == 'Card') ...[
-                Text('Card Details', style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700)).animate().fadeIn(),
-                const SizedBox(height: 16),
-                const CustomTextField(label: 'Card Number', hint: '0000 0000 0000 0000', keyboardType: TextInputType.number).animate().fadeIn().slideY(begin: 0.05),
-                const SizedBox(height: 16),
-                Row(children: [
-                  Expanded(child: const CustomTextField(label: 'Expiry', hint: 'MM/YY').animate().fadeIn().slideY(begin: 0.05)),
-                  const SizedBox(width: 16),
-                  Expanded(child: const CustomTextField(label: 'CVV', hint: '123', obscureText: true, keyboardType: TextInputType.number).animate().fadeIn().slideY(begin: 0.05)),
-                ]),
-              ] else if (_selectedMethod == 'UPI') ...[
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(color: CT.card(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: CT.textM(context))),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.qr_code, size: 100, color: CT.textH(context)),
-                        const SizedBox(height: 16),
-                        Text('Scan with any UPI app to pay', style: GoogleFonts.dmSans(fontSize: 14, color: CT.textS(context))),
-                        const SizedBox(height: 24),
-                        const CustomTextField(hint: 'Or enter UPI ID (e.g. name@okhdfcbank)'),
-                      ],
-                    ),
-                  ),
-                ).animate().fadeIn().scaleXY(begin: 0.95),
-              ],
+              // Dynamic Form Area
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _selectedMethod == 'CARD' 
+                  ? Column(key: const ValueKey('card'), crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('CARD INFORMATION', 
+                        style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w800, color: CT.textS(context))).animate().fadeIn(),
+                      const SizedBox(height: 16),
+                      const CustomTextField(label: 'CARD NUMBER', hint: '•••• •••• •••• ••••', keyboardType: TextInputType.number),
+                      const SizedBox(height: 16),
+                      Row(children: [
+                        const Expanded(child: CustomTextField(label: 'EXPIRY', hint: 'MM/YY')),
+                        const SizedBox(width: 16),
+                        const Expanded(child: CustomTextField(label: 'CVV', hint: '•••', obscureText: true, keyboardType: TextInputType.number)),
+                      ]),
+                    ])
+                  : _selectedMethod == 'UPI'
+                    ? Container(
+                        key: const ValueKey('upi'),
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: CT.card(context), 
+                          borderRadius: BorderRadius.circular(16), 
+                          border: Border.all(color: Colors.black, width: 2),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), offset: const Offset(4, 4))],
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(Icons.qr_code_2_rounded, size: 120, color: CT.textH(context)),
+                            ),
+                            const SizedBox(height: 20),
+                            Text('SCAN OR ENTER ID', 
+                              style: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w800, color: CT.textS(context))),
+                            const SizedBox(height: 16),
+                            const CustomTextField(hint: 'id_handle@bank'),
+                          ],
+                        ),
+                      ).animate().fadeIn().scaleXY(begin: 0.98)
+                    : const SizedBox(height: 100),
+              ),
               
-              const SizedBox(height: 48), // Padding for scroll bottom
+              const SizedBox(height: 60), 
             ]),
           ),
         ),
         
-        // Fixed Bottom Pay Now button
+        // Fixed Action Block
         Container(
           padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-          decoration: BoxDecoration(color: CT.card(context), boxShadow: [BoxShadow(color: CT.textH(context).withValues(alpha: 0.05), blurRadius: 10, offset: Offset(0, -4))]),
-          child: CustomButton(
-            text: 'Pay ₹12,500 securely',
-            icon: Icons.lock_outline,
-            onPressed: () {},
+          decoration: BoxDecoration(
+            color: CT.bg(context),
+            border: Border(top: BorderSide(color: CT.border(context), width: 1)),
           ),
-        ),
+          child: SafeArea(
+            child: CPPressable(
+              onTap: () => HapticFeedback.heavyImpact(),
+              child: Container(
+                height: 60,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.black, width: 2.5),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black, offset: Offset(4, 4)),
+                  ],
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.security, color: Colors.white, size: 20),
+                      const SizedBox(width: 12),
+                      Text('PAY ₹12,500 SECURELY', 
+                        style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ).animate().slideY(begin: 0.5, end: 0, delay: 400.ms),
       ]),
     );
   }
 
   Widget _buildPaymentOption(String title, String subtitle, IconData icon) {
     final isSelected = _selectedMethod == title;
+    final accent = CT.accent(context);
     
     return CPPressable(
-      onTap: () => setState(() => _selectedMethod = title),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        setState(() => _selectedMethod = title);
+      },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(16),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.05) : CT.card(context),
+          color: isSelected ? accent.withValues(alpha: 0.1) : CT.card(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isSelected ? AppColors.primary : CT.textM(context), width: isSelected ? 2 : 1),
+          border: Border.all(
+            color: isSelected ? accent : CT.border(context), 
+            width: isSelected ? 2.5 : 1
+          ),
+          boxShadow: isSelected 
+              ? [const BoxShadow(color: Colors.black, offset: Offset(3, 3))] 
+              : null,
         ),
         child: Row(children: [
-          Icon(icon, color: isSelected ? AppColors.primary : CT.textS(context), size: 28),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isSelected ? accent.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: isSelected ? accent : CT.textS(context), size: 24),
+          ),
           const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
-            const SizedBox(height: 4),
-            Text(subtitle, style: GoogleFonts.dmSans(fontSize: 13, color: CT.textM(context))),
+            Text(title, 
+              style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w800, color: CT.textH(context), letterSpacing: 0.5)),
+            const SizedBox(height: 2),
+            Text(subtitle, 
+              style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: CT.textM(context), letterSpacing: 0.5)),
           ])),
           if (isSelected)
-            const Icon(Icons.check_circle, color: AppColors.primary)
+            Icon(Icons.check_box, color: accent, size: 24)
           else
-            Icon(Icons.circle_outlined, color: CT.textM(context)),
+            Icon(Icons.check_box_outline_blank, color: CT.textS(context).withValues(alpha: 0.2), size: 24),
         ]),
-      ).animate(target: isSelected ? 1 : 0).scale(begin: const Offset(1,1), end: const Offset(1.02, 1.02), curve: Curves.easeOut),
+      ),
     );
   }
 }

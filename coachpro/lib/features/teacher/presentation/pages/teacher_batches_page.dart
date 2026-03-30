@@ -25,12 +25,19 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
   bool _isLoading = true;
   String? _error;
   String _query = '';
+  final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _loadBatches();
     _initRealtime();
+    _searchController.addListener(() {
+      setState(() {
+        _query = _searchController.text;
+      });
+    });
   }
 
   Future<void> _initRealtime() async {
@@ -52,6 +59,8 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
   @override
   void dispose() {
     _syncSub?.cancel();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -231,7 +240,8 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
         border: Border.all(color: surface.withValues(alpha: 0.35), width: 2),
       ),
       child: TextField(
-        onChanged: (v) => setState(() => _query = v),
+        controller: _searchController,
+        focusNode: _searchFocusNode,
         style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
         decoration: InputDecoration(
           hintText: 'Search for batches',

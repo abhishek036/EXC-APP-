@@ -12,9 +12,11 @@ import '../../../../features/shared/presentation/widgets/global_search_overlay.d
 import '../../../../features/student/data/repositories/student_repository.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/secure_storage_service.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../../../core/widgets/cp_user_avatar.dart';
+import 'dart:async';
 
 class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
@@ -26,6 +28,8 @@ class StudentDashboardPage extends StatefulWidget {
 class _StudentDashboardPageState extends State<StudentDashboardPage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _studentRepo = sl<StudentRepository>();
+  final _realtime = sl<RealtimeSyncService>();
+  StreamSubscription<Map<String, dynamic>>? _syncSub;
 
   Map<String, dynamic>? _dashboardData;
   bool _isLoading = true;
@@ -35,6 +39,22 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   void initState() {
     super.initState();
     _loadDashboard();
+    _initRealtime();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final type = (event['type'] ?? '').toString();
+      final reason = (event['reason'] ?? '').toString().toLowerCase();
+      if (type == 'dashboard_sync' ||
+          type == 'batch_sync' ||
+          reason.contains('attendance')) {
+        _loadDashboard();
+      }
+    });
   }
 
   Future<void> _loadDashboard() async {
@@ -93,6 +113,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
 
   @override
   void dispose() {
+    _syncSub?.cancel();
     super.dispose();
   }
 

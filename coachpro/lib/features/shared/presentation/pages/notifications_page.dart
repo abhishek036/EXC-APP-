@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/utils/role_prefix.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../student/data/repositories/student_repository.dart';
+import 'dart:async';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -19,6 +22,8 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   final _repo = sl<StudentRepository>();
+  final _realtime = sl<RealtimeSyncService>();
+  StreamSubscription? _syncSub;
 
   final List<Map<String, dynamic>> _notifications = [];
   bool _isLoading = true;
@@ -37,6 +42,30 @@ class _NotificationsPageState extends State<NotificationsPage> {
   void initState() {
     super.initState();
     _fetchNotifications(reset: true);
+    _initRealtime();
+  }
+
+  @override
+  void dispose() {
+    _syncSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final type = (event['type'] ?? '').toString();
+      final reason = (event['reason'] ?? '').toString().toLowerCase();
+      
+      if (type == 'notification' || 
+          type == 'broadcast' || 
+          reason.contains('notification') || 
+          reason.contains('announcement')) {
+        _fetchNotifications(reset: true);
+      }
+    });
   }
 
   Future<void> _fetchNotifications({required bool reset}) async {
@@ -102,7 +131,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _markRead(int index, {bool read = true}) async {
     final id = (_notifications[index]['id'] ?? '').toString();
     if (id.isEmpty) return;
+    if (_notifications[index]['isRead'] == read) return;
 
+    HapticFeedback.lightImpact();
     setState(() => _notifications[index]['isRead'] = read);
     try {
       await _repo.markNotificationRead(id, read: read);
@@ -113,6 +144,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Future<void> _markAllRead() async {
+    HapticFeedback.mediumImpact();
     final backup = _notifications.map((n) => Map<String, dynamic>.from(n)).toList();
     setState(() {
       for (final item in _notifications) {
@@ -168,6 +200,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: CT.bg(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
@@ -175,83 +209,120 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ? const ['student', 'parent']
                 : const ['all', 'teacher', 'student', 'parent', 'admin'];
             return Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+              padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Send Notification', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('NEW BROADCAST', 
+                        style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                      CPPressable(onTap: () => Navigator.pop(ctx), child: const Icon(Icons.close_rounded)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
                   TextField(
                     controller: titleCtrl,
-                    decoration: const InputDecoration(labelText: 'Title'),
+                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      labelText: 'HEADER TITLE',
+                      labelStyle: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800, color: CT.textS(context)),
+                      filled: true,
+                      fillColor: CT.card(context),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: CT.border(context))),
+                    ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: bodyCtrl,
-                    minLines: 2,
-                    maxLines: 4,
-                    decoration: const InputDecoration(labelText: 'Message'),
+                    minLines: 3,
+                    maxLines: 5,
+                    style: GoogleFonts.dmSans(),
+                    decoration: InputDecoration(
+                      labelText: 'MESSAGE BODY',
+                      labelStyle: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800, color: CT.textS(context)),
+                      filled: true,
+                      fillColor: CT.card(context),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: CT.border(context))),
+                    ),
                   ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedType,
-                    decoration: const InputDecoration(labelText: 'Type'),
-                    items: const ['system', 'class', 'attendance', 'exam', 'fee']
-                        .map((value) => DropdownMenuItem(value: value, child: Text(value.toUpperCase())))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setSheetState(() => selectedType = value);
+                  const SizedBox(height: 16),
+                  Row(children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedType,
+                        decoration: InputDecoration(
+                          labelText: 'TYPE',
+                          labelStyle: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800),
+                          filled: true,
+                          fillColor: CT.card(context),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: const ['system', 'class', 'attendance', 'exam', 'fee']
+                            .map((value) => DropdownMenuItem(value: value, child: Text(value.toUpperCase(), style: GoogleFonts.jetBrainsMono(fontSize: 12))))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setSheetState(() => selectedType = value);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedRole,
+                        decoration: InputDecoration(
+                          labelText: 'TARGET',
+                          labelStyle: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800),
+                          filled: true,
+                          fillColor: CT.card(context),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: roleOptions
+                            .map((value) => DropdownMenuItem(value: value, child: Text(value.toUpperCase(), style: GoogleFonts.jetBrainsMono(fontSize: 12))))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setSheetState(() => selectedRole = value);
+                        },
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 24),
+                  CPPressable(
+                    onTap: () async {
+                      final title = titleCtrl.text.trim();
+                      final body = bodyCtrl.text.trim();
+                      if (title.isEmpty || body.isEmpty) return;
+                      
+                      HapticFeedback.mediumImpact();
+                      try {
+                        await _repo.sendManualNotification(
+                          title: title,
+                          body: body,
+                          type: selectedType,
+                          roleTarget: selectedRole,
+                        );
+                        if (!ctx.mounted) return;
+                        Navigator.pop(ctx);
+                        _fetchNotifications(reset: true);
+                      } catch (_) {}
                     },
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedRole,
-                    decoration: const InputDecoration(labelText: 'Target role'),
-                    items: roleOptions
-                        .map((value) => DropdownMenuItem(value: value, child: Text(value.toUpperCase())))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setSheetState(() => selectedRole = value);
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final title = titleCtrl.text.trim();
-                        final body = bodyCtrl.text.trim();
-                        if (title.isEmpty || body.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Title and message are required')),
-                          );
-                          return;
-                        }
-                        try {
-                          await _repo.sendManualNotification(
-                            title: title,
-                            body: body,
-                            type: selectedType,
-                            roleTarget: selectedRole,
-                          );
-                          if (!ctx.mounted) return;
-                          Navigator.pop(ctx);
-                          _fetchNotifications(reset: true);
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Notification sent')),
-                          );
-                        } catch (_) {
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Failed to send notification')),
-                          );
-                        }
-                      },
-                      child: const Text('Send'),
+                    child: Container(
+                      height: 56,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.black, width: 2),
+                        boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(3, 3))],
+                      ),
+                      child: Center(
+                        child: Text('EMIT BROADCAST', 
+                          style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
+                      ),
                     ),
                   ),
                 ],
@@ -265,7 +336,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = CT.isDark(context);
     final unreadCount = _notifications.where((n) => n['isRead'] == false).length;
 
     return Scaffold(
@@ -273,89 +343,91 @@ class _NotificationsPageState extends State<NotificationsPage> {
       appBar: AppBar(
         backgroundColor: CT.bg(context),
         elevation: 0,
+        centerTitle: false,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Notifications', style: GoogleFonts.sora(fontWeight: FontWeight.w600, color: CT.textH(context))),
+            Text('ACTIVITY', style: GoogleFonts.sora(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5)),
             if (unreadCount > 0)
-              Text('$unreadCount unread', style: GoogleFonts.dmSans(fontSize: 12, color: CT.accent(context), fontWeight: FontWeight.w600)),
+              Text('$unreadCount pending nodes', 
+                style: GoogleFonts.jetBrainsMono(fontSize: 10, color: CT.accent(context), fontWeight: FontWeight.w800, letterSpacing: 1)),
           ],
         ),
         actions: [
           if (_canComposeOrGlobalDelete)
             IconButton(
-              icon: const Icon(Icons.add_rounded),
+              icon: const Icon(Icons.add_box_outlined, size: 28),
               onPressed: _showComposeSheet,
             ),
           if (unreadCount > 0)
             CPPressable(
               onTap: _markAllRead,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppDimensions.md),
-                child: Text('Mark all read', style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700, color: CT.accent(context))),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Center(
+                  child: Text('CLEAR ALL', 
+                    style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w900, color: CT.accent(context))),
+                ),
               ),
             ),
         ],
       ),
       body: Column(
         children: [
-          SizedBox(
-            height: 48,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
-              children: [
-                _typeChip('all', 'All'),
-                _typeChip('fee', 'Fees'),
-                _typeChip('class', 'Class'),
-                _typeChip('exam', 'Exam'),
-                _typeChip('attendance', 'Attendance'),
-                _typeChip('system', 'System'),
-              ],
+          // CATEGORY CHIPS
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  _typeChip('all', 'ALL'),
+                  _typeChip('fee', 'FEES'),
+                  _typeChip('class', 'CLASSES'),
+                  _typeChip('exam', 'EXAMS'),
+                  _typeChip('attendance', 'LOGS'),
+                  _typeChip('system', 'CORE'),
+                ],
+              ),
             ),
           ),
+          
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
                 : _notifications.isEmpty
                     ? _emptyState(context)
                     : RefreshIndicator(
                         onRefresh: () => _fetchNotifications(reset: true),
                         child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(vertical: AppDimensions.step, horizontal: AppDimensions.pagePaddingH),
+                          padding: const EdgeInsets.all(20),
                           itemCount: _notifications.length + (_hasMore ? 1 : 0),
-                          separatorBuilder: (context, idx) => const SizedBox(height: AppDimensions.sm),
+                          separatorBuilder: (context, idx) => const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             if (index >= _notifications.length) {
                               _fetchNotifications(reset: false);
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                child: Center(
-                                  child: _isLoadingMore
-                                      ? const CircularProgressIndicator(strokeWidth: 2)
-                                      : Text('Load more', style: GoogleFonts.dmSans(color: CT.textS(context))),
-                                ),
-                              );
+                              return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(strokeWidth: 2)));
                             }
 
                             final notif = _notifications[index];
                             final isRead = notif['isRead'] as bool;
-
-                            final iconData = _iconForType(notif['type']?.toString() ?? 'system');
                             final iconColor = _colorForType(notif['type']?.toString() ?? 'system', context);
 
                             return CPPressable(
                               onTap: () => _markRead(index, read: true),
                               child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 250),
-                                padding: const EdgeInsets.all(AppDimensions.md),
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: isRead ? CT.card(context) : CT.accent(context).withValues(alpha: 0.05),
-                                  borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-                                  border: isRead
-                                      ? (isDark ? Border.all(color: Colors.white.withValues(alpha: 0.06)) : Border.all(color: CT.border(context)))
-                                      : Border.all(color: CT.accent(context).withValues(alpha: 0.2)),
-                                  boxShadow: AppDimensions.shadowSm(isDark),
+                                  color: isRead ? CT.card(context) : iconColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: isRead ? CT.border(context) : iconColor.withValues(alpha: 0.5),
+                                    width: isRead ? 1 : 2,
+                                  ),
+                                  boxShadow: isRead ? null : [BoxShadow(color: iconColor.withValues(alpha: 0.1), blurRadius: 10)],
                                 ),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,12 +435,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: iconColor.withValues(alpha: isRead ? 0.08 : 0.12),
-                                        shape: BoxShape.circle,
+                                        color: isRead ? CT.bg(context) : iconColor.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
-                                      child: Icon(iconData, color: iconColor, size: 20),
+                                      child: Icon(_iconForType(notif['type']?.toString() ?? 'system'), color: iconColor, size: 20),
                                     ),
-                                    const SizedBox(width: AppDimensions.step),
+                                    const SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,45 +449,24 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                             children: [
                                               Expanded(
                                                 child: Text(
-                                                  notif['title'].toString(),
-                                                  style: GoogleFonts.sora(fontSize: 14, fontWeight: isRead ? FontWeight.w500 : FontWeight.w700, color: CT.textH(context)),
+                                                  notif['title'].toString().toUpperCase(),
+                                                  style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w800, color: CT.textH(context), letterSpacing: -0.2),
                                                 ),
                                               ),
-                                              PopupMenuButton<String>(
-                                                onSelected: (value) {
-                                                  if (value == 'delete_me') {
-                                                    _deleteNotification(index, global: false);
-                                                  } else if (value == 'delete_all') {
-                                                    _deleteNotification(index, global: true);
-                                                  }
-                                                },
-                                                itemBuilder: (_) => [
-                                                  const PopupMenuItem<String>(
-                                                    value: 'delete_me',
-                                                    child: Text('Delete'),
-                                                  ),
-                                                  if (_canComposeOrGlobalDelete)
-                                                    const PopupMenuItem<String>(
-                                                      value: 'delete_all',
-                                                      child: Text('Delete for all'),
-                                                    ),
-                                                ],
-                                              ),
-                                              if (!isRead)
-                                                Container(width: 8, height: 8, decoration: BoxDecoration(color: CT.accent(context), shape: BoxShape.circle)),
+                                              _buildMiniMenu(index),
                                             ],
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
                                             notif['body'].toString(),
-                                            style: GoogleFonts.dmSans(fontSize: 13, color: isRead ? CT.textM(context) : CT.textS(context), height: 1.4),
-                                            maxLines: 2,
+                                            style: GoogleFonts.dmSans(fontSize: 14, color: CT.textM(context), height: 1.4, fontWeight: isRead ? FontWeight.w400 : FontWeight.w500),
+                                            maxLines: 3,
                                             overflow: TextOverflow.ellipsis,
                                           ),
-                                          const SizedBox(height: 6),
+                                          const SizedBox(height: 12),
                                           Text(
                                             notif['time'].toString(),
-                                            style: GoogleFonts.dmSans(fontSize: 11, color: CT.accent(context), fontWeight: FontWeight.w600),
+                                            style: GoogleFonts.jetBrainsMono(fontSize: 9, color: CT.textS(context), fontWeight: FontWeight.w800),
                                           ),
                                         ],
                                       ),
@@ -423,7 +474,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                   ],
                                 ),
                               ),
-                            ).animate(delay: Duration(milliseconds: 35 * index)).fadeIn(duration: 350.ms).slideY(begin: 0.06, end: 0);
+                            ).animate().fadeIn(duration: 300.ms).slideX(begin: 0.02);
                           },
                         ),
                       ),
@@ -433,17 +484,48 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
+  Widget _buildMiniMenu(int index) {
+    return PopupMenuButton<String>(
+      icon: Icon(Icons.more_horiz_rounded, color: CT.textS(context), size: 18),
+      padding: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onSelected: (value) {
+        if (value == 'delete') _deleteNotification(index, global: false);
+        if (value == 'delete_global') _deleteNotification(index, global: true);
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(value: 'delete', child: Text('Remove', style: GoogleFonts.dmSans(fontSize: 13))),
+        if (_canComposeOrGlobalDelete)
+          PopupMenuItem(value: 'delete_global', child: Text('Recall Broadast', style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.error))),
+      ],
+    );
+  }
+
   Widget _typeChip(String value, String label) {
     final selected = _selectedType == value;
+    final accent = CT.accent(context);
     return Padding(
-      padding: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
-      child: ChoiceChip(
-        selected: selected,
-        label: Text(label, style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
-        onSelected: (_) {
+      padding: const EdgeInsets.only(right: 10),
+      child: CPPressable(
+        onTap: () {
+          HapticFeedback.selectionClick();
           setState(() => _selectedType = value);
           _fetchNotifications(reset: true);
         },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? accent : CT.card(context),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: selected ? Colors.black : CT.border(context), width: selected ? 2 : 1),
+            boxShadow: selected ? const [BoxShadow(color: Colors.black, offset: Offset(2, 2))] : null,
+          ),
+          child: Center(
+            child: Text(label, 
+              style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w900, color: selected ? Colors.white : CT.textS(context))),
+          ),
+        ),
       ),
     );
   }
@@ -453,45 +535,37 @@ class _NotificationsPageState extends State<NotificationsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.notifications_off_rounded, size: 60, color: CT.textS(context).withValues(alpha: 0.3)),
-          const SizedBox(height: 16),
-          Text('No notifications found', style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w600, color: CT.textH(context))),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: CT.card(context), shape: BoxShape.circle, border: Border.all(color: CT.border(context), width: 2)),
+            child: Icon(Icons.notifications_none_rounded, size: 48, color: CT.textS(context).withValues(alpha: 0.2)),
+          ),
+          const SizedBox(height: 24),
+          Text('ZERO ACTIVITY NODES', style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w900, color: CT.textH(context), letterSpacing: -0.5)),
           const SizedBox(height: 8),
-          Text('You are all caught up!', style: GoogleFonts.dmSans(fontSize: 14, color: CT.textS(context))),
+          Text('You are fully synchronized with the hub.', style: GoogleFonts.dmSans(fontSize: 14, color: CT.textS(context))),
         ],
-      ),
+      ).animate().fadeIn().scale(begin: const Offset(0.95, 0.95)),
     );
   }
 
   IconData _iconForType(String type) {
     switch (type) {
-      case 'fee':
-        return Icons.account_balance_wallet_outlined;
-      case 'class':
-        return Icons.calendar_month_rounded;
-      case 'exam':
-      case 'result':
-        return Icons.analytics_outlined;
-      case 'attendance':
-        return Icons.fact_check_rounded;
-      default:
-        return Icons.notifications_none;
+      case 'fee': return Icons.account_balance_wallet_outlined;
+      case 'class': return Icons.calendar_today_rounded;
+      case 'exam': return Icons.analytics_outlined;
+      case 'attendance': return Icons.fact_check_rounded;
+      default: return Icons.radar_rounded;
     }
   }
 
   Color _colorForType(String type, BuildContext context) {
     switch (type) {
-      case 'fee':
-        return AppColors.warning;
-      case 'class':
-        return AppColors.primary;
-      case 'exam':
-      case 'result':
-        return AppColors.success;
-      case 'attendance':
-        return AppColors.error;
-      default:
-        return CT.textS(context);
+      case 'fee': return AppColors.warning;
+      case 'class': return AppColors.primary;
+      case 'exam': return AppColors.success;
+      case 'attendance': return AppColors.error;
+      default: return CT.accent(context);
     }
   }
 }
