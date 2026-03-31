@@ -35,9 +35,14 @@ void main() {
     });
 
     testWidgets('shows notification categories', (tester) async {
+      // Set larger surface size for scrollable content
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(testApp(const NotificationSettingsPage()));
-      // Use pump with duration instead of pumpAndSettle to handle staggered animations
-      await tester.pump(const Duration(seconds: 2));
+      // Give plenty of time for initState futures and staggered animations
+      await tester.pump(const Duration(seconds: 1));
       await tester.pump(const Duration(seconds: 1));
 
       // Some category names should be visible
