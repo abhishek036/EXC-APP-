@@ -71,13 +71,16 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
           _loading = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _assignments = [];
         _submissions = [];
         _loading = false;
       });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load assignments: $e')));
     }
   }
 
@@ -91,13 +94,16 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
         _loading = false;
       });
       _applyCurrent();
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _submissions = [];
         _index = 0;
         _loading = false;
       });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load submissions: $e')));
     }
   }
 

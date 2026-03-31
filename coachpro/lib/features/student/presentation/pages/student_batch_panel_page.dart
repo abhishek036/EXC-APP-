@@ -793,44 +793,47 @@ class _AssignmentsPaneState extends State<_AssignmentsPane> {
           return RefreshIndicator(
             onRefresh: _refresh,
             color: _StudentBatchPanelPageState.accentYellow,
-            child: ListView(children: [
-              _EmptyState(
-                message: 'No assignments uploaded.',
-                icon: Icons.assignment_outlined,
-              ),
-            ]),
+            child: ListView(
+              children: [
+                _EmptyState(
+                  message: 'No assignments uploaded.',
+                  icon: Icons.assignment_outlined,
+                ),
+              ],
+            ),
           );
         }
         return RefreshIndicator(
           onRefresh: _refresh,
           color: _StudentBatchPanelPageState.accentYellow,
           child: ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: assignments.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, i) {
-            final assignment = assignments[i];
-            return _buildItemCard(
-              context: context,
-              icon: Icons.assignment_rounded,
-              title: (assignment['title'] ?? 'Assignment ${i + 1}').toString(),
-              subtitle:
-                  (assignment['description'] ?? 'Download to view details')
-                      .toString(),
-              meta: 'SUBMIT',
-              onTap: () {
-                context.push(
-                  '/student/assignment-submit',
-                  extra: {
-                    'assignmentId': assignment['id']?.toString() ?? '',
-                    'title': assignment['title']?.toString() ?? 'Assignment',
-                    'fileUrl': assignment['file_url']?.toString(),
-                  },
-                );
-              },
-            );
-          },
-        ),
+            padding: const EdgeInsets.all(16),
+            itemCount: assignments.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, i) {
+              final assignment = assignments[i];
+              return _buildItemCard(
+                context: context,
+                icon: Icons.assignment_rounded,
+                title: (assignment['title'] ?? 'Assignment ${i + 1}')
+                    .toString(),
+                subtitle:
+                    (assignment['description'] ?? 'Download to view details')
+                        .toString(),
+                meta: 'SUBMIT',
+                onTap: () {
+                  context.push(
+                    '/student/assignment-submit',
+                    extra: {
+                      'assignmentId': assignment['id']?.toString() ?? '',
+                      'title': assignment['title']?.toString() ?? 'Assignment',
+                      'fileUrl': assignment['file_url']?.toString(),
+                    },
+                  );
+                },
+              );
+            },
+          ),
         );
       },
     );
@@ -905,7 +908,7 @@ class _QuizPaneState extends State<_QuizPane> {
               icon: Icons.timer_outlined,
               title: (q['title'] ?? 'Quiz').toString(),
               subtitle:
-                  '${q['questions_count'] ?? 0} Questions • ${q['time_limit_min'] ?? 0} mins',
+                  '${q['questions_count'] ?? q['_count']?['questions'] ?? 0} Questions • ${q['time_limit_min'] ?? 0} mins',
               meta: 'START',
               onTap: () {
                 context.push(
