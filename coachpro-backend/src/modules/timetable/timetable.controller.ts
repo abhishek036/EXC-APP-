@@ -10,12 +10,12 @@ export class TimetableController {
     this.service = new TimetableService();
   }
 
-  schedule = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const data = await this.service.scheduleLecture(req.instituteId!, req.body);
-      return sendResponse({ res, data, message: 'Lecture scheduled successfully' });
-    } catch (error) { next(error); }
-  };
+  // schedule = async (req: Request, res: Response, next: NextFunction) => {
+  //   try {
+  //     const data = await this.service.scheduleLecture(req.instituteId!, req.body);
+  //     return sendResponse({ res, data, message: 'Lecture scheduled successfully' });
+  //   } catch (error) { next(error); }
+  // };
 
   getByBatch = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -70,9 +70,11 @@ export class TimetableController {
   createMySchedule = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.service.createTeacherScheduleByUser(req.user!.userId, req.instituteId!, req.body);
-      emitBatchSync(req.instituteId!, data.batch_id, 'lecture_schedule_created', {
-        lecture_id: data.id,
-      });
+      if (data) {
+          emitBatchSync(req.instituteId!, data.batch_id, 'lecture_schedule_created', {
+            lecture_id: data.id,
+          });
+      }
       return sendResponse({ res, data, message: 'Schedule created', statusCode: 201 });
     } catch (error) {
       next(error);
@@ -93,11 +95,14 @@ export class TimetableController {
 
   deleteMySchedule = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const existing = await this.service.getTeacherScheduleItemByUser(req.user!.userId, req.instituteId!, req.params.lectureId);
+      const { prisma } = require('../../server');
+      const existing = await prisma.lecture.findUnique({ where: { id: req.params.lectureId } });
       await this.service.deleteTeacherScheduleByUser(req.user!.userId, req.instituteId!, req.params.lectureId);
-      emitBatchSync(req.instituteId!, existing.batch_id, 'lecture_schedule_deleted', {
-        lecture_id: req.params.lectureId,
-      });
+      if (existing) {
+          emitBatchSync(req.instituteId!, existing.batch_id, 'lecture_schedule_deleted', {
+            lecture_id: req.params.lectureId,
+          });
+      }
       return sendResponse({ res, data: null, message: 'Schedule deleted' });
     } catch (error) {
       next(error);

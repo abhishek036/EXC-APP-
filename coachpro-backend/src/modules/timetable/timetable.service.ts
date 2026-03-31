@@ -433,85 +433,6 @@ export class TimetableService {
     }
   }
 
-  /**
-   * Schedules a new lecture.
-   * Checks for conflicts (Same teacher or same room at the same time).
-   */
-  async scheduleLecture(instituteId: string, data: { batchId: string, teacherId: string, subject: string, scheduledAt: string, duration: number, room?: string, link?: string }) {
-    const lectureStart = new Date(data.scheduledAt);
-    const lectureEnd = new Date(lectureStart.getTime() + data.duration * 60000);
-
-    // 1. Check teacher conflict with overlapping slots
-    let candidates: Array<{ scheduled_at: Date | null; duration_minutes?: number | null }> = [];
-    try {
-      candidates = await prisma.lecture.findMany({
-        where: {
-          institute_id: instituteId,
-          scheduled_at: {
-            gte: new Date(lectureStart.getTime() - 240 * 60000),
-            lte: lectureEnd,
-          },
-          teacher_id: data.teacherId,
-        },
-        select: {
-          scheduled_at: true,
-          duration_minutes: true,
-        },
-      });
-    } catch (error) {
-      if (!this.isMissingTimetableColumn(error)) throw error;
-      candidates = await prisma.lecture.findMany({
-        where: {
-          institute_id: instituteId,
-          scheduled_at: {
-            gte: new Date(lectureStart.getTime() - 240 * 60000),
-            lte: lectureEnd,
-          },
-          teacher_id: data.teacherId,
-        },
-        select: {
-          scheduled_at: true,
-        },
-      });
-    }
-
-    for (const c of candidates) {
-        if (!c.scheduled_at) continue;
-        const cStart = new Date(c.scheduled_at);
-        const cEnd = new Date(cStart.getTime() + (c.duration_minutes || 60) * 60000);
-        
-        if (lectureStart < cEnd && lectureEnd > cStart) {
-            throw new ApiError('Teacher is already busy during this time slot', 400, 'CONFLICT');
-        }
-    }
-
-    // 2. Schedule
-    try {
-      return await prisma.lecture.create({
-        data: {
-          institute_id: instituteId,
-          batch_id: data.batchId,
-          teacher_id: data.teacherId,
-          title: `${data.subject} - ${data.batchId}`,
-          scheduled_at: lectureStart,
-          duration_minutes: data.duration,
-        },
-        select: {
-          id: true,
-          title: true,
-          scheduled_at: true,
-          duration_minutes: true,
-          batch_id: true,
-          teacher_id: true,
-        },
-      });
-    } catch (error) {
-      if (!this.isMissingTimetableColumn(error)) throw error;
-      this.logger.warn('[TimetableService] lectures missing elective columns; using scheduleLecture fallback create path');
-      return this.createLectureRaw(instituteId, data.batchId, data.teacherId, `${data.subject} - ${data.batchId}`, lectureStart, data.duration);
-    }
-  }
-
   async getTeacherScheduleByUser(userId: string, instituteId: string, date?: string) {
     const teacher = await prisma.teacher.findFirst({
       where: { user_id: userId, institute_id: instituteId },
@@ -521,16 +442,11 @@ export class TimetableService {
 
     const requestedDateKey = this.normalizeRequestedDateKey(date);
     let dateRange: { start: Date; end: Date } | undefined;
-    let dayOfWeek: number | undefined;
 
     if (requestedDateKey) {
       const parts = requestedDateKey.split('-').map(Number);
       if (parts.length === 3) {
         dateRange = this.getIstDayRangeUtc(parts[0], parts[1], parts[2]);
-        // Day of week in IST: 0 is Sun, 1-6 Mon-Sat
-        // Date.UTC returns UTC day. We want the IST day.
-        const d = new Date(parts[0], parts[1] - 1, parts[2]);
-        dayOfWeek = d.getDay(); 
       }
     }
 
@@ -576,7 +492,6 @@ export class TimetableService {
       }
     }
 
-    // Standardize lecture format
     const formattedLectures = lectures.map(l => {
         const start = l.scheduled_at;
         const toIstStr = (d: Date | null) => {
@@ -584,101 +499,26 @@ export class TimetableService {
             const ist = new Date(d.getTime() + TimetableService.IST_OFFSET_MS);
             return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
         };
+        const duration = (l as any).duration_minutes || 60;
+        const endTime = start ? new Date(start.getTime() + (duration * 60 * 1000)) : null;
+
         return {
             ...l,
             batch_name: l.batch?.name || l.batch_name,
             batch_subject: l.batch?.subject || l.batch_subject,
             start_time: toIstStr(start),
+            end_time: toIstStr(endTime),
             is_recurring: false
         };
     });
-    // 2. Fetch Recurring Batches for that day
-    let merged: any[] = [];
 
-    if (dayOfWeek !== undefined && dateRange) {
-        const { start, end } = dateRange;
-        const actuals = await prisma.lecture.findMany({
-            where: {
-                teacher_id: teacher.id,
-                institute_id: instituteId,
-                is_active: true,
-                scheduled_at: { gte: start, lte: end }
-            },
-            include: { batch: { select: { name: true } } }
-        });
-
-        // 3. Format and Merge
-        const formatRawTime = (date: Date | null) => {
-            if (!date) return '00:00';
-            // Correct IST conversion: +5:30 then extract UTC parts
-            const ist = new Date(date.getTime() + TimetableService.IST_OFFSET_MS);
-            return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
-        };
-
-        const formattedActuals = actuals.map(l => {
-            const start = l.scheduled_at!;
-            const duration = l.duration_minutes || 60;
-            const end = new Date(start.getTime() + (duration * 60 * 1000));
-            return {
-                id: l.id,
-                batch_id: l.batch_id,
-                title: l.title,
-                subject: (l as any).subject || '',
-                batch_name: l.batch?.name || 'TBA',
-                teacher_name: teacher.name,
-                start_time: formatRawTime(start),
-                end_time: formatRawTime(end),
-                scheduled_at: start,
-                is_recurring: false
-            };
-        });
-
-        merged = [...formattedActuals];
-
-        const recurringBatches = await prisma.batch.findMany({
-            where: {
-                teacher_id: teacher.id,
-                institute_id: instituteId,
-                is_active: true,
-                start_time: { not: null },
-                days_of_week: { has: dayOfWeek }
-            }
-        });
-
-        for (const b of recurringBatches) {
-            const formatRawTime = (date: Date | null) => {
-                if (!date) return '00:00';
-                return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
-            };
-            const recStartTime = formatRawTime(b.start_time);
-
-            // Deduplicate: If an actual lecture exists for this batch at this time, skip recurring
-            const hasActual = formattedLectures.some(l => l.batch_id === b.id && l.start_time === recStartTime);
-            if (!hasActual) {
-                merged.push({
-                    id: `recurring-${b.id}-${dayOfWeek}`,
-                    batch_id: b.id,
-                    title: b.name,
-                    batch_name: b.name,
-                    batch_subject: b.subject,
-                    subject: b.subject,
-                    scheduled_at: null, // Indicates recurring
-                    start_time: recStartTime,
-                    end_time: formatRawTime(b.end_time),
-                    class_room: b.room || 'Online',
-                    is_recurring: true
-                });
-            }
-        }
-    }
-
-    merged.sort((a, b) => {
+    formattedLectures.sort((a, b) => {
         const timeA = a.start_time || '00:00';
         const timeB = b.start_time || '00:00';
         return timeA.localeCompare(timeB);
     });
 
-    return merged;
+    return formattedLectures;
   }
 
   async clearPastSchedules(userId: string, instituteId: string) {
@@ -688,7 +528,6 @@ export class TimetableService {
     });
     if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
-    // Mark all active lectures before "now" as inactive
     const now = new Date();
     await prisma.lecture.updateMany({
       where: {
@@ -704,7 +543,7 @@ export class TimetableService {
   async createTeacherScheduleByUser(
     userId: string,
     instituteId: string,
-    data: { batch_id: string; title: string; scheduled_at: string; duration_minutes?: number },
+    data: { batch_id: string; title: string; scheduled_at: string; duration_minutes?: number; dates?: string[] },
   ) {
     const teacher = await prisma.teacher.findFirst({
       where: { user_id: userId, institute_id: instituteId },
@@ -712,77 +551,71 @@ export class TimetableService {
     });
     if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
-    const scheduledAt = new Date(data.scheduled_at);
-    if (isNaN(scheduledAt.getTime())) throw new ApiError('Invalid scheduled_at', 400, 'VALIDATION_ERROR');
-
+    const dates = Array.isArray(data.dates) ? data.dates : [data.scheduled_at];
     const duration = data.duration_minutes && data.duration_minutes > 0 ? data.duration_minutes : 60;
-    await this.assertBatchOwnedByTeacher(data.batch_id, instituteId, teacher.id);
-    await this.checkTeacherLectureConflict(instituteId, teacher.id, scheduledAt, duration);
+    
+    const results = [];
+    for (const dateStr of dates) {
+        const scheduledAt = new Date(dateStr);
+        if (isNaN(scheduledAt.getTime())) continue;
 
-    try {
-      const lecture = await prisma.lecture.create({
-        data: {
-          institute_id: instituteId,
-          batch_id: data.batch_id,
-          teacher_id: teacher.id,
-          title: data.title,
-          scheduled_at: scheduledAt,
-          duration_minutes: duration,
-          is_active: true,
-        },
-        include: {
-          batch: { select: { name: true } }
-        }
-      });
-
-      // 🔔 NOTIFY STUDENTS IN THE BATCH
-      setTimeout(async () => {
         try {
-          const students = await prisma.studentBatch.findMany({
-            where: { batch_id: data.batch_id, is_active: true },
-            include: { student: { select: { user_id: true } } }
-          });
+            await this.assertBatchOwnedByTeacher(data.batch_id, instituteId, teacher.id);
+            await this.checkTeacherLectureConflict(instituteId, teacher.id, scheduledAt, duration);
 
-          const studentUserIds = students.map(s => s.student.user_id).filter(Boolean) as string[];
-          if (studentUserIds.length > 0) {
-            const batchName = (lecture as any).batch?.name || 'Your Batch';
-            const displayTime = scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
-            await NotificationService.sendNotificationToUser(studentUserIds[0], {
-              title: 'New Class Scheduled',
-              body: `A new class "${data.title}" has been scheduled for your batch "${batchName}" at ${displayTime}.`,
-              type: 'schedule',
-              role_target: 'student',
-              institute_id: instituteId,
-              meta: {
-                route: '/student/schedule',
-                lecture_id: lecture.id,
-                batch_id: data.batch_id,
-              },
-            });
-            // Loop for others or use a bulk method if available
-            for (let i = 1; i < studentUserIds.length; i++) {
-                await NotificationService.sendNotificationToUser(studentUserIds[i], {
-                    title: 'New Class Scheduled',
-                    body: `A new class "${data.title}" has been scheduled for your batch "${batchName}" at ${displayTime}.`,
-                    type: 'schedule',
-                    role_target: 'student',
+            const lecture = await prisma.lecture.create({
+                data: {
                     institute_id: instituteId,
-                    meta: { route: '/student/schedule' }
-                });
-            }
-          }
-        } catch (e) {
-          this.logger.error('[TimetableService] Failed to send push notifications:', e);
+                    batch_id: data.batch_id,
+                    teacher_id: teacher.id,
+                    title: data.title,
+                    scheduled_at: scheduledAt,
+                    duration_minutes: duration,
+                    is_active: true,
+                },
+                include: { batch: { select: { name: true } } }
+            });
+            results.push(lecture);
+            this.notifyNewLecture(lecture, null, scheduledAt, instituteId, data.batch_id, data.title);
+        } catch (error) {
+            this.logger.error(`[TimetableService] Failed to create lecture for ${dateStr}:`, error);
         }
-      }, 0);
-
-      return lecture;
-    } catch (error) {
-      if (!this.isMissingTimetableColumn(error)) throw error;
-      this.logger.warn('[TimetableService] lectures missing elective columns; using createTeacherScheduleByUser fallback create path');
-      return this.createLectureRaw(instituteId, data.batch_id, teacher.id, data.title, scheduledAt, duration, (data as any).subject, (data as any).link, (data as any).class_room);
     }
+
+    return results.length > 0 ? results[0] : null;
+  }
+
+  private async notifyNewLecture(lecture: any, studentUserIds: string[] | null, scheduledAt: Date, instituteId: string, batchId: string, title: string) {
+      setTimeout(async () => {
+          try {
+              let targetUserIds = studentUserIds;
+              if (!targetUserIds) {
+                  const students = await prisma.studentBatch.findMany({
+                      where: { batch_id: batchId, is_active: true },
+                      include: { student: { select: { user_id: true } } }
+                  });
+                  targetUserIds = students.map(s => s.student.user_id).filter(Boolean) as string[];
+              }
+
+              if (targetUserIds.length > 0) {
+                  const batchName = (lecture as any).batch?.name || 'Your Batch';
+                  const displayTime = scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                  for (const uid of targetUserIds) {
+                      await NotificationService.sendNotificationToUser(uid, {
+                          title: 'New Class Scheduled',
+                          body: `A new class "${title}" has been scheduled for your batch "${batchName}" at ${displayTime}.`,
+                          type: 'schedule',
+                          role_target: 'student',
+                          institute_id: instituteId,
+                          meta: { route: '/student/schedule', lecture_id: lecture.id, batch_id: batchId },
+                      });
+                  }
+              }
+          } catch (e) {
+              this.logger.error('[TimetableService] Failed to send push notifications:', e);
+          }
+      }, 0);
   }
 
   async updateTeacherScheduleByUser(
@@ -816,36 +649,17 @@ export class TimetableService {
     await this.assertBatchOwnedByTeacher(nextBatchId, instituteId, teacher.id);
 
     const nextScheduledAt = data.scheduled_at ? new Date(data.scheduled_at) : (current.scheduled_at ?? new Date());
-    if (isNaN(nextScheduledAt.getTime())) throw new ApiError('Invalid scheduled_at', 400, 'VALIDATION_ERROR');
-
     const nextDuration = data.duration_minutes && data.duration_minutes > 0
       ? data.duration_minutes
       : (current.duration_minutes ?? 60);
 
     await this.checkTeacherLectureConflict(instituteId, teacher.id, nextScheduledAt, nextDuration, lectureId);
 
-    try {
-      return await prisma.lecture.update({
-        where: { id: lectureId },
-        data: {
-          batch_id: nextBatchId,
-          title: data.title,
-          scheduled_at: nextScheduledAt,
-          duration_minutes: nextDuration,
-        },
-        select: {
-          id: true,
-          title: true,
-          scheduled_at: true,
-          duration_minutes: true,
-          batch_id: true,
-        },
-      });
-    } catch (error) {
-      if (!this.isMissingTimetableColumn(error)) throw error;
-      this.logger.warn('[TimetableService] lectures missing elective columns; using updateTeacherScheduleByUser fallback update path');
-      return this.updateLectureRaw(lectureId, nextBatchId, data.title, nextScheduledAt, nextDuration, (data as any).subject, (data as any).link, (data as any).class_room);
-    }
+    return await prisma.lecture.update({
+      where: { id: lectureId },
+      data: { batch_id: nextBatchId, title: data.title, scheduled_at: nextScheduledAt, duration_minutes: nextDuration },
+      select: { id: true, title: true, scheduled_at: true, duration_minutes: true, batch_id: true },
+    });
   }
 
   async deleteTeacherScheduleByUser(userId: string, instituteId: string, lectureId: string) {
@@ -855,133 +669,39 @@ export class TimetableService {
     });
     if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
-    const lecture = await prisma.lecture.findFirst({
-      where: { id: lectureId, institute_id: instituteId, teacher_id: teacher.id, is_active: true },
-      select: { id: true },
-    });
-    if (!lecture) throw new ApiError('Schedule item not found', 404, 'NOT_FOUND');
-
     await prisma.lecture.update({
       where: { id: lectureId },
       data: { is_active: false },
-      select: { id: true },
     });
-  }
-
-  async getTeacherScheduleItemByUser(userId: string, instituteId: string, lectureId: string) {
-    const teacher = await prisma.teacher.findFirst({
-      where: { user_id: userId, institute_id: instituteId },
-      select: { id: true },
-    });
-    if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
-
-    const lecture = await prisma.lecture.findFirst({
-      where: { id: lectureId, institute_id: instituteId, teacher_id: teacher.id, is_active: true },
-      select: { id: true, batch_id: true },
-    });
-    if (!lecture) throw new ApiError('Schedule item not found', 404, 'NOT_FOUND');
-    return lecture;
   }
 
   async getBatchTimetable(batchId: string, instituteId: string) {
-    try {
-      return await prisma.lecture.findMany({
-        where: { batch_id: batchId, institute_id: instituteId },
+    return await prisma.lecture.findMany({
+        where: { batch_id: batchId, institute_id: instituteId, is_active: true },
         select: {
           id: true,
           title: true,
           scheduled_at: true,
           duration_minutes: true,
           batch_id: true,
-          teacher_id: true,
           teacher: { select: { name: true } },
         },
         orderBy: { scheduled_at: 'asc' }
-      });
-    } catch (error) {
-      if (this.isInvalidLectureUuidData(error)) {
-        this.warnOnceFallback(
-          'batch-with-duration',
-          '[TimetableService] Invalid lecture UUID data detected; using raw batch timetable fallback query (with duration)',
-        );
-        return this.getBatchTimetableRawFallback(batchId, instituteId, true);
-      }
-      if (!this.isMissingTimetableColumn(error)) throw error;
-
-      try {
-        return await prisma.lecture.findMany({
-          where: { batch_id: batchId, institute_id: instituteId },
-          select: {
-            id: true,
-            title: true,
-            scheduled_at: true,
-            batch_id: true,
-            teacher_id: true,
-            teacher: { select: { name: true } },
-          },
-          orderBy: { scheduled_at: 'asc' }
-        });
-      } catch (fallbackError) {
-        if (this.isInvalidLectureUuidData(fallbackError)) {
-          this.warnOnceFallback(
-            'batch-without-duration',
-            '[TimetableService] Invalid lecture UUID data detected; using raw batch timetable fallback query (without duration column)',
-          );
-          return this.getBatchTimetableRawFallback(batchId, instituteId, false);
-        }
-        throw fallbackError;
-      }
-    }
+    });
   }
 
   async getTeacherTimetable(teacherId: string, instituteId: string) {
-    try {
-      return await prisma.lecture.findMany({
-        where: { teacher_id: teacherId, institute_id: instituteId },
+    return await prisma.lecture.findMany({
+        where: { teacher_id: teacherId, institute_id: instituteId, is_active: true },
         select: {
           id: true,
           title: true,
           scheduled_at: true,
           duration_minutes: true,
           batch_id: true,
-          teacher_id: true,
           batch: { select: { name: true } },
         },
         orderBy: { scheduled_at: 'asc' }
-      });
-    } catch (error) {
-      if (this.isInvalidLectureUuidData(error)) {
-        this.warnOnceFallback(
-          'teacher-with-duration',
-          '[TimetableService] Invalid lecture UUID data detected; using raw teacher timetable fallback query (with duration)',
-        );
-        return this.getTeacherTimetableRawFallback(teacherId, instituteId, true);
-      }
-      if (!this.isMissingTimetableColumn(error)) throw error;
-
-      try {
-        return await prisma.lecture.findMany({
-          where: { teacher_id: teacherId, institute_id: instituteId },
-          select: {
-            id: true,
-            title: true,
-            scheduled_at: true,
-            batch_id: true,
-            teacher_id: true,
-            batch: { select: { name: true } },
-          },
-          orderBy: { scheduled_at: 'asc' }
-        });
-      } catch (fallbackError) {
-        if (this.isInvalidLectureUuidData(fallbackError)) {
-          this.warnOnceFallback(
-            'teacher-without-duration',
-            '[TimetableService] Invalid lecture UUID data detected; using raw teacher timetable fallback query (without duration column)',
-          );
-          return this.getTeacherTimetableRawFallback(teacherId, instituteId, false);
-        }
-        throw fallbackError;
-      }
-    }
+    });
   }
 }

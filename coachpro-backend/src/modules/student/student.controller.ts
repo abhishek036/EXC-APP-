@@ -99,50 +99,16 @@ export class StudentController {
       ] = await Promise.all([
         // Combined schedule for today (Recurring + One-off)
         (async () => {
-          const now = new Date();
-          const istDate = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
-          const dayMapping = istDate.getUTCDay() === 0 ? 7 : istDate.getUTCDay();
-          
-          const studentData = await prisma.student.findUnique({
-              where: { id: studentId },
-              include: {
-                  student_batches: {
-                      where: { is_active: true },
-                      include: {
-                          batch: { include: { teacher: { select: { name: true } } } }
-                      }
-                  }
-              }
-          });
+          const nowLocal = new Date();
+          const istOffsetMs = 5.5 * 60 * 60 * 1000;
+          const targetIst = new Date(nowLocal.getTime() + istOffsetMs);
+          const y = targetIst.getUTCFullYear();
+          const m = targetIst.getUTCMonth();
+          const d = targetIst.getUTCDate();
 
-          if (!studentData) return [];
+          const istTodayStart = new Date(Date.UTC(y, m, d) - istOffsetMs);
+          const istTodayEnd = new Date(Date.UTC(y, m, d, 23, 59, 59, 999) - istOffsetMs);
 
-          // 1. Recurring (only include if time is set)
-          const recurring = studentData.student_batches
-              .filter(sb => sb.batch.days_of_week.includes(dayMapping) && sb.batch.start_time)
-              .map(sb => {
-                  const b = sb.batch;
-                  const formatRawTime = (date: Date | null) => {
-                      if (!date) return '00:00';
-                      const ist = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
-                      return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
-                  };
-                  return {
-                      id: `recurring-${b.id}-${dayMapping}`,
-                      batch_id: b.id,
-                      title: b.name,
-                      subject: b.subject,
-                      batch_name: b.name,
-                      teacher_name: b.teacher?.name || 'TBA',
-                      start_time: formatRawTime(b.start_time),
-                      end_time: formatRawTime(b.end_time),
-                      is_recurring: true
-                  };
-              });
-
-          // 2. Actuals
-          const istTodayStart = new Date(now.setHours(0, 0, 0, 0));
-          const istTodayEnd = new Date(now.setHours(23, 59, 59, 999));
           const actualsRaw = await prisma.lecture.findMany({
               where: {
                   batch: { student_batches: { some: { student_id: studentId, is_active: true } } },
@@ -158,7 +124,7 @@ export class StudentController {
               const end = start ? new Date(start.getTime() + duration * 60000) : null;
               const toIstStr = (d: Date | null) => {
                   if (!d) return '00:00';
-                  const ist = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
+                  const ist = new Date(d.getTime() + istOffsetMs);
                   return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
               };
               return {
@@ -171,14 +137,8 @@ export class StudentController {
               };
           });
 
-          // 3. Merge
-          const merged: any[] = [...actuals];
-          for (const rec of recurring) {
-              const hasOverride = actuals.some(act => act.batch_id === rec.batch_id && act.start_time === rec.start_time);
-              if (!hasOverride) merged.push(rec);
-          }
-          merged.sort((a, b) => a.start_time.localeCompare(b.start_time));
-          return merged;
+          actuals.sort((a, b) => a.start_time.localeCompare(b.start_time));
+          return actuals;
         })(),
         // Attendance summary (last 30 days)
         prisma.attendanceRecord.groupBy({
@@ -431,46 +391,25 @@ export class StudentController {
           // Standardize Day: 1=Mon, 7=Sun (Matching script convention)
           const dayMapping = dayIndex === 0 ? 7 : dayIndex;
 
-          // 1. Recurring schedules from the Batch model
-          const recurringScheduled = student.student_batches
-              .filter(sb => sb.batch.days_of_week.includes(dayMapping))
-              .map(sb => {
-                  const b = sb.batch;
-                  const formatRawTime = (date: Date | null) => {
-                      if (!date) return '00:00';
-                      // Batch times are stored relative to UTC 1970-01-01 in the repository
-                      return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
-                  };
-
-                  return {
-                      id: `recurring-${b.id}-${dayIndex}`,
-                      batch_id: b.id,
-                      title: b.name,
-                      subject: b.subject,
-                      batch_name: b.name,
-                      teacher_name: b.teacher?.name || 'TBA',
-                      start_time: formatRawTime(b.start_time),
-                      end_time: formatRawTime(b.end_time),
-                      room: b.room || 'Online',
-                      is_active: true,
-                      is_recurring: true
-                  };
-              });
-
-          // 2. Actual Lecture records (one-offs)
+          // NOTE: USER REQUESTED TO DELETE MOCK SCHEDULES AND MAKE IT REAL TIME.
+          // We are removing the recurring batch placeholder logic. Only actual lectures show.
+          
           const requestedDateStr = req.query.date as string | undefined;
           let startRange: Date;
           let endRange: Date;
 
-          if (requestedDateStr) {
-               const parsed = new Date(requestedDateStr);
-               startRange = new Date(parsed.setHours(0, 0, 0, 0));
-               endRange = new Date(parsed.setHours(23, 59, 59, 999));
-          } else {
-               const now = new Date();
-               startRange = new Date(now.setHours(0, 0, 0, 0));
-               endRange = new Date(now.setHours(23, 59, 59, 999));
-          }
+          const baseDate = requestedDateStr ? new Date(requestedDateStr) : new Date();
+          // We assume requestedDateStr gives the target date in UTC but we want that "day" in IST.
+          // Get the local YYYY-MM-DD from the user's date string (or current date if current in IST)
+          const istOffsetMs = 5.5 * 60 * 60 * 1000;
+          const targetIst = new Date(baseDate.getTime() + (requestedDateStr ? 0 : istOffsetMs));
+          
+          const y = targetIst.getUTCFullYear();
+          const m = targetIst.getUTCMonth();
+          const d = targetIst.getUTCDate();
+          
+          startRange = new Date(Date.UTC(y, m, d) - istOffsetMs);
+          endRange = new Date(Date.UTC(y, m, d, 23, 59, 59, 999) - istOffsetMs);
 
           const actualLectures = await prisma.lecture.findMany({
               where: {
@@ -509,25 +448,11 @@ export class StudentController {
               };
           });
 
-          // 3. Smart Merging (Deduplication)
-          // If a batch has an 'Actual' lecture starting at the exact same time as the 'Recurring' one,
-          // the 'Actual' one wins (overrides it).
-          const merged: any[] = [...localizedActuals];
-          
-          for (const rec of recurringScheduled) {
-              const hasOverride = localizedActuals.some(act => 
-                  act.batch_id === rec.batch_id && act.start_time === rec.start_time
-              );
-              if (!hasOverride) {
-                  merged.push(rec);
-              }
-          }
-          
-          merged.sort((a, b) => a.start_time.localeCompare(b.start_time));
+          localizedActuals.sort((a, b) => a.start_time.localeCompare(b.start_time));
 
           return sendResponse({ 
               res, 
-              data: merged, 
+              data: localizedActuals, 
               message: 'Schedule fetched' 
           });
       } catch (error) { next(error); }
