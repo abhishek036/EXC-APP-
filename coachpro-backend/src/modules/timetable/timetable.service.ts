@@ -707,9 +707,12 @@ export class TimetableService {
 
           const studentUserIds = students.map(s => s.student.user_id).filter(Boolean) as string[];
           if (studentUserIds.length > 0) {
+            const batchName = (lecture as any).batch?.name || 'Your Batch';
+            const displayTime = scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
             await NotificationService.sendNotificationToUser(studentUserIds[0], {
               title: 'New Class Scheduled',
-              body: `A new class "${data.title}" has been scheduled for your batch "${lecture.batch.name}" at ${scheduledAt.toLocaleString()}.`,
+              body: `A new class "${data.title}" has been scheduled for your batch "${batchName}" at ${displayTime}.`,
               type: 'schedule',
               role_target: 'student',
               institute_id: instituteId,
@@ -723,7 +726,7 @@ export class TimetableService {
             for (let i = 1; i < studentUserIds.length; i++) {
                 await NotificationService.sendNotificationToUser(studentUserIds[i], {
                     title: 'New Class Scheduled',
-                    body: `A new class "${data.title}" has been scheduled for your batch "${lecture.batch.name}" at ${scheduledAt.toLocaleString()}.`,
+                    body: `A new class "${data.title}" has been scheduled for your batch "${batchName}" at ${displayTime}.`,
                     type: 'schedule',
                     role_target: 'student',
                     institute_id: instituteId,
