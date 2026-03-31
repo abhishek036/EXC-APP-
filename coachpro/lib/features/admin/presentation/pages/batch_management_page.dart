@@ -107,8 +107,9 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
     }
     if (!isActive) return 'Suspended';
     if (capacity > 0 && currentStudents >= capacity) return 'Full';
-    if (capacity > 0 && currentStudents / capacity >= 0.8)
+    if (capacity > 0 && currentStudents / capacity >= 0.8) {
       return 'Filling Fast';
+    }
     return 'Active';
   }
 
@@ -668,8 +669,9 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
 
     if (shouldMigrate != true ||
         targetBatchId == null ||
-        targetBatchId!.isEmpty)
+        targetBatchId!.isEmpty) {
       return;
+    }
 
     try {
       final result = await _adminRepo.migrateBatchStudents(

@@ -46,8 +46,9 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
     setState(() => _isLoading = true);
     try {
       final batchId = widget.exam['batchId']?.toString();
-      if (batchId == null || batchId.isEmpty)
+      if (batchId == null || batchId.isEmpty) {
         throw Exception('No associated batch');
+      }
 
       final students = await _adminRepo.getStudents();
       // Only keep students in the exam's batch

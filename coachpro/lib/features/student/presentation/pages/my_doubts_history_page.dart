@@ -235,6 +235,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
 
           final isResolved = status == 'resolved';
           final sColor = isResolved ? AppColors.success : AppColors.warning;
+          final answer = doubt['answer_text'] ?? doubt['answerText'];
 
           return CPGlassCard(
                 isDark: isDark,
@@ -290,7 +291,6 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
                         height: 1.4,
                       ),
                     ),
-                    final answer = doubt['answer_text'] ?? doubt['answerText'];
                     if (isResolved && answer != null) ...[
                       const SizedBox(height: 16),
                       Container(

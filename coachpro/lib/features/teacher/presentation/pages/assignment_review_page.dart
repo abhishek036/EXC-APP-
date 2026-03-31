@@ -28,8 +28,9 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
   int _index = 0;
 
   String? get _safeSelectedAssignmentId {
-    if (_selectedAssignmentId == null || _selectedAssignmentId!.isEmpty)
+    if (_selectedAssignmentId == null || _selectedAssignmentId!.isEmpty) {
       return null;
+    }
     final hasSelected = _assignments.any(
       (a) => (a['id'] ?? '').toString() == _selectedAssignmentId,
     );
@@ -101,8 +102,9 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
   }
 
   Map<String, dynamic>? get _current {
-    if (_submissions.isEmpty || _index < 0 || _index >= _submissions.length)
+    if (_submissions.isEmpty || _index < 0 || _index >= _submissions.length) {
       return null;
+    }
     return _submissions[_index];
   }
 

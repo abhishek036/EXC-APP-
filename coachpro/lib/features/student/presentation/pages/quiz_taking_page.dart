@@ -450,8 +450,9 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
                       ...List.generate(4, (i) {
                         final optionText =
                             currentQuestion['option_${i + 1}'] as String?;
-                        if (optionText == null || optionText.isEmpty)
+                        if (optionText == null || optionText.isEmpty) {
                           return const SizedBox.shrink();
+                        }
 
                         final selected = selectedOption == i + 1;
                         return CPPressable(

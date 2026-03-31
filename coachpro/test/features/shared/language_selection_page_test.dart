@@ -15,14 +15,14 @@ void main() {
       await tester.pumpWidget(testApp(const LanguageSelectionPage()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Choose Language'), findsOneWidget);
+      expect(find.text('Languages'), findsOneWidget);
     });
 
     testWidgets('shows Save button in app bar', (tester) async {
       await tester.pumpWidget(testApp(const LanguageSelectionPage()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Save'), findsOneWidget);
+      expect(find.text('APPLY SELECTION'), findsOneWidget);
     });
 
     testWidgets('lists all supported languages', (tester) async {

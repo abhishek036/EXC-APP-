@@ -262,8 +262,9 @@ class _TimetableManagementPageState extends State<TimetableManagementPage> {
               onPressed: () async {
                 if (selectedBatchId == null ||
                     selectedStartTime == null ||
-                    selectedEndTime == null)
+                    selectedEndTime == null) {
                   return;
+                }
                 Navigator.pop(ctx);
                 setState(() => _isLoading = true);
 

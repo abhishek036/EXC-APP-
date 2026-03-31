@@ -9,8 +9,7 @@ import '../../../../core/di/injection_container.dart';
 class YoutubeBroadcastPage extends StatefulWidget {
   final String batchId;
 
-  const YoutubeBroadcastPage({Key? key, required this.batchId})
-    : super(key: key);
+  const YoutubeBroadcastPage({super.key, required this.batchId});
 
   @override
   State<YoutubeBroadcastPage> createState() => _YoutubeBroadcastPageState();

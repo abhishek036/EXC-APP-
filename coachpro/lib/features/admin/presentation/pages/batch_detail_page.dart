@@ -344,8 +344,9 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       }
     }
 
-    if (total == 0)
+    if (total == 0) {
       return _toDouble(student['attendance_percent'], fallback: 0);
+    }
     return (present / total) * 100;
   }
 
@@ -1721,8 +1722,9 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
   Widget _buildStudentsTab() {
     final filtered = _students.where((student) {
       if (_studentFilter == 'All') return true;
-      if (_studentFilter == 'Low attendance')
+      if (_studentFilter == 'Low attendance') {
         return _studentAttendance(student) < 70;
+      }
 
       final status = (student['status'] ?? student['is_active'])
           ?.toString()
@@ -1731,10 +1733,12 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
 
       if (_studentFilter == 'Active') return active;
       if (_studentFilter == 'Inactive') return !active;
-      if (_studentFilter == 'Paid')
+      if (_studentFilter == 'Paid') {
         return _studentFeeStatus((student['id'] ?? '').toString()) == 'Paid';
-      if (_studentFilter == 'Unpaid')
+      }
+      if (_studentFilter == 'Unpaid') {
         return _studentFeeStatus((student['id'] ?? '').toString()) == 'Pending';
+      }
       return true;
     }).toList();
 
@@ -1899,11 +1903,13 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     final topper = (quiz['topper_name'] ?? 'N/A').toString();
 
                     String status = 'Upcoming';
-                    if ((quiz['is_published'] ?? false) == true)
+                    if ((quiz['is_published'] ?? false) == true) {
                       status = 'Live';
+                    }
                     if ((quiz['status'] ?? '').toString().toLowerCase() ==
-                        'completed')
+                        'completed') {
                       status = 'Completed';
+                    }
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
@@ -2776,8 +2782,9 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     OutlinedButton.icon(
                       onPressed: () {
                         if (faqQuestionCtrl.text.trim().isEmpty ||
-                            faqAnswerCtrl.text.trim().isEmpty)
+                            faqAnswerCtrl.text.trim().isEmpty) {
                           return;
+                        }
                         setS(() {
                           faqs.add({
                             'question': faqQuestionCtrl.text.trim(),
@@ -2813,8 +2820,9 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                           CPToast.success(context, 'Batch details updated');
                           _loadBatch();
                         } catch (e) {
-                          if (ctx.mounted)
+                          if (ctx.mounted) {
                             CPToast.error(ctx, 'Update failed: $e');
+                          }
                         }
                       },
                     ),

@@ -343,12 +343,13 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   }
 
   Widget _buildStaffList(bool isDark) {
-    if (_staff.isEmpty)
+    if (_staff.isEmpty) {
       return _emptyState(
         'The roster is empty.',
         Icons.people_outline_rounded,
         isDark,
       );
+    }
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
@@ -540,12 +541,13 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   }
 
   Widget _buildPayrollList(bool isDark) {
-    if (_payroll.isEmpty)
+    if (_payroll.isEmpty) {
       return _emptyState(
         'No disbursement records found.',
         Icons.account_balance_rounded,
         isDark,
       );
+    }
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
@@ -832,11 +834,13 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                                   _loadData();
                                 }
                               } catch (e) {
-                                if (ctx.mounted)
+                                if (ctx.mounted) {
                                   CPToast.error(ctx, 'Hiring failed: $e');
+                                }
                               } finally {
-                                if (ctx.mounted)
+                                if (ctx.mounted) {
                                   setSS(() => isSubmitting = false);
+                                }
                               }
                             },
                     ),
@@ -1061,11 +1065,13 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                                   _loadData();
                                 }
                               } catch (_) {
-                                if (ctx.mounted)
+                                if (ctx.mounted) {
                                   CPToast.error(ctx, 'Protocol failure');
+                                }
                               } finally {
-                                if (ctx.mounted)
+                                if (ctx.mounted) {
                                   setSS(() => isSubmitting = false);
+                                }
                               }
                             },
                     ),

@@ -441,8 +441,9 @@ class _StudentProfilePageState extends State<StudentProfilePage>
         batchId: batchId,
         studentId: widget.studentId,
       );
-      if (mounted)
+      if (mounted) {
         _showSnack('Removed from $batchName', const Color(0xFFF0DE36));
+      }
     } catch (_) {
       if (mounted) {
         setState(() {

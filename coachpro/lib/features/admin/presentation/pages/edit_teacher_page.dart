@@ -89,8 +89,9 @@ class _EditTeacherPageState extends State<EditTeacherPage> {
         Navigator.pop(context, true);
       }
     } on DioException catch (e) {
-      if (mounted)
+      if (mounted) {
         CPToast.error(context, e.message ?? 'Failed to update teacher');
+      }
     } catch (e) {
       if (mounted) CPToast.error(context, 'Error: $e');
     } finally {

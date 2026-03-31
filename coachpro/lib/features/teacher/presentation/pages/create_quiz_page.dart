@@ -702,8 +702,9 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
   );
 
   Widget _buildBatchDropdown(Color blue) {
-    if (_isLoadingBatches)
+    if (_isLoadingBatches) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(

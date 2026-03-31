@@ -858,8 +858,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
 
     final filtered = _students.where((s) {
       final id = (s['id'] ?? '').toString();
-      if (_studentFilter == 'low_attendance')
+      if (_studentFilter == 'low_attendance') {
         return lowAttendanceIds.contains(id);
+      }
       if (_studentFilter == 'weak') return effectiveWeakIds.contains(id);
       if (_studentFilter == 'pending_work') return pendingWorkIds.contains(id);
       return true;
@@ -1432,8 +1433,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                       ),
                                     );
                                   } finally {
-                                    if (mounted)
+                                    if (mounted) {
                                       setState(() => _isDeletingQuiz = false);
+                                    }
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
@@ -1696,8 +1698,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                       ),
                                     );
                                   } finally {
-                                    if (mounted)
+                                    if (mounted) {
                                       setState(() => _isDeletingQuiz = false);
+                                    }
                                   }
                                 },
                           style: ElevatedButton.styleFrom(

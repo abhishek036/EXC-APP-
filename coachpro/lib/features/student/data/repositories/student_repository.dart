@@ -56,7 +56,7 @@ class StudentRepository {
     final response = await _api.dio.get(
       'students/me/schedule/today',
       queryParameters: {
-        if (dayIndex != null) 'day': dayIndex,
+        'day': ?dayIndex,
       },
     );
     if (response.statusCode == 200) {

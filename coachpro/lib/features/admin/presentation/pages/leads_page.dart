@@ -332,8 +332,9 @@ class _LeadsPageState extends State<LeadsPage> {
                 onTap: () async {
                   if (_isSubmitting) return;
                   if (nameCtrl.text.trim().isEmpty ||
-                      phoneCtrl.text.trim().isEmpty)
+                      phoneCtrl.text.trim().isEmpty) {
                     return;
+                  }
                   setState(() => _isSubmitting = true);
                   try {
                     await _adminRepo.updateLead(leadId, {

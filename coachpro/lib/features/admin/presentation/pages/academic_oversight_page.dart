@@ -199,12 +199,13 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
   }
 
   Widget _buildDoubtsList(bool isDark) {
-    if (_doubts.isEmpty)
+    if (_doubts.isEmpty) {
       return _emptyState(
         'All clear! No pending doubts.',
         Icons.auto_awesome_rounded,
         isDark,
       );
+    }
 
     return ListView.separated(
       padding: const EdgeInsets.all(20),
@@ -306,12 +307,13 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
   }
 
   Widget _buildMaterialsList(bool isDark) {
-    if (_materials.isEmpty)
+    if (_materials.isEmpty) {
       return _emptyState(
         'No educational resources yet.',
         Icons.library_books_rounded,
         isDark,
       );
+    }
 
     return ListView.separated(
       padding: const EdgeInsets.all(20),

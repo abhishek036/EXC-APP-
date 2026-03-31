@@ -651,8 +651,9 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                           ? null
                           : () async {
                               if (titleCtrl.text.trim().isEmpty ||
-                                  bodyCtrl.text.trim().isEmpty)
+                                  bodyCtrl.text.trim().isEmpty) {
                                 return;
+                              }
                               setState(() => _isSubmitting = true);
                               try {
                                 await _adminRepo.updateAnnouncement(
@@ -665,8 +666,9 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                 if (ctx.mounted) Navigator.pop(ctx);
                                 await _loadAnnouncements();
                               } finally {
-                                if (mounted)
+                                if (mounted) {
                                   setState(() => _isSubmitting = false);
+                                }
                               }
                             },
                       child: const Text('Save Changes'),
@@ -1070,8 +1072,9 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                         }
                         _loadAnnouncements();
                       } catch (_) {
-                        if (ctx.mounted)
+                        if (ctx.mounted) {
                           CPToast.error(ctx, 'System malfunction during sync.');
+                        }
                       } finally {
                         if (mounted) setState(() => _isSubmitting = false);
                       }

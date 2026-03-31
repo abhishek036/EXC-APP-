@@ -43,11 +43,12 @@ class _UserManagementPageState extends State<UserManagementPage> {
         status: _filterStatus?.isEmpty ?? true ? null : _filterStatus,
         search: _searchQuery.isEmpty ? null : _searchQuery,
       );
-      if (mounted)
+      if (mounted) {
         setState(() {
           _users = users;
           _isLoading = false;
         });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);

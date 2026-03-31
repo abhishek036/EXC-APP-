@@ -321,8 +321,9 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
             color: CT.textH(context),
           ),
           validator: (v) {
-            if (isRequired && (v == null || v.trim().isEmpty))
+            if (isRequired && (v == null || v.trim().isEmpty)) {
               return 'Required';
+            }
             return null;
           },
           decoration: InputDecoration(

@@ -18,8 +18,9 @@ class CloudStorageService {
 
     // Mapping basic types for multer/B2
     String mimeType = 'application/octet-stream';
-    if (extName == '.pdf') mimeType = 'application/pdf';
-    else if (extName == '.png') mimeType = 'image/png';
+    if (extName == '.pdf') {
+      mimeType = 'application/pdf';
+    } else if (extName == '.png') mimeType = 'image/png';
     else if (extName == '.jpg' || extName == '.jpeg') mimeType = 'image/jpeg';
     else if (extName == '.mp4') mimeType = 'video/mp4';
 
@@ -45,8 +46,9 @@ class CloudStorageService {
   /// Uploads raw data (useful for Web where `File` uses byte streams)
   Future<String> uploadBytes(List<int> bytes, String destination, String fileName) async {
     String mimeType = 'application/octet-stream';
-    if (fileName.endsWith('.pdf')) mimeType = 'application/pdf';
-    else if (fileName.endsWith('.png')) mimeType = 'image/png';
+    if (fileName.endsWith('.pdf')) {
+      mimeType = 'application/pdf';
+    } else if (fileName.endsWith('.png')) mimeType = 'image/png';
     else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) mimeType = 'image/jpeg';
     else if (fileName.endsWith('.mp4')) mimeType = 'video/mp4';
 

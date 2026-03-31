@@ -8,10 +8,10 @@ class YoutubePlayerPage extends StatefulWidget {
   final String title;
 
   const YoutubePlayerPage({
-    Key? key,
+    super.key,
     required this.videoId,
     required this.title,
-  }) : super(key: key);
+  });
 
   @override
   State<YoutubePlayerPage> createState() => _YoutubePlayerPageState();

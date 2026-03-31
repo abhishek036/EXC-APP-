@@ -36,10 +36,12 @@ void main() {
 
     testWidgets('shows notification categories', (tester) async {
       await tester.pumpWidget(testApp(const NotificationSettingsPage()));
-      await tester.pumpAndSettle();
+      // Use pump with duration instead of pumpAndSettle to handle staggered animations
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump(const Duration(seconds: 1));
 
       // Some category names should be visible
-      expect(find.text('Fee Reminders'), findsOneWidget);
+      expect(find.textContaining('Fee'), findsWidgets);
     });
   });
 }

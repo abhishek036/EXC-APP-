@@ -202,11 +202,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         _loading = false;
       });
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = 'Data out of sync';
           _loading = false;
         });
+      }
     }
   }
 
@@ -1206,7 +1207,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildActivityTimeline(bool isDark) {
-    if (_loading)
+    if (_loading) {
       return Column(
         children: List.generate(
           2,
@@ -1220,8 +1221,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
         ),
       );
-    if (_auditLogs.isEmpty)
+    }
+    if (_auditLogs.isEmpty) {
       return _emptyCard("No recent activities recorded", isDark);
+    }
 
     return Column(
       children: _auditLogs.map((log) {
@@ -1483,7 +1486,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildTodaysClasses(bool isDark) {
-    if (_loading)
+    if (_loading) {
       return Column(
         children: List.generate(
           2,
@@ -1497,8 +1500,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
         ),
       );
-    if (_todaysClasses.isEmpty)
+    }
+    if (_todaysClasses.isEmpty) {
       return _emptyCard("Academic schedule is clear today", isDark);
+    }
     return Column(
       children: _todaysClasses
           .take(3)
@@ -1589,7 +1594,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildRecentPayments(bool isDark) {
-    if (_loading)
+    if (_loading) {
       return SizedBox(
         height: 80,
         child: ListView.separated(
@@ -1601,8 +1606,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               const CPShimmer(width: 240, height: 80, borderRadius: 24),
         ),
       );
-    if (_recentPayments.isEmpty)
+    }
+    if (_recentPayments.isEmpty) {
       return _emptyCard("Revenue logs are waiting...", isDark);
+    }
     return SizedBox(
       height: 80,
       child: ListView.separated(
@@ -1761,8 +1768,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildRevenueChart(bool isDark) {
-    if (_loading || _revenueTrend.isEmpty || _revenueTrend.every((e) => e == 0))
+    if (_loading || _revenueTrend.isEmpty || _revenueTrend.every((e) => e == 0)) {
       return const SizedBox.shrink();
+    }
 
     final maxVal = _revenueTrend.reduce((a, b) => a > b ? a : b);
     final interval = maxVal > 0 ? (maxVal / 4).ceilToDouble() : 1000.0;
@@ -1811,8 +1819,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       interval: 1,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
-                        if (index < 0 || index >= 6)
+                        if (index < 0 || index >= 6) {
                           return const SizedBox.shrink();
+                        }
                         final months = [
                           'Jan',
                           'Feb',

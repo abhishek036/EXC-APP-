@@ -1021,12 +1021,13 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                         firstDate: DateTime.now(),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
                       );
-                      if (selectedDate != null)
+                      if (selectedDate != null) {
                         setSS(
                           () => dateCtrl.text = DateFormat(
                             'dd MMM yyyy',
                           ).format(selectedDate),
                         );
+                      }
                     },
                     child: AbsorbPointer(
                       child: CustomTextField(
