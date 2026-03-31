@@ -91,13 +91,13 @@ export class AttendanceHandler {
         if (record.student.user_id) {
             await NotificationService.sendNotificationToUser(record.student.user_id, {
                 title: 'Attendance Marked',
-                body: `You have been marked ${record.status.toUpperCase()} for your ${session.batch.name} session today.`,
+                body: `You have been marked ${(record.status || 'present').toUpperCase()} for your ${session.batch.name} session today.`,
                 type: 'attendance',
                 role_target: 'student',
                 institute_id: instituteId,
                 meta: {
                     route: '/student/attendance',
-                    status: record.status,
+                    status: record.status || 'present',
                     dedupe_key: `attend:${session.id}:${record.student_id}`,
                 },
             });
