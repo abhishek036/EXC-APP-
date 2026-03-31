@@ -13,13 +13,13 @@ router.use(tenantMiddleware);
 // Roles: teacher, admin, student
 router.get('/', requireRole('admin', 'teacher', 'student'), QuizController.listQuizzes);
 router.post('/', requireRole('admin', 'teacher'), validate(createQuizSchema), QuizController.createQuiz);
+router.get('/available', requireRole('student'), QuizController.getAvailableQuizzes);
 router.get('/:id', requireRole('admin', 'teacher', 'student'), QuizController.getQuiz);
 router.put('/:id', requireRole('admin', 'teacher'), validate(updateQuizSchema), QuizController.updateQuiz);
 router.post('/:id/publish', requireRole('admin', 'teacher'), QuizController.publishQuiz);
 router.delete('/:id', requireRole('admin', 'teacher'), QuizController.deleteQuiz);
 
 // Student attempt routes
-router.get('/available', requireRole('student'), QuizController.getAvailableQuizzes);
 router.post('/:id/attempt/start', requireRole('student'), QuizController.startAttempt);
 router.post('/:id/attempt/submit', requireRole('student'), validate(submitQuizSchema), QuizController.submitAttempt);
 router.get('/:id/result', requireRole('student'), QuizController.getResult); // student's own result
