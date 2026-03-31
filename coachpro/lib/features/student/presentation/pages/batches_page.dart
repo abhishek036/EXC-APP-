@@ -217,7 +217,7 @@ class _BatchesPageState extends State<BatchesPage> {
     final isDark = CT.isDark(context);
 
     return CPPressable(
-      onTap: () => context.go('/student/timetable'),
+      onTap: () => context.push('/student/batches/${b['id']}', extra: b),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(AppDimensions.md),

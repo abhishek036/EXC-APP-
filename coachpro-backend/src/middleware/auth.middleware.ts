@@ -69,19 +69,23 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
 // Role Checking Middleware — accepts either a spread or an array
 export const requireRole = (rolesOrFirst: string | string[], ...rest: string[]) => {
     const roles: string[] = Array.isArray(rolesOrFirst) ? rolesOrFirst : [rolesOrFirst, ...rest];
-    const allowedRoles = roles.map(r => r.toLowerCase());
-    
+    const allowedRoles = roles.map(r => r.trim().toLowerCase());
+
     return (req: Request, res: Response, next: NextFunction) => {
         if (!req.user) {
             return next(new ApiError('No user found in request', 401, 'UNAUTHORIZED'));
         }
 
-        const userRole = req.user.role.toLowerCase();
+        const userRole = req.user.role.trim().toLowerCase();
+        
+        // Let SUPER_USER bypass role restrictions or check if specifically allowed
+        if (userRole === 'super_user' || userRole === 'super user') {
+            return next();
+        }
+
         if (!allowedRoles.includes(userRole)) {
             return next(new ApiError('You do not have permission to perform this action', 403, 'FORBIDDEN'));
         }
-
         next();
-    }
-}
-
+    };
+};

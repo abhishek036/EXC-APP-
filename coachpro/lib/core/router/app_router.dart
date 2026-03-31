@@ -37,6 +37,7 @@ import '../../features/student/presentation/pages/timetable_page.dart';
 import '../../features/student/presentation/pages/fee_history_page.dart';
 import '../../features/student/presentation/pages/exam_calendar_page.dart';
 import '../../features/student/presentation/pages/batches_page.dart';
+import '../../features/student/presentation/pages/student_batch_panel_page.dart';
 import '../../features/parent/presentation/pages/weekly_report_page.dart';
 import '../../features/parent/presentation/pages/payment_history_page.dart';
 import '../../features/chat/presentation/pages/chat_page.dart';
@@ -596,7 +597,24 @@ class AppRouter {
               ]),
               // Branch 1 — Batches
               StatefulShellBranch(navigatorKey: _stu1, routes: [
-                GoRoute(path: '/student/batches', name: 'student-batches', pageBuilder: (c, s) => _page(s, const BatchesPage())),
+                GoRoute(
+                  path: '/student/batches', 
+                  name: 'student-batches', 
+                  pageBuilder: (c, s) => _page(s, const BatchesPage()),
+                  routes: [
+                    GoRoute(
+                      path: ':id',
+                      name: 'student-batch-detail',
+                      pageBuilder: (c, s) => _page(
+                        s, 
+                        StudentBatchPanelPage(
+                          batchId: s.pathParameters['id'] ?? '',
+                          batchInfo: s.extra is Map<String, dynamic> ? s.extra as Map<String, dynamic> : const {},
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ]),
               // Branch 2 — Materials
               StatefulShellBranch(navigatorKey: _stu2, routes: [
