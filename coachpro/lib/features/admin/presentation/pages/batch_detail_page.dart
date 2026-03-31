@@ -2625,6 +2625,9 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     final coverCtrl = TextEditingController(
       text: (_batch!['cover_image_url'] ?? '').toString(),
     );
+    final subjectsCtrl = TextEditingController(
+      text: ((_batch!['subjects'] as List?) ?? const []).join(', '),
+    );
     final faqQuestionCtrl = TextEditingController();
     final faqAnswerCtrl = TextEditingController();
 
@@ -2691,6 +2694,16 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                         filled: true,
                         fillColor: Colors.white,
                       ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: subjectsCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Subjects (comma-separated)',
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      maxLines: 2,
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -2811,6 +2824,11 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                               'cover_image_url': coverCtrl.text.trim().isEmpty
                                   ? null
                                   : coverCtrl.text.trim(),
+                              'subjects': subjectsCtrl.text
+                                  .split(',')
+                                  .map((e) => e.trim())
+                                  .where((e) => e.isNotEmpty)
+                                  .toList(),
                               'teacher_ids': teacherIds.toList(),
                               'faqs': faqs,
                             },

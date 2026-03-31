@@ -6,7 +6,6 @@ import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_animated_ring.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../features/shared/presentation/widgets/global_search_overlay.dart';
 import '../../../../core/theme/theme_aware.dart';
 
 import '../../../../core/di/injection_container.dart';
@@ -125,11 +124,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
       Text('Excellence Academy', style: GoogleFonts.sora(fontSize: 20, fontWeight: FontWeight.w700, color: CT.accent(context))),
     ]),
     const Spacer(),
-    CPPressable(
-      onTap: () => GlobalSearchOverlay.show(context),
-      child: Icon(Icons.search, size: 24, color: CT.textH(context)),
-    ),
-    const SizedBox(width: AppDimensions.sm),
+
     CPPressable(
       onTap: () => context.go('/parent/notifications'),
       child: Container(

@@ -41,8 +41,12 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   final Set<String> _manualWeakIds = {};
   final Set<String> _removedWeakIds = {};
   String _studentFilter = 'all';
+  String? _selectedSubject;
+  List<String> _subjects = [];
   bool _isReplying = false;
   bool _isDeletingQuiz = false;
+  DateTime _selectedQuizMonth = DateTime.now();
+  DateTime _selectedAttendanceDate = DateTime.now();
 
   @override
   void initState() {
@@ -61,33 +65,42 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       final studentsFuture = _teacherRepo.getBatchStudents(widget.batchId);
       final executionFuture = _teacherRepo.getBatchExecutionSummary(
         widget.batchId,
+        subject: _selectedSubject,
       );
       final practiceQuizzesFuture = _teacherRepo.getBatchQuizzes(
         widget.batchId,
         assessmentType: 'QUIZ',
+        subject: _selectedSubject,
       );
       final scheduledTestsFuture = _teacherRepo.getBatchQuizzes(
         widget.batchId,
         assessmentType: 'TEST',
+        subject: _selectedSubject,
       );
-      final notesFuture = _teacherRepo.getBatchNotes(widget.batchId);
+      final notesFuture = _teacherRepo.getBatchNotes(widget.batchId, subject: _selectedSubject);
 
       final batches = await batchesFuture;
-      final students = await studentsFuture;
-      final execution = await executionFuture;
-      final practiceQuizzes = await practiceQuizzesFuture;
-      final scheduledTests = await scheduledTestsFuture;
-      final notes = await notesFuture;
-
       final selected = batches
           .where((b) => (b['id'] ?? '').toString() == widget.batchId)
           .toList();
-      final fallbackBatch = selected.isNotEmpty
-          ? selected.first
-          : <String, dynamic>{};
-      final batch = Map<String, dynamic>.from(
-        (execution['batch'] as Map?) ?? fallbackBatch,
-      );
+      final batchData = selected.isNotEmpty ? selected.first : <String, dynamic>{};
+
+      // Parse subjects from meta
+      final meta = batchData['meta'] ?? {};
+      final subs = meta['subjects'];
+      List<String> subjects = [];
+      if (subs is List) {
+        subjects = subs.map((e) => e.toString()).toList();
+      } else if (subs is String && subs.isNotEmpty) {
+        subjects = subs.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      }
+
+
+      final execution = await executionFuture;
+      final students = await studentsFuture;
+      final practiceQuizzes = await practiceQuizzesFuture;
+      final scheduledTests = await scheduledTestsFuture;
+      final notes = await notesFuture;
 
       final pendingDoubts =
           (((execution['doubts'] as Map?)?['pending_items']) as List? ??
@@ -110,7 +123,11 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
 
       if (!mounted) return;
       setState(() {
-        _batch = batch;
+        _batch = batchData;
+        _subjects = subjects;
+        if (_selectedSubject == null && subjects.isNotEmpty) {
+          _selectedSubject = subjects.first;
+        }
         _execution = execution;
         _students = students;
         _doubts = pendingDoubts;
@@ -129,6 +146,78 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         _loading = false;
       });
     }
+  }
+
+  void _showSubjectPicker(BuildContext context, Color accentYellow, Color surfaceWhite, Color primaryBlue) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: surfaceWhite,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: const Border(top: BorderSide(color: Colors.black, width: 3)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'SELECT SUBJECT',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  color: primaryBlue,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ..._subjects.map((sub) {
+                final isSel = _selectedSubject == sub;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      if (_selectedSubject != sub) {
+                        setState(() {
+                          _selectedSubject = sub;
+                        });
+                        _load();
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isSel ? accentYellow : Colors.white,
+                        border: Border.all(color: Colors.black, width: 2),
+                        boxShadow: isSel ? null : const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            sub.toUpperCase(),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                              color: primaryBlue,
+                            ),
+                          ),
+                          if (isSel) const Icon(Icons.check_circle_rounded, color: Colors.blue),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -156,13 +245,40 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
             ),
             onPressed: () => Navigator.pop(context),
           ),
-          title: Text(
-            name.toUpperCase(),
-            style: GoogleFonts.plusJakartaSans(
-              fontWeight: FontWeight.w900,
-              fontSize: 20,
-              color: Colors.white,
-              letterSpacing: 1.0,
+          title: GestureDetector(
+            onTap: _subjects.length > 1 ? () {
+              // Show subject bottom sheet or menu
+              _showSubjectPicker(context, accentYellow, surfaceWhite, primaryBlue);
+            } : null,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name.toUpperCase(),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    color: Colors.white,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                if (_selectedSubject != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _selectedSubject!.toUpperCase(),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          color: accentYellow,
+                        ),
+                      ),
+                      if (_subjects.length > 1)
+                        const Icon(Icons.arrow_drop_down, color: accentYellow, size: 18),
+                    ],
+                  ),
+              ],
             ),
           ),
           bottom: TabBar(
@@ -183,36 +299,27 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               Tab(text: 'OVERVIEW'),
               Tab(text: 'CONTENT'),
               Tab(text: 'STUDENTS'),
-              Tab(text: 'TESTS'),
+              Tab(text: 'QUIZ & TESTS'),
               Tab(text: 'ATTENDANCE'),
               Tab(text: 'DOUBTS'),
             ],
           ),
         ),
-        body: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: accentYellow),
-              )
-            : _error != null
-            ? Center(
-                child: _PremiumCard(
-                  child: Text(
-                    _error!,
-                    style: GoogleFonts.plusJakartaSans(
-                      color: AppColors.coralRed,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              )
-            : TabBarView(
+            : Column(
                 children: [
-                  _overviewTab(surfaceWhite, accentYellow, primaryBlue),
-                  _contentTab(surfaceWhite, accentYellow, primaryBlue),
-                  _studentsTab(surfaceWhite, accentYellow, primaryBlue),
-                  _testsTab(surfaceWhite, accentYellow, primaryBlue),
-                  _attendanceTab(surfaceWhite, accentYellow, primaryBlue),
-                  _doubtsTab(surfaceWhite, accentYellow, primaryBlue),
+                   if (_subjects.isNotEmpty) _buildSubjectSelector(accentYellow, primaryBlue, surfaceWhite),
+                   Expanded(
+                     child: TabBarView(
+                        children: [
+                          _overviewTab(surfaceWhite, accentYellow, primaryBlue),
+                          _contentTab(surfaceWhite, accentYellow, primaryBlue),
+                          _studentsTab(surfaceWhite, accentYellow, primaryBlue),
+                          _testsTab(surfaceWhite, accentYellow, primaryBlue),
+                          _attendanceTab(surfaceWhite, accentYellow, primaryBlue),
+                          _doubtsTab(surfaceWhite, accentYellow, primaryBlue),
+                        ],
+                      ),
+                   ),
                 ],
               ),
       ),
@@ -451,20 +558,20 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                 fontSize: 11,
               ),
               tabs: const [
-                Tab(text: 'LECTURES'),
+                Tab(text: 'SYLLABUS'),
+                Tab(text: 'VIDEOS'),
                 Tab(text: 'NOTES'),
                 Tab(text: 'ASSIGNMENTS'),
-                Tab(text: 'SCHEDULES'),
               ],
             ),
           ),
           Expanded(
             child: TabBarView(
               children: [
-                _lecturesPane(bg, yellow, blue),
+                _lecturesPane(bg, yellow, blue), // Syllabus Tracker
+                _simpleListPane('Videos', bg, yellow, blue),
                 _simpleListPane('Notes', bg, yellow, blue),
                 _assignmentsPane(bg, yellow, blue),
-                _simpleListPane('Materials', bg, yellow, blue),
               ],
             ),
           ),
@@ -583,15 +690,14 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   Widget _simpleListPane(String title, Color bg, Color yellow, Color blue) {
-    final contentType = title.toLowerCase() == 'notes' ? 'note' : 'video';
+    final contentType = title.toLowerCase() == 'videos' ? 'video' : 'note';
     
     // Filter notes based on the current tab type
     final items = _notes.where((n) {
       final type = (n['file_type'] ?? '').toString().toLowerCase();
-      // 'note' and 'materials' can both map to 'note' or 'assignment' or others
-      // For simplicity, handle video vs non-video
       if (contentType == 'video') return type == 'video';
-      return type != 'video'; // document, note, assignment, etc.
+      // For Notes tab, only show things that are NOT videos and NOT assignments
+      return type != 'video' && type != 'assignment';
     }).toList();
 
     return ListView(
@@ -707,11 +813,16 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   Widget _assignmentsPane(Color bg, Color yellow, Color blue) {
-    final assignments = Map<String, dynamic>.from(
+    final assignmentsSummary = Map<String, dynamic>.from(
       (_execution['assignments'] as Map?) ?? const {},
     );
-    final pending = _toNum(assignments['pending_evaluation_count']).toInt();
-    final late = _toNum(assignments['late_submissions_count']).toInt();
+    final pending = _toNum(assignmentsSummary['pending_evaluation_count']).toInt();
+    final late = _toNum(assignmentsSummary['late_submissions_count']).toInt();
+
+    final items = _notes.where((n) {
+      final type = (n['file_type'] ?? '').toString().toLowerCase();
+      return type == 'assignment';
+    }).toList();
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -745,83 +856,127 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                           initialSubject: (_batch?['subject'] ?? '').toString(),
                         ),
                       ),
-                    ),
+                    ).then((_) => _load()),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: yellow,
-                  border: Border.all(color: blue, width: 2),
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(color: blue, offset: const Offset(3, 3)),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.pending_actions_rounded,
-                      color: Color(0xFF0D1282),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '$pending SUBMISSIONS NEED REVIEW',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12,
-                          color: blue,
+              GestureDetector(
+                onTap: () {
+                   // Navigate to a more detailed overview or the first assignment review
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: yellow,
+                    border: Border.all(color: blue, width: 2),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(color: blue, offset: const Offset(3, 3)),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.pending_actions_rounded,
+                        color: Color(0xFF0D1282),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          '$pending SUBMISSIONS NEED REVIEW',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                            color: blue,
+                          ),
                         ),
                       ),
-                    ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 14,
-                      color: blue,
-                    ),
-                  ],
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: blue,
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'LATE SUBMISSIONS: $late',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11,
-                        color: blue.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            AssignmentReviewPage(batchId: widget.batchId),
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: blue,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      side: BorderSide(color: blue, width: 2),
-                    ),
-                    child: Text(
-                      'REVIEW NOW',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                ],
+              Text(
+                'LATE SUBMISSIONS: $late',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                  color: blue.withValues(alpha: 0.7),
+                ),
               ),
+              const SizedBox(height: 24),
+              Text(
+                'ASSIGNMENT DOCUMENTS',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  color: blue,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (items.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Text(
+                      'NO ASSIGNMENTS UPLOADED',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: blue.withValues(alpha: 0.4),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                ...items.map((item) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: blue.withValues(alpha: 0.2)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.assignment_ind_rounded, color: blue, size: 30),
+                      title: Text(
+                        (item['title'] ?? 'Assignment').toString(),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: blue,
+                        ),
+                      ),
+                      subtitle: Text(
+                        (item['description'] ?? 'Tap to review submissions').toString(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11),
+                      ),
+                      trailing: IconButton(
+                        icon: Icon(Icons.rate_review_rounded, color: blue),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AssignmentReviewPage(
+                              batchId: widget.batchId,
+                              assignmentId: (item['id'] ?? '').toString(),
+                              assignmentTitle: (item['title'] ?? '').toString(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
             ],
           ),
         ),
@@ -1108,9 +1263,112 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       (tests['topper'] as Map?) ?? const {},
     );
 
+    final monthName = [
+      'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+      'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
+    ][_selectedQuizMonth.month - 1];
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        InkWell(
+          onTap: () async {
+            final List<String> months = [
+              'January', 'February', 'March', 'April', 'May', 'June',
+              'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            int tempYear = _selectedQuizMonth.year;
+            int tempMonth = _selectedQuizMonth.month;
+
+            final result = await showDialog<DateTime>(
+              context: context,
+              builder: (ctx) => StatefulBuilder(builder: (ctx, setDialogState) {
+                return AlertDialog(
+                  backgroundColor: bg,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: blue, width: 3),
+                  ),
+                  title: Text(
+                    'FILTER BY MONTH',
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue),
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => setDialogState(() => tempYear--)),
+                          Text('$tempYear', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 20, color: blue)),
+                          IconButton(icon: const Icon(Icons.chevron_right), onPressed: () => setDialogState(() => tempYear++)),
+                        ],
+                      ),
+                      const Divider(),
+                      SizedBox(
+                        height: 200, width: 300,
+                        child: GridView.builder(
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 1.5),
+                          itemCount: 12,
+                          itemBuilder: (ctx, i) {
+                            final isSelected = tempMonth == i + 1;
+                            return InkWell(
+                              onTap: () => setDialogState(() => tempMonth = i + 1),
+                              child: Container(
+                                alignment: Alignment.center, margin: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? yellow : Colors.white,
+                                  border: Border.all(color: blue),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(months[i].substring(0, 3).toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12, color: blue)),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx, DateTime(tempYear, tempMonth)),
+                      style: ElevatedButton.styleFrom(backgroundColor: blue),
+                      child: const Text('FILTER', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                );
+              }),
+            );
+            if (result != null) {
+              setState(() => _selectedQuizMonth = result);
+              _load();
+            }
+          },
+          child: _PremiumCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            margin: const EdgeInsets.only(bottom: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.calendar_month, color: blue, size: 20),
+                    const SizedBox(width: 12),
+                    Text(
+                      '$monthName ${_selectedQuizMonth.year}',
+                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 13, color: blue),
+                    ),
+                  ],
+                ),
+                Text(
+                  'CHANGE MONTH',
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue.withValues(alpha: 0.6)),
+                ),
+              ],
+            ),
+          ),
+        ),
         _PremiumCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1754,16 +2012,78 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedAttendanceDate,
+                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now(),
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: blue,
+                            onPrimary: Colors.white,
+                            surface: bg,
+                            onSurface: blue,
+                          ),
+                        ),
+                        child: child!,
+                      );
+                    },
+                  );
+                  if (picked != null) {
+                    setState(() => _selectedAttendanceDate = picked);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: blue, width: 2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_today_rounded, color: blue, size: 18),
+                          const SizedBox(width: 12),
+                          Text(
+                            'DATE: ${_selectedAttendanceDate.day}/${_selectedAttendanceDate.month}/${_selectedAttendanceDate.year}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              color: blue,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Icon(Icons.edit_calendar_rounded, color: blue, size: 18),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const AttendanceMarkingPage(),
-                    ),
-                  ),
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AttendanceMarkingPage(
+                          initialBatchId: widget.batchId,
+                          initialDate: _selectedAttendanceDate,
+                          initialSubject: _selectedSubject,
+                        ),
+                      ),
+                    );
+                    _load();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: blue,
                     foregroundColor: Colors.white,
@@ -1789,7 +2109,6 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       ],
     );
   }
-
   Widget _doubtsTab(Color bg, Color yellow, Color blue) {
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -2002,6 +2321,72 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     } finally {
       if (mounted) setState(() => _isReplying = false);
     }
+  }
+
+  Widget _buildSubjectSelector(Color yellow, Color blue, Color bg) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: blue.withValues(alpha: 0.3),
+        border: Border(bottom: BorderSide(color: blue, width: 2)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.subject_rounded, color: yellow, size: 20),
+          const SizedBox(width: 12),
+          Text(
+            'SELECT SUBJECT:',
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.8),
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: blue, width: 2),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedSubject,
+                  isExpanded: true,
+                  dropdownColor: Colors.white,
+                  icon: Icon(Icons.arrow_drop_down_circle_rounded, color: blue),
+                  items: _subjects.map((s) {
+                    return DropdownMenuItem(
+                      value: s,
+                      child: Text(
+                        s.toUpperCase(),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: blue,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        _selectedSubject = val;
+                        _load();
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

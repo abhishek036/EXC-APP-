@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -59,11 +60,11 @@ class _PerformanceDashboardPageState extends State<PerformanceDashboardPage> {
 
       if (!mounted) return;
       setState(() {
-        _overallPercentage = (perf['percentage'] ?? 0) as int;
-        _examsTaken = (perf['exams_taken'] ?? 0) as int;
-        _attendancePercentage = (summary['percentage'] ?? 0) as int;
-        _totalPresent = (summary['present'] ?? 0) as int;
-        _totalClasses = (summary['total'] ?? 0) as int;
+        _overallPercentage = ((perf['percentage'] ?? 0) as num).toInt();
+        _examsTaken = ((perf['exams_taken'] ?? 0) as num).toInt();
+        _attendancePercentage = ((summary['percentage'] ?? 0) as num).toInt();
+        _totalPresent = ((summary['present'] ?? 0) as num).toInt();
+        _totalClasses = ((summary['total'] ?? 0) as num).toInt();
         _results = results;
         _isLoading = false;
       });
@@ -169,7 +170,7 @@ class _PerformanceDashboardPageState extends State<PerformanceDashboardPage> {
         child: Row(
           children: [
             CPPressable(
-              onTap: () => Navigator.pop(context),
+              onTap: () => context.pop(),
               child: Container(
                 padding: const EdgeInsets.all(AppDimensions.step),
                 decoration: CT.cardDecor(context, radius: AppDimensions.radiusSM),

@@ -13,7 +13,8 @@ import '../../../../core/services/cloud_storage_service.dart';
 import '../../../student/data/repositories/student_repository.dart';
 
 class AskDoubtPage extends StatefulWidget {
-  const AskDoubtPage({super.key});
+  final Map<String, dynamic>? initialData;
+  const AskDoubtPage({super.key, this.initialData});
 
   @override
   State<AskDoubtPage> createState() => _AskDoubtPageState();
@@ -25,6 +26,7 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
   final _questionController = TextEditingController();
   String? _questionError;
   XFile? _selectedImage;
+  String? _selectedSubject;
   bool _isSubmitting = false;
   final _studentRepo = sl<StudentRepository>();
   final _storage = sl<CloudStorageService>();
@@ -41,7 +43,19 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
       if (mounted) {
         setState(() {
           _batches = batches;
-          if (batches.isNotEmpty) _selectedBatch = batches[0];
+          if (widget.initialData != null && widget.initialData!['batchId'] != null) {
+            final targetId = widget.initialData!['batchId'].toString();
+            try {
+              _selectedBatch = batches.firstWhere((b) => b['id']?.toString() == targetId || b['batch_id']?.toString() == targetId);
+            } catch (_) {
+              if (batches.isNotEmpty) _selectedBatch = batches[0];
+            }
+          } else {
+            if (batches.isNotEmpty) _selectedBatch = batches[0];
+          }
+          if (widget.initialData != null && widget.initialData!['subject'] != null) {
+            _selectedSubject = widget.initialData!['subject'].toString();
+          }
         });
       }
     } catch (_) {}
@@ -108,6 +122,7 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
         batchId: _selectedBatch!['id'] as String,
         question: _questionController.text.trim(),
         imageUrl: imageUrl,
+        subject: _selectedSubject,
       );
       if (!mounted) return;
       setState(() => _isSubmitting = false);

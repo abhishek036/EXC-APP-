@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/theme_aware.dart';
@@ -124,7 +125,7 @@ class _ExamResultsPageState extends State<ExamResultsPage> {
         'Overall: ${_overallPercentage.toStringAsFixed(1)}% (Grade $grade)\n'
         'Exams taken: $_examsTaken\n\n'
         '${_subjectAverages.entries.map((e) => '${e.key}: ${e.value.round()}%').join('\n')}';
-    SharePlus.instance.share(ShareParams(text: text));
+    Share.share(text);
   }
 
   @override
@@ -190,7 +191,7 @@ class _ExamResultsPageState extends State<ExamResultsPage> {
         child: Row(
           children: [
             CPPressable(
-              onTap: () => Navigator.pop(context),
+              onTap: () => context.pop(),
               child: Container(
                 padding: const EdgeInsets.all(AppDimensions.step),
                 decoration: CT.cardDecor(context, radius: AppDimensions.radiusSM),

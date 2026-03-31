@@ -56,6 +56,12 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
   }
 
   @override
+  void dispose() {
+    _answerController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     const blue = Color(0xFF0D1282);
     const surface = Color(0xFFEEEDED);

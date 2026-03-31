@@ -39,11 +39,21 @@ class TeacherRepository {
     return const [];
   }
 
+  Map<String, dynamic> _extractMap(dynamic responseData) {
+    if (responseData is Map<String, dynamic>) {
+      final payload = responseData['data'];
+      if (payload is Map) {
+        return Map<String, dynamic>.from(payload);
+      }
+    }
+    return <String, dynamic>{};
+  }
+
   // ── Profile ──────────────────────────────────────────────
   Future<Map<String, dynamic>> getProfile() async {
     final response = await _api.dio.get('auth/me');
     if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch profile');
   }
@@ -52,7 +62,7 @@ class TeacherRepository {
   Future<Map<String, dynamic>> getDashboardStats() async {
     final response = await _api.dio.get('teachers/me/dashboard');
     if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch dashboard');
   }
@@ -75,12 +85,15 @@ class TeacherRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch schedule');
   }
 
-  Future<List<Map<String, dynamic>>> getMyScheduleEntries({DateTime? date}) async {
+  Future<List<Map<String, dynamic>>> getMyScheduleEntries({
+    DateTime? date,
+  }) async {
     final response = await _api.dio.get(
       'timetable/teacher/me',
       queryParameters: {
         if (date != null)
-          'date': '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+          'date':
+              '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
       },
     );
     if (response.statusCode == 200) {
@@ -102,7 +115,9 @@ class TeacherRepository {
         return _dateKey(parsed) == targetKey;
       }).toList();
     }
-    throw Exception(response.data['message'] ?? 'Failed to fetch schedule entries');
+    throw Exception(
+      response.data['message'] ?? 'Failed to fetch schedule entries',
+    );
   }
 
   Future<Map<String, dynamic>> createMyScheduleEntry({
@@ -112,17 +127,23 @@ class TeacherRepository {
     required int durationMinutes,
     List<DateTime>? dates,
   }) async {
-    final response = await _api.dio.post('timetable/teacher/me', data: {
-      'batch_id': batchId,
-      'title': title,
-      'scheduled_at': scheduledAt.toUtc().toIso8601String(),
-      'duration_minutes': durationMinutes,
-      if (dates != null) 'dates': dates.map((d) => d.toUtc().toIso8601String()).toList(),
-    });
+    final response = await _api.dio.post(
+      'timetable/teacher/me',
+      data: {
+        'batch_id': batchId,
+        'title': title,
+        'scheduled_at': scheduledAt.toUtc().toIso8601String(),
+        'duration_minutes': durationMinutes,
+        if (dates != null)
+          'dates': dates.map((d) => d.toUtc().toIso8601String()).toList(),
+      },
+    );
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
-    throw Exception(response.data['message'] ?? 'Failed to create schedule entry');
+    throw Exception(
+      response.data['message'] ?? 'Failed to create schedule entry',
+    );
   }
 
   Future<Map<String, dynamic>> updateMyScheduleEntry({
@@ -138,19 +159,29 @@ class TeacherRepository {
       'scheduled_at': scheduledAt?.toUtc().toIso8601String(),
       'duration_minutes': durationMinutes,
     };
-    payload.removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
+    payload.removeWhere(
+      (key, value) =>
+          value == null || (value is String && value.trim().isEmpty),
+    );
 
-    final response = await _api.dio.put('timetable/teacher/me/$lectureId', data: payload);
+    final response = await _api.dio.put(
+      'timetable/teacher/me/$lectureId',
+      data: payload,
+    );
     if (response.statusCode == 200) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
-    throw Exception(response.data['message'] ?? 'Failed to update schedule entry');
+    throw Exception(
+      response.data['message'] ?? 'Failed to update schedule entry',
+    );
   }
 
   Future<void> clearPastSchedules() async {
     final response = await _api.dio.delete('timetable/teacher/me/past');
     if (response.statusCode != 200 && response.statusCode != 204) {
-      throw Exception(response.data['message'] ?? 'Failed to clear past schedules');
+      throw Exception(
+        response.data['message'] ?? 'Failed to clear past schedules',
+      );
     }
   }
 
@@ -159,15 +190,24 @@ class TeacherRepository {
     if (response.statusCode == 200 || response.statusCode == 204) {
       return;
     }
-    throw Exception(response.data['message'] ?? 'Failed to delete schedule entry');
+    throw Exception(
+      response.data['message'] ?? 'Failed to delete schedule entry',
+    );
   }
 
-  Future<Map<String, dynamic>> getBatchExecutionSummary(String batchId) async {
-    final response = await _api.dio.get('teachers/me/batches/$batchId/execution');
+  Future<Map<String, dynamic>> getBatchExecutionSummary(String batchId, {String? subject}) async {
+    final response = await _api.dio.get(
+      'teachers/me/batches/$batchId/execution',
+      queryParameters: {
+        if (subject != null) 'subject': subject,
+      },
+    );
     if (response.statusCode == 200) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
-    throw Exception(response.data['message'] ?? 'Failed to fetch batch execution summary');
+    throw Exception(
+      response.data['message'] ?? 'Failed to fetch batch execution summary',
+    );
   }
 
   // ── Attendance ───────────────────────────────────────────
@@ -183,25 +223,51 @@ class TeacherRepository {
     required String batchId,
     required String sessionDate,
     required List<Map<String, dynamic>> records,
+    String? subject,
     bool notifyParents = true,
   }) async {
-    final response = await _api.dio.post('attendance/mark', data: {
-      'batch_id': batchId,
-      'session_date': sessionDate,
-      'records': records,
-      'notify_parents': notifyParents,
-    });
+    final response = await _api.dio.post(
+      'attendance/mark',
+      data: {
+        'batch_id': batchId,
+        'session_date': sessionDate,
+        'subject': subject,
+        'records': records,
+        'notify_parents': notifyParents,
+      },
+    );
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
     throw Exception(response.data['message'] ?? 'Failed to mark attendance');
   }
 
+  Future<List<Map<String, dynamic>>> getBatchAttendance({
+    required String batchId,
+    required int month,
+    required int year,
+    String? subject,
+  }) async {
+    final response = await _api.dio.get(
+      'attendance/batch/$batchId',
+      queryParameters: {
+        'month': month,
+        'year': year,
+        if (subject != null) 'subject': subject,
+      },
+    );
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch attendance');
+  }
+
   // ── Doubts ───────────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getPendingDoubts() async {
-    final response = await _api.dio.get('doubts', queryParameters: {
-      'status': 'pending',
-    });
+    final response = await _api.dio.get(
+      'doubts',
+      queryParameters: {'status': 'pending'},
+    );
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -212,9 +278,10 @@ class TeacherRepository {
     required String doubtId,
     required String answer,
   }) async {
-    final response = await _api.dio.put('doubts/$doubtId/answer', data: {
-      'answer_text': answer,
-    });
+    final response = await _api.dio.put(
+      'doubts/$doubtId/answer',
+      data: {'answer_text': answer},
+    );
     if (response.statusCode == 200) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
@@ -230,24 +297,31 @@ class TeacherRepository {
     String? fileUrl,
     String? description,
   }) async {
-    final response = await _api.dio.post('content/notes', data: {
-      'title': title,
-      'subject': subject,
-      'file_type': type,
-      'batch_id': batchId,
-      'file_url': fileUrl,
-      'description': description,
-    });
+    final response = await _api.dio.post(
+      'content/notes',
+      data: {
+        'title': title,
+        'subject': subject,
+        'file_type': type,
+        'batch_id': batchId,
+        'file_url': fileUrl,
+        'description': description,
+      },
+    );
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
     throw Exception(response.data['message'] ?? 'Failed to upload material');
   }
 
-  Future<List<Map<String, dynamic>>> getBatchNotes(String batchId) async {
-    final response = await _api.dio.get('content/notes', queryParameters: {
-      'batchId': batchId,
-    });
+  Future<List<Map<String, dynamic>>> getBatchNotes(String batchId, {String? subject}) async {
+    final response = await _api.dio.get(
+      'content/notes',
+      queryParameters: {
+        'batchId': batchId,
+        if (subject != null) 'subject': subject,
+      },
+    );
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -268,20 +342,29 @@ class TeacherRepository {
     bool? showInstantResult,
   }) async {
     final normalizedQuestions = questions.map((item) {
-      final options = (item['options'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[];
+      final options =
+          (item['options'] as List?)?.map((e) => e.toString()).toList() ??
+          const <String>[];
       final correctIdx = item['correct_option_index'] is int
           ? item['correct_option_index'] as int
           : int.tryParse(item['correct_option_index']?.toString() ?? '0') ?? 0;
 
       const alpha = ['A', 'B', 'C', 'D'];
-      final correctOption = (correctIdx >= 0 && correctIdx < alpha.length) ? alpha[correctIdx] : 'A';
+      final correctOption = (correctIdx >= 0 && correctIdx < alpha.length)
+          ? alpha[correctIdx]
+          : 'A';
 
       return <String, dynamic>{
         'question_text': item['question_text']?.toString() ?? '',
+        'image_url': item['image_url']?.toString() ?? '',
         'option_a': options.isNotEmpty ? options[0] : '',
         'option_b': options.length > 1 ? options[1] : '',
         'option_c': options.length > 2 ? options[2] : '',
         'option_d': options.length > 3 ? options[3] : '',
+        'option_a_image': item['option_a_image']?.toString() ?? '',
+        'option_b_image': item['option_b_image']?.toString() ?? '',
+        'option_c_image': item['option_c_image']?.toString() ?? '',
+        'option_d_image': item['option_d_image']?.toString() ?? '',
         'correct_option': correctOption,
         'marks': item['marks'] ?? 1,
       };
@@ -308,11 +391,18 @@ class TeacherRepository {
     throw Exception(response.data['message'] ?? 'Failed to create quiz');
   }
 
-  Future<List<Map<String, dynamic>>> getBatchQuizzes(String batchId, {String? assessmentType}) async {
-    final response = await _api.dio.get('quizzes', queryParameters: {
-      'batch_id': batchId,
-      if (assessmentType != null && assessmentType.trim().isNotEmpty) 'assessment_type': assessmentType.trim().toUpperCase(),
-    });
+  Future<List<Map<String, dynamic>>> getBatchQuizzes(
+    String batchId, {
+    String? assessmentType,
+  }) async {
+    final response = await _api.dio.get(
+      'quizzes',
+      queryParameters: {
+        'batch_id': batchId,
+        if (assessmentType != null && assessmentType.trim().isNotEmpty)
+          'assessment_type': assessmentType.trim().toUpperCase(),
+      },
+    );
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -341,20 +431,29 @@ class TeacherRepository {
     bool? showInstantResult,
   }) async {
     final normalizedQuestions = questions.map((item) {
-      final options = (item['options'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[];
+      final options =
+          (item['options'] as List?)?.map((e) => e.toString()).toList() ??
+          const <String>[];
       final correctIdx = item['correct_option_index'] is int
           ? item['correct_option_index'] as int
           : int.tryParse(item['correct_option_index']?.toString() ?? '0') ?? 0;
 
       const alpha = ['A', 'B', 'C', 'D'];
-      final correctOption = (correctIdx >= 0 && correctIdx < alpha.length) ? alpha[correctIdx] : 'A';
+      final correctOption = (correctIdx >= 0 && correctIdx < alpha.length)
+          ? alpha[correctIdx]
+          : 'A';
 
       return <String, dynamic>{
         'question_text': item['question_text']?.toString() ?? '',
+        'image_url': item['image_url']?.toString() ?? '',
         'option_a': options.isNotEmpty ? options[0] : '',
         'option_b': options.length > 1 ? options[1] : '',
         'option_c': options.length > 2 ? options[2] : '',
         'option_d': options.length > 3 ? options[3] : '',
+        'option_a_image': item['option_a_image']?.toString() ?? '',
+        'option_b_image': item['option_b_image']?.toString() ?? '',
+        'option_c_image': item['option_c_image']?.toString() ?? '',
+        'option_d_image': item['option_d_image']?.toString() ?? '',
         'correct_option': correctOption,
         'marks': item['marks'] ?? 1,
       };
@@ -419,12 +518,18 @@ class TeacherRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch assignments');
   }
 
-  Future<List<Map<String, dynamic>>> getAssignmentSubmissions(String assignmentId) async {
-    final response = await _api.dio.get('content/assignments/$assignmentId/submissions');
+  Future<List<Map<String, dynamic>>> getAssignmentSubmissions(
+    String assignmentId,
+  ) async {
+    final response = await _api.dio.get(
+      'content/assignments/$assignmentId/submissions',
+    );
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
-    throw Exception(response.data['message'] ?? 'Failed to fetch assignment submissions');
+    throw Exception(
+      response.data['message'] ?? 'Failed to fetch assignment submissions',
+    );
   }
 
   Future<Map<String, dynamic>> reviewAssignmentSubmission({
@@ -438,7 +543,9 @@ class TeacherRepository {
       'marks_obtained': marksObtained,
       'remarks': remarks?.trim(),
     };
-    payload.removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+    payload.removeWhere(
+      (key, value) => value == null || (value is String && value.isEmpty),
+    );
 
     final response = await _api.dio.patch(
       'content/assignments/submissions/$submissionId/review',
@@ -454,16 +561,17 @@ class TeacherRepository {
   Future<Map<String, dynamic>> getWeeklyStats() async {
     final response = await _api.dio.get('teachers/me/stats/weekly');
     if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch weekly stats');
   }
 
   // ── Upcoming Exams ───────────────────────────────────────
   Future<List<Map<String, dynamic>>> getUpcomingExams() async {
-    final response = await _api.dio.get('exams', queryParameters: {
-      'status': 'upcoming',
-    });
+    final response = await _api.dio.get(
+      'exams',
+      queryParameters: {'status': 'upcoming'},
+    );
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -481,7 +589,9 @@ class TeacherRepository {
       data: {'is_completed': isCompleted},
     );
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception(response.data['message'] ?? 'Failed to update topic status');
+      throw Exception(
+        response.data['message'] ?? 'Failed to update topic status',
+      );
     }
   }
 
@@ -491,14 +601,19 @@ class TeacherRepository {
     required String description,
     required String privacyStatus,
   }) async {
-    final response = await _api.dio.post('youtube/live', data: {
-      'title': title,
-      'description': description,
-      'privacyStatus': privacyStatus,
-    });
+    final response = await _api.dio.post(
+      'youtube/live',
+      data: {
+        'title': title,
+        'description': description,
+        'privacyStatus': privacyStatus,
+      },
+    );
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }
-    throw Exception(response.data['message'] ?? 'Failed to create YouTube Live Stream');
+    throw Exception(
+      response.data['message'] ?? 'Failed to create YouTube Live Stream',
+    );
   }
 }

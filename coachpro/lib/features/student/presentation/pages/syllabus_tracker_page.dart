@@ -6,6 +6,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../data/repositories/student_repository.dart';
 
 class SyllabusTrackerPage extends StatefulWidget {
   const SyllabusTrackerPage({super.key});
@@ -14,16 +16,54 @@ class SyllabusTrackerPage extends StatefulWidget {
 }
 
 class _SyllabusTrackerPageState extends State<SyllabusTrackerPage> {
-  int _selectedSub = 0;
-  final _subjects = ['Physics', 'Chemistry', 'Mathematics'];
+  final _studentRepo = sl<StudentRepository>();
+  bool _isLoading = true;
+  String? _error;
 
-  final _physicsChapters = [
-    _Chapter('Kinematics', 1.0, 0),
-    _Chapter('Laws of Motion', 0.8, 2),
-    _Chapter('Work, Energy, Power', 0.5, 5),
-    _Chapter('Rotational Motion', 0.0, 12),
-    _Chapter('Gravitation', 0.0, 8),
-  ];
+  double _overallProgress = 0.0;
+  List<String> _subjects = [];
+  Map<String, List<_Chapter>> _chaptersBySubject = {};
+  int _selectedSub = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final res = await _studentRepo.getSyllabusTracker();
+      if (!mounted) return;
+
+      final subList = List<String>.from(res['subjects'] ?? []);
+      final chapMapRaw = res['chapters_by_subject'] as Map<String, dynamic>? ?? {};
+
+      final Map<String, List<_Chapter>> chapMap = {};
+      for (final sub in subList) {
+        final listRaw = chapMapRaw[sub] as List<dynamic>? ?? [];
+        chapMap[sub] = listRaw.map((e) => _Chapter(
+          (e['title'] ?? 'Unknown').toString(),
+          (e['progress'] ?? 0.0).toDouble(),
+          (e['topicsLeft'] ?? 0).toInt(),
+        )).toList();
+      }
+
+      setState(() {
+        _overallProgress = (res['overall_progress'] ?? 0.0).toDouble();
+        _subjects = subList;
+        _chaptersBySubject = chapMap;
+        _isLoading = false;
+        if (_subjects.isNotEmpty) _selectedSub = 0;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,10 +79,27 @@ class _SyllabusTrackerPageState extends State<SyllabusTrackerPage> {
         setState(() => _selectedSub = (_selectedSub + 1) % _subjects.length);
       }, icon: const Icon(Icons.swap_horiz_rounded))],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Overall Progress Card
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Text(
+                    _error!,
+                    style: GoogleFonts.plusJakartaSans(color: CT.textM(context)),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : _subjects.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No syllabus data available yet.',
+                        style: GoogleFonts.plusJakartaSans(color: CT.textM(context)),
+                      ),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Overall Progress Card
           Padding(
             padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
             child: Container(
@@ -67,7 +124,7 @@ class _SyllabusTrackerPageState extends State<SyllabusTrackerPage> {
                       fit: StackFit.expand,
                       children: [
                         CircularProgressIndicator(
-                          value: 0.65,
+                          value: _overallProgress,
                           color: Colors.white,
                           backgroundColor: Colors.white.withValues(alpha: 0.2),
                           strokeWidth: 8,
@@ -75,7 +132,7 @@ class _SyllabusTrackerPageState extends State<SyllabusTrackerPage> {
                         ),
                         Center(
                           child: Text(
-                            '65%',
+                            '${(_overallProgress * 100).toInt()}%',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -165,14 +222,25 @@ class _SyllabusTrackerPageState extends State<SyllabusTrackerPage> {
 
           // Chapter list
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.pagePaddingH,
-                vertical: 8,
-              ),
-              itemCount: _physicsChapters.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (_, i) => _buildChapterCard(_physicsChapters[i], i),
+            child:Builder(
+              builder: (context) {
+                final currentSub = _subjects.isEmpty ? '' : _subjects[_selectedSub];
+                final chapters = _chaptersBySubject[currentSub] ?? [];
+                
+                if (chapters.isEmpty) {
+                  return Center(child: Text('No chapters tracked yet.', style: GoogleFonts.plusJakartaSans(color: CT.textM(context))));
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.pagePaddingH,
+                    vertical: 8,
+                  ),
+                  itemCount: chapters.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (_, i) => _buildChapterCard(chapters[i], i),
+                );
+              }
             ),
           ),
         ],

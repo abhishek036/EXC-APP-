@@ -8,7 +8,6 @@ import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../auth/domain/entities/user_entity.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../widgets/global_search_overlay.dart';
 
 class RoleLiveDashboardPage extends StatelessWidget {
   final AppRole role;
@@ -205,11 +204,7 @@ class RoleLiveDashboardPage extends StatelessWidget {
                               ],
                             ),
                           ),
-                          CPPressable(
-                            onTap: () => GlobalSearchOverlay.show(context),
-                            child: Icon(Icons.search_rounded, color: CT.textH(context), size: 24),
-                          ),
-                          const SizedBox(width: 16),
+
                           CPPressable(
                             onTap: () => context.go('${user.dashboardPath}/notifications'),
                             child: Icon(Icons.notifications_outlined, color: CT.textH(context), size: 24),

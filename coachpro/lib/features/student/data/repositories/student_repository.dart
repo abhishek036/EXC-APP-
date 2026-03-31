@@ -24,11 +24,21 @@ class StudentRepository {
     return const [];
   }
 
+  Map<String, dynamic> _extractMap(dynamic responseData) {
+    if (responseData is Map<String, dynamic>) {
+      final payload = responseData['data'];
+      if (payload is Map) {
+        return Map<String, dynamic>.from(payload);
+      }
+    }
+    return <String, dynamic>{};
+  }
+
   // ── Profile ──────────────────────────────────────────────
   Future<Map<String, dynamic>> getProfile() async {
     final response = await _api.dio.get('auth/me');
     if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch profile');
   }
@@ -37,7 +47,7 @@ class StudentRepository {
   Future<Map<String, dynamic>> getDashboardStats() async {
     final response = await _api.dio.get('students/me/dashboard');
     if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch dashboard');
   }
@@ -52,12 +62,14 @@ class StudentRepository {
   }
 
   // ── Schedule / Timetable ─────────────────────────────────
-  Future<List<Map<String, dynamic>>> getTodaySchedule({int? dayIndex, DateTime? date}) async {
+  Future<List<Map<String, dynamic>>> getTodaySchedule({int? dayIndex, DateTime? date, String? batchId, String? subject}) async {
     final response = await _api.dio.get(
       'students/me/schedule/today',
       queryParameters: {
         if (dayIndex != null) 'day': dayIndex,
         if (date != null) 'date': date.toIso8601String(),
+        if (batchId != null && batchId.isNotEmpty) 'batch_id': batchId,
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
       },
     );
     if (response.statusCode == 200) {
@@ -66,8 +78,11 @@ class StudentRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch schedule');
   }
 
-  Future<List<Map<String, dynamic>>> getLectures() async {
-    final response = await _api.dio.get('students/me/lectures');
+  Future<List<Map<String, dynamic>>> getLectures({String? batchId, String? subject}) async {
+    final response = await _api.dio.get('students/me/lectures', queryParameters: {
+      if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
+      if (subject != null && subject.isNotEmpty) 'subject': subject,
+    });
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -75,30 +90,40 @@ class StudentRepository {
   }
 
   // ── Attendance ───────────────────────────────────────────
-  Future<Map<String, dynamic>> getMyAttendance({String? batchId}) async {
+  Future<Map<String, dynamic>> getMyAttendance({String? batchId, int? month, int? year, String? subject}) async {
     final response = await _api.dio.get(
       'students/me/attendance',
       queryParameters: {
         if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
+        if (month != null) 'month': month,
+        if (year != null) 'year': year,
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
       },
     );
     if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch attendance');
   }
 
   // ── Exams & Results ──────────────────────────────────────
-  Future<List<Map<String, dynamic>>> getUpcomingExams() async {
-    final response = await _api.dio.get('students/me/exams/upcoming');
+  Future<List<Map<String, dynamic>>> getUpcomingExams({String? subject}) async {
+    final response = await _api.dio.get('students/me/exams/upcoming', queryParameters: {
+      if (subject != null && subject.isNotEmpty) 'subject': subject,
+    });
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch exams');
   }
 
-  Future<List<Map<String, dynamic>>> getMyResults() async {
-    final response = await _api.dio.get('students/me/results');
+  Future<List<Map<String, dynamic>>> getMyResults({String? batchId, int? month, int? year, String? subject}) async {
+    final response = await _api.dio.get('students/me/results', queryParameters: {
+      if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
+      if (month != null) 'month': month,
+      if (year != null) 'year': year,
+      if (subject != null && subject.isNotEmpty) 'subject': subject,
+    });
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -112,7 +137,7 @@ class StudentRepository {
       queryParameters: {'period': period},
     );
     if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch performance');
   }
@@ -121,7 +146,7 @@ class StudentRepository {
   Future<Map<String, dynamic>> getFeeOverview() async {
     final response = await _api.dio.get('students/me/fees');
     if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch fee overview');
   }
@@ -134,11 +159,20 @@ class StudentRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch fee history');
   }
 
+  Future<Map<String, dynamic>> getSyllabusTracker() async {
+    final response = await _api.dio.get('students/me/syllabus');
+    if (response.statusCode == 200) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch syllabus');
+  }
+
   // ── Doubts ───────────────────────────────────────────────
   Future<Map<String, dynamic>> submitDoubt({
     required String batchId,
     required String question,
     String? imageUrl,
+    String? subject,
   }) async {
     final response = await _api.dio.post(
       'doubts',
@@ -146,16 +180,19 @@ class StudentRepository {
         'batch_id': batchId,
         'question_text': question,
         'question_img': imageUrl,
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
       },
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to submit doubt');
   }
 
-  Future<List<Map<String, dynamic>>> getMyDoubts() async {
-    final response = await _api.dio.get('students/me/doubts');
+  Future<List<Map<String, dynamic>>> getMyDoubts({String? subject}) async {
+    final response = await _api.dio.get('students/me/doubts', queryParameters: {
+      if (subject != null && subject.isNotEmpty) 'subject': subject,
+    });
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -163,8 +200,10 @@ class StudentRepository {
   }
 
   // ── Quizzes ──────────────────────────────────────────────
-  Future<List<Map<String, dynamic>>> getAvailableQuizzes() async {
-    final response = await _api.dio.get('quizzes/available');
+  Future<List<Map<String, dynamic>>> getAvailableQuizzes({String? subject}) async {
+    final response = await _api.dio.get('quizzes/available', queryParameters: {
+      if (subject != null && subject.isNotEmpty) 'subject': subject,
+    });
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -174,7 +213,7 @@ class StudentRepository {
   Future<Map<String, dynamic>> getQuizById(String quizId) async {
     final response = await _api.dio.get('quizzes/$quizId');
     if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch quiz');
   }
@@ -182,21 +221,21 @@ class StudentRepository {
   Future<Map<String, dynamic>> startQuizAttempt(String quizId) async {
     final response = await _api.dio.post('quizzes/$quizId/attempt/start');
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to start quiz');
   }
 
   Future<Map<String, dynamic>> submitQuizAttempt({
     required String quizId,
-    required List<Map<String, dynamic>> answers,
+    required Map<String, dynamic> answers,
   }) async {
     final response = await _api.dio.post(
       'quizzes/$quizId/attempt/submit',
       data: {'answers': answers},
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to submit quiz');
   }
@@ -204,7 +243,7 @@ class StudentRepository {
   Future<Map<String, dynamic>> getQuizResult(String quizId) async {
     final response = await _api.dio.get('quizzes/$quizId/result');
     if (response.statusCode == 200) {
-      return Map<String, dynamic>.from(response.data['data'] as Map);
+      return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch results');
   }
@@ -212,11 +251,13 @@ class StudentRepository {
   // ── Study Materials & Assignments ────────────────────────
   Future<List<Map<String, dynamic>>> getStudyMaterials({
     String? subject,
+    String? batchId,
   }) async {
     final response = await _api.dio.get(
       'content/notes',
       queryParameters: {
         if (subject != null && subject.isNotEmpty) 'subject': subject,
+        if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
       },
     );
     if (response.statusCode == 200) {
@@ -225,8 +266,14 @@ class StudentRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch materials');
   }
 
-  Future<List<Map<String, dynamic>>> getAssignments() async {
-    final response = await _api.dio.get('content/assignments');
+  Future<List<Map<String, dynamic>>> getAssignments({String? batchId, String? subject}) async {
+    final response = await _api.dio.get(
+      'content/assignments',
+      queryParameters: {
+        if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
+      },
+    );
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -289,6 +336,15 @@ class StudentRepository {
     );
   }
 
+  Future<int> getUnreadCount() async {
+    final response = await _api.dio.get('notifications/unread-count');
+    if (response.statusCode == 200) {
+      final data = response.data['data'];
+      if (data is Map) return (data['unread_count'] as num?)?.toInt() ?? 0;
+    }
+    return 0;
+  }
+
   Future<void> markNotificationRead(
     String notificationId, {
     bool read = true,
@@ -319,18 +375,7 @@ class StudentRepository {
     );
   }
 
-  Future<void> deleteNotificationGlobally(String notificationId) async {
-    final response = await _api.dio.delete(
-      'notifications/$notificationId/global',
-    );
-    if (response.statusCode == 200) return;
-    throw Exception(
-      response.data['message'] ??
-          'Failed to delete notification for all recipients',
-    );
-  }
-
-  Future<Map<String, dynamic>> sendManualNotification({
+  Future<void> sendManualNotification({
     required String title,
     required String body,
     required String type,
@@ -345,11 +390,24 @@ class StudentRepository {
         'role_target': roleTarget,
       },
     );
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    if (response.statusCode != 201 && response.statusCode != 200) {
+      throw Exception(
+        response.data['message'] ?? 'Failed to send notification',
+      );
     }
-    throw Exception(response.data['message'] ?? 'Failed to send notification');
   }
+
+  Future<void> deleteNotificationGlobally(String notificationId) async {
+    final response = await _api.dio.delete(
+      'notifications/$notificationId/global',
+    );
+    if (response.statusCode == 200) return;
+    throw Exception(
+      response.data['message'] ??
+          'Failed to delete notification for all recipients',
+    );
+  }
+
 
   // ── Lecture Progress ─────────────────────────────────────
   Future<List<Map<String, dynamic>>> getLectureProgress() async {

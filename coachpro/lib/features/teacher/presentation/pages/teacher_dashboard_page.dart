@@ -11,6 +11,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/widgets/cp_pressable.dart';
+import '../../../../core/theme/theme_aware.dart';
 
 import '../../../../core/widgets/cp_shimmer.dart';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
@@ -151,10 +152,10 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = CT.isDark(context);
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor:
-          AppColors.eliteLightBg, // Match Admin's light background assumption
+      backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       drawer: _buildDrawer(),
       body: Stack(
         children: [
@@ -781,7 +782,11 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     final schedules = _dashboardData?['schedules'] as List? ?? [];
     if (schedules.isEmpty) return _emptyCard('No classes scheduled for today');
 
-    return Column(children: schedules.map((s) => _classItem(Map<String, dynamic>.from(s))).toList());
+    return Column(
+      children: schedules
+          .map((s) => _classItem(Map<String, dynamic>.from(s)))
+          .toList(),
+    );
   }
 
   Widget _classItem(Map<String, dynamic> c) {
@@ -991,6 +996,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   );
 
   Widget _buildDrawer() {
+    final isDark = CT.isDark(context);
     final authState = context.read<AuthBloc>().state;
     final userName = authState is AuthAuthenticated
         ? authState.user.name
@@ -999,7 +1005,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         ? authState.user.avatarUrl
         : null;
     return Drawer(
-      backgroundColor: AppColors.eliteLightBg,
+      backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       child: SafeArea(
         child: Column(
           children: [

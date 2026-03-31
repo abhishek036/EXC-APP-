@@ -95,15 +95,17 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         _isLoadingBatches = false;
         if (b.isNotEmpty) {
           final pre = widget.initialBatchId;
-          final matched = (pre != null && pre.isNotEmpty)
+          final matchedList = (pre != null && pre.isNotEmpty)
               ? b.where((item) => (item['id'] ?? '').toString() == pre).toList()
               : const <Map<String, dynamic>>[];
-          final selected = matched.isNotEmpty ? matched.first : b.first;
+          final selected = matchedList.isNotEmpty ? matchedList.first : b.first;
           _selectedBatchId = (selected['id'] ?? '').toString();
-          _selectedSubject =
-              widget.initialSubject ??
-              selected['subject']?.toString() ??
-              'General';
+          
+          final batchSubs = selected['subjects'];
+          List<String> subList = [];
+          if (batchSubs is List) subList = batchSubs.map((e) => e.toString()).toList();
+          
+          _selectedSubject = widget.initialSubject ?? (subList.isNotEmpty ? subList.first : 'General');
         }
       });
     } catch (e) {
@@ -395,6 +397,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           _inputLabel('TARGET BATCH', primary),
           _buildBatchDropdown(primary),
           const SizedBox(height: 24),
+          _inputLabel('SUBJECT', primary),
+          _buildSubjectDropdown(primary),
+          const SizedBox(height: 24),
           _inputLabel('DESCRIPTION', primary),
           _textField(
             _descCtrl,
@@ -485,9 +490,13 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           ),
           onChanged: (val) {
             final b = _findBatchById(val);
+            final batchSubs = b?['subjects'];
+            List<String> subList = [];
+            if (batchSubs is List) subList = batchSubs.map((e) => e.toString()).toList();
+            
             setState(() {
               _selectedBatchId = val;
-              _selectedSubject = b?['subject']?.toString() ?? 'General';
+              _selectedSubject = subList.isNotEmpty ? subList.first : 'General';
             });
           },
           items: _batches
@@ -496,6 +505,53 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                   value: b['id']?.toString(),
                   child: Text(
                     b['name']?.toString() ?? 'BATCH',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubjectDropdown(Color primary) {
+    if (_isLoadingBatches) return const SizedBox.shrink();
+    final batch = _findBatchById(_selectedBatchId);
+    final subsRaw = batch?['subjects'];
+    List<String> subjects = [];
+    if (subsRaw is List) {
+      subjects = subsRaw.map((e) => e.toString()).toList();
+    }
+    
+    if (subjects.isEmpty) subjects = ['General'];
+
+    final elevated = CT.elevated(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: elevated,
+        border: Border.all(color: primary, width: 2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: subjects.contains(_selectedSubject) ? _selectedSubject : subjects.first,
+          isExpanded: true,
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w800,
+            color: primary,
+          ),
+          onChanged: (val) {
+            setState(() => _selectedSubject = val);
+          },
+          items: subjects
+              .map(
+                (s) => DropdownMenuItem(
+                  value: s,
+                  child: Text(
+                    s.toUpperCase(),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

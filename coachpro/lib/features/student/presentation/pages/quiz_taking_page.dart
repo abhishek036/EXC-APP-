@@ -31,6 +31,7 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
   int _currentIndex = 0;
   int _secondsRemaining = 0;
   Timer? _timer;
+  final _alpha = ['A', 'B', 'C', 'D'];
 
   @override
   void initState() {
@@ -95,27 +96,14 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
   Future<void> _autoSubmit() async {
     // Auto submit when time up
     await _submitQuiz();
-  }
-
-  Future<void> _submitQuiz() async {
+  }  Future<void> _submitQuiz() async {
     _timer?.cancel();
     setState(() => _isLoading = true);
 
     try {
-      // Prepare answers list for backend
-      // Backend expects: [{question_id: string, selected_option: number}]
-      final List<Map<String, dynamic>> submitData = [];
-      for (var q in _questions) {
-        final qId = q['id'].toString();
-        submitData.add({
-          'question_id': qId,
-          'selected_option': _userAnswers[qId] ?? -1, // -1 or null if skipped
-        });
-      }
-
       await _studentRepo.submitQuizAttempt(
         quizId: widget.quizId,
-        answers: submitData,
+        answers: _userAnswers,
       );
 
       if (mounted) {
@@ -423,6 +411,22 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
                         ),
                       ),
                       const SizedBox(height: 14),
+                      if (currentQuestion['image_url'] != null &&
+                          currentQuestion['image_url'].toString().isNotEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 20),
+                          height: 200,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            image: DecorationImage(
+                              image: NetworkImage(
+                                currentQuestion['image_url'].toString(),
+                              ),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
                       RichText(
                         text: TextSpan(
                           children: [
@@ -448,17 +452,19 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
                       const SizedBox(height: 24),
                       // Options
                       ...List.generate(4, (i) {
-                        final optionText =
-                            currentQuestion['option_${i + 1}'] as String?;
+                        final key = 'option_${_alpha[i].toLowerCase()}';
+                        final optionText = currentQuestion[key] as String?;
+                        final optImageUrl = currentQuestion['${key}_image'] as String?;
+
                         if (optionText == null || optionText.isEmpty) {
                           return const SizedBox.shrink();
                         }
 
-                        final selected = selectedOption == i + 1;
+                        final selected = selectedOption == _alpha[i];
                         return CPPressable(
                           onTap: () {
                             HapticFeedback.selectionClick();
-                            setState(() => _userAnswers[qId] = i + 1);
+                            setState(() => _userAnswers[qId] = _alpha[i]);
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
@@ -493,47 +499,74 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
                                       ),
                                     ],
                             ),
-                            child: Row(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: BoxDecoration(
-                                    color: selected
-                                        ? Colors.white.withValues(alpha: 0.2)
-                                        : CT.textM(context),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: selected
-                                        ? const Icon(
-                                            Icons.check,
-                                            size: 16,
-                                            color: Colors.white,
-                                          )
-                                        : Text(
-                                            String.fromCharCode(65 + i),
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: CT.textS(context),
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 30,
+                                      height: 30,
+                                      decoration: BoxDecoration(
+                                        color: selected
+                                            ? Colors.white.withValues(
+                                              alpha: 0.2,
+                                            )
+                                            : CT.textM(context),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: selected
+                                            ? const Icon(
+                                              Icons.check,
+                                              size: 16,
+                                              color: Colors.white,
+                                            )
+                                            : Text(
+                                              _alpha[i],
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: CT.textS(context),
+                                              ),
                                             ),
-                                          ),
-                                  ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Text(
+                                        optionText,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: selected
+                                              ? Colors.white
+                                              : CT.textH(context),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Text(
-                                    optionText,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: selected
-                                          ? Colors.white
-                                          : CT.textH(context),
+                                if (optImageUrl != null &&
+                                    optImageUrl.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 44,
+                                      top: 12,
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        optImageUrl,
+                                        height: 120,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (ctx, err, stack) =>
+                                                const SizedBox.shrink(),
+                                      ),
                                     ),
                                   ),
-                                ),
                               ],
                             ),
                           ),

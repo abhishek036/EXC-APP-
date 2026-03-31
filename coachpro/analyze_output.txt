@@ -1,40 +1,10 @@
-Analyzing coachpro...                                           
+Analyzing student_batch_panel_page.dart...                      
 
-warning - Unused import: 'package:flutter/services.dart' - lib\core\utils\fee_receipt_generator.dart:2:8 - unused_import
-   info - 'Share' is deprecated and shouldn't be used. Use SharePlus instead - lib\core\utils\fee_receipt_generator.dart:160:11 - deprecated_member_use
-   info - 'shareXFiles' is deprecated and shouldn't be used. Use SharePlus.instance.share() instead - lib\core\utils\fee_receipt_generator.dart:160:17 - deprecated_member_use
-   info - The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\core\widgets\cp_glass_card.dart:1:8 - unnecessary_import
-   info - Use the null-aware marker '?' rather than a null check via an 'if' - lib\features\admin\data\repositories\admin_repository.dart:32:7 - use_null_aware_elements
-   info - Use the null-aware marker '?' rather than a null check via an 'if' - lib\features\admin\data\repositories\admin_repository.dart:434:7 - use_null_aware_elements
-   info - Use the null-aware marker '?' rather than a null check via an 'if' - lib\features\admin\data\repositories\admin_repository.dart:435:7 - use_null_aware_elements
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\academic_oversight_page.dart:81:49 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\academic_oversight_page.dart:82:44 - unnecessary_underscores
-   info - The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\features\admin\presentation\pages\admin_dashboard_page.dart:1:8 - unnecessary_import
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\admin_dashboard_page.dart:547:168 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\admin_dashboard_page.dart:547:219 - unnecessary_underscores
-   info - The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\features\admin\presentation\pages\audit_logs_page.dart:2:8 - unnecessary_import
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\audit_logs_page.dart:127:29 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\audit_logs_page.dart:128:24 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\batch_management_page.dart:70:49 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\batch_management_page.dart:71:44 - unnecessary_underscores
-   info - The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\features\admin\presentation\pages\bulk_result_entry_page.dart:2:8 - unnecessary_import
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\bulk_result_entry_page.dart:226:29 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\bulk_result_entry_page.dart:227:24 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\bulk_result_entry_page.dart:248:29 - unnecessary_underscores
-   info - Statements in an if should be enclosed in a block - lib\features\admin\presentation\pages\edit_student_page.dart:310:55 - curly_braces_in_flow_control_structures
-   info - Statements in an if should be enclosed in a block - lib\features\admin\presentation\pages\edit_student_page.dart:311:44 - curly_braces_in_flow_control_structures
-   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\pages\edit_student_page.dart:407:23 - use_build_context_synchronously
-   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\pages\edit_student_page.dart:409:21 - use_build_context_synchronously
-   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\pages\edit_teacher_page.dart:125:23 - use_build_context_synchronously
-   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\pages\edit_teacher_page.dart:127:21 - use_build_context_synchronously
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\leads_page.dart:258:49 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\leads_page.dart:259:44 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\staff_management_page.dart:80:49 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\staff_management_page.dart:81:44 - unnecessary_underscores
-warning - The value of the field '_studentRows' isn't used - lib\features\admin\presentation\pages\student_import_page.dart:29:30 - unused_field
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\student_list_page.dart:109:47 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\admin\presentation\pages\student_list_page.dart:110:42 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\student\presentation\pages\my_doubts_history_page.dart:124:29 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\student\presentation\pages\my_doubts_history_page.dart:125:24 - unnecessary_underscores
-   info - Unnecessary use of multiple underscores - lib\features\student\presentation\pages\my_doubts_history_page.dart:155:31 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\features\student\presentation\pages\student_batch_panel_page.dart:185:33 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\features\student\presentation\pages\student_batch_panel_page.dart:312:33 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\features\student\presentation\pages\student_batch_panel_page.dart:369:33 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\features\student\presentation\pages\student_batch_panel_page.dart:423:33 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\features\student\presentation\pages\student_batch_panel_page.dart:520:33 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\features\student\presentation\pages\student_batch_panel_page.dart:618:41 - unnecessary_underscores
+warning - A value for optional parameter 'bgColor' isn't ever given - lib\features\student\presentation\pages\student_batch_panel_page.dart:793:10 - unused_element_parameter
 

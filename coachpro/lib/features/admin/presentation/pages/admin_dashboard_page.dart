@@ -12,7 +12,6 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_shimmer.dart';
 import '../../../../core/widgets/cp_glass_card.dart';
-import '../../../../features/shared/presentation/widgets/global_search_overlay.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../data/repositories/admin_repository.dart';
 
@@ -598,11 +597,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 ],
               ),
             ),
-            _appBarAction(Icons.search_rounded, () {
-              HapticFeedback.mediumImpact();
-              GlobalSearchOverlay.show(context);
-            }, isDark),
-            const SizedBox(width: 8),
+
             _appBarAction(
               Icons.notifications_none_rounded,
               () {

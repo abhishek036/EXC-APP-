@@ -66,6 +66,14 @@ class _QuizzesListPageState extends State<QuizzesListPage> {
         ),
         backgroundColor: CT.bg(context),
         elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () => context.push('/student/results'),
+            icon: Icon(Icons.history_rounded, size: 22, color: CT.textH(context)),
+            tooltip: 'View Results',
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _loadQuizzes,

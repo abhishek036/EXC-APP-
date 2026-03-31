@@ -10,6 +10,9 @@ import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/utils/role_prefix.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../student/data/repositories/student_repository.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import 'dart:async';
 
 class NotificationsPage extends StatefulWidget {
@@ -117,6 +120,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Map<String, dynamic> _normalizeNotification(Map<String, dynamic> input) {
+    final rawDate = input['created_at'] ?? input['date'];
+    DateTime? dt;
+    if (rawDate != null) {
+      dt = DateTime.tryParse(rawDate.toString())?.toLocal();
+    }
     return {
       ...input,
       'isRead': input['read_status'] == true || input['isRead'] == true,
@@ -124,6 +132,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       'body': input['body'] ?? input['message'] ?? '',
       'type': (input['type'] ?? 'system').toString(),
       'time': (input['created_at'] ?? input['date'] ?? '').toString(),
+      'dateTime': dt,
     };
   }
 
@@ -308,6 +317,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                     'attendance',
                                     'exam',
                                     'fee',
+                                    'content',
+                                    'result',
                                   ]
                                   .map(
                                     (value) => DropdownMenuItem(
@@ -422,10 +433,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final unreadCount = _notifications
-        .where((n) => n['isRead'] == false)
-        .length;
-
+    final unreadCount = _notifications.where((n) => n['isRead'] == false).length;
     return Scaffold(
       backgroundColor: CT.bg(context),
       appBar: AppBar(
@@ -482,7 +490,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
       ),
       body: Column(
         children: [
-          // CATEGORY CHIPS
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: SizedBox(
@@ -492,10 +499,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 children: [
                   _typeChip('all', 'ALL'),
+                  _typeChip('attendance', 'ATTENDANCE'),
+                  _typeChip('exam', 'QUIZ/EXAM'),
+                  _typeChip('material', 'MATERIAL'),
                   _typeChip('fee', 'FEES'),
                   _typeChip('class', 'CLASSES'),
-                  _typeChip('exam', 'EXAMS'),
-                  _typeChip('attendance', 'LOGS'),
                   _typeChip('system', 'CORE'),
                 ],
               ),
@@ -535,7 +543,32 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         );
 
                         return CPPressable(
-                              onTap: () => _markRead(index, read: true),
+                              onTap: () {
+                                _markRead(index, read: true);
+                                final meta = notif['meta'] as Map<String, dynamic>?;
+                                final route = meta?['route']?.toString() ?? notif['route']?.toString();
+                                
+                                if (route != null && route.isNotEmpty) {
+                                  context.push(route);
+                                } else {
+                                  final type = notif['type']?.toString();
+                                  final prefix = context.rolePrefix;
+                                  
+                                  if (type == 'doubt') {
+                                    context.push('$prefix/doubts/history');
+                                  } else if (type == 'class') {
+                                    context.push('$prefix/timetable');
+                                  } else if (type == 'exam' || type == 'quiz') {
+                                    context.push('$prefix/quizzes');
+                                  } else if (type == 'material' || type == 'content') {
+                                    context.push('$prefix/materials');
+                                  } else if (type == 'attendance') {
+                                    context.push('$prefix/attendance');
+                                  } else if (type == 'result') {
+                                    context.push('$prefix/results');
+                                  }
+                                }
+                              },
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
                                 padding: const EdgeInsets.all(16),
@@ -589,16 +622,32 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                           Row(
                                             children: [
                                               Expanded(
-                                                child: Text(
-                                                  notif['title']
-                                                      .toString()
-                                                      .toUpperCase(),
-                                                  style: GoogleFonts.sora(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w800,
-                                                    color: CT.textH(context),
-                                                    letterSpacing: -0.2,
-                                                  ),
+                                                child: Row(
+                                                  children: [
+                                                    if (!isRead)
+                                                      Container(
+                                                        width: 8,
+                                                        height: 8,
+                                                        margin: const EdgeInsets.only(right: 8),
+                                                        decoration: const BoxDecoration(
+                                                          color: AppColors.primary,
+                                                          shape: BoxShape.circle,
+                                                        ),
+                                                      ),
+                                                    Expanded(
+                                                      child: Text(
+                                                        notif['title']
+                                                            .toString()
+                                                            .toUpperCase(),
+                                                        style: GoogleFonts.sora(
+                                                          fontSize: 13,
+                                                          fontWeight: FontWeight.w800,
+                                                          color: CT.textH(context),
+                                                          letterSpacing: -0.2,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                               _buildMiniMenu(index),
@@ -619,13 +668,30 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                           const SizedBox(height: 12),
-                                          Text(
-                                            notif['time'].toString(),
-                                            style: GoogleFonts.jetBrainsMono(
-                                              fontSize: 9,
-                                              color: CT.textS(context),
-                                              fontWeight: FontWeight.w800,
-                                            ),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                notif['dateTime'] != null
+                                                    ? timeago.format(notif['dateTime'])
+                                                    : notif['time'].toString(),
+                                                style: GoogleFonts.jetBrainsMono(
+                                                  fontSize: 9,
+                                                  color: CT.textS(context),
+                                                  fontWeight: FontWeight.w800,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                              if (notif['dateTime'] != null)
+                                                Text(
+                                                  DateFormat('dd MMM, hh:mm a').format(notif['dateTime']),
+                                                  style: GoogleFonts.jetBrainsMono(
+                                                    fontSize: 8,
+                                                    color: CT.textS(context).withValues(alpha: 0.5),
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -762,9 +828,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
       case 'class':
         return Icons.calendar_today_rounded;
       case 'exam':
+      case 'quiz':
         return Icons.analytics_outlined;
       case 'attendance':
         return Icons.fact_check_rounded;
+      case 'material':
+      case 'content':
+        return Icons.description_outlined;
+      case 'result':
+        return Icons.emoji_events_outlined;
       default:
         return Icons.radar_rounded;
     }
@@ -777,9 +849,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
       case 'class':
         return AppColors.primary;
       case 'exam':
+      case 'quiz':
         return AppColors.success;
       case 'attendance':
         return AppColors.error;
+      case 'material':
+      case 'content':
+        return Colors.purple;
+      case 'result':
+        return AppColors.moltenAmber;
       default:
         return CT.accent(context);
     }

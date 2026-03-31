@@ -8,6 +8,10 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:file_picker/file_picker.dart';
+import '../../../../core/services/cloud_storage_service.dart';
 import '../../data/repositories/student_repository.dart';
 
 class AssignmentSubmissionPage extends StatefulWidget {
@@ -31,6 +35,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
 
   List<Map<String, dynamic>> _assignments = [];
   Map<String, dynamic>? _selectedAssignment;
+  PlatformFile? _selectedFile;
 
   @override
   void initState() {
@@ -71,7 +76,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
     final assignmentId = (_selectedAssignment?['id'] ?? '').toString();
     if (assignmentId.isEmpty) return;
 
-    if (!_isFileUploaded) {
+    if (!_isFileUploaded && _submissionTextCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Upload a file or add text before submitting'),
@@ -82,11 +87,19 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
 
     setState(() => _isSubmitting = true);
     try {
+      String? uploadedUrl;
+      if (_isFileUploaded && _selectedFile != null) {
+        final storage = sl<CloudStorageService>();
+        if (_selectedFile!.bytes != null) {
+           uploadedUrl = await storage.uploadBytes(_selectedFile!.bytes!.toList(), 'assignments', _selectedFile!.name);
+        } else if (_selectedFile!.path != null) {
+           uploadedUrl = await storage.uploadFile(File(_selectedFile!.path!), 'assignments');
+        }
+      }
+
       await _studentRepo.submitAssignment(
         assignmentId: assignmentId,
-        fileUrl: _fileUrlCtrl.text.trim().isNotEmpty
-            ? _fileUrlCtrl.text.trim()
-            : null,
+        fileUrl: uploadedUrl,
         submissionText: _submissionTextCtrl.text.trim().isNotEmpty
             ? _submissionTextCtrl.text.trim()
             : null,
@@ -259,15 +272,22 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
 
                   if (!_isFileUploaded)
                     CPPressable(
-                          onTap: () {
-                            // Simulate upload
-                            setState(() {
-                              _isFileUploaded = true;
-                              _fileUrlCtrl.text =
-                                  _fileUrlCtrl.text.trim().isEmpty
-                                  ? 'https://example.com/submission-${DateTime.now().millisecondsSinceEpoch}.pdf'
-                                  : _fileUrlCtrl.text.trim();
-                            });
+                          onTap: () async {
+                            try {
+                              final result = await FilePicker.platform.pickFiles(
+                                type: FileType.custom,
+                                allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+                                withData: kIsWeb,
+                              );
+                              if (result != null && result.files.isNotEmpty) {
+                                setState(() {
+                                  _selectedFile = result.files.first;
+                                  _isFileUploaded = true;
+                                });
+                              }
+                            } catch (e) {
+                              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to pick file: $e')));
+                            }
                           },
                           child: Container(
                             width: double.infinity,
@@ -357,21 +377,21 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      '${title.replaceAll(' ', '_')}.pdf',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
+                                      Text(
+                                        _selectedFile?.name ?? '${title.replaceAll(' ', '_')}.pdf',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '2.4 MB • Uploaded just now',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 12,
-                                        color: CT.textS(context),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _selectedFile != null ? '${(_selectedFile!.size / (1024 * 1024)).toStringAsFixed(2)} MB • Ready to upload' : 'Ready to upload',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12,
+                                          color: CT.textS(context),
+                                        ),
                                       ),
-                                    ),
                                   ],
                                 ),
                               ),

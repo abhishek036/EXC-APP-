@@ -174,6 +174,27 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
         (d['batch'] as Map?)?['name']?.toString().toUpperCase() ?? 'BATCH';
     final question = d['question_text']?.toString() ?? '';
 
+    // Calculate time ago from created_at
+    String timeAgo = 'JUST NOW';
+    final createdAt = d['created_at']?.toString();
+    if (createdAt != null && createdAt.isNotEmpty) {
+      final dt = DateTime.tryParse(createdAt);
+      if (dt != null) {
+        final diff = DateTime.now().difference(dt);
+        if (diff.inMinutes < 1) {
+          timeAgo = 'JUST NOW';
+        } else if (diff.inHours < 1) {
+          timeAgo = '${diff.inMinutes}M AGO';
+        } else if (diff.inDays < 1) {
+          timeAgo = '${diff.inHours}H AGO';
+        } else if (diff.inDays < 7) {
+          timeAgo = '${diff.inDays}D AGO';
+        } else {
+          timeAgo = '${dt.day}/${dt.month}/${dt.year}';
+        }
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -207,7 +228,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
                 ),
               ),
               Text(
-                'JUST NOW',
+                timeAgo,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 10,
                   fontWeight: FontWeight.w900,

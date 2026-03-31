@@ -9,7 +9,16 @@ import '../../../../features/teacher/data/repositories/teacher_repository.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class AttendanceMarkingPage extends StatefulWidget {
-  const AttendanceMarkingPage({super.key});
+  final String? initialBatchId;
+  final DateTime? initialDate;
+  final String? initialSubject;
+
+  const AttendanceMarkingPage({
+    super.key,
+    this.initialBatchId,
+    this.initialDate,
+    this.initialSubject,
+  });
 
   @override
   State<AttendanceMarkingPage> createState() => _AttendanceMarkingPageState();
@@ -24,7 +33,9 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
   List<_AttStudent> _students = [];
   List<Map<String, dynamic>> _batches = [];
   String? _selectedBatchId;
-
+  String? _selectedSubject;
+  List<String> _subjects = [];
+  DateTime _selectedDate = DateTime.now();
   String? get _safeSelectedBatchId {
     if (_selectedBatchId == null || _selectedBatchId!.isEmpty) return null;
     final hasSelected = _batches.any(
@@ -36,6 +47,9 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
   @override
   void initState() {
     super.initState();
+    _selectedBatchId = widget.initialBatchId;
+    _selectedSubject = widget.initialSubject;
+    _selectedDate = widget.initialDate ?? DateTime.now();
     _loadBatches();
   }
 
@@ -48,16 +62,61 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
         if (batches.isEmpty) {
           _selectedBatchId = null;
         } else {
-          final firstValid = batches
-              .map((b) => (b['id'] ?? b['batch_id'] ?? '').toString())
-              .firstWhere((id) => id.isNotEmpty, orElse: () => '');
-          _selectedBatchId = firstValid.isNotEmpty ? firstValid : null;
+          // If a batch is already selected (from constructor), check if it's in the list
+          final hasSelected = _batches.any(
+            (b) =>
+                ((b['id'] ?? b['batch_id'] ?? '').toString() ==
+                _selectedBatchId),
+          );
+
+          if (!hasSelected) {
+            final firstValid = batches
+                .map((b) => (b['id'] ?? b['batch_id'] ?? '').toString())
+                .firstWhere((id) => id.isNotEmpty, orElse: () => '');
+            _selectedBatchId = firstValid.isNotEmpty ? firstValid : null;
+          }
         }
       });
       if (_safeSelectedBatchId != null) {
+        _updateSubjects();
         await _loadStudents();
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load batches: $e')));
+      }
+    }
+  }
+
+  void _updateSubjects() {
+    final batch = _batches.firstWhere(
+      (b) =>
+          (b['id'] ?? b['batch_id'] ?? '').toString() == _safeSelectedBatchId,
+      orElse: () => {},
+    );
+    final meta = batch['meta'] ?? {};
+    final subs = meta['subjects'];
+
+    _subjects = [];
+    if (subs is List) {
+      _subjects = subs.map((e) => e.toString()).toList();
+    } else if (subs is String && subs.isNotEmpty) {
+      _subjects = subs
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+
+    if (_subjects.isNotEmpty) {
+      if (!_subjects.contains(_selectedSubject)) {
+        _selectedSubject = _subjects.first;
+      }
+    } else {
+      _selectedSubject = null;
+    }
   }
 
   Future<void> _loadStudents() async {
@@ -65,14 +124,89 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
     if (!mounted || batchId == null) return;
     setState(() => _isLoading = true);
     try {
-      final data = await _teacherRepo.getBatchStudents(batchId);
+      final studentsData = await _teacherRepo.getBatchStudents(batchId);
+      final monthAttendance = await _teacherRepo.getBatchAttendance(
+        batchId: batchId,
+        month: _selectedDate.month,
+        year: _selectedDate.year,
+        subject: _selectedSubject,
+      );
+
       if (!mounted) return;
+
+      final dateStr =
+          '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+
+      // Find session for the specific day
+      final sessionForDay = monthAttendance.firstWhere((s) {
+        final sDate = DateTime.tryParse(s['session_date']?.toString() ?? '');
+        if (sDate == null) return false;
+        return sDate.year == _selectedDate.year &&
+            sDate.month == _selectedDate.month &&
+            sDate.day == _selectedDate.day;
+      }, orElse: () => <String, dynamic>{});
+
+      final existingRecords = (sessionForDay['records'] as List?) ?? [];
+
       setState(() {
-        _students = data.map((e) => _AttStudent.fromMap(e)).toList();
+        _students = studentsData.map((e) {
+          final student = _AttStudent.fromMap(e);
+          // Check if this student has an existing status for this date
+          final matchingRecord = existingRecords.firstWhere(
+            (r) => r['student_id']?.toString() == student.id,
+            orElse: () => null,
+          );
+          if (matchingRecord != null) {
+            final s = matchingRecord['status']?.toString().toLowerCase();
+            if (s == 'present')
+              student.status = 'P';
+            else if (s == 'absent')
+              student.status = 'A';
+            else if (s == 'late')
+              student.status = 'L';
+            else if (s == 'excused')
+              student.status = 'Lv';
+          }
+          return student;
+        }).toList();
         _isLoading = false;
       });
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load students: $e')));
+      }
+    }
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: const Color(0xFF0D1282),
+              onPrimary: Colors.white,
+              surface: const Color(0xFFEEEDED),
+              onSurface: const Color(0xFF0D1282),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _students = [];
+      });
+      _loadStudents();
     }
   }
 
@@ -90,9 +224,8 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
     }
     setState(() => _isSubmitting = true);
 
-    final now = DateTime.now();
     final sessionDate =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+        '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
     const statusMap = {
       'P': 'present',
       'A': 'absent',
@@ -113,6 +246,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
       await _teacherRepo.markAttendance(
         batchId: batchId,
         sessionDate: sessionDate,
+        subject: _selectedSubject,
         records: records,
         notifyParents: _notifyParents,
       );
@@ -262,6 +396,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
                             if (val == null || val == _selectedBatchId) return;
                             setState(() {
                               _selectedBatchId = val;
+                              _updateSubjects();
                               _students = [];
                             });
                             _loadStudents();
@@ -270,6 +405,73 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
                       ),
               ),
             ],
+          ),
+          if (_subjects.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.subject_rounded, color: Color(0xFF0D1282)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedSubject,
+                      isExpanded: true,
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Color(0xFF0D1282),
+                      ),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: blue,
+                      ),
+                      items: _subjects.map((s) {
+                        return DropdownMenuItem<String>(
+                          value: s,
+                          child: Text(s.toUpperCase()),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val == null || val == _selectedSubject) return;
+                        setState(() {
+                          _selectedSubject = val;
+                          _students = [];
+                        });
+                        _loadStudents();
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: _selectDate,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                border: Border.all(color: blue.withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today_rounded, color: blue, size: 18),
+                  const SizedBox(width: 12),
+                  Text(
+                    'DATE: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontWeight: FontWeight.w900,
+                      color: blue,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(Icons.edit_calendar_rounded, color: blue, size: 18),
+                ],
+              ),
+            ),
           ),
           const Divider(height: 24, thickness: 1.5, color: Color(0xFF0D1282)),
           Row(

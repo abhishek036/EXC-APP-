@@ -697,6 +697,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
     final feeCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     final roomCtrl = TextEditingController();
+    final subjectsCtrl = TextEditingController();
 
     DateTime? startDate;
     DateTime? endDate;
@@ -772,6 +773,12 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                     ),
                     const SizedBox(height: 10),
                     _field(roomCtrl, 'Room (optional)'),
+                    const SizedBox(height: 10),
+                    _field(
+                      subjectsCtrl,
+                      'Multiple Subjects (e.g. Physics, Chemistry, Maths)',
+                      maxLines: 2,
+                    ),
                     const SizedBox(height: 10),
                     _field(descCtrl, 'Description', maxLines: 3),
                     const SizedBox(height: 10),
@@ -887,27 +894,29 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                         }
 
                         try {
-                          final teacherIds = selectedTeacherIds.toList();
-                          final payload = <String, dynamic>{
-                            'name': nameCtrl.text.trim(),
-                            'subject': subjectCtrl.text.trim(),
-                            'capacity':
-                                int.tryParse(capacityCtrl.text.trim()) ?? 60,
-                            'room': roomCtrl.text.trim().isEmpty
-                                ? null
-                                : roomCtrl.text.trim(),
-                            'start_date': startDate?.toIso8601String(),
-                            'end_date': endDate?.toIso8601String(),
-                            'days_of_week': selectedDays.toList()..sort(),
-                            'teacher_id': teacherIds.isNotEmpty
-                                ? teacherIds.first
-                                : null,
-                            'teacher_ids': teacherIds,
-                            'description': descCtrl.text.trim().isEmpty
-                                ? null
-                                : descCtrl.text.trim(),
-                          };
-                          payload.removeWhere((key, value) => value == null);
+                    final teacherIds = selectedTeacherIds.toList();
+                    final payload = <String, dynamic>{
+                      'name': nameCtrl.text.trim(),
+                      'subject': subjectCtrl.text.trim(),
+                      'subjects': subjectsCtrl.text
+                          .split(',')
+                          .map((e) => e.trim())
+                          .where((e) => e.isNotEmpty)
+                          .toList(),
+                      'capacity': int.tryParse(capacityCtrl.text.trim()) ?? 60,
+                      'room': roomCtrl.text.trim().isEmpty
+                          ? null
+                          : roomCtrl.text.trim(),
+                      'start_date': startDate?.toIso8601String(),
+                      'end_date': endDate?.toIso8601String(),
+                      'days_of_week': selectedDays.toList()..sort(),
+                      'teacher_id': teacherIds.isNotEmpty ? teacherIds.first : null,
+                      'teacher_ids': teacherIds,
+                      'description': descCtrl.text.trim().isEmpty
+                          ? null
+                          : descCtrl.text.trim(),
+                    };
+                    payload.removeWhere((key, value) => value == null);
 
                           final created = await _adminRepo.createBatch(payload);
                           final batchId = (created['id'] ?? '').toString();

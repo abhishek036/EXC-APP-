@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/widgets/cp_role_shell.dart';
@@ -11,6 +12,7 @@ import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_toast.dart';
 import '../../data/repositories/teacher_repository.dart';
+import 'package:go_router/go_router.dart';
 
 class TeacherSchedulePage extends StatefulWidget {
   const TeacherSchedulePage({super.key});
@@ -32,22 +34,19 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   StreamSubscription<Map<String, dynamic>>? _syncSub;
   Timer? _reloadDebounce;
 
+  DateTime _getIst(DateTime d) => d.toUtc().add(const Duration(hours: 5, minutes: 30));
+
   String _dateKey(DateTime value) {
-    // Standardize to IST for keying
-    final ist = value.toUtc().add(const Duration(hours: 5, minutes: 30));
-    final year = ist.year.toString().padLeft(4, '0');
-    final month = ist.month.toString().padLeft(2, '0');
-    final day = ist.day.toString().padLeft(2, '0');
-    return '$year-$month-$day';
+    final ist = _getIst(value);
+    return '${ist.year.toString().padLeft(4, '0')}-${ist.month.toString().padLeft(2, '0')}-${ist.day.toString().padLeft(2, '0')}';
   }
 
   String _toIstStr(dynamic raw) {
-      if (raw == null) return '--:--';
-      final d = raw is DateTime ? raw : DateTime.tryParse(raw.toString());
-      if (d == null) return '--:--';
-      // IST is UTC + 5:30
-      final ist = d.toUtc().add(const Duration(hours: 5, minutes: 30));
-      return '${ist.hour.toString().padLeft(2, '0')}:${ist.minute.toString().padLeft(2, '0')}';
+    if (raw == null) return '--:--';
+    final d = raw is DateTime ? raw : DateTime.tryParse(raw.toString());
+    if (d == null) return '--:--';
+    final ist = _getIst(d);
+    return '${ist.hour.toString().padLeft(2, '0')}:${ist.minute.toString().padLeft(2, '0')}';
   }
 
   bool _matchesSelectedDate(dynamic rawDate) {
@@ -173,9 +172,8 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   }
 
   void _handleBack() {
-    final nav = Navigator.of(context);
-    if (nav.canPop()) {
-      nav.pop();
+    if (context.canPop()) {
+      context.pop();
       return;
     }
     final shellBack = CPRoleShellBack.maybeOf(context);
@@ -187,9 +185,9 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF0D1282);
-    const surface = Color(0xFFEEEDED);
-    const yellow = Color(0xFFF0DE36);
+    const blue = AppColors.elitePrimary;
+    const surface = AppColors.eliteLightBg;
+    const yellow = AppColors.adminGold;
 
     return Scaffold(
       backgroundColor: blue,
@@ -587,9 +585,9 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setModal) {
-            const blue = Color(0xFF0D1282);
-            const offWhite = Color(0xFFEEEDED);
-            const yellow = Color(0xFFF0DE36);
+            const blue = AppColors.elitePrimary;
+            const offWhite = AppColors.eliteLightBg;
+            const yellow = AppColors.adminGold;
 
             return Container(
               padding: EdgeInsets.fromLTRB(

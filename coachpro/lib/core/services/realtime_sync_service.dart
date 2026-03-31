@@ -8,8 +8,8 @@ import 'secure_storage_service.dart';
 
 class RealtimeSyncService {
   RealtimeSyncService({ApiClient? apiClient, SecureStorageService? storage})
-      : _apiClient = apiClient ?? sl<ApiClient>(),
-        _storage = storage ?? sl<SecureStorageService>();
+    : _apiClient = apiClient ?? sl<ApiClient>(),
+      _storage = storage ?? sl<SecureStorageService>();
 
   final ApiClient _apiClient;
   final SecureStorageService _storage;
@@ -58,6 +58,14 @@ class RealtimeSyncService {
       _controller.add(_normalizeEvent('batch_sync', data));
     });
 
+    _socket!.on('unread_count_update', (dynamic data) {
+      _controller.add(_normalizeEvent('unread_count_update', data));
+    });
+
+    _socket!.on('new_message', (dynamic data) {
+      _controller.add(_normalizeEvent('new_message', data));
+    });
+
     _socket!.connect();
   }
 
@@ -66,6 +74,13 @@ class RealtimeSyncService {
     _socket?.dispose();
     _socket = null;
     _connected = false;
+  }
+
+  /// Join a batch-specific room to receive batch_sync events for that batch.
+  void joinBatch(String batchId) {
+    if (_socket != null && _connected) {
+      _socket!.emit('join_batch', batchId);
+    }
   }
 
   void dispose() {
@@ -86,7 +101,10 @@ class RealtimeSyncService {
       return <String, dynamic>{'type': type, ...payload};
     }
     if (payload is Map) {
-      return <String, dynamic>{'type': type, ...payload.map((k, v) => MapEntry(k.toString(), v))};
+      return <String, dynamic>{
+        'type': type,
+        ...payload.map((k, v) => MapEntry(k.toString(), v)),
+      };
     }
     return <String, dynamic>{'type': type, 'payload': payload};
   }

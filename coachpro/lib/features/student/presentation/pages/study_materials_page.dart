@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
@@ -27,15 +28,37 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
   final _types = ['Notes', 'Assignments', 'Videos'];
   final _subjects = ['Recent', 'Physics', 'Chemistry', 'Mathematics'];
 
+  List<Map<String, dynamic>> _batches = [];
+  String? _selectedBatchId;
+  String _selectedBatchName = 'All Batches';
+
   @override
   void initState() {
     super.initState();
-    _materialsFuture = _loadMaterials();
+    _materialsFuture = Future.value([]); // init eagerly
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      final batches = await _studentRepo.getMyBatches();
+      if (mounted) {
+        setState(() {
+          _batches = batches;
+        });
+      }
+    } catch (_) {}
+    
+    if (mounted) {
+      setState(() {
+        _materialsFuture = _loadMaterials();
+      });
+    }
   }
 
   Future<List<_Material>> _loadMaterials() async {
-    final notes = await _studentRepo.getStudyMaterials();
-    final assignments = await _studentRepo.getAssignments();
+    final notes = await _studentRepo.getStudyMaterials(batchId: _selectedBatchId);
+    final assignments = await _studentRepo.getAssignments(batchId: _selectedBatchId);
 
     final noteMaterials = notes
         .map(
@@ -46,7 +69,8 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
             'meta': note['file_size_kb'] != null
                 ? '${note['file_size_kb']} KB'
                 : '',
-            'type': (note['file_type'] ?? 'pdf').toString().toLowerCase(),
+            'type': (note['type'] ?? note['file_type'] ?? 'pdf').toString().toLowerCase(),
+            'url': note['file_url'],
           }),
         )
         .toList();
@@ -61,6 +85,7 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                 ? 'Due: ${assignment['due_date'].toString().split('T').first}'
                 : '',
             'type': 'assignment',
+            'url': assignment['file_url'] ?? assignment['url'],
           }),
         )
         .toList();
@@ -78,14 +103,54 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
         ),
         actions: [
-          IconButton(
-            onPressed: () {
+          PopupMenuButton<String>(
+            icon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _selectedBatchName,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: Colors.white,
+                  ),
+                ),
+                const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white),
+              ],
+            ),
+            position: PopupMenuPosition.under,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            onSelected: (val) {
               HapticFeedback.selectionClick();
-              // Cycle through subject filters
-              setState(() => _selectedSubject = (_selectedSubject + 1) % _subjects.length);
+              setState(() {
+                if (val == 'all') {
+                  _selectedBatchId = null;
+                  _selectedBatchName = 'All Batches';
+                } else {
+                  _selectedBatchId = val;
+                  final b = _batches.firstWhere((e) => (e['id'] ?? '').toString() == val, orElse: () => {});
+                  _selectedBatchName = (b['name'] ?? 'Batch').toString();
+                }
+                _materialsFuture = _loadMaterials();
+              });
             },
-            icon: const Icon(Icons.filter_list),
+            itemBuilder: (context) {
+              return [
+                PopupMenuItem(
+                  value: 'all',
+                  child: Text('All Batches', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                ),
+                ..._batches.map((b) {
+                  final name = (b['name'] ?? 'Batch').toString();
+                  return PopupMenuItem(
+                    value: (b['id'] ?? '').toString(),
+                    child: Text(name, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                  );
+                }),
+              ];
+            },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
@@ -221,10 +286,10 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
 
                 final filtered = materials.where((item) {
                   final typeMatch = selectedType == 'notes'
-                      ? item.type == 'pdf' || item.type == 'note'
+                      ? item.type != 'assignment' && item.type != 'video' && item.type != 'link'
                       : selectedType == 'assignments'
                       ? item.type == 'assignment'
-                      : item.type == 'video';
+                      : item.type == 'video' || item.type == 'link';
 
                   final subjectMatch =
                       selectedSubject == null ||
@@ -263,10 +328,13 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
   Widget _buildMaterialCard(_Material material, int index) {
     return CPPressable(
           onTap: () {
-            if (material.type == 'video') {
-              context.go('/student/video-player');
+            if (material.type == 'video' || material.type == 'link') {
+              context.push('/student/youtube-player', extra: {
+                'videoId': material.url,
+                'title': material.title,
+              });
             } else if (material.type == 'assignment') {
-              context.go('/student/assignment-submit');
+              context.push('/student/assignment-submit');
             }
           },
           child: Container(
@@ -327,15 +395,25 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                   ),
                 ),
                 IconButton(
-                  onPressed: () {
+                  onPressed: () async {
                     HapticFeedback.mediumImpact();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Downloading ${material.title}...'),
-                        backgroundColor: AppColors.electricBlue,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                    final url = material.url;
+                    if (url.isNotEmpty) {
+                      final uri = Uri.tryParse(url);
+                      if (uri != null && await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        return;
+                      }
+                    }
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('No valid URL for ${material.title}'),
+                          backgroundColor: AppColors.error,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
                   },
                   icon: const Icon(
                     Icons.file_download_outlined,
@@ -360,6 +438,7 @@ class _Material {
   final String teacher;
   final String meta;
   final String type;
+  final String url;
   final Color color;
 
   const _Material({
@@ -368,6 +447,7 @@ class _Material {
     required this.teacher,
     required this.meta,
     required this.type,
+    required this.url,
     required this.color,
   });
 
@@ -394,6 +474,7 @@ class _Material {
       teacher: (map['teacherName'] ?? 'Teacher').toString(),
       meta: (map['meta'] ?? map['size'] ?? '').toString(),
       type: (map['type'] ?? 'pdf').toString().toLowerCase(),
+      url: (map['url'] ?? '').toString(),
       color: color,
     );
   }

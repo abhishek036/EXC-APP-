@@ -7,7 +7,6 @@ import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_animated_ring.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../features/shared/presentation/widgets/global_search_overlay.dart';
 import '../../../../features/student/data/repositories/student_repository.dart';
 import '../../../../core/di/injection_container.dart';
 
@@ -33,6 +32,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   Map<String, dynamic>? _dashboardData;
   bool _isLoading = true;
   String? _error;
+  int _unreadCount = 0;
 
   @override
   void initState() {
@@ -48,12 +48,42 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       if (!mounted) return;
       final type = (event['type'] ?? '').toString();
       final reason = (event['reason'] ?? '').toString().toLowerCase();
-      if (type == 'dashboard_sync' ||
-          type == 'batch_sync' ||
-          reason.contains('attendance')) {
-        _loadDashboard();
+      if (type == 'notification' ||
+          type == 'broadcast' ||
+          reason.contains('notification') ||
+          reason.contains('announcement')) {
+        _checkNotifications();
+      }
+      if (type == 'unread_count_update') {
+        final count = (event['unread_count'] as num?)?.toInt() ?? 0;
+        if (mounted) setState(() => _unreadCount = count);
+      }
+      // Refresh dashboard on schedule/data changes
+      if (type == 'batch_sync' || type == 'dashboard_sync') {
+        if (reason.contains('lecture') ||
+            reason.contains('schedule') ||
+            reason.contains('attendance') ||
+            reason.contains('assignment') ||
+            reason.contains('doubt') ||
+            reason.contains('quiz') ||
+            reason.contains('fee') ||
+            reason.contains('exam') ||
+            reason.contains('student')) {
+          _loadDashboard();
+        }
       }
     });
+  }
+
+  Future<void> _checkNotifications() async {
+    try {
+      final count = await _studentRepo.getUnreadCount();
+      if (mounted) {
+        setState(() {
+          _unreadCount = count;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadDashboard() async {
@@ -63,8 +93,10 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     });
     try {
       final data = await _studentRepo.getDashboardStats();
+      final count = await _studentRepo.getUnreadCount();
       setState(() {
         _dashboardData = data;
+        _unreadCount = count;
         _isLoading = false;
       });
     } catch (e) {
@@ -182,7 +214,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       const SizedBox(height: 32),
                       _buildSectionHeader(
                         "Exam Center",
-                        () => context.go('/student/exam-calendar'),
+                        () => context.push('/student/exam-calendar'),
                         isDark,
                       ),
                       const SizedBox(height: 16),
@@ -194,7 +226,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       const SizedBox(height: 48),
                       _buildSectionHeader(
                         "Performance Stats",
-                        () => context.go('/student/results'),
+                        () => context.push('/student/results'),
                         isDark,
                       ),
                       const SizedBox(height: 16),
@@ -204,7 +236,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       const SizedBox(height: 32),
                       _buildSectionHeader(
                         "Notice Board",
-                        () => context.go('/student/announcements'),
+                        () => context.push('/student/announcements'),
                         isDark,
                       ),
                       const SizedBox(height: 16),
@@ -353,7 +385,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.go('/student/video-player');
+                      context.go('/student/video-lectures');
                     },
                   ),
                   _drawerTile(
@@ -504,11 +536,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             ],
           ),
         ),
-        _appBarAction(Icons.search_rounded, () {
-          HapticFeedback.mediumImpact();
-          GlobalSearchOverlay.show(context);
-        }, isDark),
-        const SizedBox(width: 8),
+
         _appBarAction(
           Icons.notifications_none_rounded,
           () {
@@ -516,7 +544,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             context.go('/student/notifications');
           },
           isDark,
-          badge: true,
+          badge: _unreadCount > 0,
         ),
       ],
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);
@@ -857,8 +885,16 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     if (exams.isEmpty) return const SizedBox.shrink();
 
     final exam = exams.first;
-    final date = DateTime.tryParse(exam['exam_date'] ?? '') ?? DateTime.now();
-    final diff = date.difference(DateTime.now()).inDays.abs();
+    final date =
+        DateTime.tryParse(exam['exam_date'] ?? '')?.toLocal() ?? DateTime.now();
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final examDay = DateTime(date.year, date.month, date.day);
+
+    final diffRaw = examDay.difference(today).inDays;
+    final isPast = diffRaw < 0;
+    final diff = diffRaw.abs();
 
     return CPPressable(
           onTap: () => context.go('/student/exam-calendar'),
@@ -883,7 +919,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          'UPCOMING',
+                          isPast ? 'COMPLETED' : 'UPCOMING',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
@@ -940,7 +976,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'DAYS',
+                        isPast ? 'AGO' : 'DAYS',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
@@ -987,7 +1023,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         'icon': Icons.assignment_rounded,
         'label': 'Assign.',
         'color': AppColors.coralRed,
-        'route': '/student/assignment',
+        'route': '/student/assignment-submit',
       },
       {
         'icon': Icons.class_rounded,
@@ -1320,7 +1356,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     Color c,
     bool isDark,
   ) => CPPressable(
-    onTap: () => ctx.push('/announcements'),
+    onTap: () => ctx.push('/student/announcements'),
     child: _neoContainer(
       isDark: isDark,
       padding: const EdgeInsets.all(16),

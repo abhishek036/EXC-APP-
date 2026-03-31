@@ -1,9 +1,13 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/cloud_storage_service.dart';
 import '../../data/repositories/teacher_repository.dart';
 
 class CreateQuizPage extends StatefulWidget {
@@ -26,6 +30,7 @@ class CreateQuizPage extends StatefulWidget {
 
 class _CreateQuizPageState extends State<CreateQuizPage> {
   final _repo = sl<TeacherRepository>();
+  final _storage = sl<CloudStorageService>();
 
   bool _isLoadingBatches = true;
   List<Map<String, dynamic>> _batches = [];
@@ -66,8 +71,8 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
     super.initState();
     _assessmentType =
         (widget.initialAssessmentType ?? 'QUIZ').toUpperCase() == 'TEST'
-        ? 'TEST'
-        : 'QUIZ';
+            ? 'TEST'
+            : 'QUIZ';
     _allowRetry = _assessmentType == 'QUIZ';
     _showInstantResult = _assessmentType == 'QUIZ';
     if (widget.initialSubject != null &&
@@ -112,9 +117,16 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
 
   void _clearQuestions() {
     for (final item in _questions) {
-      (item['question'] as TextEditingController).dispose();
-      for (final ctrl in (item['options'] as List<TextEditingController>)) {
-        ctrl.dispose();
+      if (item['question'] is TextEditingController) {
+        (item['question'] as TextEditingController).dispose();
+      }
+      final options = item['options'] as List;
+      for (final opt in options) {
+        if (opt is Map && opt['text'] is TextEditingController) {
+          (opt['text'] as TextEditingController).dispose();
+        } else if (opt is TextEditingController) {
+          opt.dispose();
+        }
       }
     }
     _questions.clear();
@@ -138,19 +150,32 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           'question': TextEditingController(
             text: (question['question_text'] ?? '').toString(),
           ),
+          'image_url': (question['image_url'] ?? '').toString(),
           'options': [
-            TextEditingController(
-              text: (question['option_a'] ?? '').toString(),
-            ),
-            TextEditingController(
-              text: (question['option_b'] ?? '').toString(),
-            ),
-            TextEditingController(
-              text: (question['option_c'] ?? '').toString(),
-            ),
-            TextEditingController(
-              text: (question['option_d'] ?? '').toString(),
-            ),
+            {
+              'text': TextEditingController(
+                text: (question['option_a'] ?? '').toString(),
+              ),
+              'image_url': (question['option_a_image'] ?? '').toString(),
+            },
+            {
+              'text': TextEditingController(
+                text: (question['option_b'] ?? '').toString(),
+              ),
+              'image_url': (question['option_b_image'] ?? '').toString(),
+            },
+            {
+              'text': TextEditingController(
+                text: (question['option_c'] ?? '').toString(),
+              ),
+              'image_url': (question['option_c_image'] ?? '').toString(),
+            },
+            {
+              'text': TextEditingController(
+                text: (question['option_d'] ?? '').toString(),
+              ),
+              'image_url': (question['option_d_image'] ?? '').toString(),
+            },
           ],
           'correct_index':
               optionToIndex[(question['correct_option'] ?? 'A')
@@ -207,16 +232,53 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
     setState(() {
       _questions.add({
         'question': TextEditingController(),
-        'options': [
-          TextEditingController(),
-          TextEditingController(),
-          TextEditingController(),
-          TextEditingController(),
-        ],
+        'image_url': '',
+        'options': List.generate(
+          4,
+          (index) => {
+            'text': TextEditingController(),
+            'image_url': '',
+          },
+        ),
         'correct_index': 0,
         'marks': '4',
       });
     });
+  }
+
+  Future<void> _pickQuestionImage(int qIndex, {int? oIndex}) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        setState(() => _isPublishing = true);
+
+        String url;
+        if (kIsWeb) {
+          url = await _storage.uploadBytes(file.bytes!, 'quizzes', file.name);
+        } else {
+          url = await _storage.uploadFile(File(file.path!), 'quizzes');
+        }
+
+        setState(() {
+          if (oIndex == null) {
+            _questions[qIndex]['image_url'] = url;
+          } else {
+            (_questions[qIndex]['options'] as List)[oIndex]['image_url'] = url;
+          }
+          _isPublishing = false;
+        });
+      }
+    } catch (e) {
+      setState(() => _isPublishing = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+      }
+    }
   }
 
   Future<void> _publishQuiz() async {
@@ -242,52 +304,42 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
     for (int i = 0; i < _questions.length; i++) {
       final qMap = _questions[i];
       final qText = (qMap['question'] as TextEditingController).text.trim();
-      final optCtrls = qMap['options'] as List<TextEditingController>;
-      final opts = optCtrls.map((c) => c.text.trim()).toList();
+      final options = qMap['options'] as List;
       final correctIdx = qMap['correct_index'] as int;
+      final imageUrl = qMap['image_url'] as String?;
 
-      if (qText.isEmpty || opts.any((o) => o.isEmpty)) {
+      final optTexts = <String>[];
+      final optImages = <String>[];
+
+      for (final opt in options) {
+        final text = (opt['text'] as TextEditingController).text.trim();
+        optTexts.add(text);
+        optImages.add((opt['image_url'] as String?) ?? '');
+      }
+
+      if (qText.isEmpty || optTexts.any((o) => o.isEmpty)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Please fill all fields in Question ${i + 1}.'),
+            content: Text('Please fill all text fields in Question ${i + 1}.'),
           ),
         );
         return;
       }
       parsedQuestions.add({
         'question_text': qText,
-        'options': opts,
+        'image_url': imageUrl,
+        'options': optTexts,
+        'option_a_image': optImages[0],
+        'option_b_image': optImages[1],
+        'option_c_image': optImages[2],
+        'option_d_image': optImages[3],
         'correct_option_index': correctIdx,
         'marks': int.tryParse(qMap['marks'].toString()) ?? 4,
         'type': 'multiple_choice',
       });
     }
 
-    if (_assessmentType == 'QUIZ' &&
-        (parsedQuestions.length < 5 || parsedQuestions.length > 20)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Quiz mode requires 5-20 questions.')),
-      );
-      return;
-    }
-
-    if (_assessmentType == 'TEST' &&
-        (parsedQuestions.length < 50 || parsedQuestions.length > 200)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Test mode requires 50-200 questions.')),
-      );
-      return;
-    }
-
     if (parsedQuestions.isEmpty) return;
-    if (parsedQuestions.length < 5 || parsedQuestions.length > 20) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Quiz must contain 5 to 20 questions')),
-        );
-      }
-      return;
-    }
 
     setState(() => _isPublishing = true);
     try {
@@ -751,6 +803,8 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
     Color yellow,
   ) {
     final qMap = _questions[index];
+    final imageUrl = qMap['image_url'] as String?;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       padding: const EdgeInsets.all(24),
@@ -783,26 +837,75 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                   ),
                 ),
               ),
-              if (_questions.length > 1)
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: AppColors.coralRed,
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      imageUrl != null && imageUrl.isNotEmpty
+                          ? Icons.image_rounded
+                          : Icons.add_photo_alternate_rounded,
+                      color: imageUrl != null && imageUrl.isNotEmpty
+                          ? blue
+                          : blue.withValues(alpha: 0.5),
+                    ),
+                    onPressed: () => _pickQuestionImage(index),
+                    tooltip: 'Add Question Image',
                   ),
-                  onPressed: () {
-                    final removed = _questions.removeAt(index);
-                    (removed['question'] as TextEditingController).dispose();
-                    for (final ctrl
-                        in (removed['options']
-                            as List<TextEditingController>)) {
-                      ctrl.dispose();
-                    }
-                    setState(() {});
-                  },
-                ),
+                  if (_questions.length > 1)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: AppColors.coralRed,
+                      ),
+                      onPressed: () {
+                        final removed = _questions.removeAt(index);
+                        (removed['question'] as TextEditingController).dispose();
+                        for (final ctrl
+                            in (removed['options']
+                                as List<TextEditingController>)) {
+                          ctrl.dispose();
+                        }
+                        setState(() {});
+                      },
+                    ),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 16),
+          if (imageUrl != null && imageUrl.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              height: 150,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: blue, width: 2),
+                image: DecorationImage(
+                  image: NetworkImage(imageUrl),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: () => setState(() => qMap['image_url'] = ''),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, size: 16, color: Colors.red),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           _textField(qMap['question'], 'ENTER QUESTION...', blue, maxLines: 2),
           const SizedBox(height: 20),
           _inputLabel('OPTIONS', blue),
@@ -814,34 +917,90 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
 
   Widget _optionRow(int qIdx, int oIdx, Color blue, Color yellow) {
     final qMap = _questions[qIdx];
+    final option = (qMap['options'] as List)[oIdx];
     final isCorrect = qMap['correct_index'] == oIdx;
+    final optImageUrl = option['image_url'] as String?;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            onTap: () => setState(() => qMap['correct_index'] = oIdx),
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: isCorrect ? yellow : Colors.white,
-                border: Border.all(color: blue, width: 2),
-                shape: BoxShape.circle,
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => setState(() => qMap['correct_index'] = oIdx),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: isCorrect ? yellow : Colors.white,
+                    border: Border.all(color: blue, width: 2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: isCorrect
+                      ? Icon(Icons.check_rounded, size: 18, color: blue)
+                      : null,
+                ),
               ),
-              child: isCorrect
-                  ? Icon(Icons.check_rounded, size: 18, color: blue)
-                  : null,
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _textField(
+                  option['text'] as TextEditingController,
+                  'OPTION ${String.fromCharCode(65 + oIdx)}',
+                  blue,
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: Icon(
+                  optImageUrl != null && optImageUrl.isNotEmpty
+                      ? Icons.image_rounded
+                      : Icons.add_photo_alternate_rounded,
+                  color: optImageUrl != null && optImageUrl.isNotEmpty
+                      ? blue
+                      : blue.withValues(alpha: 0.5),
+                ),
+                onPressed: () => _pickQuestionImage(qIdx, oIndex: oIdx),
+                tooltip: 'Add Option Image',
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _textField(
-              qMap['options'][oIdx],
-              'OPTION ${String.fromCharCode(65 + oIdx)}',
-              blue,
+          if (optImageUrl != null && optImageUrl.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 44, top: 4, bottom: 8),
+              child: Stack(
+                children: [
+                  Container(
+                    height: 100,
+                    width: 200,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: blue, width: 2),
+                      image: DecorationImage(
+                        image: NetworkImage(optImageUrl),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: GestureDetector(
+                      onTap: () => setState(() => option['image_url'] = ''),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, size: 14, color: Colors.red),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
