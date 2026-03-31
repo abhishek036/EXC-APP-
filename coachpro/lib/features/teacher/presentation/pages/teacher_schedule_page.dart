@@ -33,11 +33,21 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   Timer? _reloadDebounce;
 
   String _dateKey(DateTime value) {
-    final local = value.toLocal();
-    final year = local.year.toString().padLeft(4, '0');
-    final month = local.month.toString().padLeft(2, '0');
-    final day = local.day.toString().padLeft(2, '0');
+    // Standardize to IST for keying
+    final ist = value.toUtc().add(const Duration(hours: 5, minutes: 30));
+    final year = ist.year.toString().padLeft(4, '0');
+    final month = ist.month.toString().padLeft(2, '0');
+    final day = ist.day.toString().padLeft(2, '0');
     return '$year-$month-$day';
+  }
+
+  String _toIstStr(dynamic raw) {
+      if (raw == null) return '--:--';
+      final d = raw is DateTime ? raw : DateTime.tryParse(raw.toString());
+      if (d == null) return '--:--';
+      // IST is UTC + 5:30
+      final ist = d.toUtc().add(const Duration(hours: 5, minutes: 30));
+      return '${ist.hour.toString().padLeft(2, '0')}:${ist.minute.toString().padLeft(2, '0')}';
   }
 
   bool _matchesSelectedDate(dynamic rawDate) {
@@ -452,17 +462,11 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     Color surface,
     Color yellow,
   ) {
-    final scheduled = DateTime.tryParse(
-      (item['scheduled_at'] ?? '').toString(),
-    );
-    final start = scheduled != null
-        ? '${scheduled.hour.toString().padLeft(2, '0')}:${scheduled.minute.toString().padLeft(2, '0')}'
-        : '--';
+    final start = _toIstStr(item['scheduled_at']);
+    final scheduled = DateTime.tryParse((item['scheduled_at'] ?? '').toString());
     final duration = (item['duration_minutes'] ?? 60) as num;
     final endTime = scheduled?.add(Duration(minutes: duration.toInt()));
-    final end = endTime == null
-        ? '--'
-        : '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
+    final end = _toIstStr(endTime);
 
     final batch = item['batch'] as Map?;
     final name =
@@ -562,10 +566,10 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     final now = DateTime.now();
     // Round to next hour for cleaner default timing
     DateTime scheduledAt;
+    List<DateTime> multiDates = [];
     if (item != null) {
       scheduledAt = DateTime.tryParse(item['scheduled_at']?.toString() ?? '') ?? now;
     } else {
-      // Default to the next full hour (e.g., if it's 7:07 PM, default to 8:00 PM)
       scheduledAt = DateTime(
         _selectedDate.year,
         _selectedDate.month,
@@ -573,6 +577,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         now.hour + 1,
         0,
       );
+      multiDates = [scheduledAt];
     }
 
     await showModalBottomSheet<void>(
@@ -584,6 +589,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
           builder: (ctx, setModal) {
             const blue = Color(0xFF0D1282);
             const offWhite = Color(0xFFEEEDED);
+            const yellow = Color(0xFFF0DE36);
 
             return Container(
               padding: EdgeInsets.fromLTRB(
@@ -682,84 +688,83 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                         final date = await showDatePicker(
                           context: ctx,
                           initialDate: scheduledAt,
-                          firstDate: DateTime.now().subtract(
-                            const Duration(days: 365),
-                          ),
-                          lastDate: DateTime.now().add(
-                            const Duration(days: 365),
-                          ),
-                          builder: (context, child) => Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: blue,
-                              ),
-                            ),
-                            child: child!,
-                          ),
+                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
                         );
                         if (date == null) return;
                         if (!ctx.mounted) return;
                         final time = await showTimePicker(
                           context: ctx,
                           initialTime: TimeOfDay.fromDateTime(scheduledAt),
-                          builder: (context, child) => Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: blue,
-                              ),
-                            ),
-                            child: child!,
-                          ),
                         );
                         if (time == null) return;
                         setModal(() {
-                          scheduledAt = DateTime(
-                            date.year,
-                            date.month,
-                            date.day,
-                            time.hour,
-                            time.minute,
-                          );
+                          scheduledAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                          if (!isEdit) {
+                              // If not editing, reset multi-dates to match the new start date
+                              multiDates = [scheduledAt];
+                          }
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           border: Border.all(color: blue, width: 2),
-                          boxShadow: const [
-                            BoxShadow(color: blue, offset: Offset(3, 3)),
-                          ],
+                          boxShadow: const [BoxShadow(color: blue, offset: Offset(3, 3))],
                         ),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.calendar_today_rounded,
-                              size: 18,
-                              color: blue,
-                            ),
+                            const Icon(Icons.calendar_today_rounded, size: 18, color: blue),
                             const SizedBox(width: 12),
                             Text(
-                              '${scheduledAt.day.toString().padLeft(2, '0')}/${scheduledAt.month.toString().padLeft(2, '0')} @ ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontWeight: FontWeight.w800,
-                                color: blue,
-                                fontSize: 14,
-                              ),
+                              '${scheduledAt.day.toString().padLeft(2, '0')}/${scheduledAt.month.toString().padLeft(2, '0')} @ ${_toIstStr(scheduledAt)} (IST)',
+                              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: blue, fontSize: 13),
                             ),
                             const Spacer(),
-                            const Icon(
-                              Icons.edit_rounded,
-                              size: 16,
-                              color: blue,
-                            ),
+                            const Icon(Icons.edit_rounded, size: 16, color: blue),
                           ],
                         ),
                       ),
                     ),
+
+                    if (!isEdit) ...[
+                        const SizedBox(height: 20),
+                        _sheetLabel('ALSO SCHEDULE FOR OTHER DAYS'),
+                        const SizedBox(height: 8),
+                        Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                                for(int i=1; i<7; i++) 
+                                    Builder(builder: (c) {
+                                        final d = scheduledAt.add(Duration(days: i));
+                                        final isSel = multiDates.any((md) => md.year == d.year && md.month == d.month && md.day == d.day);
+                                        return CPPressable(
+                                            onTap: () => setModal(() {
+                                                if(isSel) {
+                                                    multiDates.removeWhere((md) => md.year == d.year && md.month == d.month && md.day == d.day);
+                                                } else {
+                                                    multiDates.add(DateTime(d.year, d.month, d.day, scheduledAt.hour, scheduledAt.minute));
+                                                }
+                                            }),
+                                            child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                decoration: BoxDecoration(
+                                                    color: isSel ? yellow : Colors.white,
+                                                    border: Border.all(color: blue, width: 2),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                    '${_dayShort(d.weekday)} ${d.day}',
+                                                    style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: blue),
+                                                ),
+                                            ),
+                                        );
+                                    }),
+                            ],
+                        ),
+                    ],
 
                     const SizedBox(height: 32),
 
@@ -834,6 +839,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                                   title: title,
                                   scheduledAt: scheduledAt,
                                   durationMinutes: dur,
+                                  dates: multiDates,
                                 );
                                 if (success && ctx.mounted) Navigator.pop(ctx);
                               }
@@ -1060,6 +1066,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     required String title,
     required DateTime scheduledAt,
     required int durationMinutes,
+    List<DateTime>? dates,
   }) async {
     setState(() {
       _isSaving = true;
@@ -1075,6 +1082,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         title: title,
         scheduledAt: scheduledAt,
         durationMinutes: durationMinutes,
+        dates: dates,
       );
       if (!mounted) return true;
 

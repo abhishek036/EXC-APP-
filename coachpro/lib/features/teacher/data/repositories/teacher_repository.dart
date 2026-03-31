@@ -110,12 +110,14 @@ class TeacherRepository {
     required String title,
     required DateTime scheduledAt,
     required int durationMinutes,
+    List<DateTime>? dates,
   }) async {
     final response = await _api.dio.post('timetable/teacher/me', data: {
       'batch_id': batchId,
       'title': title,
       'scheduled_at': scheduledAt.toUtc().toIso8601String(),
       'duration_minutes': durationMinutes,
+      if (dates != null) 'dates': dates.map((d) => d.toUtc().toIso8601String()).toList(),
     });
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});

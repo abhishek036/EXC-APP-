@@ -52,11 +52,12 @@ class StudentRepository {
   }
 
   // ── Schedule / Timetable ─────────────────────────────────
-  Future<List<Map<String, dynamic>>> getTodaySchedule({int? dayIndex}) async {
+  Future<List<Map<String, dynamic>>> getTodaySchedule({int? dayIndex, DateTime? date}) async {
     final response = await _api.dio.get(
       'students/me/schedule/today',
       queryParameters: {
-        'day': ?dayIndex,
+        if (dayIndex != null) 'day': dayIndex,
+        if (date != null) 'date': date.toIso8601String(),
       },
     );
     if (response.statusCode == 200) {

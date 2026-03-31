@@ -70,7 +70,7 @@ class _TimetablePageState extends State<TimetablePage> {
       final flutterWeekday = _selectedDayIndex + 1; // 1 to 7
       final jsDay = flutterWeekday == 7 ? 0 : flutterWeekday;
 
-      final data = await _studentRepo.getTodaySchedule(dayIndex: jsDay);
+      final data = await _studentRepo.getTodaySchedule(dayIndex: jsDay, date: _selectedDate);
       setState(() {
         _todaySchedule = data;
         _isLoading = false;
