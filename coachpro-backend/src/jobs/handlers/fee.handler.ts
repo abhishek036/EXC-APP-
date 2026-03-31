@@ -78,6 +78,46 @@ export class FeeHandler {
       const student = record.student;
       const primaryParent = student.parent_students.find(ps => ps.is_primary)?.parent;
       
+      const remainingAmount = Number(record.final_amount); 
+      
+      // 🔔 PUSH NOTIFICATION (Parent)
+      if (primaryParent?.user_id) {
+          try {
+              const { NotificationService } = await import('../../modules/notification/notification.service');
+              await NotificationService.sendNotificationToUser(primaryParent.user_id, {
+                  title: 'Fee Payment Reminder',
+                  body: `Payment of ₹${remainingAmount} for ${student.name} is due by ${record.due_date.toDateString()}.`,
+                  type: 'fee',
+                  role_target: 'parent',
+                  institute_id: record.institute_id,
+                  meta: {
+                      route: '/parent/fees',
+                      fee_record_id: record.id,
+                      dedupe_key: `fee:${record.id}:${primaryParent.user_id}:${today.toISOString().split('T')[0]}`,
+                  },
+              });
+          } catch {}
+      }
+
+      // 🔔 PUSH NOTIFICATION (Student)
+      if (student.user_id) {
+          try {
+              const { NotificationService } = await import('../../modules/notification/notification.service');
+              await NotificationService.sendNotificationToUser(student.user_id, {
+                  title: 'Fee Payment Reminder',
+                  body: `Your fee payment of ₹${remainingAmount} is due by ${record.due_date.toDateString()}.`,
+                  type: 'fee',
+                  role_target: 'student',
+                  institute_id: record.institute_id,
+                  meta: {
+                      route: '/student/fees',
+                      fee_record_id: record.id,
+                      dedupe_key: `fee:${record.id}:${student.user_id}:${today.toISOString().split('T')[0]}`,
+                  },
+              });
+          } catch {}
+      }
+
       if (primaryParent && primaryParent.phone) {
         const remainingAmount = Number(record.final_amount); // Simplified for now, should subtract payments
         
