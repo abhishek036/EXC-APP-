@@ -1,7 +1,7 @@
 {
   "name": "coachpro-backend",
-  "version": "1.0.0",
-  "description": "CoachPro Multi-tenant SaaS API",
+  "version": "1.1.0",
+  "description": "CoachPro Backend Service",
   "main": "dist/server.js",
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
