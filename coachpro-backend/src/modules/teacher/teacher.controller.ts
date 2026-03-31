@@ -4,12 +4,15 @@ import { sendResponse } from '../../utils/response';
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
 import { emitBatchSync } from '../../config/socket';
+import { TimetableService } from '../timetable/timetable.service';
 
 export class TeacherController {
   private teacherService: TeacherService;
+  private timetableService: TimetableService;
 
   constructor() {
     this.teacherService = new TeacherService();
+    this.timetableService = new TimetableService();
   }
 
   list = async (req: Request, res: Response, next: NextFunction) => {
@@ -115,10 +118,11 @@ export class TeacherController {
         batches,
         pendingDoubts,
         assignmentsToReview,
-        testsToReview,
-        weeklyAttendanceSessions,
+        quizAttempts,
+        classesThisWeekCount,
         upcomingExams,
-        recentQuizzes
+        recentQuizzes,
+        todaySchedules
       ] = await Promise.all([
         // My batches
         prisma.batch.findMany({
@@ -159,10 +163,11 @@ export class TeacherController {
           where: {
             teacher_id: teacherId,
             institute_id: instituteId,
-            session_date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+            session_date: {
+              gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+            }
           }
         }),
-        // Upcoming exams for my batches
         prisma.exam.findMany({
           where: {
             institute_id: instituteId,
@@ -170,22 +175,21 @@ export class TeacherController {
             batches: { some: { batch: { teacher_id: teacherId } } }
           },
           orderBy: { exam_date: 'asc' },
-          take: 5,
-          include: { batches: { include: { batch: { select: { name: true } } } } }
+          take: 3
         }),
-        // Recent quizzes
         prisma.quiz.findMany({
-          where: { teacher_id: teacherId, institute_id: instituteId },
+          where: {
+            institute_id: instituteId,
+            teacher_id: teacherId,
+          },
           orderBy: { created_at: 'desc' },
-          take: 5,
-          include: { _count: { select: { attempts: true } }, batch: { select: { name: true } } }
-        })
+          take: 3
+        }),
+        this.timetableService.getTeacherScheduleByUser(
+          teacherId,
+          req.instituteId!
+        )
       ]);
-
-      const timeline = await new (require('../timetable/timetable.service').TimetableService)().getTeacherScheduleByUser(
-        req.user!.userId,
-        req.instituteId!
-      );
 
       const totalStudentsAcrossBatches = batches.reduce((sum, b) => sum + b._count.student_batches, 0);
 
@@ -203,35 +207,31 @@ export class TeacherController {
             days_of_week: b.days_of_week,
             student_count: b._count.student_batches
           })),
+          schedules: todaySchedules,
           stats: {
             total_batches: batches.length,
             total_students: totalStudentsAcrossBatches,
             pending_doubts: pendingDoubts,
             assignments_to_review: assignmentsToReview,
-            tests_to_review: testsToReview,
-            classes_this_week: weeklyAttendanceSessions,
-            upcoming_exams_count: upcomingExams.length,
+            quiz_attempts: quizAttempts,
+            classes_this_week: classesThisWeekCount
           },
-          schedules: timeline,
           upcoming_exams: upcomingExams.map(e => ({
             id: e.id,
             title: e.title,
             subject: e.subject,
             exam_date: e.exam_date,
-            total_marks: e.total_marks,
-            batches: e.batches.map(eb => eb.batch.name)
+            total_marks: e.total_marks
           })),
           recent_quizzes: recentQuizzes.map(q => ({
             id: q.id,
             title: q.title,
             subject: q.subject,
-            batch_name: q.batch.name,
             is_published: q.is_published,
-            attempts_count: q._count.attempts,
             created_at: q.created_at
           }))
         },
-        message: 'Teacher dashboard fetched'
+        message: 'Teacher Dashboard Stats fetched'
       });
     } catch (error) { next(error); }
   };
