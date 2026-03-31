@@ -39,7 +39,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: coachpro-backend/
+          retention-days: 1
+          path: |
+            coachpro-backend/dist/
+            coachpro-backend/package.json
+            coachpro-backend/package-lock.json
+            coachpro-backend/prisma/
+            !coachpro-backend/node_modules/
+            !coachpro-backend/cloudflared.exe
 
   deploy:
     runs-on: ubuntu-latest
