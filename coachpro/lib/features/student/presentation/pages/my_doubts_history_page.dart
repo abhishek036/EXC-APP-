@@ -290,7 +290,8 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
                         height: 1.4,
                       ),
                     ),
-                    if (isResolved && doubt['answerText'] != null) ...[
+                    final answer = doubt['answer_text'] ?? doubt['answerText'];
+                    if (isResolved && answer != null) ...[
                       const SizedBox(height: 16),
                       Container(
                         width: double.infinity,
@@ -324,7 +325,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              doubt['answerText'].toString(),
+                              answer.toString(),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,

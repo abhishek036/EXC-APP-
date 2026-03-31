@@ -58,7 +58,35 @@ export class DoubtService {
       resolved_at: new Date(),
     };
 
-    return DoubtRepository.update(id, instituteId, updateData);
+    const result = await DoubtRepository.update(id, instituteId, updateData);
+
+    // 4. Notify Student
+    try {
+      const fullDoubt = await prisma.doubt.findUnique({
+        where: { id },
+        include: { student: { select: { user_id: true } } }
+      });
+      if (fullDoubt?.student?.user_id) {
+        await (async () => {
+             const { NotificationService } = require('../notification/notification.service');
+             await NotificationService.sendNotificationToUser(fullDoubt.student.user_id, {
+               title: 'Doubt Answered',
+               body: `A teacher has replied to your doubt: "${fullDoubt.question_text.substring(0, 50)}..."`,
+               type: 'doubt',
+               role_target: 'student',
+               institute_id: instituteId,
+               meta: {
+                 route: '/student/doubts/history',
+                 doubt_id: id
+               }
+             });
+        })();
+      }
+    } catch (e) {
+      console.error('[DoubtService] Push failed:', e);
+    }
+
+    return result;
   }
 
   static async resolveDoubt(id: string, instituteId: string) {

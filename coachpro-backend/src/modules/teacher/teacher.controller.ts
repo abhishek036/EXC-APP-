@@ -567,10 +567,12 @@ export class TeacherController {
         if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
         const now = new Date();
+        // Standardize IST Day: 1=Mon, 7=Sun
         const istDate = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
-        const dayMapping = istDate.getUTCDay() === 0 ? 0 : istDate.getUTCDay(); // 0 is Sunday
+        const dayIndex = istDate.getUTCDay();
+        const dayMapping = dayIndex === 0 ? 7 : dayIndex;
         
-        // 1. Recurring schedules from the Batch model
+        // 1. Recurring schedules
         const recurringBatches = await prisma.batch.findMany({
             where: {
                 teacher_id: teacher.id,
@@ -580,26 +582,26 @@ export class TeacherController {
             }
         });
 
-        const formattedRecurring = recurringBatches.map(b => {
-             const formatRawTime = (date: Date | null) => {
-                 if (!date) return '00:00';
-                 return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
-             };
-             return {
-                 id: `recurring-${b.id}-${dayMapping}`,
-                 batch_id: b.id,
-                 name: b.name,
-                 subject: b.subject,
-                 start_time: formatRawTime(b.start_time),
-                 end_time: formatRawTime(b.end_time),
-                 room: b.room || 'Online',
-                 is_recurring: true
-             };
-        });
+        // Use standard time formatting
+        const formatRawTime = (date: Date | null) => {
+            if (!date) return '00:00';
+            return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
+        };
+
+        const formattedRecurring = recurringBatches.map(b => ({
+            id: `recurring-${b.id}-${dayMapping}`,
+            batch_id: b.id,
+            name: b.name,
+            subject: b.subject,
+            start_time: formatRawTime(b.start_time),
+            end_time: formatRawTime(b.end_time),
+            room: b.room || 'Online',
+            is_recurring: true
+        }));
 
         // 2. One-off Lecture records
-        const istTodayStart = new Date(now.setHours(0, 0, 0, 0));
-        const istTodayEnd = new Date(now.setHours(23, 59, 59, 999));
+        const istTodayStart = new Date(new Date(now).setHours(0, 0, 0, 0));
+        const istTodayEnd = new Date(new Date(now).setHours(23, 59, 59, 999));
 
         const actualLectures = await prisma.lecture.findMany({
             where: {
