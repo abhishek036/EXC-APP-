@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -57,7 +56,10 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
   Future<void> _pickImage() async {
     try {
       final picker = ImagePicker();
-      final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+      );
       if (picked != null) {
         setState(() {
           _selectedImage = picked;
@@ -65,7 +67,9 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
       }
     }
   }
@@ -81,7 +85,9 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
     if (_questionError != null) return;
     if (_selectedBatch == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No batch selected')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No batch selected')));
       }
       return;
     }
@@ -91,7 +97,11 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
       String? imageUrl;
       if (_selectedImage != null) {
         final bytes = await _selectedImage!.readAsBytes();
-        imageUrl = await _storage.uploadBytes(bytes, 'doubts', _selectedImage!.name);
+        imageUrl = await _storage.uploadBytes(
+          bytes,
+          'doubts',
+          _selectedImage!.name,
+        );
       }
 
       await _studentRepo.submitDoubt(
@@ -135,7 +145,13 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
-          onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/student'); } },
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/student');
+            }
+          },
         ),
         title: Text(
           'Ask a Doubt',
@@ -203,7 +219,10 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
             if (_batches.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Text('Loading batches or none found...', style: GoogleFonts.plusJakartaSans(color: CT.textS(context))),
+                child: Text(
+                  'Loading batches or none found...',
+                  style: GoogleFonts.plusJakartaSans(color: CT.textS(context)),
+                ),
               )
             else
               Wrap(
@@ -214,47 +233,47 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
                       (batch) => CPPressable(
                         onTap: () => setState(() => _selectedBatch = batch),
                         child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _selectedBatch == batch
-                              ? AppColors.primary
-                              : CT.card(context),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
                             color: _selectedBatch == batch
                                 ? AppColors.primary
-                                : CT.border(context),
-                          ),
-                          boxShadow: _selectedBatch == batch
-                              ? [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.2,
+                                : CT.card(context),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _selectedBatch == batch
+                                  ? AppColors.primary
+                                  : CT.border(context),
+                            ),
+                            boxShadow: _selectedBatch == batch
+                                ? [
+                                    BoxShadow(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      blurRadius: 0,
                                     ),
-                                    blurRadius: 0,
-                                  ),
-                                ]
-                              : [],
-                        ),
-                        child: Text(
-                          batch['subject'] ?? batch['name'] ?? 'Batch',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: _selectedBatch == batch
-                                ? Colors.white
-                                : CT.textS(context),
+                                  ]
+                                : [],
+                          ),
+                          child: Text(
+                            batch['subject'] ?? batch['name'] ?? 'Batch',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: _selectedBatch == batch
+                                  ? Colors.white
+                                  : CT.textS(context),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  )
-                  .toList(),
-            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
+                    )
+                    .toList(),
+              ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
             const SizedBox(height: 24),
 
             // Question input with validation
@@ -320,41 +339,46 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
             const SizedBox(height: 12),
             GestureDetector(
               onTap: _pickImage,
-              child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    decoration: BoxDecoration(
-                      color: CT.card(context),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: _selectedImage != null 
-                            ? AppColors.primary
-                            : AppColors.primary.withValues(alpha: 0.3),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          _selectedImage != null ? Icons.check_circle : Icons.camera_alt_outlined,
-                          color: AppColors.primary,
-                          size: 32,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _selectedImage != null ? 'Image Attached' : 'Tap to select image',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
+              child:
+                  Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        decoration: BoxDecoration(
+                          color: CT.card(context),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _selectedImage != null
+                                ? AppColors.primary
+                                : AppColors.primary.withValues(alpha: 0.3),
+                            width: 1.5,
                           ),
                         ),
-                      ],
-                    ),
-                  )
-                  .animate(delay: 200.ms)
-                  .fadeIn(duration: 400.ms)
-                  .slideY(begin: 0.05, end: 0),
+                        child: Column(
+                          children: [
+                            Icon(
+                              _selectedImage != null
+                                  ? Icons.check_circle
+                                  : Icons.camera_alt_outlined,
+                              color: AppColors.primary,
+                              size: 32,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _selectedImage != null
+                                  ? 'Image Attached'
+                                  : 'Tap to select image',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                      .animate(delay: 200.ms)
+                      .fadeIn(duration: 400.ms)
+                      .slideY(begin: 0.05, end: 0),
             ),
 
             const SizedBox(height: 40),

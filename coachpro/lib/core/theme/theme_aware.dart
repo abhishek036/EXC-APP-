@@ -14,6 +14,9 @@ mixin ThemeAware<T extends StatefulWidget> on State<T> {
   static const _deepBlueDark = Color(0xFF090D5C);
   static const _offWhite = Color(0xFFEEEDED);
   static const _accentYellow = Color(0xFFF0DE36);
+  static const _successGreen = Color(0xFF2FAE74);
+  static const _errorRed = Color(0xFFD71313);
+  static const _warningAmber = Color(0xFFE3D465);
 
   bool get isDark => Theme.of(context).brightness == Brightness.dark;
 
@@ -32,12 +35,31 @@ mixin ThemeAware<T extends StatefulWidget> on State<T> {
 
   // ── Text ──
   Color get textH => isDark ? _offWhite : _deepBlue;
-  Color get textS => isDark ? _offWhite.withValues(alpha: 0.78) : _deepBlue.withValues(alpha: 0.78);
-  Color get textM => isDark ? _offWhite.withValues(alpha: 0.58) : _deepBlue.withValues(alpha: 0.58);
+  Color get textS => isDark
+      ? _offWhite.withValues(alpha: 0.78)
+      : _deepBlue.withValues(alpha: 0.78);
+  Color get textM => isDark
+      ? _offWhite.withValues(alpha: 0.58)
+      : _deepBlue.withValues(alpha: 0.58);
 
   // ── Accent ──
   Color get accent => _accentYellow;
   Color get onAccent => _deepBlue;
+
+  // ── Status Colors ──
+  Color get success => _successGreen;
+  Color get error => _errorRed;
+  Color get warning => _warningAmber;
+
+  // ── Common UI ──
+  Color get shimmer => isDark ? _deepBlue : _offWhite.withValues(alpha: 0.5);
+  Color get divider => isDark
+      ? _deepBlue.withValues(alpha: 0.3)
+      : _deepBlue.withValues(alpha: 0.15);
+  Color get disabled => isDark
+      ? _offWhite.withValues(alpha: 0.38)
+      : _deepBlue.withValues(alpha: 0.38);
+  Color get inputFill => isDark ? _deepBlueDark : _offWhite;
 
   // ── Card decoration helper ──
   BoxDecoration cardDecor({double radius = 16}) => BoxDecoration(
@@ -65,17 +87,17 @@ class CT {
   static const _deepBlueDark = Color(0xFF090D5C);
   static const _offWhite = Color(0xFFEEEDED);
   static const _accentYellow = Color(0xFFF0DE36);
+  static const _successGreen = Color(0xFF2FAE74);
+  static const _errorRed = Color(0xFFD71313);
+  static const _warningAmber = Color(0xFFE3D465);
 
   static bool isDark(BuildContext c) =>
       Theme.of(c).brightness == Brightness.dark;
 
   // Backgrounds
-  static Color bg(BuildContext c) =>
-      isDark(c) ? _deepBlueDark : _offWhite;
-  static Color card(BuildContext c) =>
-      isDark(c) ? _deepBlue : _offWhite;
-  static Color elevated(BuildContext c) =>
-      isDark(c) ? _deepBlue : Colors.white;
+  static Color bg(BuildContext c) => isDark(c) ? _deepBlueDark : _offWhite;
+  static Color card(BuildContext c) => isDark(c) ? _deepBlue : _offWhite;
+  static Color elevated(BuildContext c) => isDark(c) ? _deepBlue : Colors.white;
 
   // Multi-layer surfaces
   static Color surfaceRecessed(BuildContext c) =>
@@ -86,23 +108,37 @@ class CT {
       isDark(c) ? _deepBlue : Colors.white;
 
   // Borders
-  static Color border(BuildContext c) =>
-      _deepBlue;
+  static Color border(BuildContext c) => _deepBlue;
 
   // Text
-  static Color textH(BuildContext c) =>
-      isDark(c) ? _offWhite : _deepBlue;
-  static Color textS(BuildContext c) =>
-      isDark(c) ? _offWhite.withValues(alpha: 0.78) : _deepBlue.withValues(alpha: 0.78);
+  static Color textH(BuildContext c) => isDark(c) ? _offWhite : _deepBlue;
+  static Color textS(BuildContext c) => isDark(c)
+      ? _offWhite.withValues(alpha: 0.78)
+      : _deepBlue.withValues(alpha: 0.78);
   static Color textM(BuildContext c) => isDark(c)
       ? _offWhite.withValues(alpha: 0.58)
       : _deepBlue.withValues(alpha: 0.58);
 
   // Accent
-  static Color accent(BuildContext c) =>
-      _accentYellow;
-  static Color onAccent(BuildContext c) =>
-      _deepBlue;
+  static Color accent(BuildContext c) => _accentYellow;
+  static Color onAccent(BuildContext c) => _deepBlue;
+
+  // Status Colors
+  static Color success(BuildContext c) => _successGreen;
+  static Color error(BuildContext c) => _errorRed;
+  static Color warning(BuildContext c) => _warningAmber;
+
+  // Common UI
+  static Color shimmer(BuildContext c) =>
+      isDark(c) ? _deepBlue : _offWhite.withValues(alpha: 0.5);
+  static Color divider(BuildContext c) => isDark(c)
+      ? _deepBlue.withValues(alpha: 0.3)
+      : _deepBlue.withValues(alpha: 0.15);
+  static Color disabled(BuildContext c) => isDark(c)
+      ? _offWhite.withValues(alpha: 0.38)
+      : _deepBlue.withValues(alpha: 0.38);
+  static Color inputFill(BuildContext c) =>
+      isDark(c) ? _deepBlueDark : _offWhite;
 
   // ── Card decoration helper ──
   static BoxDecoration cardDecor(BuildContext c, {double radius = 16}) =>

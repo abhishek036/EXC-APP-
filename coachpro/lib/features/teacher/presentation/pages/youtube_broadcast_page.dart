@@ -9,7 +9,8 @@ import '../../../../core/di/injection_container.dart';
 class YoutubeBroadcastPage extends StatefulWidget {
   final String batchId;
 
-  const YoutubeBroadcastPage({Key? key, required this.batchId}) : super(key: key);
+  const YoutubeBroadcastPage({Key? key, required this.batchId})
+    : super(key: key);
 
   @override
   State<YoutubeBroadcastPage> createState() => _YoutubeBroadcastPageState();
@@ -26,6 +27,7 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
 
+  // ignore: unused_field
   String? _broadcastId;
   String? _streamKey;
   String? _streamUrl;
@@ -38,31 +40,45 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
 
   Future<void> _initController() async {
     try {
-       _controller = ApiVideoLiveStreamController(
+      _controller = ApiVideoLiveStreamController(
         initialAudioConfig: AudioConfig(bitrate: 128000),
         initialVideoConfig: VideoConfig.withDefaultBitrate(
           resolution: Resolution.RESOLUTION_720,
         ),
         onConnectionSuccess: () {
           if (mounted) {
-            setState(() { _isStreaming = true; _isLoading = false; });
+            setState(() {
+              _isStreaming = true;
+              _isLoading = false;
+            });
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('YouTube Live Stream Started! 🚀'), backgroundColor: AppColors.success),
+              const SnackBar(
+                content: Text('YouTube Live Stream Started! 🚀'),
+                backgroundColor: AppColors.success,
+              ),
             );
           }
         },
         onConnectionFailed: (error) {
-           if (mounted) {
-             setState(() { _isStreaming = false; _isLoading = false; });
-             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Streaming Failed: $error'), backgroundColor: AppColors.coralRed),
+          if (mounted) {
+            setState(() {
+              _isStreaming = false;
+              _isLoading = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Streaming Failed: $error'),
+                backgroundColor: AppColors.coralRed,
+              ),
             );
-           }
+          }
         },
         onDisconnection: () {
-           if (mounted) {
-             setState(() { _isStreaming = false; });
-           }
+          if (mounted) {
+            setState(() {
+              _isStreaming = false;
+            });
+          }
         },
       );
       await _controller.startPreview();
@@ -85,7 +101,12 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
 
   Future<void> _startLiveStream() async {
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a stream title.',), backgroundColor: AppColors.coralRed));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a stream title.'),
+          backgroundColor: AppColors.coralRed,
+        ),
+      );
       return;
     }
 
@@ -116,12 +137,14 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
 
       // Now we could also automatically save `_broadcastId` to the Database
       // so the students can instantly see the live video on the Dashboard!
-      
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.coralRed),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.coralRed,
+          ),
         );
       }
     }
@@ -145,7 +168,9 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
     if (!_isInit) {
       return const Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: AppColors.moltenAmber)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.moltenAmber),
+        ),
       );
     }
 
@@ -157,111 +182,144 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
           Positioned.fill(
             child: ApiVideoCameraPreview(controller: _controller),
           ),
-          
+
           // Header / Controls Overlay
           SafeArea(
             child: Column(
               children: [
-                 Row(
-                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                   children: [
-                     IconButton(
-                       icon: const Icon(Icons.arrow_back, color: Colors.white),
-                       onPressed: () => Navigator.pop(context),
-                     ),
-                     if (_isStreaming)
-                        Container(
-                          margin: const EdgeInsets.only(right: 16),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.coralRed,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.black, width: 2),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.fiber_manual_record, color: Colors.white, size: 12),
-                              SizedBox(width: 6),
-                              Text('LIVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        )
-                   ],
-                 ),
-
-                 const Spacer(),
-
-                 // Bottom Control Panel
-                 Container(
-                   decoration: const BoxDecoration(
-                     color: AppColors.eliteLightBg,
-                     borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
-                     border: Border(top: BorderSide(color: Colors.black, width: 3)),
-                   ),
-                   padding: const EdgeInsets.all(20),
-                   child: Column(
-                     mainAxisSize: MainAxisSize.min,
-                     children: [
-                        if (!_isStreaming) ...[
-                          CustomTextField(
-                            hint: 'Live Class Topic...',
-                            prefixIcon: Icons.title,
-                            controller: _titleController,
-                          ),
-                          const SizedBox(height: 12),
-                          CustomTextField(
-                            hint: 'Description (Optional)',
-                            prefixIcon: Icons.description,
-                            controller: _descController,
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    if (_isStreaming)
+                      Container(
+                        margin: const EdgeInsets.only(right: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.coralRed,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.black, width: 2),
+                        ),
+                        child: const Row(
                           children: [
-                            IconButton(
-                              style: IconButton.styleFrom(backgroundColor: AppColors.elitePrimary),
-                              icon: const Icon(Icons.cameraswitch, color: Colors.white),
-                              onPressed: _toggleCamera,
+                            Icon(
+                              Icons.fiber_manual_record,
+                              color: Colors.white,
+                              size: 12,
                             ),
-                            
-                            if (!_isStreaming)
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: CustomButton(
-                                    text: _isLoading ? 'CONNECTING...' : 'GO LIVE',
-                                    backgroundColor: AppColors.elitePrimary,
-                                    foregroundColor: Colors.white,
-                                    isLoading: _isLoading,
-                                    onPressed: _isLoading ? () {} : _startLiveStream,
-                                  ),
-                                ),
-                              )
-                            else
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: CustomButton(
-                                    text: 'END STREAM',
-                                    backgroundColor: AppColors.coralRed,
-                                    foregroundColor: Colors.white,
-                                    onPressed: _stopLiveStream,
-                                  ),
-                                ),
+                            SizedBox(width: 6),
+                            Text(
+                              'LIVE',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
-
-                            IconButton(
-                              style: IconButton.styleFrom(backgroundColor: AppColors.elitePrimary),
-                              icon: const Icon(Icons.mic, color: Colors.white),
-                              onPressed: _toggleMicrophone,
                             ),
                           ],
                         ),
-                     ],
-                   ),
-                 )
+                      ),
+                  ],
+                ),
+
+                const Spacer(),
+
+                // Bottom Control Panel
+                Container(
+                  decoration: const BoxDecoration(
+                    color: AppColors.eliteLightBg,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                    border: Border(
+                      top: BorderSide(color: Colors.black, width: 3),
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!_isStreaming) ...[
+                        CustomTextField(
+                          hint: 'Live Class Topic...',
+                          prefixIcon: Icons.title,
+                          controller: _titleController,
+                        ),
+                        const SizedBox(height: 12),
+                        CustomTextField(
+                          hint: 'Description (Optional)',
+                          prefixIcon: Icons.description,
+                          controller: _descController,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          IconButton(
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppColors.elitePrimary,
+                            ),
+                            icon: const Icon(
+                              Icons.cameraswitch,
+                              color: Colors.white,
+                            ),
+                            onPressed: _toggleCamera,
+                          ),
+
+                          if (!_isStreaming)
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                child: CustomButton(
+                                  text: _isLoading
+                                      ? 'CONNECTING...'
+                                      : 'GO LIVE',
+                                  backgroundColor: AppColors.elitePrimary,
+                                  foregroundColor: Colors.white,
+                                  isLoading: _isLoading,
+                                  onPressed: _isLoading
+                                      ? () {}
+                                      : _startLiveStream,
+                                ),
+                              ),
+                            )
+                          else
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                child: CustomButton(
+                                  text: 'END STREAM',
+                                  backgroundColor: AppColors.coralRed,
+                                  foregroundColor: Colors.white,
+                                  onPressed: _stopLiveStream,
+                                ),
+                              ),
+                            ),
+
+                          IconButton(
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppColors.elitePrimary,
+                            ),
+                            icon: const Icon(Icons.mic, color: Colors.white),
+                            onPressed: _toggleMicrophone,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

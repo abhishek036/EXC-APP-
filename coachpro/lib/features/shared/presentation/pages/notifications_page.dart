@@ -4,7 +4,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/theme/theme_aware.dart';
@@ -58,10 +57,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
       if (!mounted) return;
       final type = (event['type'] ?? '').toString();
       final reason = (event['reason'] ?? '').toString().toLowerCase();
-      
-      if (type == 'notification' || 
-          type == 'broadcast' || 
-          reason.contains('notification') || 
+
+      if (type == 'notification' ||
+          type == 'broadcast' ||
+          reason.contains('notification') ||
           reason.contains('announcement')) {
         _fetchNotifications(reset: true);
       }
@@ -145,7 +144,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   Future<void> _markAllRead() async {
     HapticFeedback.mediumImpact();
-    final backup = _notifications.map((n) => Map<String, dynamic>.from(n)).toList();
+    final backup = _notifications
+        .map((n) => Map<String, dynamic>.from(n))
+        .toList();
     setState(() {
       for (final item in _notifications) {
         item['isRead'] = true;
@@ -179,7 +180,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(global ? 'Deleted for all recipients' : 'Notification deleted')),
+        SnackBar(
+          content: Text(
+            global ? 'Deleted for all recipients' : 'Notification deleted',
+          ),
+        ),
       );
     } catch (_) {
       if (!mounted) return;
@@ -201,7 +206,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: CT.bg(context),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
@@ -209,7 +216,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ? const ['student', 'parent']
                 : const ['all', 'teacher', 'student', 'parent', 'admin'];
             return Padding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                MediaQuery.of(ctx).viewInsets.bottom + 20,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,9 +229,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('NEW BROADCAST', 
-                        style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                      CPPressable(onTap: () => Navigator.pop(ctx), child: const Icon(Icons.close_rounded)),
+                      Text(
+                        'NEW BROADCAST',
+                        style: GoogleFonts.sora(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      CPPressable(
+                        onTap: () => Navigator.pop(ctx),
+                        child: const Icon(Icons.close_rounded),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -228,10 +249,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     style: GoogleFonts.dmSans(fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
                       labelText: 'HEADER TITLE',
-                      labelStyle: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800, color: CT.textS(context)),
+                      labelStyle: GoogleFonts.jetBrainsMono(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: CT.textS(context),
+                      ),
                       filled: true,
                       fillColor: CT.card(context),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: CT.border(context))),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: CT.border(context)),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -242,61 +270,107 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     style: GoogleFonts.dmSans(),
                     decoration: InputDecoration(
                       labelText: 'MESSAGE BODY',
-                      labelStyle: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800, color: CT.textS(context)),
+                      labelStyle: GoogleFonts.jetBrainsMono(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: CT.textS(context),
+                      ),
                       filled: true,
                       fillColor: CT.card(context),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: CT.border(context))),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: CT.border(context)),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: selectedType,
-                        decoration: InputDecoration(
-                          labelText: 'TYPE',
-                          labelStyle: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800),
-                          filled: true,
-                          fillColor: CT.card(context),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: selectedType,
+                          decoration: InputDecoration(
+                            labelText: 'TYPE',
+                            labelStyle: GoogleFonts.jetBrainsMono(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            filled: true,
+                            fillColor: CT.card(context),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          items:
+                              const [
+                                    'system',
+                                    'class',
+                                    'attendance',
+                                    'exam',
+                                    'fee',
+                                  ]
+                                  .map(
+                                    (value) => DropdownMenuItem(
+                                      value: value,
+                                      child: Text(
+                                        value.toUpperCase(),
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setSheetState(() => selectedType = value);
+                          },
                         ),
-                        items: const ['system', 'class', 'attendance', 'exam', 'fee']
-                            .map((value) => DropdownMenuItem(value: value, child: Text(value.toUpperCase(), style: GoogleFonts.jetBrainsMono(fontSize: 12))))
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) return;
-                          setSheetState(() => selectedType = value);
-                        },
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: selectedRole,
-                        decoration: InputDecoration(
-                          labelText: 'TARGET',
-                          labelStyle: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800),
-                          filled: true,
-                          fillColor: CT.card(context),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: selectedRole,
+                          decoration: InputDecoration(
+                            labelText: 'TARGET',
+                            labelStyle: GoogleFonts.jetBrainsMono(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            filled: true,
+                            fillColor: CT.card(context),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          items: roleOptions
+                              .map(
+                                (value) => DropdownMenuItem(
+                                  value: value,
+                                  child: Text(
+                                    value.toUpperCase(),
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setSheetState(() => selectedRole = value);
+                          },
                         ),
-                        items: roleOptions
-                            .map((value) => DropdownMenuItem(value: value, child: Text(value.toUpperCase(), style: GoogleFonts.jetBrainsMono(fontSize: 12))))
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) return;
-                          setSheetState(() => selectedRole = value);
-                        },
                       ),
-                    ),
-                  ]),
+                    ],
+                  ),
                   const SizedBox(height: 24),
                   CPPressable(
                     onTap: () async {
                       final title = titleCtrl.text.trim();
                       final body = bodyCtrl.text.trim();
                       if (title.isEmpty || body.isEmpty) return;
-                      
+
                       HapticFeedback.mediumImpact();
                       try {
                         await _repo.sendManualNotification(
@@ -314,14 +388,26 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       height: 56,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: CT.textH(context),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.black, width: 2),
-                        boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(3, 3))],
+                        border: Border.all(color: CT.border(context), width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: CT.border(context),
+                            offset: const Offset(3, 3),
+                          ),
+                        ],
                       ),
                       child: Center(
-                        child: Text('EMIT BROADCAST', 
-                          style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
+                        child: Text(
+                          'EMIT BROADCAST',
+                          style: GoogleFonts.sora(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: CT.elevated(context),
+                            letterSpacing: 1,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -336,7 +422,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final unreadCount = _notifications.where((n) => n['isRead'] == false).length;
+    final unreadCount = _notifications
+        .where((n) => n['isRead'] == false)
+        .length;
 
     return Scaffold(
       backgroundColor: CT.bg(context),
@@ -347,10 +435,24 @@ class _NotificationsPageState extends State<NotificationsPage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('ACTIVITY', style: GoogleFonts.sora(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5)),
+            Text(
+              'ACTIVITY',
+              style: GoogleFonts.sora(
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+                letterSpacing: -0.5,
+              ),
+            ),
             if (unreadCount > 0)
-              Text('$unreadCount pending nodes', 
-                style: GoogleFonts.jetBrainsMono(fontSize: 10, color: CT.accent(context), fontWeight: FontWeight.w800, letterSpacing: 1)),
+              Text(
+                '$unreadCount pending nodes',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 10,
+                  color: CT.accent(context),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                ),
+              ),
           ],
         ),
         actions: [
@@ -365,8 +467,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Center(
-                  child: Text('CLEAR ALL', 
-                    style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w900, color: CT.accent(context))),
+                  child: Text(
+                    'CLEAR ALL',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: CT.accent(context),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -393,41 +501,65 @@ class _NotificationsPageState extends State<NotificationsPage> {
               ),
             ),
           ),
-          
+
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
                 : _notifications.isEmpty
-                    ? _emptyState(context)
-                    : RefreshIndicator(
-                        onRefresh: () => _fetchNotifications(reset: true),
-                        child: ListView.separated(
-                          padding: const EdgeInsets.all(20),
-                          itemCount: _notifications.length + (_hasMore ? 1 : 0),
-                          separatorBuilder: (context, idx) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            if (index >= _notifications.length) {
-                              _fetchNotifications(reset: false);
-                              return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(strokeWidth: 2)));
-                            }
+                ? _emptyState(context)
+                : RefreshIndicator(
+                    onRefresh: () => _fetchNotifications(reset: true),
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(20),
+                      itemCount: _notifications.length + (_hasMore ? 1 : 0),
+                      separatorBuilder: (context, idx) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        if (index >= _notifications.length) {
+                          _fetchNotifications(reset: false);
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
 
-                            final notif = _notifications[index];
-                            final isRead = notif['isRead'] as bool;
-                            final iconColor = _colorForType(notif['type']?.toString() ?? 'system', context);
+                        final notif = _notifications[index];
+                        final isRead = notif['isRead'] as bool;
+                        final iconColor = _colorForType(
+                          notif['type']?.toString() ?? 'system',
+                          context,
+                        );
 
-                            return CPPressable(
+                        return CPPressable(
                               onTap: () => _markRead(index, read: true),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: isRead ? CT.card(context) : iconColor.withValues(alpha: 0.1),
+                                  color: isRead
+                                      ? CT.card(context)
+                                      : iconColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
-                                    color: isRead ? CT.border(context) : iconColor.withValues(alpha: 0.5),
+                                    color: isRead
+                                        ? CT.border(context)
+                                        : iconColor.withValues(alpha: 0.5),
                                     width: isRead ? 1 : 2,
                                   ),
-                                  boxShadow: isRead ? null : [BoxShadow(color: iconColor.withValues(alpha: 0.1), blurRadius: 10)],
+                                  boxShadow: isRead
+                                      ? null
+                                      : [
+                                          BoxShadow(
+                                            color: iconColor.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            blurRadius: 10,
+                                          ),
+                                        ],
                                 ),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,22 +567,38 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: isRead ? CT.bg(context) : iconColor.withValues(alpha: 0.2),
+                                        color: isRead
+                                            ? CT.bg(context)
+                                            : iconColor.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
-                                      child: Icon(_iconForType(notif['type']?.toString() ?? 'system'), color: iconColor, size: 20),
+                                      child: Icon(
+                                        _iconForType(
+                                          notif['type']?.toString() ?? 'system',
+                                        ),
+                                        color: iconColor,
+                                        size: 20,
+                                      ),
                                     ),
                                     const SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
                                               Expanded(
                                                 child: Text(
-                                                  notif['title'].toString().toUpperCase(),
-                                                  style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w800, color: CT.textH(context), letterSpacing: -0.2),
+                                                  notif['title']
+                                                      .toString()
+                                                      .toUpperCase(),
+                                                  style: GoogleFonts.sora(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: CT.textH(context),
+                                                    letterSpacing: -0.2,
+                                                  ),
                                                 ),
                                               ),
                                               _buildMiniMenu(index),
@@ -459,14 +607,25 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                           const SizedBox(height: 4),
                                           Text(
                                             notif['body'].toString(),
-                                            style: GoogleFonts.dmSans(fontSize: 14, color: CT.textM(context), height: 1.4, fontWeight: isRead ? FontWeight.w400 : FontWeight.w500),
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 14,
+                                              color: CT.textM(context),
+                                              height: 1.4,
+                                              fontWeight: isRead
+                                                  ? FontWeight.w400
+                                                  : FontWeight.w500,
+                                            ),
                                             maxLines: 3,
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                           const SizedBox(height: 12),
                                           Text(
                                             notif['time'].toString(),
-                                            style: GoogleFonts.jetBrainsMono(fontSize: 9, color: CT.textS(context), fontWeight: FontWeight.w800),
+                                            style: GoogleFonts.jetBrainsMono(
+                                              fontSize: 9,
+                                              color: CT.textS(context),
+                                              fontWeight: FontWeight.w800,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -474,10 +633,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                   ],
                                 ),
                               ),
-                            ).animate().fadeIn(duration: 300.ms).slideX(begin: 0.02);
-                          },
-                        ),
-                      ),
+                            )
+                            .animate()
+                            .fadeIn(duration: 300.ms)
+                            .slideX(begin: 0.02);
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -494,9 +656,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
         if (value == 'delete_global') _deleteNotification(index, global: true);
       },
       itemBuilder: (_) => [
-        PopupMenuItem(value: 'delete', child: Text('Remove', style: GoogleFonts.dmSans(fontSize: 13))),
+        PopupMenuItem(
+          value: 'delete',
+          child: Text('Remove', style: GoogleFonts.dmSans(fontSize: 13)),
+        ),
         if (_canComposeOrGlobalDelete)
-          PopupMenuItem(value: 'delete_global', child: Text('Recall Broadast', style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.error))),
+          PopupMenuItem(
+            value: 'delete_global',
+            child: Text(
+              'Recall Broadast',
+              style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.error),
+            ),
+          ),
       ],
     );
   }
@@ -518,12 +689,28 @@ class _NotificationsPageState extends State<NotificationsPage> {
           decoration: BoxDecoration(
             color: selected ? accent : CT.card(context),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: selected ? Colors.black : CT.border(context), width: selected ? 2 : 1),
-            boxShadow: selected ? const [BoxShadow(color: Colors.black, offset: Offset(2, 2))] : null,
+            border: Border.all(
+              color: selected ? CT.border(context) : CT.border(context),
+              width: selected ? 2 : 1,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: CT.border(context),
+                      offset: const Offset(2, 2),
+                    ),
+                  ]
+                : null,
           ),
           child: Center(
-            child: Text(label, 
-              style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w900, color: selected ? Colors.white : CT.textS(context))),
+            child: Text(
+              label,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                color: selected ? CT.elevated(context) : CT.textS(context),
+              ),
+            ),
           ),
         ),
       ),
@@ -537,13 +724,32 @@ class _NotificationsPageState extends State<NotificationsPage> {
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(color: CT.card(context), shape: BoxShape.circle, border: Border.all(color: CT.border(context), width: 2)),
-            child: Icon(Icons.notifications_none_rounded, size: 48, color: CT.textS(context).withValues(alpha: 0.2)),
+            decoration: BoxDecoration(
+              color: CT.card(context),
+              shape: BoxShape.circle,
+              border: Border.all(color: CT.border(context), width: 2),
+            ),
+            child: Icon(
+              Icons.notifications_none_rounded,
+              size: 48,
+              color: CT.textS(context).withValues(alpha: 0.2),
+            ),
           ),
           const SizedBox(height: 24),
-          Text('ZERO ACTIVITY NODES', style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w900, color: CT.textH(context), letterSpacing: -0.5)),
+          Text(
+            'ZERO ACTIVITY NODES',
+            style: GoogleFonts.sora(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: CT.textH(context),
+              letterSpacing: -0.5,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text('You are fully synchronized with the hub.', style: GoogleFonts.dmSans(fontSize: 14, color: CT.textS(context))),
+          Text(
+            'You are fully synchronized with the hub.',
+            style: GoogleFonts.dmSans(fontSize: 14, color: CT.textS(context)),
+          ),
         ],
       ).animate().fadeIn().scale(begin: const Offset(0.95, 0.95)),
     );
@@ -551,21 +757,31 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   IconData _iconForType(String type) {
     switch (type) {
-      case 'fee': return Icons.account_balance_wallet_outlined;
-      case 'class': return Icons.calendar_today_rounded;
-      case 'exam': return Icons.analytics_outlined;
-      case 'attendance': return Icons.fact_check_rounded;
-      default: return Icons.radar_rounded;
+      case 'fee':
+        return Icons.account_balance_wallet_outlined;
+      case 'class':
+        return Icons.calendar_today_rounded;
+      case 'exam':
+        return Icons.analytics_outlined;
+      case 'attendance':
+        return Icons.fact_check_rounded;
+      default:
+        return Icons.radar_rounded;
     }
   }
 
   Color _colorForType(String type, BuildContext context) {
     switch (type) {
-      case 'fee': return AppColors.warning;
-      case 'class': return AppColors.primary;
-      case 'exam': return AppColors.success;
-      case 'attendance': return AppColors.error;
-      default: return CT.accent(context);
+      case 'fee':
+        return AppColors.warning;
+      case 'class':
+        return AppColors.primary;
+      case 'exam':
+        return AppColors.success;
+      case 'attendance':
+        return AppColors.error;
+      default:
+        return CT.accent(context);
     }
   }
 }

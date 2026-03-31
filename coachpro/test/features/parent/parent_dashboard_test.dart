@@ -38,21 +38,35 @@ void main() {
     });
 
     test('attendance percentage derived correctly', () {
-      final child = {'id': 's1', 'name': 'Child', 'attendance': 75, 'pendingFee': 0};
+      final child = {
+        'id': 's1',
+        'name': 'Child',
+        'attendance': 75,
+        'pendingFee': 0,
+      };
       final attendance = (child['attendance'] as int).toDouble() / 100.0;
       expect(attendance, closeTo(0.75, 0.001));
       expect((attendance * 100).toInt(), 75);
     });
 
     test('attendance 0 does not crash', () {
-      final child = {'id': 's1', 'name': 'Child', 'attendance': 0, 'pendingFee': 500};
+      final child = {
+        'id': 's1',
+        'name': 'Child',
+        'attendance': 0,
+        'pendingFee': 500,
+      };
       final attendance = (child['attendance'] as int).toDouble() / 100.0;
       expect(attendance, 0.0);
     });
 
     test('todaySchedule items have expected fields', () {
       final schedule = [
-        {'name': 'JEE Batch', 'teacher_name': 'Mr. Sharma', 'student_name': 'Arjun'},
+        {
+          'name': 'JEE Batch',
+          'teacher_name': 'Mr. Sharma',
+          'student_name': 'Arjun',
+        },
         {'name': 'NEET Batch', 'teacher_name': null, 'student_name': 'Riya'},
       ];
 
@@ -72,9 +86,7 @@ void main() {
     });
 
     test('empty upcomingExams returns empty list safely', () {
-      final data = {
-        'upcomingExams': [],
-      };
+      final data = <String, dynamic>{'upcomingExams': []};
 
       final results = data['upcomingExams'] as List? ?? [];
       expect(results.isEmpty, isTrue);
@@ -107,8 +119,12 @@ void main() {
       final child1 = {'pendingFee': 1500};
       final child2 = {'pendingFee': 0};
 
-      final target1 = (child1['pendingFee'] as int) > 0 ? '/parent/fee-payment' : '/parent/payment-history';
-      final target2 = (child2['pendingFee'] as int) > 0 ? '/parent/fee-payment' : '/parent/payment-history';
+      final target1 = (child1['pendingFee'] as int) > 0
+          ? '/parent/fee-payment'
+          : '/parent/payment-history';
+      final target2 = (child2['pendingFee'] as int) > 0
+          ? '/parent/fee-payment'
+          : '/parent/payment-history';
 
       expect(target1, '/parent/fee-payment');
       expect(target2, '/parent/payment-history');

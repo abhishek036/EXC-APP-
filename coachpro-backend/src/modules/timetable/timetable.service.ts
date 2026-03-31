@@ -520,11 +520,16 @@ export class TimetableService {
 
     const requestedDateKey = this.normalizeRequestedDateKey(date);
     let dateRange: { start: Date; end: Date } | undefined;
+    let dayOfWeek: number | undefined;
 
     if (requestedDateKey) {
       const parts = requestedDateKey.split('-').map(Number);
       if (parts.length === 3) {
         dateRange = this.getIstDayRangeUtc(parts[0], parts[1], parts[2]);
+        // Day of week in IST: 0 is Sun, 1-6 Mon-Sat
+        // Date.UTC returns UTC day. We want the IST day.
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        dayOfWeek = d.getDay(); 
       }
     }
 
@@ -553,25 +558,87 @@ export class TimetableService {
       batch: { select: { name: true, subject: true } },
     };
 
+    let lectures: any[] = [];
     try {
-      // 1. Primary path (Standard Prisma query)
-      const schedules = await prisma.lecture.findMany({
+      lectures = await prisma.lecture.findMany({
         where,
         select,
         orderBy: { scheduled_at: 'asc' },
       });
-      return schedules;
     } catch (error) {
-      // 2. Error fallbacks (Schema mismatch or DB issues)
       if (this.isInvalidLectureUuidData(error) || this.isMissingTimetableColumn(error)) {
-        this.logger.warn('[TimetableService] Prisma query failed, using raw fallback path');
         const start = dateRange?.start;
         const end = dateRange?.end;
-        const schedules = await this.getTeacherScheduleRawFallback(instituteId, teacher.id, start, end, !this.isMissingTimetableColumn(error));
-        return schedules;
+        lectures = await this.getTeacherScheduleRawFallback(instituteId, teacher.id, start, end, !this.isMissingTimetableColumn(error));
+      } else {
+        throw error;
       }
-      throw error;
     }
+
+    // Standardize lecture format
+    const formattedLectures = lectures.map(l => {
+        const start = l.scheduled_at;
+        const toIstStr = (d: Date | null) => {
+            if (!d) return '00:00';
+            const ist = new Date(d.getTime() + TimetableService.IST_OFFSET_MS);
+            return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
+        };
+        return {
+            ...l,
+            batch_name: l.batch?.name || l.batch_name,
+            batch_subject: l.batch?.subject || l.batch_subject,
+            start_time: toIstStr(start),
+            is_recurring: false
+        };
+    });
+
+    // 2. Fetch Recurring Batches for that day
+    let merged = [...formattedLectures];
+
+    if (dayOfWeek !== undefined) {
+        const recurringBatches = await prisma.batch.findMany({
+            where: {
+                teacher_id: teacher.id,
+                institute_id: instituteId,
+                is_active: true,
+                days_of_week: { has: dayOfWeek }
+            }
+        });
+
+        for (const b of recurringBatches) {
+            const formatRawTime = (date: Date | null) => {
+                if (!date) return '00:00';
+                return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
+            };
+            const recStartTime = formatRawTime(b.start_time);
+
+            // Deduplicate: If an actual lecture exists for this batch at this time, skip recurring
+            const hasActual = formattedLectures.some(l => l.batch_id === b.id && l.start_time === recStartTime);
+            if (!hasActual) {
+                merged.push({
+                    id: `recurring-${b.id}-${dayOfWeek}`,
+                    batch_id: b.id,
+                    title: b.name,
+                    batch_name: b.name,
+                    batch_subject: b.subject,
+                    subject: b.subject,
+                    scheduled_at: null, // Indicates recurring
+                    start_time: recStartTime,
+                    end_time: formatRawTime(b.end_time),
+                    class_room: b.room || 'Online',
+                    is_recurring: true
+                });
+            }
+        }
+    }
+
+    merged.sort((a, b) => {
+        const timeA = a.start_time || '00:00';
+        const timeB = b.start_time || '00:00';
+        return timeA.localeCompare(timeB);
+    });
+
+    return merged;
   }
 
   async clearPastSchedules(userId: string, instituteId: string) {

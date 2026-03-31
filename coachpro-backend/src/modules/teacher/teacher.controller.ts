@@ -182,6 +182,11 @@ export class TeacherController {
         })
       ]);
 
+      const timeline = await new (require('../timetable/timetable.service').TimetableService)().getTeacherScheduleByUser(
+        req.user!.userId,
+        req.instituteId!
+      );
+
       const totalStudentsAcrossBatches = batches.reduce((sum, b) => sum + b._count.student_batches, 0);
 
       return sendResponse({
@@ -207,6 +212,7 @@ export class TeacherController {
             classes_this_week: weeklyAttendanceSessions,
             upcoming_exams_count: upcomingExams.length,
           },
+          schedules: timeline,
           upcoming_exams: upcomingExams.map(e => ({
             id: e.id,
             title: e.title,
@@ -560,23 +566,88 @@ export class TeacherController {
         });
         if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
-        const dayIndex = new Date().getDay(); // 0(Sun) to 6(Sat)
+        const now = new Date();
+        const istDate = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+        const dayMapping = istDate.getUTCDay() === 0 ? 0 : istDate.getUTCDay(); // 0 is Sunday
         
-        const schedule = await prisma.batch.findMany({
+        // 1. Recurring schedules from the Batch model
+        const recurringBatches = await prisma.batch.findMany({
             where: {
                 teacher_id: teacher.id,
                 institute_id: req.instituteId!,
                 is_active: true,
-                days_of_week: {
-                    has: dayIndex
-                }
-            },
-            orderBy: {
-                start_time: 'asc'
+                days_of_week: { has: dayMapping }
             }
         });
 
-        return sendResponse({ res, data: schedule, message: 'Today schedule fetched' });
+        const formattedRecurring = recurringBatches.map(b => {
+             const formatRawTime = (date: Date | null) => {
+                 if (!date) return '00:00';
+                 return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
+             };
+             return {
+                 id: `recurring-${b.id}-${dayMapping}`,
+                 batch_id: b.id,
+                 name: b.name,
+                 subject: b.subject,
+                 start_time: formatRawTime(b.start_time),
+                 end_time: formatRawTime(b.end_time),
+                 room: b.room || 'Online',
+                 is_recurring: true
+             };
+        });
+
+        // 2. One-off Lecture records
+        const istTodayStart = new Date(now.setHours(0, 0, 0, 0));
+        const istTodayEnd = new Date(now.setHours(23, 59, 59, 999));
+
+        const actualLectures = await prisma.lecture.findMany({
+            where: {
+                teacher_id: teacher.id,
+                institute_id: req.instituteId!,
+                is_active: true,
+                scheduled_at: { gte: istTodayStart, lte: istTodayEnd }
+            },
+            include: { batch: { select: { name: true, subject: true } } }
+        });
+
+        const formattedActuals = actualLectures.map(l => {
+            const start = l.scheduled_at;
+            const duration = l.duration_minutes || 60;
+            const end = start ? new Date(start.getTime() + duration * 60000) : null;
+            
+            const toIstStr = (d: Date | null) => {
+                if (!d) return '00:00';
+                const ist = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
+                return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
+            };
+
+            return {
+                id: l.id,
+                batch_id: l.batch_id,
+                name: l.batch?.name || l.title || 'Untitled Lecture',
+                subject: l.batch?.subject || l.subject || 'Subject',
+                start_time: toIstStr(start),
+                end_time: toIstStr(end),
+                room: l.class_room || 'Online',
+                is_recurring: false
+            };
+        });
+
+        // 3. Merging (Deduplication)
+        const merged: any[] = [...formattedActuals];
+        for (const rec of formattedRecurring) {
+            const hasOverride = formattedActuals.some(act => 
+                act.batch_id === rec.batch_id && act.start_time === rec.start_time
+            );
+            if (!hasOverride) {
+                merged.push(rec);
+            }
+        }
+
+        merged.sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+        return sendResponse({ res, data: merged, message: 'Today schedule fetched' });
       } catch (error) { next(error); }
   };
 

@@ -15,7 +15,7 @@ import '../../../../core/widgets/cp_glass_card.dart';
 import '../../../../features/shared/presentation/widgets/global_search_overlay.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../data/repositories/admin_repository.dart';
-import '../../../../core/services/secure_storage_service.dart';
+
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -553,8 +553,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             CPPressable(
               onTap: () {
                 HapticFeedback.lightImpact();
-                _scaffoldKey.currentState
-                    ?.openDrawer();
+                _scaffoldKey.currentState?.openDrawer();
               },
               child: const Padding(
                 padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),

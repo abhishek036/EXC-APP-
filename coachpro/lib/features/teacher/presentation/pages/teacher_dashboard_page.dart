@@ -778,10 +778,10 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   }
 
   Widget _buildScheduleList() {
-    final batches = _dashboardData?['batches'] as List? ?? [];
-    if (batches.isEmpty) return _emptyCard('No classes scheduled for today');
+    final schedules = _dashboardData?['schedules'] as List? ?? [];
+    if (schedules.isEmpty) return _emptyCard('No classes scheduled for today');
 
-    return Column(children: batches.map((b) => _classItem(b)).toList());
+    return Column(children: schedules.map((s) => _classItem(Map<String, dynamic>.from(s))).toList());
   }
 
   Widget _classItem(Map<String, dynamic> c) {

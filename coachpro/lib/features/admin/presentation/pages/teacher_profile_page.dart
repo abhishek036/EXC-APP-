@@ -193,6 +193,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
     }
   }
 
+  // ignore: unused_element
   Future<void> _submitFeedback() async {
     try {
       await _adminRepo.addTeacherFeedback(
@@ -244,7 +245,13 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
             pinned: true,
             backgroundColor: const Color(0xFF0D1282),
             leading: CPPressable(
-              onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
+              onTap: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/admin');
+                }
+              },
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 color: Colors.white,
@@ -751,7 +758,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
             ],
           ),
         ),
-         const SizedBox(height: 12),
+        const SizedBox(height: 12),
         if (recentFeedbacks.isEmpty)
           Text(
             'No feedback entries yet.',

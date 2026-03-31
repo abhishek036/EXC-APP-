@@ -116,169 +116,86 @@ export class AuthService {
 
         let user: any = await this.authRepository.findUserByPhone(phone);
         let isNewUser = false;
-        if (!user) {
-            const { prisma } = require('../../server');
+        
+        const { prisma } = require('../../server');
+        
+        // --- LOOK UP EXISTING PERMISSIONS/PROFILES ---
+        const phonesToSearch = [phone];
+        if (phone.startsWith('+91')) phonesToSearch.push(phone.substring(3));
+        if (phone.length === 10) phonesToSearch.push(`+91${phone}`);
 
-            const phonesToSearch = [phone];
-            if (phone.startsWith('+91')) phonesToSearch.push(phone.substring(3));
-            if (phone.length === 10) phonesToSearch.push(`+91${phone}`);
+        const [staff, teacher, student, parent] = await Promise.all([
+            prisma.staff.findFirst({ where: { phone: { in: phonesToSearch } } }),
+            prisma.teacher.findFirst({ where: { phone: { in: phonesToSearch } } }),
+            prisma.student.findFirst({ where: { phone: { in: phonesToSearch } } }),
+            prisma.parent.findFirst({ where: { phone: { in: phonesToSearch } } })
+        ]);
 
-            const staff = await prisma.staff.findFirst({ where: { phone: { in: phonesToSearch } } });
-            const teacher = await prisma.teacher.findFirst({ where: { phone: { in: phonesToSearch } } });
-            const student = await prisma.student.findFirst({ where: { phone: { in: phonesToSearch } } });
-            const parent = await prisma.parent.findFirst({ where: { phone: { in: phonesToSearch } } });
+        // --- STABLE INSTITUTE DETERMINATION ---
+        let instituteIdToUse = user?.institute_id || staff?.institute_id || teacher?.institute_id || student?.institute_id || parent?.institute_id;
+        
+        if (!instituteIdToUse && joinCode) {
+            const inst = await prisma.institute.findUnique({ where: { join_code: joinCode } });
+            if (inst) instituteIdToUse = inst.id;
+        }
 
-            let instituteIdToUse = null;
-            let assignedRole = 'student';
+        if (!instituteIdToUse) {
+            const inst = await prisma.institute.findFirst();
+            if (inst) instituteIdToUse = inst.id;
+        }
 
-            if (staff) { instituteIdToUse = staff.institute_id; assignedRole = 'admin'; }
-            else if (teacher) { instituteIdToUse = teacher.institute_id; assignedRole = 'teacher'; }
-            else if (student) { instituteIdToUse = student.institute_id; assignedRole = 'student'; }
-            else if (parent) { instituteIdToUse = parent.institute_id; assignedRole = 'parent'; }
+        if (!instituteIdToUse) throw new ApiError('No institute context found.', 400, 'NO_INSTITUTE');
 
-            if (!instituteIdToUse && joinCode) {
-                const institute = await prisma.institute.findUnique({ where: { join_code: joinCode } });
-                if (!institute) throw new ApiError('Invalid join code.', 400, 'INVALID_JOIN_CODE');
-                instituteIdToUse = institute.id;
-            }
+        // --- SUPER USER ROLE SWITCHING ---
+        const SUPER_USERS = ['9630457025', '8427996261', '+919630457025', '+918427996261'];
+        const isSuperUser = SUPER_USERS.includes(phone);
+        let assignedRole = role || user?.role || (staff ? 'admin' : (teacher ? 'teacher' : (student ? 'student' : (parent ? 'parent' : 'student'))));
 
-            if (!instituteIdToUse) {
-                const institute = await prisma.institute.findFirst();
-                if (!institute) throw new ApiError('No institute found.', 400, 'NO_INSTITUTE');
-                instituteIdToUse = institute.id;
-            }
-
-            // --- SUPER USER LOGIC START ---
-            const SUPER_USERS = [
-              '9630457025', '8427996261', 
-              '+919630457025', '+918427996261'
-            ];
+        if (isSuperUser && role) {
+            assignedRole = role;
+            console.log(`[AUTH] Super User Switch: ${phone} -> ${assignedRole}`);
             
-            // If it's a super user and they selected a specific role in frontend
-            const isSuperUser = SUPER_USERS.includes(phone);
-            if (isSuperUser && role) {
-               console.log(`[AUTH] Super User sign-in detected: ${phone} for role: ${role}`);
-               assignedRole = role; // Force the role to whatever they picked in UI
-               
-               // Double check if user entry exists for this role + phone
-               user = await this.authRepository.findUserByPhone(phone); // findUserByPhone usually matches by phone first
-               if (user && user.role !== assignedRole) {
-                  // If they exist but with different role, we update it temporarily
-                  const { prisma } = require('../../server');
-                  user = await prisma.user.update({
-                      where: { id: user.id },
-                      data: { role: assignedRole as any, status: 'ACTIVE' }
-                  }) as any;
-                  
-                  // Make sure that their profile exists!
-                  if (assignedRole === 'teacher') {
-                      const existingProfile = await prisma.teacher.findFirst({ where: { user_id: user.id, institute_id: user.institute_id } });
-                      if (!existingProfile) {
-                          await prisma.teacher.create({
-                              data: {
-                                  institute_id: user.institute_id,
-                                  user_id: user.id,
-                                  phone: user.phone,
-                                  name: 'Super Teacher',
-                                  is_active: true
-                              }
-                          });
-                      } else {
-                          await prisma.teacher.update({ where: { id: existingProfile.id }, data: { is_active: true } });
-                      }
-                  } else if (assignedRole === 'admin') {
-                      const existingProfile = await prisma.staff.findFirst({ where: { user_id: user.id, institute_id: user.institute_id } });
-                      if (!existingProfile) {
-                          await prisma.staff.create({
-                              data: {
-                                  institute_id: user.institute_id,
-                                  user_id: user.id,
-                                  name: 'Super Admin',
-                                  phone: user.phone,
-                                  role: 'admin',
-                                  status: 'active'
-                              }
-                          });
-                      } else {
-                          await prisma.staff.update({ where: { id: existingProfile.id }, data: { status: 'active' } });
-                      }
-                  } else if (assignedRole === 'student') {
-                      const existingProfile = await prisma.student.findFirst({ where: { user_id: user.id, institute_id: user.institute_id } });
-                      if (!existingProfile) {
-                           await prisma.student.create({
-                               data: {
-                                   institute_id: user.institute_id,
-                                   user_id: user.id,
-                                   name: 'Super Student',
-                                   phone: user.phone,
-                                   is_active: true
-                               }
-                           });
-                      } else {
-                           await prisma.student.update({ where: { id: existingProfile.id }, data: { is_active: true } });
-                      }
-                  }
-               }
-            }
-            // --- SUPER USER LOGIC END ---
-
-            if (!user) {
-              user = await prisma.user.create({
-                  data: {
-                      phone,
-                      institute_id: instituteIdToUse,
-                      role: assignedRole,
-                      status: 'ACTIVE'
-                  }
-              }) as any;
-              isNewUser = true; // flag for profile completion flow
-            }
-
-            if (teacher && !teacher.user_id) await prisma.teacher.update({ where: { id: teacher.id }, data: { user_id: user.id } });
-            if (student && !student.user_id) await prisma.student.update({ where: { id: student.id }, data: { user_id: user.id } });
-            if (parent && !parent.user_id) await prisma.parent.update({ where: { id: parent.id }, data: { user_id: user.id } });
-
-            if (!student && assignedRole === 'student') {
-                await prisma.student.create({
-                    data: {
-                        user_id: user.id,
-                        institute_id: instituteIdToUse,
-                        name: 'New Student',
-                        phone
-                    }
+            if (user && user.role !== assignedRole) {
+                user = await prisma.user.update({
+                    where: { id: user.id },
+                    data: { role: assignedRole as any }
                 });
-            }
-            if (!teacher && assignedRole === 'teacher') {
-                await prisma.teacher.create({
-                    data: {
-                        user_id: user.id,
-                        institute_id: instituteIdToUse,
-                        name: 'New Teacher',
-                        phone
-                    }
-                });
-            }
-            if (!parent && assignedRole === 'parent') {
-                await prisma.parent.create({
-                    data: {
-                        user_id: user.id,
-                        institute_id: instituteIdToUse,
-                        name: 'New Parent',
-                        phone
-                    }
-                });
-            }
-        } else {
-            if (user.status === 'BLOCKED') {
-                throw new ApiError('Your account is blocked. Contact administrator.', 403, 'ACCOUNT_BLOCKED');
-            }
-            if (user.status === 'PENDING') {
-                const { prisma } = require('../../server');
-                user = await prisma.user.update({ where: { id: user.id }, data: { status: 'ACTIVE' } }) as any;
             }
         }
 
-        const { prisma } = require('../../server');
+        // --- CREATE USER IF NOT EXISTS ---
+        if (!user) {
+            user = await prisma.user.create({
+                data: {
+                    phone,
+                    institute_id: instituteIdToUse,
+                    role: assignedRole,
+                    status: 'ACTIVE'
+                }
+            }) as any;
+            isNewUser = true;
+        } else {
+            // Profile status check
+            if (user.status === 'BLOCKED') throw new ApiError('Blocked.', 403, 'BLOCKED');
+            if (user.status === 'PENDING') {
+                user = await prisma.user.update({ where: { id: user.id }, data: { status: 'ACTIVE' } });
+            }
+        }
+
+        // --- ENSURE PROFILE MATCHES ROLE ---
+        if (assignedRole === 'teacher' && !teacher) {
+            await prisma.teacher.create({
+                data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Faculty Member', phone: user.phone, is_active: true }
+            });
+        } else if (assignedRole === 'student' && !student) {
+            await prisma.student.create({
+                data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Student Profile', phone: user.phone, is_active: true }
+            });
+        }
+        // Link existing loose profiles to user if needed
+        if (teacher && !teacher.user_id) await prisma.teacher.update({ where: { id: teacher.id }, data: { user_id: user.id } });
+        if (student && !student.user_id) await prisma.student.update({ where: { id: student.id }, data: { user_id: user.id } });
+        if (parent && !parent.user_id) await prisma.parent.update({ where: { id: parent.id }, data: { user_id: user.id } });
         const sessionStartedAt = new Date();
         await prisma.user.update({
             where: { id: user.id },

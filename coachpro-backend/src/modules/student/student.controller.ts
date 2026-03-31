@@ -97,22 +97,88 @@ export class StudentController {
         recentAnnouncements,
         pendingDoubts
       ] = await Promise.all([
-        // Today's lectures
-        prisma.lecture.findMany({
-          where: { 
-              batch: { student_batches: { some: { student_id: studentId, is_active: true } } },
-              is_active: true,
-              scheduled_at: {
-                  gte: new Date(new Date().setHours(0, 0, 0, 0)),
-                  lte: new Date(new Date().setHours(23, 59, 59, 999))
+        // Combined schedule for today (Recurring + One-off)
+        (async () => {
+          const now = new Date();
+          const istDate = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+          const dayMapping = istDate.getUTCDay() === 0 ? 7 : istDate.getUTCDay();
+          
+          const studentData = await prisma.student.findUnique({
+              where: { id: studentId },
+              include: {
+                  student_batches: {
+                      where: { is_active: true },
+                      include: {
+                          batch: { include: { teacher: { select: { name: true } } } }
+                      }
+                  }
               }
-          },
-          include: { 
-              teacher: { select: { name: true } },
-              batch: { select: { name: true } }
-          },
-          orderBy: { scheduled_at: 'asc' }
-        }),
+          });
+
+          if (!studentData) return [];
+
+          // 1. Recurring
+          const recurring = studentData.student_batches
+              .filter(sb => sb.batch.days_of_week.includes(dayMapping))
+              .map(sb => {
+                  const b = sb.batch;
+                  const formatRawTime = (date: Date | null) => {
+                      if (!date) return '00:00';
+                      return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
+                  };
+                  return {
+                      id: `recurring-${b.id}-${dayMapping}`,
+                      batch_id: b.id,
+                      title: b.name,
+                      subject: b.subject,
+                      batch_name: b.name,
+                      teacher_name: b.teacher?.name || 'TBA',
+                      start_time: formatRawTime(b.start_time),
+                      end_time: formatRawTime(b.end_time),
+                      is_recurring: true
+                  };
+              });
+
+          // 2. Actuals
+          const istTodayStart = new Date(now.setHours(0, 0, 0, 0));
+          const istTodayEnd = new Date(now.setHours(23, 59, 59, 999));
+          const actualsRaw = await prisma.lecture.findMany({
+              where: {
+                  batch: { student_batches: { some: { student_id: studentId, is_active: true } } },
+                  is_active: true,
+                  scheduled_at: { gte: istTodayStart, lte: istTodayEnd }
+              },
+              include: { teacher: { select: { name: true } }, batch: { select: { name: true } } }
+          });
+
+          const actuals = actualsRaw.map(l => {
+              const start = l.scheduled_at;
+              const duration = l.duration_minutes || 60;
+              const end = start ? new Date(start.getTime() + duration * 60000) : null;
+              const toIstStr = (d: Date | null) => {
+                  if (!d) return '00:00';
+                  const ist = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
+                  return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
+              };
+              return {
+                  ...l,
+                  batch_name: l.batch?.name,
+                  teacher_name: l.teacher?.name,
+                  start_time: toIstStr(start),
+                  end_time: toIstStr(end),
+                  is_recurring: false
+              };
+          });
+
+          // 3. Merge
+          const merged: any[] = [...actuals];
+          for (const rec of recurring) {
+              const hasOverride = actuals.some(act => act.batch_id === rec.batch_id && act.start_time === rec.start_time);
+              if (!hasOverride) merged.push(rec);
+          }
+          merged.sort((a, b) => a.start_time.localeCompare(b.start_time));
+          return merged;
+        })(),
         // Attendance summary (last 30 days)
         prisma.attendanceRecord.groupBy({
           by: ['status'],
@@ -164,14 +230,22 @@ export class StudentController {
         data: {
           student: { id: student.id, name: student.name, phone: student.phone, photo_url: student.photo_url },
           today_schedule: todayLectures.map((l: any) => {
+            // If it's already a string (from our recurring logic), use it. 
+            // Otherwise, format from scheduled_at.
             const start = l.scheduled_at;
-            const end = start ? new Date(start.getTime() + (l.duration_minutes || 60) * 60000) : null;
+            const duration = l.duration_minutes || 60;
+            const end = start ? new Date(start.getTime() + duration * 60000) : null;
+            
+            const toIstStr = (d: Date | null) => {
+                if (!d) return null;
+                const ist = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
+                return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
+            };
+
             return {
               ...l,
-              batch_name: l.batch?.name,
-              teacher_name: l.teacher?.name,
-              start_time: start ? `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}` : '00:00',
-              end_time: end ? `${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}` : '00:00'
+              start_time: l.start_time || toIstStr(start) || '00:00',
+              end_time: l.end_time || toIstStr(end) || '00:00'
             };
           }),
           stats: {
@@ -327,23 +401,71 @@ export class StudentController {
       try {
           const student = await prisma.student.findFirst({
               where: { user_id: req.user!.userId, institute_id: req.instituteId! },
-              include: { student_batches: { where: { is_active: true } } }
+              include: { 
+                  student_batches: { 
+                      where: { is_active: true },
+                      include: {
+                          batch: {
+                              select: {
+                                  id: true,
+                                  name: true,
+                                  subject: true,
+                                  room: true,
+                                  start_time: true,
+                                  end_time: true,
+                                  days_of_week: true,
+                                  teacher: { select: { name: true } }
+                              }
+                          }
+                      }
+                  } 
+              }
           });
           if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
 
           const batchIds = student.student_batches.map(sb => sb.batch_id);
-          const expectedDay = req.query.day ? parseInt(req.query.day as string) : new Date().getDay();
-          const dayIndex = isNaN(expectedDay) ? new Date().getDay() : expectedDay;
+          const requestedDay = req.query.day ? parseInt(req.query.day as string) : new Date().getDay();
+          const dayIndex = isNaN(requestedDay) ? new Date().getDay() : requestedDay;
 
-          const lectures = await prisma.lecture.findMany({
+          // Standardize Day: 1=Mon, 7=Sun (Matching script convention)
+          const dayMapping = dayIndex === 0 ? 7 : dayIndex;
+
+          // 1. Recurring schedules from the Batch model
+          const recurringScheduled = student.student_batches
+              .filter(sb => sb.batch.days_of_week.includes(dayMapping))
+              .map(sb => {
+                  const b = sb.batch;
+                  const formatRawTime = (date: Date | null) => {
+                      if (!date) return '00:00';
+                      // Batch times are stored relative to UTC 1970-01-01 in the repository
+                      return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
+                  };
+
+                  return {
+                      id: `recurring-${b.id}-${dayIndex}`,
+                      batch_id: b.id,
+                      title: b.name,
+                      subject: b.subject,
+                      batch_name: b.name,
+                      teacher_name: b.teacher?.name || 'TBA',
+                      start_time: formatRawTime(b.start_time),
+                      end_time: formatRawTime(b.end_time),
+                      room: b.room || 'Online',
+                      is_active: true,
+                      is_recurring: true
+                  };
+              });
+
+          // 2. Actual Lecture records (one-offs or recorded classes)
+          const istTodayStart = new Date(new Date().setHours(0, 0, 0, 0));
+          const istTodayEnd = new Date(new Date().setHours(23, 59, 59, 999));
+
+          const actualLectures = await prisma.lecture.findMany({
               where: {
                   batch_id: { in: batchIds },
                   institute_id: req.instituteId!,
                   is_active: true,
-                  scheduled_at: {
-                      gte: new Date(new Date().setHours(0, 0, 0, 0)),
-                      lte: new Date(new Date().setHours(23, 59, 59, 999))
-                  }
+                  scheduled_at: { gte: istTodayStart, lte: istTodayEnd }
               },
               include: {
                   teacher: { select: { name: true } },
@@ -352,20 +474,48 @@ export class StudentController {
               orderBy: { scheduled_at: 'asc' }
           });
 
+          const localizedActuals = actualLectures.map(l => {
+              const start = l.scheduled_at;
+              const duration = l.duration_minutes || 60;
+              const end = start ? new Date(start.getTime() + duration * 60000) : null;
+              
+              // Helper for IST display (assuming server might be UTC)
+              const toIstStr = (d: Date | null) => {
+                  if (!d) return '00:00';
+                  // IST is UTC + 5:30
+                  const ist = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
+                  return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
+              };
+
+              return {
+                  ...l,
+                  batch_name: l.batch?.name,
+                  teacher_name: l.teacher?.name,
+                  start_time: toIstStr(start),
+                  end_time: toIstStr(end),
+                  is_recurring: false
+              };
+          });
+
+          // 3. Smart Merging (Deduplication)
+          // If a batch has an 'Actual' lecture starting at the exact same time as the 'Recurring' one,
+          // the 'Actual' one wins (overrides it).
+          const merged: any[] = [...localizedActuals];
+          
+          for (const rec of recurringScheduled) {
+              const hasOverride = localizedActuals.some(act => 
+                  act.batch_id === rec.batch_id && act.start_time === rec.start_time
+              );
+              if (!hasOverride) {
+                  merged.push(rec);
+              }
+          }
+          
+          merged.sort((a, b) => a.start_time.localeCompare(b.start_time));
+
           return sendResponse({ 
               res, 
-              data: lectures.map(l => {
-                  const start = l.scheduled_at;
-                  const end = start ? new Date(start.getTime() + (l.duration_minutes || 60) * 60000) : null;
-                  
-                  return {
-                      ...l,
-                      batch_name: l.batch?.name,
-                      teacher_name: l.teacher?.name,
-                      start_time: start ? `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}` : '00:00',
-                      end_time: end ? `${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}` : '00:00'
-                  };
-              }), 
+              data: merged, 
               message: 'Schedule fetched' 
           });
       } catch (error) { next(error); }

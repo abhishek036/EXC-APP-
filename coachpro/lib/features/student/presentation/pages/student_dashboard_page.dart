@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -11,7 +10,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../features/shared/presentation/widgets/global_search_overlay.dart';
 import '../../../../features/student/data/repositories/student_repository.dart';
 import '../../../../core/di/injection_container.dart';
-import '../../../../core/services/secure_storage_service.dart';
+
 import '../../../../core/services/realtime_sync_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
@@ -736,8 +735,10 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         itemCount: lectures.length,
         itemBuilder: (context, index) {
           final l = lectures[index];
-          final subject = (l['title'] ?? l['subject'] ?? 'No Subject').toString();
-          final time = '${l['start_time'] ?? '00:00'} - ${l['end_time'] ?? '00:00'}';
+          final subject = (l['title'] ?? l['subject'] ?? 'No Subject')
+              .toString();
+          final time =
+              '${l['start_time'] ?? '00:00'} - ${l['end_time'] ?? '00:00'}';
           final teacher = l['teacher_name'] ?? 'TBA';
 
           Color c = AppColors.elitePrimary;

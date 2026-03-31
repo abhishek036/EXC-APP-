@@ -386,7 +386,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
-                      color: blue.withOpacity(0.5),
+                      color: blue.withValues(alpha: 0.5),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -523,7 +523,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
-                          color: blue.withOpacity(0.5),
+                          color: blue.withValues(alpha: 0.5),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -532,7 +532,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
-                          color: blue.withOpacity(0.5),
+                          color: blue.withValues(alpha: 0.5),
                         ),
                       ),
                     ],
@@ -606,7 +606,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                         width: 48,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: blue.withOpacity(0.1),
+                          color: blue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
@@ -871,7 +871,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
           'THIS WILL HIDE ALL COMPLETED LECTURES FROM YOUR LIST. CONTINUE?',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w700,
-            color: blue.withOpacity(0.7),
+            color: blue.withValues(alpha: 0.7),
           ),
         ),
         actions: [
@@ -940,7 +940,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
           'THIS ACTION CANNOT BE UNDONE. REMOVE FROM SCHEDULE?',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w700,
-            color: blue.withOpacity(0.7),
+            color: blue.withValues(alpha: 0.7),
           ),
         ),
         actions: [
@@ -1001,7 +1001,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: GoogleFonts.plusJakartaSans(
-          color: blue.withOpacity(0.3),
+          color: blue.withValues(alpha: 0.3),
           fontWeight: FontWeight.w600,
         ),
         border: InputBorder.none,
@@ -1218,7 +1218,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
+        color: Colors.black.withValues(alpha: 0.3),
         border: Border.all(color: Colors.white24, width: 2),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -1232,7 +1232,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 height: 1.4,
               ),
             ),
@@ -1246,7 +1246,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: surface.withOpacity(0.1),
+        color: surface.withValues(alpha: 0.1),
         border: Border.all(
           color: Colors.white24,
           width: 2,

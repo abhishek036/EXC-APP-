@@ -6,7 +6,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/theme_aware.dart';
-import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/parent_repository.dart';
 
@@ -57,7 +56,13 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
         backgroundColor: CT.bg(context),
         elevation: 0,
         leading: IconButton(
-          onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/parent'); } },
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/parent');
+            }
+          },
           icon: Icon(Icons.arrow_back_rounded, color: CT.textH(context)),
         ),
         title: Text(
@@ -72,27 +77,34 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text('Error: $_error', style: GoogleFonts.dmSans(color: CT.textS(context))))
-              : RefreshIndicator(
-                  onRefresh: _loadReport,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: AppDimensions.md),
-                        _headerCard(context, isDark),
-                        const SizedBox(height: AppDimensions.lg),
-                        _summaryRow(context),
-                        const SizedBox(height: AppDimensions.lg),
-                        _buildResults(context),
-                        const SizedBox(height: AppDimensions.lg),
-                        const SizedBox(height: 100),
-                      ],
-                    ),
-                  ),
+          ? Center(
+              child: Text(
+                'Error: $_error',
+                style: GoogleFonts.dmSans(color: CT.textS(context)),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadReport,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.pagePaddingH,
                 ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: AppDimensions.md),
+                    _headerCard(context, isDark),
+                    const SizedBox(height: AppDimensions.lg),
+                    _summaryRow(context),
+                    const SizedBox(height: AppDimensions.lg),
+                    _buildResults(context),
+                    const SizedBox(height: AppDimensions.lg),
+                    const SizedBox(height: 100),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
@@ -102,7 +114,10 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       padding: const EdgeInsets.all(AppDimensions.md),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [CT.accent(context), CT.accent(context).withValues(alpha: 0.8)],
+          colors: [
+            CT.accent(context),
+            CT.accent(context).withValues(alpha: 0.8),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -145,16 +160,46 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
 
     return Row(
       children: [
-        Expanded(child: _metricCard(context, 'Attendance', '$attendPercent%', Icons.fact_check_outlined, AppColors.success)),
+        Expanded(
+          child: _metricCard(
+            context,
+            'Attendance',
+            '$attendPercent%',
+            Icons.fact_check_outlined,
+            AppColors.success,
+          ),
+        ),
         const SizedBox(width: AppDimensions.step),
-        Expanded(child: _metricCard(context, 'Tests', '${(_reportData?['results'] as List?)?.length ?? 0}', Icons.bar_chart_rounded, AppColors.primary)),
+        Expanded(
+          child: _metricCard(
+            context,
+            'Tests',
+            '${(_reportData?['results'] as List?)?.length ?? 0}',
+            Icons.bar_chart_rounded,
+            AppColors.primary,
+          ),
+        ),
         const SizedBox(width: AppDimensions.step),
-        Expanded(child: _metricCard(context, 'Status', 'Active', Icons.auto_graph_rounded, AppColors.warning)),
+        Expanded(
+          child: _metricCard(
+            context,
+            'Status',
+            'Active',
+            Icons.auto_graph_rounded,
+            AppColors.warning,
+          ),
+        ),
       ],
     ).animate(delay: 100.ms).fadeIn();
   }
 
-  Widget _metricCard(BuildContext context, String label, String value, IconData icon, Color color) {
+  Widget _metricCard(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(AppDimensions.sm),
       decoration: CT.cardDecor(context),
@@ -164,7 +209,11 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
           const SizedBox(height: 6),
           Text(
             value,
-            style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context)),
+            style: GoogleFonts.sora(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: CT.textH(context),
+            ),
           ),
           const SizedBox(height: 2),
           Text(
@@ -180,28 +229,48 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
   Widget _buildResults(BuildContext context) {
     final results = _reportData?['results'] as List? ?? [];
     if (results.isEmpty) {
-      return Center(child: Text('No exam results yet', style: GoogleFonts.dmSans(color: CT.textS(context))));
+      return Center(
+        child: Text(
+          'No exam results yet',
+          style: GoogleFonts.dmSans(color: CT.textS(context)),
+        ),
+      );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Recent Scores', style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
+        Text(
+          'Recent Scores',
+          style: GoogleFonts.sora(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: CT.textH(context),
+          ),
+        ),
         const SizedBox(height: AppDimensions.step),
-        ...results.map((r) => Padding(
-              padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-              child: _subjectProgress(
-                context,
-                r['exam']?['title'] ?? 'Test',
-                (r['marks_obtained'] as num? ?? 0) / (r['exam']?['total_marks'] as num? ?? 100),
-                AppColors.primary,
-              ),
-            )),
+        ...results.map(
+          (r) => Padding(
+            padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+            child: _subjectProgress(
+              context,
+              r['exam']?['title'] ?? 'Test',
+              (r['marks_obtained'] as num? ?? 0) /
+                  (r['exam']?['total_marks'] as num? ?? 100),
+              AppColors.primary,
+            ),
+          ),
+        ),
       ],
     ).animate(delay: 200.ms).fadeIn();
   }
 
-  Widget _subjectProgress(BuildContext context, String subject, double progress, Color color) {
+  Widget _subjectProgress(
+    BuildContext context,
+    String subject,
+    double progress,
+    Color color,
+  ) {
     final percent = (progress * 100).toInt();
     return Container(
       padding: const EdgeInsets.all(AppDimensions.md),
@@ -214,12 +283,20 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
               Expanded(
                 child: Text(
                   subject,
-                  style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context)),
+                  style: GoogleFonts.sora(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: CT.textH(context),
+                  ),
                 ),
               ),
               Text(
                 '$percent%',
-                style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.w700, color: color),
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
               ),
             ],
           ),
@@ -237,6 +314,4 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       ),
     );
   }
-
-
 }
