@@ -1,5 +1,6 @@
 import { prisma } from '../../config/prisma';
 import { ApiError } from '../../middleware/error.middleware';
+import { NotificationService } from '../notification/notification.service';
 
 export class TimetableService {
   private readonly logger = console;
@@ -681,7 +682,7 @@ export class TimetableService {
     await this.checkTeacherLectureConflict(instituteId, teacher.id, scheduledAt, duration);
 
     try {
-      return await prisma.lecture.create({
+      const lecture = await prisma.lecture.create({
         data: {
           institute_id: instituteId,
           batch_id: data.batch_id,
@@ -691,14 +692,51 @@ export class TimetableService {
           duration_minutes: duration,
           is_active: true,
         },
-        select: {
-          id: true,
-          title: true,
-          scheduled_at: true,
-          duration_minutes: true,
-          batch_id: true,
-        },
+        include: {
+          batch: { select: { name: true } }
+        }
       });
+
+      // 🔔 NOTIFY STUDENTS IN THE BATCH
+      setTimeout(async () => {
+        try {
+          const students = await prisma.studentBatch.findMany({
+            where: { batch_id: data.batch_id, is_active: true },
+            include: { student: { select: { user_id: true } } }
+          });
+
+          const studentUserIds = students.map(s => s.student.user_id).filter(Boolean) as string[];
+          if (studentUserIds.length > 0) {
+            await NotificationService.sendNotificationToUser(studentUserIds[0], {
+              title: 'New Class Scheduled',
+              body: `A new class "${data.title}" has been scheduled for your batch "${lecture.batch.name}" at ${scheduledAt.toLocaleString()}.`,
+              type: 'schedule',
+              role_target: 'student',
+              institute_id: instituteId,
+              meta: {
+                route: '/student/schedule',
+                lecture_id: lecture.id,
+                batch_id: data.batch_id,
+              },
+            });
+            // Loop for others or use a bulk method if available
+            for (let i = 1; i < studentUserIds.length; i++) {
+                await NotificationService.sendNotificationToUser(studentUserIds[i], {
+                    title: 'New Class Scheduled',
+                    body: `A new class "${data.title}" has been scheduled for your batch "${lecture.batch.name}" at ${scheduledAt.toLocaleString()}.`,
+                    type: 'schedule',
+                    role_target: 'student',
+                    institute_id: instituteId,
+                    meta: { route: '/student/schedule' }
+                });
+            }
+          }
+        } catch (e) {
+          this.logger.error('[TimetableService] Failed to send push notifications:', e);
+        }
+      }, 0);
+
+      return lecture;
     } catch (error) {
       if (!this.isMissingTimetableColumn(error)) throw error;
       this.logger.warn('[TimetableService] lectures missing elective columns; using createTeacherScheduleByUser fallback create path');

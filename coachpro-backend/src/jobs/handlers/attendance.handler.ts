@@ -64,6 +64,44 @@ export class AttendanceHandler {
           },
         });
       }
+
+      // 🔔 ALSO NOTIFY THE STUDENT DIRECTLY
+      if (student.user_id) {
+        await NotificationService.sendNotificationToUser(student.user_id, {
+          title: 'Attendance Update',
+          body: `You have been marked ABSENT for your ${session.batch.name} session on ${session.session_date.toDateString()}.`,
+          type: 'attendance',
+          role_target: 'student',
+          institute_id: instituteId,
+          meta: {
+            route: '/student/attendance',
+            dedupe_key: `absent:${session.id}:${student.id}:student`,
+          },
+        });
+      }
+    }
+
+    // 📡 Notify students who are PRESENT or LATE
+    const presentRecords = await prisma.attendanceRecord.findMany({
+        where: { session_id: sessionId, status: { in: ['present', 'late'] } },
+        include: { student: { select: { user_id: true, name: true } } }
+    });
+
+    for (const record of presentRecords) {
+        if (record.student.user_id) {
+            await NotificationService.sendNotificationToUser(record.student.user_id, {
+                title: 'Attendance Marked',
+                body: `You have been marked ${record.status.toUpperCase()} for your ${session.batch.name} session today.`,
+                type: 'attendance',
+                role_target: 'student',
+                institute_id: instituteId,
+                meta: {
+                    route: '/student/attendance',
+                    status: record.status,
+                    dedupe_key: `attend:${session.id}:${record.student_id}`,
+                },
+            });
+        }
     }
 
     await NotificationService.sendNotificationToRole('admin', {
