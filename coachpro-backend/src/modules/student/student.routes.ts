@@ -30,6 +30,7 @@ router.get('/me/notifications', requireRole('student'), studentController.getNot
 router.get('/me/lecture-progress', requireRole('student'), studentController.getLectureProgress);
 router.put('/me/lecture-progress', requireRole('student'), studentController.updateLectureProgress);
 router.get('/me/live-sessions', requireRole('student'), studentController.getActiveLiveSessions);
+router.get('/me/syllabus', requireRole('student'), studentController.getSyllabusTracker);
 
 // ── Admin/Teacher management routes ────────────────────────
 router.get('/', requireRole('admin', 'teacher'), studentController.list);

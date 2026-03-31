@@ -728,4 +728,76 @@ export class StudentController {
       next(error);
     }
   };
+
+  getSyllabusTracker = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const student = await prisma.student.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! },
+        include: { student_batches: { where: { is_active: true } } },
+      });
+      if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
+
+      const batchIds = student.student_batches.map(sb => sb.batch_id);
+
+      const topics = await prisma.syllabusTopic.findMany({
+        where: { batch_id: { in: batchIds }, institute_id: req.instituteId! },
+        include: {
+          student_progress: {
+            where: { student_id: student.id }
+          }
+        }
+      });
+
+      let totalTopics = 0;
+      let completedTopics = 0;
+      const subjectsMap: Record<string, Record<string, { total: number, completed: number }>> = {};
+
+      for (const t of topics) {
+        const sub = t.subject || 'General';
+        const chap = t.chapter_name || 'Uncategorized';
+        if (!subjectsMap[sub]) subjectsMap[sub] = {};
+        if (!subjectsMap[sub][chap]) subjectsMap[sub][chap] = { total: 0, completed: 0 };
+
+        subjectsMap[sub][chap].total += 1;
+        totalTopics += 1;
+
+        const isCompleted = t.student_progress[0]?.is_completed || false;
+        if (isCompleted) {
+          subjectsMap[sub][chap].completed += 1;
+          completedTopics += 1;
+        }
+      }
+
+      const overall_progress = totalTopics > 0 ? (completedTopics / totalTopics) : 0;
+      const subjects = Object.keys(subjectsMap);
+      const chapters_by_subject: Record<string, any[]> = {};
+
+      for (const sub of subjects) {
+        chapters_by_subject[sub] = [];
+        for (const chap of Object.keys(subjectsMap[sub])) {
+          const stats = subjectsMap[sub][chap];
+          chapters_by_subject[sub].push({
+            title: chap,
+            progress: stats.total > 0 ? stats.completed / stats.total : 0,
+            topicsLeft: stats.total - stats.completed
+          });
+        }
+      }
+
+      return sendResponse({
+        res,
+        data: {
+          overall_progress,
+          subjects,
+          chapters_by_subject
+        },
+        message: 'Syllabus tracker fetched'
+      });
+    } catch (error) {
+      if ((error as any)?.code === 'P2021' || (error as any)?.code === 'P2022') {
+        return sendResponse({ res, data: { overall_progress: 0, subjects: [], chapters_by_subject: {} }, message: 'Syllabus unavailable' });
+      }
+      next(error);
+    }
+  };
 }
