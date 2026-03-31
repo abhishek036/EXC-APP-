@@ -39,30 +39,34 @@ class AutoNotificationRule {
     this.cronExpression,
   });
 
-  AutoNotificationRule copyWith({bool? isEnabled, int? daysBefore, String? channel}) =>
-      AutoNotificationRule(
-        id: id,
-        type: type,
-        title: title,
-        description: description,
-        isEnabled: isEnabled ?? this.isEnabled,
-        daysBefore: daysBefore ?? this.daysBefore,
-        channel: channel ?? this.channel,
-        cronExpression: cronExpression,
-      );
+  AutoNotificationRule copyWith({
+    bool? isEnabled,
+    int? daysBefore,
+    String? channel,
+  }) => AutoNotificationRule(
+    id: id,
+    type: type,
+    title: title,
+    description: description,
+    isEnabled: isEnabled ?? this.isEnabled,
+    daysBefore: daysBefore ?? this.daysBefore,
+    channel: channel ?? this.channel,
+    cronExpression: cronExpression,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type.name,
-        'title': title,
-        'description': description,
-        'isEnabled': isEnabled,
-        'daysBefore': daysBefore,
-        'channel': channel,
-        'cronExpression': cronExpression,
-      };
+    'id': id,
+    'type': type.name,
+    'title': title,
+    'description': description,
+    'isEnabled': isEnabled,
+    'daysBefore': daysBefore,
+    'channel': channel,
+    'cronExpression': cronExpression,
+  };
 
-  factory AutoNotificationRule.fromJson(Map<String, dynamic> json) => AutoNotificationRule(
+  factory AutoNotificationRule.fromJson(Map<String, dynamic> json) =>
+      AutoNotificationRule(
         id: json['id'] as String,
         type: AutoNotificationType.values.firstWhere(
           (t) => t.name == json['type'],
@@ -155,9 +159,17 @@ class AutoNotificationService {
       final prefs = await SharedPreferences.getInstance();
       final stored = prefs.getStringList('auto_notification_rules');
       if (stored != null && stored.isNotEmpty) {
-        return stored.map((s) => AutoNotificationRule.fromJson(jsonDecode(s) as Map<String, dynamic>)).toList();
+        return stored
+            .map(
+              (s) => AutoNotificationRule.fromJson(
+                jsonDecode(s) as Map<String, dynamic>,
+              ),
+            )
+            .toList();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Error loading auto notification rules: $e');
+    }
     return List.from(defaultRules);
   }
 
@@ -171,9 +183,14 @@ class AutoNotificationService {
   }
 
   /// Toggle a specific rule.
-  Future<List<AutoNotificationRule>> toggleRule(String ruleId, bool enabled) async {
+  Future<List<AutoNotificationRule>> toggleRule(
+    String ruleId,
+    bool enabled,
+  ) async {
     final rules = await loadRules();
-    final updated = rules.map((r) => r.id == ruleId ? r.copyWith(isEnabled: enabled) : r).toList();
+    final updated = rules
+        .map((r) => r.id == ruleId ? r.copyWith(isEnabled: enabled) : r)
+        .toList();
     await saveRules(updated);
 
     // TODO: Sync with backend
@@ -183,9 +200,14 @@ class AutoNotificationService {
   }
 
   /// Update delivery channel for a rule.
-  Future<List<AutoNotificationRule>> updateChannel(String ruleId, String channel) async {
+  Future<List<AutoNotificationRule>> updateChannel(
+    String ruleId,
+    String channel,
+  ) async {
     final rules = await loadRules();
-    final updated = rules.map((r) => r.id == ruleId ? r.copyWith(channel: channel) : r).toList();
+    final updated = rules
+        .map((r) => r.id == ruleId ? r.copyWith(channel: channel) : r)
+        .toList();
     await saveRules(updated);
     return updated;
   }

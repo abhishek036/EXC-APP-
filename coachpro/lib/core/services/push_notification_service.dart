@@ -45,26 +45,27 @@ class PushNotification {
   });
 
   PushNotification copyWith({bool? isRead}) => PushNotification(
-        id: id,
-        title: title,
-        body: body,
-        category: category,
-        data: data,
-        receivedAt: receivedAt,
-        isRead: isRead ?? this.isRead,
-      );
+    id: id,
+    title: title,
+    body: body,
+    category: category,
+    data: data,
+    receivedAt: receivedAt,
+    isRead: isRead ?? this.isRead,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'body': body,
-        'category': category.name,
-        'data': data,
-        'receivedAt': receivedAt.toIso8601String(),
-        'isRead': isRead,
-      };
+    'id': id,
+    'title': title,
+    'body': body,
+    'category': category.name,
+    'data': data,
+    'receivedAt': receivedAt.toIso8601String(),
+    'isRead': isRead,
+  };
 
-  factory PushNotification.fromJson(Map<String, dynamic> json) => PushNotification(
+  factory PushNotification.fromJson(Map<String, dynamic> json) =>
+      PushNotification(
         id: json['id'] as String,
         title: json['title'] as String,
         body: json['body'] as String,
@@ -78,25 +79,25 @@ class PushNotification {
       );
 }
 
-  class PushRegistrationStatus {
-    final bool pushEnabled;
-    final bool initialized;
-    final bool hasToken;
-    final bool registeredWithBackend;
-    final String message;
-    final String? token;
-    final DateTime? lastUpdatedAt;
+class PushRegistrationStatus {
+  final bool pushEnabled;
+  final bool initialized;
+  final bool hasToken;
+  final bool registeredWithBackend;
+  final String message;
+  final String? token;
+  final DateTime? lastUpdatedAt;
 
-    const PushRegistrationStatus({
-      required this.pushEnabled,
-      required this.initialized,
-      required this.hasToken,
-      required this.registeredWithBackend,
-      required this.message,
-      required this.token,
-      required this.lastUpdatedAt,
-    });
-  }
+  const PushRegistrationStatus({
+    required this.pushEnabled,
+    required this.initialized,
+    required this.hasToken,
+    required this.registeredWithBackend,
+    required this.message,
+    required this.token,
+    required this.lastUpdatedAt,
+  });
+}
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -106,7 +107,10 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (_) {}
+  } catch (e) {
+    // Background handler - Firebase may already be initialized
+    debugPrint('Firebase background init: $e');
+  }
 
   final prefs = await SharedPreferences.getInstance();
   final history = prefs.getStringList('notification_history') ?? <String>[];
@@ -114,8 +118,12 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   history.insert(
     0,
     jsonEncode({
-      'id': message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      'title': message.notification?.title ?? message.data['title'] ?? 'Notification',
+      'id':
+          message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      'title':
+          message.notification?.title ??
+          message.data['title'] ??
+          'Notification',
       'body': message.notification?.body ?? message.data['body'] ?? '',
       'type': message.data['type'] ?? 'system',
       'route': message.data['route'],
@@ -137,13 +145,18 @@ class PushNotificationService {
 
   static const String _globalPushEnabledKey = 'notificationsEnabled';
 
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
 
-  final StreamController<Map<String, dynamic>> _notificationController = StreamController<Map<String, dynamic>>.broadcast();
-  final StreamController<Map<String, dynamic>> _notificationTapController = StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _notificationController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _notificationTapController =
+      StreamController<Map<String, dynamic>>.broadcast();
 
-  Stream<Map<String, dynamic>> get onNotification => _notificationController.stream;
-  Stream<Map<String, dynamic>> get onNotificationTap => _notificationTapController.stream;
+  Stream<Map<String, dynamic>> get onNotification =>
+      _notificationController.stream;
+  Stream<Map<String, dynamic>> get onNotificationTap =>
+      _notificationTapController.stream;
 
   String? _fcmToken;
   bool _initialized = false;
@@ -167,7 +180,9 @@ class PushNotificationService {
 
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -182,7 +197,9 @@ class PushNotificationService {
         try {
           final data = jsonDecode(payload) as Map<String, dynamic>;
           _notificationTapController.add(data);
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('Notification payload parse error: $e');
+        }
       },
     );
 
@@ -190,7 +207,9 @@ class PushNotificationService {
     final globalPushEnabled = prefs.getBool(_globalPushEnabledKey) ?? true;
     if (!globalPushEnabled) {
       _initialized = true;
-      debugPrint('PushNotificationService initialized with push disabled by user preference');
+      debugPrint(
+        'PushNotificationService initialized with push disabled by user preference',
+      );
       return;
     }
 
@@ -258,8 +277,8 @@ class PushNotificationService {
           'platform': defaultTargetPlatform == TargetPlatform.iOS
               ? 'ios'
               : defaultTargetPlatform == TargetPlatform.android
-                  ? 'android'
-                  : 'web',
+              ? 'android'
+              : 'web',
         },
       );
       _lastRegisterSucceeded = true;
@@ -291,9 +310,7 @@ class PushNotificationService {
     try {
       await sl<ApiClient>().dio.delete(
         '${ApiEndpoints.notifications}/register-token',
-        data: {
-          'token': _fcmToken,
-        },
+        data: {'token': _fcmToken},
       );
     } catch (error) {
       debugPrint('FCM token unregister failed: $error');
@@ -335,7 +352,9 @@ class PushNotificationService {
       await unregisterToken();
       try {
         await FirebaseMessaging.instance.deleteToken();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('FCM token deletion error: $e');
+      }
       _fcmToken = null;
       return;
     }
@@ -345,7 +364,12 @@ class PushNotificationService {
       return;
     }
 
-    await FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true, provisional: false);
+    await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
     _fcmToken = await FirebaseMessaging.instance.getToken();
     if (_fcmToken != null && _fcmToken!.isNotEmpty) {
       await _registerCurrentToken();
@@ -377,7 +401,10 @@ class PushNotificationService {
     return result;
   }
 
-  Future<void> setPreference(NotificationCategory category, bool enabled) async {
+  Future<void> setPreference(
+    NotificationCategory category,
+    bool enabled,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('notif_${category.name}', enabled);
 
@@ -391,7 +418,9 @@ class PushNotificationService {
   Future<List<Map<String, dynamic>>> getHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getStringList('notification_history') ?? <String>[];
-    return stored.map((item) => jsonDecode(item) as Map<String, dynamic>).toList();
+    return stored
+        .map((item) => jsonDecode(item) as Map<String, dynamic>)
+        .toList();
   }
 
   Future<int> getUnreadCount() async {
@@ -431,7 +460,10 @@ class PushNotificationService {
 
     const iosDetails = DarwinNotificationDetails();
 
-    final details = const NotificationDetails(android: androidDetails, iOS: iosDetails);
+    final details = const NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
 
     await _localNotifications.show(
       data['id'].hashCode,
@@ -462,8 +494,12 @@ class PushNotificationService {
 
   Map<String, dynamic> _normalizeMessage(RemoteMessage message) {
     return {
-      'id': message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      'title': message.notification?.title ?? message.data['title'] ?? 'Notification',
+      'id':
+          message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      'title':
+          message.notification?.title ??
+          message.data['title'] ??
+          'Notification',
       'body': message.notification?.body ?? message.data['body'] ?? '',
       'type': message.data['type'] ?? 'system',
       'route': message.data['route'],
