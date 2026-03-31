@@ -11,29 +11,48 @@ jobs:
     permissions:
       actions: write # Required to delete artifacts
     steps:
-      - name: "Delete all artifacts"
+      - name: "Super Aggressive Artifact & Run Cleanup"
         uses: actions/github-script@v7
         with:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const artifacts = await github.rest.actions.listArtifactsForRepo({
-              owner,
-              repo,
-              per_page: 100
-            });
             
-            if (artifacts.data.total_count === 0) {
-              console.log("No artifacts found to delete.");
-              return;
+            console.log("--- Clearing ALL Artifacts ---");
+            let artifactCount = 0;
+            while (true) {
+              const { data: { artifacts } } = await github.rest.actions.listArtifactsForRepo({
+                owner, repo, per_page: 100
+              });
+              if (artifacts.length === 0) break;
+              
+              for (const a of artifacts) {
+                console.log(`Deleting artifact: ${a.name} (ID: ${a.id})`);
+                await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id });
+                artifactCount++;
+              }
+              if (artifacts.length < 100) break;
             }
 
-            for (const artifact of artifacts.data.artifacts) {
-              console.log(`Deleting artifact: ${artifact.name} (ID: ${artifact.id})`);
-              await github.rest.actions.deleteArtifact({
-                owner,
-                repo,
-                artifact_id: artifact.id
-              });
+            console.log("--- Clearing ALL Workflow Runs (except current) ---");
+            let runCount = 0;
+            while (true) {
+                const { data: { workflow_runs } } = await github.rest.actions.listWorkflowRunsForRepo({
+                  owner, repo, per_page: 100
+                });
+                
+                if (workflow_runs.length <= 1) break; // only current runs remains
+                
+                for (const run of workflow_runs) {
+                  if (run.id !== context.runId) {
+                    console.log(`Deleting workflow run: ${run.id} (${run.name})`);
+                    try {
+                        await github.rest.actions.deleteWorkflowRun({ owner, repo, run_id: run.id });
+                        runCount++;
+                    } catch (e) { console.error(`Failed to delete run ${run.id}: ${e.message}`); }
+                  }
+                }
+                if (workflow_runs.length < 100) break;
             }
-            console.log("Cleanup complete!");
+            
+            console.log(`✅ Cleanup Complete! Purged ${artifactCount} artifacts and ${runCount} runs.`);
