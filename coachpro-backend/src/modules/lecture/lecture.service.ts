@@ -1,18 +1,26 @@
 import { LectureRepository } from './lecture.repository';
 import { Prisma } from '@prisma/client';
+import { prisma } from '../../server';
+import { ApiError } from '../../middleware/error.middleware';
 
 export class LectureService {
-  static async createLecture(instituteId: string, teacherId: string, data: any) {
+  static async createLecture(instituteId: string, teacherUserId: string, data: any) {
+    const teacher = await prisma.teacher.findFirst({
+        where: { user_id: teacherUserId, institute_id: instituteId },
+        select: { id: true },
+    });
+    if (!teacher) throw new ApiError('Teacher profile not found for this account', 404, 'NOT_FOUND');
+
     const lectureData: Prisma.LectureUncheckedCreateInput = {
       ...data,
       institute_id: instituteId,
-      teacher_id: teacherId,
+      teacher_id: teacher.id,
     };
     return LectureRepository.create(lectureData);
   }
 
-  static async listLectures(batchId: string, instituteId: string) {
-    return LectureRepository.listByBatch(batchId, instituteId);
+  static async listLectures(batchId: string, instituteId: string, subject?: string) {
+    return LectureRepository.listByBatch(batchId, instituteId, subject);
   }
 
   static async updateLecture(id: string, instituteId: string, data: any) {

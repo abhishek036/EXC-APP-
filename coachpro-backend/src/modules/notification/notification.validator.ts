@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const notificationTypeSchema = z.enum(['fee', 'class', 'exam', 'attendance', 'system', 'content', 'result']);
+export const notificationTypeSchema = z.enum(['fee', 'class', 'exam', 'attendance', 'system', 'content', 'result', 'doubt', 'material']);
 export const notificationRoleTargetSchema = z.enum(['admin', 'teacher', 'student', 'parent', 'all']);
 
 export const registerDeviceTokenSchema = z.object({

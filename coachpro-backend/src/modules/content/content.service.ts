@@ -13,8 +13,8 @@ export class ContentService {
       return this.repo.createNote(instituteId, teacherId, data);
   }
 
-  async listNotes(instituteId: string, batchId?: string) {
-      return this.repo.listNotes(instituteId, batchId);
+  async listNotes(instituteId: string, batchId?: string, subject?: string) {
+      return this.repo.listNotes(instituteId, { batchId, subject });
   }
 
   // ASSIGNMENTS
@@ -22,7 +22,7 @@ export class ContentService {
       return this.repo.createAssignment(instituteId, teacherId, data);
   }
 
-  async listAssignments(instituteId: string, filter: { batchId?: string, teacherId?: string }) {
+  async listAssignments(instituteId: string, filter: { batchId?: string, teacherId?: string, subject?: string }) {
       return this.repo.listAssignments(instituteId, filter);
   }
 
@@ -47,11 +47,12 @@ export class ContentService {
       return this.repo.respondToDoubt(doubtId, instituteId, teacherId, data);
   }
 
-  async listDoubts(instituteId: string, query: { batchId?: string, studentId?: string, status?: string }) {
+  async listDoubts(instituteId: string, query: { batchId?: string, studentId?: string, status?: string, subject?: string }) {
       return this.repo.listDoubts(instituteId, {
           batch_id: query.batchId,
           student_id: query.studentId,
-          status: query.status
+          status: query.status,
+          subject: query.subject
       });
   }
 }

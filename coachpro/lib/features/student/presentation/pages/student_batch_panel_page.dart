@@ -2159,13 +2159,15 @@ Widget _buildItemCard({
 class _PremiumCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
 
-  const _PremiumCard({required this.child, this.padding});
+  const _PremiumCard({required this.child, this.padding, this.margin});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      margin: margin,
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _StudentBatchPanelPageState.surfaceWhite,

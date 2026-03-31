@@ -32,21 +32,33 @@ export class TeacherService {
     return {};
   }
 
-  private async saveTeacherMetaMap(instituteId: string, teacherMetaMap: Record<string, any>) {
-    const institute = await prisma.institute.findUnique({
-      where: { id: instituteId },
-      select: { settings: true },
-    });
-    const settings = (institute?.settings ?? {}) as Record<string, any>;
+  private async updateTeacherMeta(instituteId: string, teacherId: string, updateFn: (prev: any) => any) {
+    return prisma.$transaction(async (tx) => {
+      const institute = await tx.institute.findUnique({
+        where: { id: instituteId },
+        select: { settings: true },
+      });
+      const settings = (institute?.settings ?? {}) as Record<string, any>;
+      const map = (settings['teacher_meta'] ?? {}) as Record<string, any>;
+      const previous = (map[teacherId] ?? {}) as Record<string, any>;
 
-    await prisma.institute.update({
-      where: { id: instituteId },
-      data: {
-        settings: {
-          ...settings,
-          teacher_meta: teacherMetaMap,
+      const next = updateFn(previous);
+
+      map[teacherId] = {
+        ...next,
+        updated_at: new Date().toISOString(),
+      };
+
+      await tx.institute.update({
+        where: { id: instituteId },
+        data: {
+          settings: {
+            ...settings,
+            teacher_meta: map,
+          },
         },
-      },
+      });
+      return next;
     });
   }
 
@@ -123,9 +135,7 @@ export class TeacherService {
     const salary = this.toNumber(data.salary);
     const revenueShare = this.toNumber(data.revenue_share);
 
-    const metaMap = await this.getTeacherMetaMap(instituteId);
-    metaMap[createdTeacher.id] = {
-      ...(metaMap[createdTeacher.id] ?? {}),
+    await this.updateTeacherMeta(instituteId, createdTeacher.id, () => ({
       permissions,
       salary,
       revenue_share: revenueShare,
@@ -134,9 +144,7 @@ export class TeacherService {
         average_rating: 0,
         feedback_count: 0,
       },
-      updated_at: new Date().toISOString(),
-    };
-    await this.saveTeacherMetaMap(instituteId, metaMap);
+    }));
 
     return createdTeacher;
   }
@@ -178,34 +186,30 @@ export class TeacherService {
     const teacher = await this.teacherRepository.findTeacherById(teacherId, instituteId);
     if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
-    const metaMap = await this.getTeacherMetaMap(instituteId);
-    const previous = (metaMap[teacherId] ?? {}) as Record<string, any>;
+    const result = await this.updateTeacherMeta(instituteId, teacherId, (previous) => {
+      const nextPermissions = {
+        ...this.defaultPermissions(),
+        ...(previous.permissions ?? {}),
+        ...(data.permissions ?? {}),
+      };
 
-    const nextPermissions = {
-      ...this.defaultPermissions(),
-      ...(previous.permissions ?? {}),
-      ...(data.permissions ?? {}),
-    };
+      const nextSalary = data.salary !== undefined ? this.toNumber(data.salary) : this.toNumber(previous.salary);
+      const nextRevenueShare = data.revenue_share !== undefined ? this.toNumber(data.revenue_share) : this.toNumber(previous.revenue_share);
 
-    const nextSalary = data.salary !== undefined ? this.toNumber(data.salary) : this.toNumber(previous.salary);
-    const nextRevenueShare = data.revenue_share !== undefined ? this.toNumber(data.revenue_share) : this.toNumber(previous.revenue_share);
-
-    metaMap[teacherId] = {
-      ...previous,
-      permissions: nextPermissions,
-      salary: nextSalary,
-      revenue_share: nextRevenueShare,
-      feedbacks: Array.isArray(previous.feedbacks) ? previous.feedbacks : [],
-      feedback_summary: previous.feedback_summary ?? { average_rating: 0, feedback_count: 0 },
-      updated_at: new Date().toISOString(),
-    };
-
-    await this.saveTeacherMetaMap(instituteId, metaMap);
+      return {
+        ...previous,
+        permissions: nextPermissions,
+        salary: nextSalary,
+        revenue_share: nextRevenueShare,
+        feedbacks: Array.isArray(previous.feedbacks) ? previous.feedbacks : [],
+        feedback_summary: previous.feedback_summary ?? { average_rating: 0, feedback_count: 0 },
+      };
+    });
 
     return {
-      permissions: nextPermissions,
-      salary: nextSalary,
-      revenue_share: nextRevenueShare,
+      permissions: result.permissions,
+      salary: result.salary,
+      revenue_share: result.revenue_share,
     };
   }
 
@@ -341,36 +345,32 @@ export class TeacherService {
     const teacher = await this.teacherRepository.findTeacherById(teacherId, instituteId);
     if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
-    const metaMap = await this.getTeacherMetaMap(instituteId);
-    const previous = (metaMap[teacherId] ?? {}) as Record<string, any>;
-    const oldFeedbacks = Array.isArray(previous.feedbacks) ? previous.feedbacks : [];
+    const result = await this.updateTeacherMeta(instituteId, teacherId, (previous) => {
+        const oldFeedbacks = Array.isArray(previous.feedbacks) ? previous.feedbacks : [];
+        const feedbackItem = {
+          rating: data.rating,
+          comment: data.comment ?? null,
+          student_name: data.student_name ?? null,
+          created_at: new Date().toISOString(),
+        };
 
-    const feedbackItem = {
-      rating: data.rating,
-      comment: data.comment ?? null,
-      student_name: data.student_name ?? null,
-      created_at: new Date().toISOString(),
-    };
+        const feedbacks = [feedbackItem, ...oldFeedbacks].slice(0, 100);
+        const averageRating = feedbacks.reduce((sum, item) => sum + (this.toNumber(item.rating) ?? 0), 0) / (feedbacks.length || 1);
 
-    const feedbacks = [feedbackItem, ...oldFeedbacks].slice(0, 100);
-    const averageRating = feedbacks.reduce((sum, item) => sum + (this.toNumber(item.rating) ?? 0), 0) / (feedbacks.length || 1);
-
-    metaMap[teacherId] = {
-      ...previous,
-      feedbacks,
-      feedback_summary: {
-        average_rating: Number(averageRating.toFixed(2)),
-        feedback_count: feedbacks.length,
-      },
-      updated_at: new Date().toISOString(),
-    };
-
-    await this.saveTeacherMetaMap(instituteId, metaMap);
+        return {
+          ...previous,
+          feedbacks,
+          feedback_summary: {
+            average_rating: Number(averageRating.toFixed(2)),
+            feedback_count: feedbacks.length,
+          },
+        };
+    });
 
     return {
-      average_rating: Number(averageRating.toFixed(2)),
-      feedback_count: feedbacks.length,
-      recent_feedbacks: feedbacks.slice(0, 10),
+      average_rating: result.feedback_summary.average_rating,
+      feedback_count: result.feedback_summary.feedback_count,
+      recent_feedbacks: result.feedbacks.slice(0, 10),
     };
   }
 }

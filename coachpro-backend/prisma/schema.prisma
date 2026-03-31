@@ -404,12 +404,13 @@ model AttendanceSession {
   teacher_id   String?   @db.Uuid
   teacher      Teacher?  @relation(fields: [teacher_id], references: [id])
   session_date DateTime  @db.Date
+  subject      String?   @db.VarChar(100)
   submitted_at DateTime? @db.Timestamptz
   is_corrected Boolean?  @default(false)
 
   records AttendanceRecord[]
 
-  @@unique([batch_id, session_date])
+  @@unique([batch_id, session_date, subject])
   @@map("attendance_sessions")
 }
 
@@ -520,9 +521,13 @@ model QuizQuestion {
   question_text  String  @db.Text
   image_url      String? @db.Text
   option_a       String  @db.Text
+  option_a_image String? @db.Text
   option_b       String  @db.Text
+  option_b_image String? @db.Text
   option_c       String  @db.Text
+  option_c_image String? @db.Text
   option_d       String  @db.Text
+  option_d_image String? @db.Text
   correct_option String? @db.Char(1)
   marks          Int?    @default(1)
   order_index    Int?    @default(0)
@@ -576,6 +581,7 @@ model Assignment {
   teacher_id   String?   @db.Uuid
   teacher      Teacher?  @relation(fields: [teacher_id], references: [id])
   title        String    @db.VarChar(200)
+  subject      String?   @db.VarChar(100)
   description  String?   @db.Text
   due_date     DateTime? @db.Date
   file_url     String?   @db.Text
@@ -621,6 +627,7 @@ model Doubt {
   institute      Institute @relation(fields: [institute_id], references: [id])
   assigned_to_id String?   @map("assigned_to") @db.Uuid
   assigned_to    Teacher?  @relation(fields: [assigned_to_id], references: [id])
+  subject        String?   @db.VarChar(100)
   question_text  String    @db.Text
   question_img   String?   @db.Text
   answer_text    String?   @db.Text

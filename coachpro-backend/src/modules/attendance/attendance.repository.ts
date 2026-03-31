@@ -15,9 +15,10 @@ export class AttendanceRepository {
          
          const session = await tx.attendanceSession.upsert({
              where: {
-                 batch_id_session_date: {
+                 batch_id_session_date_subject: {
                      batch_id: data.batch_id,
-                     session_date: sessionDate
+                     session_date: sessionDate,
+                     subject: data.subject || null as any
                  }
              },
              update: {
@@ -28,6 +29,7 @@ export class AttendanceRepository {
                  institute_id: instituteId,
                  batch_id: data.batch_id,
                  session_date: sessionDate,
+                 subject: data.subject || null,
                  submitted_at: new Date(),
                  ...(teacherProfileId ? { teacher_id: teacherProfileId } : {}),
              }
@@ -64,12 +66,13 @@ export class AttendanceRepository {
      });
   }
 
-  async getBatchAttendanceForMonth(batchId: string, instituteId: string, startDate: Date, endDate: Date) {
+  async getBatchAttendanceForMonth(batchId: string, instituteId: string, startDate: Date, endDate: Date, subject?: string) {
       return prisma.attendanceSession.findMany({
          where: {
             batch_id: batchId,
             institute_id: instituteId,
-            session_date: { gte: startDate, lte: endDate }
+            session_date: { gte: startDate, lte: endDate },
+            ...(subject ? { subject } : {})
          },
          include: {
             records: {
@@ -82,9 +85,14 @@ export class AttendanceRepository {
       });
   }
 
-  async getStudentAttendance(studentId: string, instituteId: string, batchId?: string) {
+  async getStudentAttendance(studentId: string, instituteId: string, batchId?: string, subject?: string) {
       const where: Prisma.AttendanceRecordWhereInput = { student_id: studentId, institute_id: instituteId };
-      if (batchId) where.session = { batch_id: batchId };
+      if (batchId || subject) {
+          where.session = { 
+              ...(batchId ? { batch_id: batchId } : {}),
+              ...(subject ? { subject: subject } : {})
+          };
+      }
 
       return prisma.attendanceRecord.findMany({
          where,
@@ -97,12 +105,13 @@ export class AttendanceRepository {
       });
   }
 
-  async getSessionsInRange(instituteId: string, start: Date, end: Date, batchId?: string) {
+  async getSessionsInRange(instituteId: string, start: Date, end: Date, batchId?: string, subject?: string) {
       return (prisma.attendanceSession as any).findMany({
           where: {
               institute_id: instituteId,
               session_date: { gte: start, lte: end },
-              ...(batchId ? { batch_id: batchId } : {})
+              ...(batchId ? { batch_id: batchId } : {}),
+              ...(subject ? { subject: subject } : {})
           },
           include: {
               records: {
@@ -114,13 +123,20 @@ export class AttendanceRepository {
       });
   }
 
-  async getAggregateStats(instituteId: string, start: Date, end: Date, batchId?: string) {
+  async getAggregateStats(instituteId: string, start: Date, end: Date, batchId?: string, subject?: string) {
        // This could be optimized into a single group-by if complex, but simple for now
        const records = await prisma.attendanceRecord.findMany({
            where: {
                institute_id: instituteId,
-               ...(batchId ? { session: { batch_id: batchId } } : {}),
-               session: { session_date: { gte: start, lte: end } }
+               ...(batchId || subject ? { 
+                   session: { 
+                       ...(batchId ? { batch_id: batchId } : {}),
+                       ...(subject ? { subject: subject } : {}),
+                       session_date: { gte: start, lte: end }
+                   }
+               } : {
+                   session: { session_date: { gte: start, lte: end } }
+               }),
            },
            select: { status: true, session: { select: { session_date: true } } }
        });

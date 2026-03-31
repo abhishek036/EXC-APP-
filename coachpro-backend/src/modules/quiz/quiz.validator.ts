@@ -30,24 +30,7 @@ export const createQuizSchema = z.object({
     const assessmentType = body.assessment_type ?? 'QUIZ';
     const questionCount = body.questions.length;
 
-    if (assessmentType === 'QUIZ') {
-      if (questionCount < 5 || questionCount > 20) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['questions'],
-          message: 'QUIZ mode must have between 5 and 20 questions',
-        });
-      }
-    }
-
     if (assessmentType === 'TEST') {
-      if (questionCount < 50 || questionCount > 200) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['questions'],
-          message: 'TEST mode must have between 50 and 200 questions',
-        });
-      }
       if (!body.time_limit_min || body.time_limit_min <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

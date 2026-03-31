@@ -24,13 +24,36 @@ export class ContentController {
     try {
       const teacherId = await this.resolveTeacherId(req.instituteId!, req.user!.userId);
       const data = await this.service.createNote(req.instituteId!, teacherId, req.body);
+      
+      // Notify students
+      const { NotificationService } = await import('../notification/notification.service');
+      const students = await prisma.student.findMany({
+        where: { student_batches: { some: { batch_id: req.body.batch_id } }, is_active: true },
+        select: { user_id: true }
+      });
+
+      for (const student of students) {
+        if (student.user_id) {
+          await NotificationService.sendNotificationToUser(student.user_id, {
+            title: 'New Study Material',
+            body: `New study material "${req.body.title}" has been uploaded to your batch.`,
+            type: 'material',
+            institute_id: req.instituteId!,
+            meta: {
+              route: '/student/materials',
+              note_id: (data as any)?.id
+            }
+          });
+        }
+      }
+
       return sendResponse({ res, data, message: 'Note uploaded successfully', statusCode: 201 });
     } catch (e) { next(e); }
   }
 
   listNotes = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.service.listNotes(req.instituteId!, req.query.batchId as string);
+      const data = await this.service.listNotes(req.instituteId!, req.query.batchId as string, req.query.subject as string);
       return sendResponse({ res, data, message: 'Notes fetched successfully' });
     } catch (e) { next(e); }
   }
@@ -43,6 +66,29 @@ export class ContentController {
       emitBatchSync(req.instituteId!, req.body.batch_id, 'assignment_created', {
         assignment_id: (data as any)?.id,
       });
+
+      // Notify students
+      const { NotificationService } = await import('../notification/notification.service');
+      const students = await prisma.student.findMany({
+        where: { student_batches: { some: { batch_id: req.body.batch_id } }, is_active: true },
+        select: { user_id: true }
+      });
+
+      for (const student of students) {
+        if (student.user_id) {
+          await NotificationService.sendNotificationToUser(student.user_id, {
+            title: 'New Assignment',
+            body: `You have a new assignment: "${req.body.title}". Check details and submit before deadline.`,
+            type: 'material',
+            institute_id: req.instituteId!,
+            meta: {
+              route: '/student/assignments',
+              assignment_id: (data as any)?.id
+            }
+          });
+        }
+      }
+
       return sendResponse({ res, data, message: 'Assignment uploaded successfully', statusCode: 201 });
     } catch (e) { next(e); }
   }
@@ -51,7 +97,8 @@ export class ContentController {
     try {
       const filter = {
         batchId: req.query.batchId as string,
-        teacherId: req.query.teacherId as string
+        teacherId: req.query.teacherId as string,
+        subject: req.query.subject as string
       };
       const data = await this.service.listAssignments(req.instituteId!, filter);
       return sendResponse({ res, data, message: 'Assignments fetched successfully' });
@@ -62,7 +109,7 @@ export class ContentController {
     try {
       const student = await prisma.student.findFirst({
         where: { user_id: req.user!.userId, institute_id: req.instituteId! },
-        select: { id: true },
+        select: { id: true, name: true },
       });
       if (!student) {
         throw new Error('Student profile not found');
@@ -77,13 +124,39 @@ export class ContentController {
 
       const assignment = await prisma.assignment.findFirst({
         where: { id: req.params.assignmentId, institute_id: req.instituteId! },
-        select: { batch_id: true },
+        select: { batch_id: true, title: true, teacher_id: true },
       });
       if (assignment?.batch_id) {
         emitBatchSync(req.instituteId!, assignment.batch_id, 'assignment_submitted', {
           assignment_id: req.params.assignmentId,
           student_id: student.id,
         });
+
+        // Notify teacher about submission
+        try {
+          const { NotificationService } = await import('../notification/notification.service');
+          if (assignment.teacher_id) {
+            const teacher = await prisma.teacher.findUnique({
+              where: { id: assignment.teacher_id },
+              select: { user_id: true }
+            });
+            if (teacher?.user_id) {
+              await NotificationService.sendNotificationToUser(teacher.user_id, {
+                title: 'Assignment Submitted',
+                body: `${student.name || 'A student'} submitted "${assignment.title || 'an assignment'}" for review.`,
+                type: 'material',
+                institute_id: req.instituteId!,
+                meta: {
+                  route: '/teacher/assignments',
+                  assignment_id: req.params.assignmentId,
+                  student_id: student.id
+                }
+              });
+            }
+          }
+        } catch (err) {
+          console.error('[ContentController] Failed to send teacher assignment notification:', err);
+        }
       }
 
       return sendResponse({ res, data, message: 'Assignment submitted successfully', statusCode: 201 });
@@ -115,6 +188,26 @@ export class ContentController {
           assignment_id: submission.assignment.id,
           submission_id: req.params.submissionId,
         });
+        
+        // Notify student
+        const { NotificationService } = await import('../notification/notification.service');
+        const student = await prisma.student.findFirst({
+           where: { id: submission.student_id },
+           select: { user_id: true }
+        });
+        
+        if (student?.user_id) {
+           await NotificationService.sendNotificationToUser(student.user_id, {
+              title: 'Assignment Reviewed',
+              body: `Your submission has been reviewed.`,
+              type: 'material',
+              institute_id: req.instituteId!,
+              meta: {
+                 route: '/student/assignments',
+                 assignment_id: submission.assignment.id
+              }
+           });
+        }
       }
 
       return sendResponse({ res, data, message: 'Assignment submission reviewed successfully' });
@@ -130,6 +223,42 @@ export class ContentController {
         emitBatchSync(req.instituteId!, req.body.batch_id, 'doubt_created', {
           doubt_id: (data as any)?.id,
         });
+
+        // Notify teacher about new doubt
+        try {
+          const { NotificationService } = await import('../notification/notification.service');
+          const batch = await prisma.batch.findUnique({
+            where: { id: req.body.batch_id },
+            select: { teacher_id: true, name: true, institute: { select: { settings: true } } }
+          });
+          if (batch) {
+            const metaMap = (batch.institute.settings as any)?.batch_meta || {};
+            const batchMeta = metaMap[req.body.batch_id] || {};
+            const teacherIds = [batch.teacher_id, ...(Array.isArray(batchMeta.teacher_ids) ? batchMeta.teacher_ids : [])].filter(Boolean);
+
+            for (const tId of teacherIds) {
+              const teacher = await prisma.teacher.findUnique({
+                where: { id: tId },
+                select: { user_id: true }
+              });
+              if (teacher?.user_id) {
+                await NotificationService.sendNotificationToUser(teacher.user_id, {
+                  title: 'New Doubt from Student',
+                  body: `A student has a new doubt in "${batch.name || 'your batch'}": "${((req.body.question_text || 'doubt') as string).substring(0, 50)}..."`,
+                  type: 'doubt',
+                  institute_id: req.instituteId!,
+                  meta: {
+                    route: '/teacher/doubts',
+                    doubt_id: (data as any)?.id,
+                    batch_id: req.body.batch_id
+                  }
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[ContentController] Failed to send doubt notification to teacher:', err);
+        }
       } else {
         emitInstituteDashboardSync(req.instituteId!, 'doubt_created');
       }
@@ -151,6 +280,32 @@ export class ContentController {
       } else {
         emitInstituteDashboardSync(req.instituteId!, 'doubt_responded', { doubt_id: req.params.doubtId });
       }
+
+      // Notify student
+      const actualDoubt = await prisma.doubt.findUnique({
+        where: { id: req.params.doubtId },
+        select: { student_id: true }
+      });
+      
+      const { NotificationService } = await import('../notification/notification.service');
+      const student = await prisma.student.findFirst({
+        where: { id: actualDoubt?.student_id },
+        select: { user_id: true }
+      });
+
+      if (student?.user_id) {
+        await NotificationService.sendNotificationToUser(student.user_id, {
+          title: 'Doubt Resolved',
+          body: 'Your doubt has been answered. Click to view solution.',
+          type: 'doubt',
+          institute_id: req.instituteId!,
+          meta: {
+            route: '/student/doubts/history',
+            doubt_id: req.params.doubtId
+          }
+        });
+      }
+
       return sendResponse({ res, data, message: 'Doubt answer submitted successfully' });
     } catch (e) { next(e); }
   }
@@ -160,7 +315,8 @@ export class ContentController {
       const data = await this.service.listDoubts(req.instituteId!, {
           batchId: req.query.batchId as string,
           studentId: req.query.studentId as string,
-          status: req.query.status as string
+          status: req.query.status as string,
+          subject: req.query.subject as string
       });
       return sendResponse({ res, data, message: 'Doubts fetched successfully' });
     } catch (e) { next(e); }

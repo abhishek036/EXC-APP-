@@ -245,6 +245,7 @@ export class TeacherController {
 
       const batchId = req.params.batchId;
       const instituteId = req.instituteId!;
+      const subject = req.query.subject as string | undefined;
 
       const batch = await prisma.batch.findFirst({
         where: {
@@ -280,7 +281,11 @@ export class TeacherController {
         attendanceRecords,
       ] = await Promise.all([
         prisma.syllabusTopic.findMany({
-          where: { batch_id: batchId, institute_id: instituteId },
+          where: { 
+            batch_id: batchId, 
+            institute_id: instituteId,
+            ...(subject ? { subject } : {})
+          },
           orderBy: [{ chapter_name: 'asc' }, { order_index: 'asc' }],
           select: { id: true, chapter_name: true, topic_name: true, subject: true },
         }),
@@ -288,13 +293,20 @@ export class TeacherController {
           where: {
             institute_id: instituteId,
             is_completed: true,
-            topic: { batch_id: batchId },
+            topic: { 
+                batch_id: batchId,
+                ...(subject ? { subject } : {})
+            },
             ...(studentIds.length > 0 ? { student_id: { in: studentIds } } : {}),
           },
           select: { topic_id: true, student_id: true },
         }),
         prisma.lecture.findFirst({
-          where: { institute_id: instituteId, batch_id: batchId },
+          where: { 
+              institute_id: instituteId, 
+              batch_id: batchId,
+              ...(subject ? { subject } : {})
+          },
           orderBy: [{ scheduled_at: 'desc' }, { created_at: 'desc' }],
           select: { title: true, description: true, scheduled_at: true },
         }),
@@ -304,6 +316,7 @@ export class TeacherController {
             assignment: {
               batch_id: batchId,
               teacher_id: teacher.id,
+              ...(subject ? { subject } : {})
             },
           },
           orderBy: { submitted_at: 'desc' },
@@ -316,7 +329,13 @@ export class TeacherController {
           },
         }),
         prisma.doubt.findMany({
-          where: { institute_id: instituteId, batch_id: batchId, assigned_to_id: teacher.id, status: 'pending' },
+          where: { 
+              institute_id: instituteId, 
+              batch_id: batchId, 
+              assigned_to_id: teacher.id, 
+              status: 'pending',
+              ...(subject ? { subject } : {})
+          },
           orderBy: { created_at: 'desc' },
           take: 30,
           select: {
@@ -329,14 +348,23 @@ export class TeacherController {
           },
         }),
         prisma.quiz.findMany({
-          where: { institute_id: instituteId, batch_id: batchId, teacher_id: teacher.id },
+          where: { 
+              institute_id: instituteId, 
+              batch_id: batchId, 
+              teacher_id: teacher.id,
+              ...(subject ? { subject } : {})
+          },
           orderBy: { created_at: 'desc' },
           select: { id: true, title: true, subject: true, created_at: true, is_published: true },
         }),
         prisma.quizAttempt.findMany({
           where: {
             institute_id: instituteId,
-            quiz: { batch_id: batchId, teacher_id: teacher.id },
+            quiz: { 
+                batch_id: batchId, 
+                teacher_id: teacher.id,
+                ...(subject ? { subject } : {})
+            },
             submitted_at: { not: null },
           },
           select: {
@@ -350,7 +378,10 @@ export class TeacherController {
         prisma.attendanceRecord.findMany({
           where: {
             institute_id: instituteId,
-            session: { batch_id: batchId },
+            session: { 
+                batch_id: batchId,
+                ...(subject ? { subject } : {})
+            },
             ...(studentIds.length > 0 ? { student_id: { in: studentIds } } : {}),
           },
           select: { student_id: true, status: true },
@@ -548,12 +579,24 @@ export class TeacherController {
         include: { _count: { select: { student_batches: { where: { is_active: true } } } } }
       });
 
+      // Fetch batch_meta to get subjects for each batch
+      const institute = await prisma.institute.findUnique({
+        where: { id: req.instituteId! },
+        select: { settings: true },
+      });
+      const settings = (institute?.settings ?? {}) as Record<string, any>;
+      const batchMetaMap = (settings['batch_meta'] ?? {}) as Record<string, any>;
+
       return sendResponse({
          res, 
-         data: batches.map(b => ({
-             ...b,
-             student_count: b._count.student_batches
-         })), 
+         data: batches.map(b => {
+             const meta = (batchMetaMap[b.id] ?? {}) as Record<string, any>;
+             return {
+                 ...b,
+                 student_count: b._count.student_batches,
+                 subjects: Array.isArray(meta.subjects) ? meta.subjects : []
+             };
+         }), 
          message: 'Batches fetched' 
       });
     } catch (error) { next(error); }

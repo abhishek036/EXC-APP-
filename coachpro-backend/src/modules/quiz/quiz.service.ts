@@ -64,9 +64,13 @@ export class QuizService {
       question_text: q.question_text,
       image_url: q.image_url,
       option_a: q.option_a,
+      option_a_image: q.option_a_image,
       option_b: q.option_b,
+      option_b_image: q.option_b_image,
       option_c: q.option_c,
+      option_c_image: q.option_c_image,
       option_d: q.option_d,
+      option_d_image: q.option_d_image,
       correct_option: q.correct_option,
       marks: q.marks ?? 1,
       order_index: q.order_index ?? index,
@@ -85,10 +89,10 @@ export class QuizService {
 
   static async getQuizById(id: string, instituteId: string, role: string) {
     const quiz = await QuizRepository.findQuizById(id, instituteId);
-    if (!quiz) throw new Error('Quiz not found');
+    if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
 
     if (role === 'student' && !quiz.is_published) {
-      throw new Error('This quiz is not published yet');
+      throw new ApiError('This quiz is not published yet', 403, 'FORBIDDEN');
     }
 
     if (role === 'student') {
@@ -104,8 +108,8 @@ export class QuizService {
 
   static async updateQuiz(id: string, instituteId: string, data: any) {
     const quiz = await QuizRepository.findQuizById(id, instituteId);
-    if (!quiz) throw new Error('Quiz not found');
-    if (quiz.is_published) throw new Error('Cannot edit a published quiz');
+    if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
+    if (quiz.is_published) throw new ApiError('Cannot edit a published quiz', 400, 'BAD_REQUEST');
 
     const normalizedData: Prisma.QuizUncheckedUpdateInput = {
       ...(data.batch_id ? { batch_id: data.batch_id } : {}),
@@ -129,9 +133,13 @@ export class QuizService {
       question_text: q.question_text,
       image_url: q.image_url,
       option_a: q.option_a,
+      option_a_image: q.option_a_image,
       option_b: q.option_b,
+      option_b_image: q.option_b_image,
       option_c: q.option_c,
+      option_c_image: q.option_c_image,
       option_d: q.option_d,
+      option_d_image: q.option_d_image,
       correct_option: q.correct_option,
       marks: q.marks ?? 1,
       order_index: q.order_index ?? index,
@@ -142,24 +150,55 @@ export class QuizService {
 
   static async publishQuiz(id: string, instituteId: string) {
     const quiz = await QuizRepository.findQuizById(id, instituteId);
-    if (!quiz) throw new Error('Quiz not found');
-    if (quiz.is_published) throw new Error('Quiz is already published');
+    if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
+    if (quiz.is_published) throw new ApiError('Quiz is already published', 400, 'BAD_REQUEST');
 
-    return QuizRepository.publishQuiz(id, instituteId);
+    const result = await QuizRepository.publishQuiz(id, instituteId);
+
+    // Notify students in the batch
+    if (quiz.batch_id) {
+      try {
+        const { NotificationService } = await import('../notification/notification.service');
+        const students = await prisma.student.findMany({
+          where: { student_batches: { some: { batch_id: quiz.batch_id } }, is_active: true },
+          select: { user_id: true }
+        });
+
+        const typeLabel = (quiz.assessment_type || 'Quiz').toLowerCase();
+        for (const student of students) {
+          if (student.user_id) {
+            await NotificationService.sendNotificationToUser(student.user_id, {
+              title: `New ${typeLabel.toUpperCase()}: ${quiz.title}`,
+              body: `A new ${typeLabel} "${quiz.title}" is now available for your batch.`,
+              type: 'exam',
+              institute_id: instituteId,
+              meta: {
+                route: '/student/quizzes',
+                quiz_id: quiz.id
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to send quiz publication notifications:', err);
+      }
+    }
+
+    return result;
   }
 
   static async startAttempt(quizId: string, studentId: string, instituteId: string) {
     const studentProfileId = await QuizService.resolveStudentProfileId(studentId, instituteId);
 
     const quiz = await QuizRepository.findQuizById(quizId, instituteId);
-    if (!quiz) throw new Error('Quiz not found');
-    if (!quiz.is_published) throw new Error('Quiz is not published yet');
+    if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
+    if (!quiz.is_published) throw new ApiError('Quiz is not published yet', 403, 'FORBIDDEN');
 
     const existingAttempt = await QuizRepository.findAttempt(quizId, studentProfileId);
     if (existingAttempt) {
       if ((quiz.assessment_type ?? 'QUIZ') === 'TEST') {
         if (existingAttempt.submitted_at) {
-          throw new Error('One attempt only for this test');
+          throw new ApiError('One attempt only for this test', 403, 'FORBIDDEN');
         }
         return existingAttempt;
       }
@@ -182,39 +221,101 @@ export class QuizService {
     const studentProfileId = await QuizService.resolveStudentProfileId(studentId, instituteId);
 
     const quiz = await QuizRepository.findQuizById(quizId, instituteId);
-    if (!quiz) throw new Error('Quiz not found');
+    if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
 
     const attempt = await QuizRepository.findAttempt(quizId, studentProfileId);
-    if (!attempt) throw new Error('Quiz attempt not started');
-    if (attempt.submitted_at) throw new Error('Quiz already submitted');
+    if (!attempt) throw new ApiError('Quiz attempt not started', 404, 'NOT_FOUND');
+    if (attempt.submitted_at) throw new ApiError('Quiz already submitted', 400, 'BAD_REQUEST');
 
     let totalMarks = 0;
     let obtainedMarks = 0;
+    const negativeMark = Number(quiz.negative_marking ?? 0);
 
     for (const q of quiz.questions) {
       const qMarks = q.marks ?? 1;
       totalMarks += qMarks;
 
       const studentAnswer = answers[q.id];
-      if (studentAnswer && studentAnswer === q.correct_option) {
-        obtainedMarks += qMarks;
+      if (studentAnswer) {
+        if (studentAnswer === q.correct_option) {
+          obtainedMarks += qMarks;
+        } else {
+          obtainedMarks -= negativeMark;
+        }
       }
     }
 
-    return QuizRepository.updateAttempt(quizId, studentProfileId, {
+    if (obtainedMarks < 0) obtainedMarks = 0;
+
+    const updatedAttempt = await QuizRepository.updateAttempt(quizId, studentProfileId, {
       submitted_at: new Date(),
       total_marks: totalMarks,
       obtained_marks: obtainedMarks,
       answers: answers as Prisma.JsonObject,
     });
+
+    // Notify student about result if enabled
+    if (quiz.show_instant_result) {
+      try {
+        const { NotificationService } = await import('../notification/notification.service');
+        const studentUser = await prisma.student.findUnique({
+          where: { id: studentProfileId },
+          select: { user_id: true }
+        });
+        if (studentUser?.user_id) {
+          await NotificationService.sendNotificationToUser(studentUser.user_id, {
+            title: 'Quiz Result Available',
+            body: `You scored ${obtainedMarks}/${totalMarks} in "${quiz.title}".`,
+            type: 'exam',
+            institute_id: instituteId,
+            meta: {
+              route: '/student/quizzes',
+              quiz_id: quiz.id
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to send quiz result notification:', err);
+      }
+    }
+
+    // Notify teacher about submission
+    try {
+      const { NotificationService } = await import('../notification/notification.service');
+      const studentUser = await prisma.student.findUnique({
+        where: { id: studentProfileId },
+        select: { user_id: true, name: true }
+      });
+      const teacherUser = await prisma.teacher.findFirst({
+        where: { id: quiz.teacher_id },
+        select: { user_id: true }
+      });
+      if (teacherUser?.user_id && studentUser) {
+        await NotificationService.sendNotificationToUser(teacherUser.user_id, {
+          title: 'Quiz Submitted',
+          body: `${studentUser.name || 'A student'} submitted "${quiz.title}"${quiz.show_instant_result ? ` and scored ${obtainedMarks}/${totalMarks}` : ''}.`,
+          type: 'exam',
+          institute_id: instituteId,
+          meta: {
+            route: '/teacher/quiz/${quiz.id}/results',
+            quiz_id: quiz.id,
+            student_id: studentProfileId
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Failed to send teacher quiz submission notification:', err);
+    }
+
+    return updatedAttempt;
   }
 
   static async getStudentResult(quizId: string, studentId: string, instituteId: string) {
     const studentProfileId = await QuizService.resolveStudentProfileId(studentId, instituteId);
 
     const attempt = await QuizRepository.findAttempt(quizId, studentProfileId);
-    if (!attempt) throw new Error('Attempt not found');
-    if (!attempt.submitted_at) throw new Error('Quiz not submitted yet');
+    if (!attempt) throw new ApiError('Attempt not found', 404, 'NOT_FOUND');
+    if (!attempt.submitted_at) throw new ApiError('Quiz not submitted yet', 400, 'BAD_REQUEST');
     
     return attempt;
   }
@@ -235,7 +336,7 @@ export class QuizService {
 
   static async deleteQuiz(id: string, instituteId: string) {
     const quiz = await QuizRepository.findQuizById(id, instituteId);
-    if (!quiz) throw new Error('Quiz not found');
+    if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
 
     await QuizRepository.deleteQuiz(id, instituteId);
     return { id };

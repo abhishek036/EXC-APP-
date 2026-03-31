@@ -27,12 +27,14 @@ export class QuizController {
 
           const batchIds = student.student_batches.map(sb => sb.batch_id);
 
-          const quizzes = await prisma.quiz.findMany({
+          const { subject } = req.query;
+          const puzzles = await prisma.quiz.findMany({
               where: {
                   institute_id: req.instituteId!,
                   is_published: true,
                   batch_id: { in: batchIds },
-                  attempts: { none: { student_id: student.id } } // Only not attempted
+                  attempts: { none: { student_id: student.id } }, // Only not attempted
+                  ...(subject ? { subject: subject as string } : {})
               },
               include: {
                   batch: { select: { name: true } },
@@ -41,7 +43,7 @@ export class QuizController {
               orderBy: { created_at: 'desc' }
           });
 
-          return sendResponse({ res, data: quizzes, message: 'Available quizzes fetched' });
+          return sendResponse({ res, data: puzzles, message: 'Available quizzes fetched' });
       } catch (error) { next(error); }
   }
 

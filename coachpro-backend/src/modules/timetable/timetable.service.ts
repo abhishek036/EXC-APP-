@@ -608,7 +608,7 @@ export class TimetableService {
                           type: 'schedule',
                           role_target: 'student',
                           institute_id: instituteId,
-                          meta: { route: '/student/schedule', lecture_id: lecture.id, batch_id: batchId },
+                          meta: { route: '/student/timetable', lecture_id: lecture.id, batch_id: batchId },
                       });
                   }
               }
@@ -655,11 +655,39 @@ export class TimetableService {
 
     await this.checkTeacherLectureConflict(instituteId, teacher.id, nextScheduledAt, nextDuration, lectureId);
 
-    return await prisma.lecture.update({
+    const result = await prisma.lecture.update({
       where: { id: lectureId },
       data: { batch_id: nextBatchId, title: data.title, scheduled_at: nextScheduledAt, duration_minutes: nextDuration },
       select: { id: true, title: true, scheduled_at: true, duration_minutes: true, batch_id: true },
     });
+
+    // Notify students about rescheduled class
+    try {
+      const students = await prisma.studentBatch.findMany({
+        where: { batch_id: nextBatchId, is_active: true },
+        include: { student: { select: { user_id: true } } }
+      });
+      const batch = await prisma.batch.findUnique({
+        where: { id: nextBatchId },
+        select: { name: true }
+      });
+      for (const s of students) {
+        if (s.student.user_id) {
+          await NotificationService.sendNotificationToUser(s.student.user_id, {
+            title: 'Class Rescheduled',
+            body: `Your class "${data.title || 'class'}" in "${batch?.name || 'your batch'}" has been rescheduled.`,
+            type: 'schedule',
+            role_target: 'student',
+            institute_id: instituteId,
+            meta: { route: '/student/timetable', lecture_id: lectureId, batch_id: nextBatchId },
+          });
+        }
+      }
+    } catch (e) {
+      this.logger.error('[TimetableService] Failed to send reschedule notifications:', e);
+    }
+
+    return result;
   }
 
   async deleteTeacherScheduleByUser(userId: string, instituteId: string, lectureId: string) {
@@ -669,10 +697,42 @@ export class TimetableService {
     });
     if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
+    const lecture = await prisma.lecture.findFirst({
+      where: { id: lectureId, institute_id: instituteId, teacher_id: teacher.id, is_active: true },
+      select: { id: true, batch_id: true, title: true },
+    });
+    if (!lecture) throw new ApiError('Schedule item not found', 404, 'NOT_FOUND');
+
     await prisma.lecture.update({
       where: { id: lectureId },
       data: { is_active: false },
     });
+
+    // Notify students about cancelled class
+    try {
+      const students = await prisma.studentBatch.findMany({
+        where: { batch_id: lecture.batch_id, is_active: true },
+        include: { student: { select: { user_id: true } } }
+      });
+      const batch = await prisma.batch.findUnique({
+        where: { id: lecture.batch_id },
+        select: { name: true }
+      });
+      for (const s of students) {
+        if (s.student.user_id) {
+          await NotificationService.sendNotificationToUser(s.student.user_id, {
+            title: 'Class Cancelled',
+            body: `Your class "${lecture.title || 'class'}" in "${batch?.name || 'your batch'}" has been cancelled.`,
+            type: 'schedule',
+            role_target: 'student',
+            institute_id: instituteId,
+            meta: { route: '/student/timetable', lecture_id: lectureId, batch_id: lecture.batch_id },
+          });
+        }
+      }
+    } catch (e) {
+      this.logger.error('[TimetableService] Failed to send cancellation notifications:', e);
+    }
   }
 
   async getBatchTimetable(batchId: string, instituteId: string) {

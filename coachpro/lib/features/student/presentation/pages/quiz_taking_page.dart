@@ -26,7 +26,7 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
 
   Map<String, dynamic>? _quiz;
   List<dynamic> _questions = [];
-  final Map<String, int> _userAnswers = {}; // questionId -> optionIndex
+  final Map<String, String> _userAnswers = {}; // questionId -> optionLetter ('A','B','C','D')
 
   int _currentIndex = 0;
   int _secondsRemaining = 0;

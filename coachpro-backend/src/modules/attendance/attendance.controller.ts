@@ -25,14 +25,15 @@ export class AttendanceController {
 
   getBatch = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { month, year } = req.query;
+      const { month, year, subject } = req.query;
       if (!month || !year) throw new ApiError('Month and year query params are required', 400, 'BAD_REQUEST');
   
       const data = await this.service.getBatchMonthly(
           req.params.batchId, 
           req.instituteId!, 
           Number(month), 
-          Number(year)
+          Number(year),
+          subject as string
       );
       return sendResponse({ res, data, message: 'Batch attendance fetched' });
     } catch (e) { next(e); }
@@ -53,7 +54,8 @@ export class AttendanceController {
       }
 
       const batchId = req.query.batchId as string | undefined;
-      const data = await this.service.getStudentReport(studentId, req.instituteId!, batchId);
+      const subject = req.query.subject as string | undefined;
+      const data = await this.service.getStudentReport(studentId, req.instituteId!, batchId, subject);
       return sendResponse({ res, data, message: 'Student attendance report fetched' });
     } catch (e) { next(e); }
   }
@@ -69,7 +71,8 @@ export class AttendanceController {
   getStats = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const batchId = req.query.batchId as string | undefined;
-      const data = await this.service.getDashboardStats(req.instituteId!, batchId);
+      const subject = req.query.subject as string | undefined;
+      const data = await this.service.getDashboardStats(req.instituteId!, batchId, subject);
       return sendResponse({ res, data, message: 'Attendance statistics fetched' });
     } catch (e) { next(e); }
   }

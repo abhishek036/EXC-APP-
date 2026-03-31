@@ -116,6 +116,7 @@ export class BatchService {
         description: typeof meta.description === 'string' ? meta.description : null,
         cover_image_url: typeof meta.cover_image_url === 'string' ? meta.cover_image_url : null,
         faqs: Array.isArray(meta.faqs) ? meta.faqs : [],
+        subjects: Array.isArray(meta.subjects) ? meta.subjects : [],
         teacher_ids: Array.from(mergedIds),
         assigned_teachers,
       };
@@ -148,13 +149,14 @@ export class BatchService {
       description: typeof meta.description === 'string' ? meta.description : null,
       cover_image_url: typeof meta.cover_image_url === 'string' ? meta.cover_image_url : null,
       faqs: Array.isArray(meta.faqs) ? meta.faqs : [],
+      subjects: Array.isArray(meta.subjects) ? meta.subjects : [],
       teacher_ids: mergedTeacherIds,
       assigned_teachers,
     }
   }
 
   async createBatch(instituteId: string, data: CreateBatchInput) {
-    const { teacher_ids, description, cover_image_url, faqs, ...batchData } = data;
+    const { teacher_ids, description, cover_image_url, faqs, subjects, ...batchData } = data;
     const primaryTeacher = batchData.teacher_id ?? teacher_ids?.[0];
 
     // Optional logic: Check if teacher exists and belongs to institute
@@ -168,12 +170,13 @@ export class BatchService {
       teacher_ids,
     });
 
-    if (normalizedTeacherIds.length > 0 || description || cover_image_url || (faqs?.length ?? 0) > 0) {
+    if (normalizedTeacherIds.length > 0 || description || cover_image_url || (faqs?.length ?? 0) > 0 || (subjects?.length ?? 0) > 0) {
       await this.updateBatchMeta(created.id, instituteId, {
         teacher_ids: normalizedTeacherIds,
         description,
         cover_image_url,
         faqs,
+        subjects,
       });
     }
 
@@ -189,6 +192,7 @@ export class BatchService {
       description,
       cover_image_url,
       faqs,
+      subjects,
       ...coreData
     } = data as UpdateBatchInput & UpdateBatchMetaInput;
 
@@ -202,7 +206,8 @@ export class BatchService {
       teacher_ids !== undefined ||
       description !== undefined ||
       cover_image_url !== undefined ||
-      faqs !== undefined
+      faqs !== undefined ||
+      subjects !== undefined
     ) {
       const existingMeta = await this.getStoredBatchMeta(instituteId, batchId);
       const mergedTeacherIds = teacher_ids ?? this.normalizeTeacherIds({
@@ -214,6 +219,7 @@ export class BatchService {
         description,
         cover_image_url,
         faqs,
+        subjects,
       });
     }
 
@@ -283,6 +289,7 @@ export class BatchService {
       description: typeof meta.description === 'string' ? meta.description : null,
       cover_image_url: typeof meta.cover_image_url === 'string' ? meta.cover_image_url : null,
       faqs: Array.isArray(meta.faqs) ? meta.faqs : [],
+      subjects: Array.isArray(meta.subjects) ? meta.subjects : [],
       teacher_ids: mergedTeacherIds,
       assigned_teachers,
     };
@@ -300,12 +307,14 @@ export class BatchService {
     const description = data.description ?? existingMeta.description ?? null;
     const cover_image_url = data.cover_image_url ?? existingMeta.cover_image_url ?? null;
     const faqs = data.faqs ?? existingMeta.faqs ?? [];
+    const subjects = data.subjects ?? existingMeta.subjects ?? [];
 
     map[batchId] = {
       teacher_ids: normalizedTeacherIds,
       description,
       cover_image_url,
       faqs,
+      subjects,
       updated_at: new Date().toISOString(),
     };
 

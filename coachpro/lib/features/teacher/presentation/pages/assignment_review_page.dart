@@ -6,8 +6,15 @@ import '../../data/repositories/teacher_repository.dart';
 
 class AssignmentReviewPage extends StatefulWidget {
   final String batchId;
+  final String? initialAssignmentId;
+  final String? initialAssignmentTitle;
 
-  const AssignmentReviewPage({super.key, required this.batchId});
+  const AssignmentReviewPage({
+    super.key,
+    required this.batchId,
+    this.initialAssignmentId,
+    this.initialAssignmentTitle,
+  });
 
   @override
   State<AssignmentReviewPage> createState() => _AssignmentReviewPageState();
@@ -55,9 +62,9 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
     setState(() => _loading = true);
     try {
       final assignments = await _repo.getAssignments(batchId: widget.batchId);
-      final selected = assignments.isNotEmpty
+      final selected = widget.initialAssignmentId ?? (assignments.isNotEmpty
           ? (assignments.first['id'] ?? '').toString()
-          : null;
+          : null);
       if (!mounted) return;
       setState(() {
         _assignments = assignments;

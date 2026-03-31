@@ -143,6 +143,11 @@ export class NotificationService {
           },
         });
 
+        // Emit real-time unread count update via Socket
+        const { emitUnreadCount } = await import('../../config/socket');
+        const count = await NotificationRepository.getUnreadCount(payload.institute_id, userId);
+        emitUnreadCount(payload.institute_id, userId, count);
+
         for (let i = 0; i < response.responses.length; i++) {
           const item = response.responses[i];
           const token = userTokens[i];
@@ -241,11 +246,22 @@ export class NotificationService {
     if (result.count === 0) {
       throw new ApiError('Notification not found', 404, 'NOT_FOUND');
     }
+
+    // Trigger update for real-time badge
+    const { emitUnreadCount } = await import('../../config/socket');
+    const count = await NotificationRepository.getUnreadCount(params.instituteId, params.userId);
+    emitUnreadCount(params.instituteId, params.userId, count);
+
     return { success: true };
   }
 
   static async markAllAsRead(params: { instituteId: string; userId: string }) {
     const result = await NotificationRepository.markAllRead(params);
+
+    // Trigger update for real-time badge
+    const { emitUnreadCount } = await import('../../config/socket');
+    emitUnreadCount(params.instituteId, params.userId, 0);
+
     return { updated: result.count };
   }
 
@@ -314,5 +330,9 @@ export class NotificationService {
           }
         : null,
     };
+  }
+
+  static async getUnreadCount(instituteId: string, userId: string) {
+    return NotificationRepository.getUnreadCount(instituteId, userId);
   }
 }

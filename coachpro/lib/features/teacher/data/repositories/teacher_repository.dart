@@ -394,6 +394,7 @@ class TeacherRepository {
   Future<List<Map<String, dynamic>>> getBatchQuizzes(
     String batchId, {
     String? assessmentType,
+    String? subject,
   }) async {
     final response = await _api.dio.get(
       'quizzes',
@@ -401,6 +402,7 @@ class TeacherRepository {
         'batch_id': batchId,
         if (assessmentType != null && assessmentType.trim().isNotEmpty)
           'assessment_type': assessmentType.trim().toUpperCase(),
+        if (subject != null) 'subject': subject,
       },
     );
     if (response.statusCode == 200) {
@@ -505,11 +507,12 @@ class TeacherRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch quiz report');
   }
 
-  Future<List<Map<String, dynamic>>> getAssignments({String? batchId}) async {
+  Future<List<Map<String, dynamic>>> getAssignments({String? batchId, String? subject}) async {
     final response = await _api.dio.get(
       'content/assignments',
       queryParameters: {
         if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
       },
     );
     if (response.statusCode == 200) {

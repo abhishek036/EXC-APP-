@@ -1,6 +1,7 @@
 import { DoubtRepository } from './doubt.repository';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../server';
+import { ApiError } from '../../middleware/error.middleware';
 
 export class DoubtService {
   static async askDoubt(instituteId: string, userId: string, data: any) {
@@ -8,7 +9,7 @@ export class DoubtService {
       where: { user_id: userId, institute_id: instituteId },
       select: { id: true },
     });
-    if (!student) throw new Error('Student profile not found');
+    if (!student) throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
 
     // We should ideally fetch the teacher associated with the batch
     const doubtData: Prisma.DoubtUncheckedCreateInput = {
@@ -46,10 +47,26 @@ export class DoubtService {
       where: { user_id: userId, institute_id: instituteId },
       select: { id: true },
     });
-    if (!teacher) throw new Error('Teacher profile not found');
+    if (!teacher) throw new ApiError('Teacher profile not found', 404, 'NOT_FOUND');
 
     const doubt = await DoubtRepository.findById(id, instituteId);
-    if (!doubt) throw new Error('Doubt not found');
+    if (!doubt) throw new ApiError('Doubt not found', 404, 'NOT_FOUND');
+
+    // 4. Batch Authorization Check
+    const batch = await prisma.batch.findUnique({
+      where: { id: doubt.batch_id, institute_id: instituteId },
+      include: { institute: { select: { settings: true } } }
+    });
+
+    if (batch) {
+      const metaMap = (batch.institute.settings as any)?.batch_meta || {};
+      const meta = metaMap[batch.id] || {};
+      const assignedTeacherIds = Array.isArray(meta.teacher_ids) ? meta.teacher_ids : [];
+
+      if (batch.teacher_id !== teacher.id && !assignedTeacherIds.includes(teacher.id)) {
+        throw new ApiError('You are not authorized to answer this doubt', 403, 'FORBIDDEN');
+      }
+    }
 
     const updateData: Prisma.DoubtUncheckedUpdateInput = {
       ...data,
@@ -71,7 +88,7 @@ export class DoubtService {
              const { NotificationService } = require('../notification/notification.service');
              await NotificationService.sendNotificationToUser(fullDoubt.student.user_id, {
                title: 'Doubt Answered',
-               body: `A teacher has replied to your doubt: "${fullDoubt.question_text.substring(0, 50)}..."`,
+               body: `A teacher has replied to your doubt: "${(fullDoubt.question_text || 'doubt').substring(0, 50)}..."`,
                type: 'doubt',
                role_target: 'student',
                institute_id: instituteId,
@@ -91,11 +108,39 @@ export class DoubtService {
 
   static async resolveDoubt(id: string, instituteId: string) {
     const doubt = await DoubtRepository.findById(id, instituteId);
-    if (!doubt) throw new Error('Doubt not found');
+    if (!doubt) throw new ApiError('Doubt not found', 404, 'NOT_FOUND');
 
-    return DoubtRepository.update(id, instituteId, {
+    const result = await DoubtRepository.update(id, instituteId, {
       status: 'resolved',
       resolved_at: new Date(),
     });
+
+    // Notify student
+    try {
+      const fullDoubt = await prisma.doubt.findUnique({
+        where: { id },
+        include: { student: { select: { user_id: true } } }
+      });
+      if (fullDoubt?.student?.user_id) {
+        await (async () => {
+          const { NotificationService } = require('../notification/notification.service');
+          await NotificationService.sendNotificationToUser(fullDoubt.student.user_id, {
+            title: 'Doubt Resolved',
+            body: `Your doubt has been marked as resolved.`,
+            type: 'doubt',
+            role_target: 'student',
+            institute_id: instituteId,
+            meta: {
+              route: '/student/doubts/history',
+              doubt_id: id
+            }
+          });
+        })();
+      }
+    } catch (e) {
+      console.error('[DoubtService] Resolve push failed:', e);
+    }
+
+    return result;
   }
 }

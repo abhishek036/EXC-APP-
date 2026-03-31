@@ -17,6 +17,7 @@ export class LectureRepository {
   static async listByBatch(
     batchId: string,
     instituteId: string,
+    subject?: string,
   ): Promise<
     Array<{
       id: string;
@@ -27,6 +28,7 @@ export class LectureRepository {
       teacher_id: string | null;
       batch_id: string;
       is_active: boolean | null;
+      subject: string | null;
     }>
   > {
     try {
@@ -35,6 +37,7 @@ export class LectureRepository {
           batch_id: batchId,
           institute_id: instituteId,
           is_active: true,
+          ...(subject ? { subject } : {}),
         },
         select: {
           id: true,
@@ -45,6 +48,7 @@ export class LectureRepository {
           teacher_id: true,
           batch_id: true,
           is_active: true,
+          subject: true,
         },
         orderBy: { created_at: 'desc' },
       });
@@ -55,6 +59,7 @@ export class LectureRepository {
           batch_id: batchId,
           institute_id: instituteId,
           is_active: true,
+          ...(subject ? { subject } : {}),
         },
         select: {
           id: true,
@@ -64,6 +69,7 @@ export class LectureRepository {
           teacher_id: true,
           batch_id: true,
           is_active: true,
+          subject: true,
         },
         orderBy: { created_at: 'desc' },
       });

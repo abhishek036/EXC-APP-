@@ -305,6 +305,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
             ],
           ),
         ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
                    if (_subjects.isNotEmpty) _buildSubjectSelector(accentYellow, primaryBlue, surfaceWhite),
@@ -968,8 +970,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                           MaterialPageRoute(
                             builder: (_) => AssignmentReviewPage(
                               batchId: widget.batchId,
-                              assignmentId: (item['id'] ?? '').toString(),
-                              assignmentTitle: (item['title'] ?? '').toString(),
+                              initialAssignmentId: (item['id'] ?? '').toString(),
+                              initialAssignmentTitle: (item['title'] ?? '').toString(),
                             ),
                           ),
                         ),
@@ -2392,8 +2394,14 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
 
 class _PremiumCard extends StatelessWidget {
   final Widget child;
-  final EdgeInsets margin;
-  const _PremiumCard({required this.child, this.margin = EdgeInsets.zero});
+  final EdgeInsets? margin;
+  final EdgeInsets? padding;
+
+  const _PremiumCard({
+    required this.child,
+    this.margin = EdgeInsets.zero,
+    this.padding,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2401,7 +2409,7 @@ class _PremiumCard extends StatelessWidget {
     const surface = Color(0xFFEEEDED);
     return Container(
       margin: margin,
-      padding: const EdgeInsets.all(20),
+      padding: padding ?? const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: surface,
         border: Border.all(color: blue, width: 2.5),

@@ -17,7 +17,8 @@ export const createAssignmentSchema = z.object({
     description: z.string().optional(),
     batch_id: z.string().uuid(),
     due_date: z.string().datetime().optional(),
-    file_url: z.string().url().optional()
+    file_url: z.string().url().optional(),
+    subject: z.string().max(100).optional(),
   })
 });
 
@@ -45,7 +46,8 @@ export const createDoubtSchema = z.object({
   body: z.object({
     batch_id: z.string().uuid(),
     question_text: z.string().min(5),
-    question_img: z.string().url().optional()
+    question_img: z.string().url().optional(),
+    subject: z.string().max(100).optional(),
   })
 });
 

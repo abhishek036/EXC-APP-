@@ -25,6 +25,7 @@ export const createBatchSchema = z.object({
         answer: z.string().min(1).max(2000),
       })
     ).optional(),
+    subjects: z.array(z.string()).optional(),
   })
 });
 
@@ -47,6 +48,7 @@ export const updateBatchMetaSchema = z.object({
         answer: z.string().min(1).max(2000),
       })
     ).optional()),
+    subjects: z.preprocess((value) => value === null ? undefined : value, z.array(z.string()).optional()),
   })
 });
 

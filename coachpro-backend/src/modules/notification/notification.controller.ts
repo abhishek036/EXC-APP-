@@ -195,6 +195,15 @@ export class NotificationController {
     }
   }
 
+  static async getUnreadCount(req: Request, res: Response, next: NextFunction) {
+    try {
+      const count = await NotificationService.getUnreadCount(req.instituteId!, req.user!.userId);
+      return sendResponse({ res, data: { unread_count: count } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async deleteGlobal(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await NotificationService.deleteGlobalNotification({

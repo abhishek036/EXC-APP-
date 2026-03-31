@@ -48,6 +48,9 @@ export const initSocket = (server: http.Server) => {
         const payload = decodePayload(readToken(socket));
         if (payload?.instituteId) {
             socket.join(roomInstitute(payload.instituteId));
+            if (payload.userId) {
+                socket.join(`user_${payload.userId}`);
+            }
             if (payload.role) {
                 socket.join(roomRole(payload.instituteId, payload.role));
             }
@@ -114,5 +117,14 @@ export const emitBatchSync = (
         batch_id: batchId,
         at: new Date().toISOString(),
         ...payload,
+    });
+};
+
+export const emitUnreadCount = (instituteId: string, userId: string, count: number) => {
+    if (!io) return;
+    io.to(`user_${userId}`).emit('unread_count_update', {
+        institute_id: instituteId,
+        user_id: userId,
+        unread_count: count,
     });
 };

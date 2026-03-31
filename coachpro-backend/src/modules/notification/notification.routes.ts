@@ -17,6 +17,7 @@ router.use(authenticateJWT);
 router.use(tenantMiddleware);
 
 router.get('/health', requireRole('admin'), NotificationController.getHealth);
+router.get('/unread-count', NotificationController.getUnreadCount);
 router.get('/', validate(listNotificationsQuerySchema), NotificationController.listMy);
 router.patch('/read-all', NotificationController.markAllRead);
 router.patch('/:id/read', validate(markNotificationReadSchema), NotificationController.markRead);

@@ -279,4 +279,14 @@ export class NotificationRepository {
       },
     });
   }
+
+  static async getUnreadCount(instituteId: string, userId: string): Promise<number> {
+    return prisma.notification.count({
+      where: {
+        institute_id: instituteId,
+        user_id: userId,
+        read_status: false,
+      },
+    });
+  }
 }

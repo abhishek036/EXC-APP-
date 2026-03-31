@@ -269,8 +269,14 @@ export class StudentController {
       });
       if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
 
+      const { subject } = req.query;
+
       const results = await prisma.examResult.findMany({
-        where: { student_id: student.id, institute_id: req.instituteId! },
+        where: { 
+          student_id: student.id, 
+          institute_id: req.instituteId!,
+          ...(subject ? { exam: { subject: subject as string } } : {})
+        },
         include: {
           exam: { select: { title: true, subject: true, exam_date: true, total_marks: true } }
         },
@@ -288,8 +294,14 @@ export class StudentController {
       });
       if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
 
+      const { subject } = req.query;
+
       const doubts = await prisma.doubt.findMany({
-        where: { student_id: student.id, institute_id: req.instituteId! },
+        where: { 
+           student_id: student.id, 
+           institute_id: req.instituteId!,
+           ...(subject ? { subject: subject as string } : {})
+        },
         include: {
           assigned_to: { select: { name: true } },
           batch: { select: { name: true } }
@@ -313,12 +325,24 @@ export class StudentController {
               include: { batch: { include: { teacher: { select: { name: true } } } } }
           });
 
+          // Fetch batch_meta to get subjects for each batch
+          const institute = await prisma.institute.findUnique({
+              where: { id: req.instituteId! },
+              select: { settings: true },
+          });
+          const settings = (institute?.settings ?? {}) as Record<string, any>;
+          const batchMetaMap = (settings['batch_meta'] ?? {}) as Record<string, any>;
+
           return sendResponse({ 
               res, 
-              data: batches.map(sb => ({
-                  ...sb.batch,
-                  teacher_name: sb.batch.teacher?.name
-              })), 
+              data: batches.map(sb => {
+                  const meta = (batchMetaMap[sb.batch.id] ?? {}) as Record<string, any>;
+                  return {
+                      ...sb.batch,
+                      teacher_name: sb.batch.teacher?.name,
+                      subjects: Array.isArray(meta.subjects) ? meta.subjects : []
+                  };
+              }), 
               message: 'Batches fetched' 
           });
       } catch (error) { next(error); }
@@ -334,12 +358,15 @@ export class StudentController {
 
           const batchIds = student.student_batches.map(sb => sb.batch_id);
 
+          const { subject, batchId } = req.query;
+
           const lectures = await prisma.lecture.findMany({
               where: {
-                  batch_id: { in: batchIds },
+                  batch_id: batchId ? (batchId as string) : { in: batchIds },
                   institute_id: req.instituteId!,
                   is_active: true,
-                  link: { not: null }
+                  link: { not: null },
+                  ...(subject ? { subject: subject as string } : {})
               },
               include: { teacher: { select: { name: true } } },
               orderBy: { created_at: 'desc' }
@@ -411,12 +438,16 @@ export class StudentController {
           startRange = new Date(Date.UTC(y, m, d) - istOffsetMs);
           endRange = new Date(Date.UTC(y, m, d, 23, 59, 59, 999) - istOffsetMs);
 
+          const requestedBatchId = req.query.batch_id as string | undefined;
+          const requestedSubject = req.query.subject as string | undefined;
+
           const actualLectures = await prisma.lecture.findMany({
               where: {
-                  batch_id: { in: batchIds },
+                  batch_id: requestedBatchId ? requestedBatchId : { in: batchIds },
                   institute_id: req.instituteId!,
                   is_active: true,
-                  scheduled_at: { gte: startRange, lte: endRange }
+                  scheduled_at: { gte: startRange, lte: endRange },
+                  ...(requestedSubject ? { subject: requestedSubject } : {})
               },
               include: {
                   teacher: { select: { name: true } },
@@ -465,13 +496,18 @@ export class StudentController {
           });
           if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
 
-          const { batchId } = req.query;
+          const { batchId, subject } = req.query;
 
           const records = await prisma.attendanceRecord.findMany({
               where: { 
                   student_id: student.id, 
                   institute_id: req.instituteId!,
-                  ...(batchId ? { session: { batch_id: batchId as string } } : {})
+                  ...(batchId || subject ? { 
+                      session: { 
+                          ...(batchId ? { batch_id: batchId as string } : {}),
+                          ...(subject ? { subject: subject as string } : {})
+                      } 
+                  } : {})
               },
               include: { session: { select: { session_date: true, batch: { select: { name: true } } } } },
               orderBy: { session: { session_date: 'desc' } }

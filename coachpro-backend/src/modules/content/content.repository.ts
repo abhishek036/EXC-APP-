@@ -9,9 +9,13 @@ export class ContentRepository {
       });
   }
 
-  async listNotes(instituteId: string, batchId?: string) {
+  async listNotes(instituteId: string, filter: { batchId?: string, subject?: string }) {
       return prisma.note.findMany({
-          where: { institute_id: instituteId, ...(batchId && { batch_id: batchId }) },
+          where: { 
+            institute_id: instituteId, 
+            ...(filter.batchId && { batch_id: filter.batchId }),
+            ...(filter.subject && { subject: filter.subject })
+          },
           orderBy: { created_at: 'desc' }
       });
   }
@@ -28,12 +32,13 @@ export class ContentRepository {
       });
   }
 
-  async listAssignments(instituteId: string, filter: { batchId?: string, teacherId?: string }) {
+  async listAssignments(instituteId: string, filter: { batchId?: string, teacherId?: string, subject?: string }) {
       return prisma.assignment.findMany({
           where: { 
             institute_id: instituteId, 
             ...(filter.batchId && { batch_id: filter.batchId }),
-            ...(filter.teacherId && { teacher_id: filter.teacherId })
+            ...(filter.teacherId && { teacher_id: filter.teacherId }),
+            ...(filter.subject && { subject: filter.subject })
           },
           orderBy: { created_at: 'desc' }
       });
@@ -115,9 +120,12 @@ export class ContentRepository {
       });
   }
 
-  async listDoubts(instituteId: string, filters: { batch_id?: string, student_id?: string, status?: string }) {
+  async listDoubts(instituteId: string, filters: { batch_id?: string, student_id?: string, status?: string, subject?: string }) {
       return prisma.doubt.findMany({
-          where: { institute_id: instituteId, ...filters },
+          where: { 
+            institute_id: instituteId, 
+            ...filters 
+          },
           include: {
               student: { select: { name: true } },
               assigned_to: { select: { name: true } }
