@@ -560,15 +560,20 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
       selectedBatchId = (_batches.first['id'] ?? '').toString();
     }
     final now = DateTime.now();
-    DateTime scheduledAt =
-        DateTime.tryParse((item?['scheduled_at'] ?? '').toString()) ??
-        DateTime(
-          _selectedDate.year,
-          _selectedDate.month,
-          _selectedDate.day,
-          now.hour,
-          now.minute,
-        );
+    // Round to next hour for cleaner default timing
+    DateTime scheduledAt;
+    if (item != null) {
+      scheduledAt = DateTime.tryParse(item['scheduled_at']?.toString() ?? '') ?? now;
+    } else {
+      // Default to the next full hour (e.g., if it's 7:07 PM, default to 8:00 PM)
+      scheduledAt = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        now.hour + 1,
+        0,
+      );
+    }
 
     await showModalBottomSheet<void>(
       context: context,

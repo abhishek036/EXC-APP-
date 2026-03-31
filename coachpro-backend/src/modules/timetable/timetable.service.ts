@@ -601,6 +601,7 @@ export class TimetableService {
                 teacher_id: teacher.id,
                 institute_id: instituteId,
                 is_active: true,
+                start_time: { not: null }, // Only include batches with times set
                 days_of_week: { has: dayOfWeek }
             }
         });

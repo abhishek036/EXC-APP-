@@ -117,14 +117,15 @@ export class StudentController {
 
           if (!studentData) return [];
 
-          // 1. Recurring
+          // 1. Recurring (only include if time is set)
           const recurring = studentData.student_batches
-              .filter(sb => sb.batch.days_of_week.includes(dayMapping))
+              .filter(sb => sb.batch.days_of_week.includes(dayMapping) && sb.batch.start_time)
               .map(sb => {
                   const b = sb.batch;
                   const formatRawTime = (date: Date | null) => {
                       if (!date) return '00:00';
-                      return `${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')}`;
+                      const ist = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
+                      return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
                   };
                   return {
                       id: `recurring-${b.id}-${dayMapping}`,
