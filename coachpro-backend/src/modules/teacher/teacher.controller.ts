@@ -186,7 +186,7 @@ export class TeacherController {
           take: 3
         }),
         this.timetableService.getTeacherScheduleByUser(
-          teacherId,
+          req.user!.userId,
           req.instituteId!
         )
       ]);
