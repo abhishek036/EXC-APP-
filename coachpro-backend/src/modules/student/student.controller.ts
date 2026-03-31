@@ -457,16 +457,27 @@ export class StudentController {
                   };
               });
 
-          // 2. Actual Lecture records (one-offs or recorded classes)
-          const istTodayStart = new Date(new Date().setHours(0, 0, 0, 0));
-          const istTodayEnd = new Date(new Date().setHours(23, 59, 59, 999));
+          // 2. Actual Lecture records (one-offs)
+          const requestedDateStr = req.query.date as string | undefined;
+          let startRange: Date;
+          let endRange: Date;
+
+          if (requestedDateStr) {
+               const parsed = new Date(requestedDateStr);
+               startRange = new Date(parsed.setHours(0, 0, 0, 0));
+               endRange = new Date(parsed.setHours(23, 59, 59, 999));
+          } else {
+               const now = new Date();
+               startRange = new Date(now.setHours(0, 0, 0, 0));
+               endRange = new Date(now.setHours(23, 59, 59, 999));
+          }
 
           const actualLectures = await prisma.lecture.findMany({
               where: {
                   batch_id: { in: batchIds },
                   institute_id: req.instituteId!,
                   is_active: true,
-                  scheduled_at: { gte: istTodayStart, lte: istTodayEnd }
+                  scheduled_at: { gte: startRange, lte: endRange }
               },
               include: {
                   teacher: { select: { name: true } },

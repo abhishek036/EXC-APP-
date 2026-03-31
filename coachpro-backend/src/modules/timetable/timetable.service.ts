@@ -515,7 +515,7 @@ export class TimetableService {
   async getTeacherScheduleByUser(userId: string, instituteId: string, date?: string) {
     const teacher = await prisma.teacher.findFirst({
       where: { user_id: userId, institute_id: instituteId },
-      select: { id: true },
+      select: { id: true, name: true },
     });
     if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
@@ -592,17 +592,55 @@ export class TimetableService {
             is_recurring: false
         };
     });
-
     // 2. Fetch Recurring Batches for that day
-    let merged = [...formattedLectures];
+    let merged: any[] = [];
 
-    if (dayOfWeek !== undefined) {
+    if (dayOfWeek !== undefined && dateRange) {
+        const { start, end } = dateRange;
+        const actuals = await prisma.lecture.findMany({
+            where: {
+                teacher_id: teacher.id,
+                institute_id: instituteId,
+                is_active: true,
+                scheduled_at: { gte: start, lte: end }
+            },
+            include: { batch: { select: { name: true } } }
+        });
+
+        // 3. Format and Merge
+        const formatRawTime = (date: Date | null) => {
+            if (!date) return '00:00';
+            // Correct IST conversion: +5:30 then extract UTC parts
+            const ist = new Date(date.getTime() + TimetableService.IST_OFFSET_MS);
+            return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
+        };
+
+        const formattedActuals = actuals.map(l => {
+            const start = l.scheduled_at!;
+            const duration = l.duration_minutes || 60;
+            const end = new Date(start.getTime() + (duration * 60 * 1000));
+            return {
+                id: l.id,
+                batch_id: l.batch_id,
+                title: l.title,
+                subject: (l as any).subject || '',
+                batch_name: l.batch?.name || 'TBA',
+                teacher_name: teacher.name,
+                start_time: formatRawTime(start),
+                end_time: formatRawTime(end),
+                scheduled_at: start,
+                is_recurring: false
+            };
+        });
+
+        merged = [...formattedActuals];
+
         const recurringBatches = await prisma.batch.findMany({
             where: {
                 teacher_id: teacher.id,
                 institute_id: instituteId,
                 is_active: true,
-                start_time: { not: null }, // Only include batches with times set
+                start_time: { not: null },
                 days_of_week: { has: dayOfWeek }
             }
         });
