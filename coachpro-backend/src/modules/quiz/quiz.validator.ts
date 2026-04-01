@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
 const assessmentTypeSchema = z.enum(['QUIZ', 'TEST']);
+const optionalUrlField = z.preprocess(
+  (value) => (value === '' || value === null ? undefined : value),
+  z.string().url().optional(),
+);
 
 export const createQuizSchema = z.object({
   body: z.object({
@@ -16,11 +20,15 @@ export const createQuizSchema = z.object({
     questions: z.array(
       z.object({
         question_text: z.string().min(1),
-        image_url: z.string().url().optional(),
+        image_url: optionalUrlField,
         option_a: z.string().min(1),
+        option_a_image: optionalUrlField,
         option_b: z.string().min(1),
+        option_b_image: optionalUrlField,
         option_c: z.string().min(1),
+        option_c_image: optionalUrlField,
         option_d: z.string().min(1),
+        option_d_image: optionalUrlField,
         correct_option: z.enum(['A', 'B', 'C', 'D']),
         marks: z.number().int().positive().optional(),
         order_index: z.number().int().nonnegative().optional(),
@@ -56,11 +64,15 @@ export const updateQuizSchema = z.object({
     questions: z.array(
       z.object({
         question_text: z.string().min(1),
-        image_url: z.string().url().optional(),
+        image_url: optionalUrlField,
         option_a: z.string().min(1),
+        option_a_image: optionalUrlField,
         option_b: z.string().min(1),
+        option_b_image: optionalUrlField,
         option_c: z.string().min(1),
+        option_c_image: optionalUrlField,
         option_d: z.string().min(1),
+        option_d_image: optionalUrlField,
         correct_option: z.enum(['A', 'B', 'C', 'D']),
         marks: z.number().int().positive().optional(),
         order_index: z.number().int().nonnegative().optional(),
