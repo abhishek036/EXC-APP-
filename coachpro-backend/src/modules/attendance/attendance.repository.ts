@@ -4,9 +4,12 @@ import { Prisma } from '@prisma/client';
 
 export class AttendanceRepository {
     private isLegacyAttendanceSubjectColumnError(error: unknown): boolean {
+        const isValidationError = error instanceof Error && error.toString().includes('PrismaClientValidationError');
+        if (isValidationError) return true;
+
         const code = (error as any)?.code;
         const column = String((error as any)?.meta?.column ?? '').toLowerCase();
-        return code === 'P2022' && column.includes('attendance_sessions.subject');
+        return code === 'P2022' && (column.includes('attendance_sessions.subject') || column.includes('subject'));
     }
 
     private mapLegacySessionRow(row: any) {

@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
-import { errorHandler } from './middleware/error.middleware';
+import { errorHandler, ApiError } from './middleware/error.middleware';
 
 import authRoutes from './modules/auth/auth.routes';
 import batchRoutes from './modules/batch/batch.routes';
@@ -43,11 +43,16 @@ app.use(helmet({
   // Enable a conservative CSP in production; disable in development
   contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
 }));
-// Allow all origins — mobile apps (Flutter/React Native) don't send an Origin header,
-// and there is no browser-based UI to protect. All auth is JWT-based.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
+
 app.use(cors({
   origin: function(origin, callback) {
-    callback(null, true);
+    // Allow mobile apps (no origin) or whitelisted domains
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new ApiError(`Origin ${origin} not allowed by CORS`, 403, 'FORBIDDEN'));
+    }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

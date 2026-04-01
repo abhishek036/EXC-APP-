@@ -252,15 +252,17 @@ export class BatchService {
     const batch = await this.batchRepository.findBatchById(batchId, instituteId);
     if (!batch) throw new ApiError('Batch not found or unauthorized', 404, 'NOT_FOUND');
 
-    // To prevent exceeding capacity
     const currentCount = batch.student_batches.length;
     if (batch.capacity && currentCount + studentIds.length > batch.capacity) {
         throw new ApiError('Batch capacity exceeded', 400, 'CAPACITY_EXCEEDED');
     }
 
-    // Upsert sequentially or concurrently
-    const results = await Promise.all(
-        studentIds.map(sId => this.batchRepository.addStudentToBatch(sId, batchId, instituteId))
+    const results = await prisma.$transaction(
+        studentIds.map(sId => prisma.studentBatch.upsert({
+            where: { student_id_batch_id: { student_id: sId, batch_id: batchId } },
+            update: { is_active: true, left_date: null },
+            create: { student_id: sId, batch_id: batchId, institute_id: instituteId }
+        }))
     );
 
     return { enrolled_count: results.length };
@@ -341,34 +343,51 @@ export class BatchService {
       throw new ApiError('Target batch capacity exceeded', 400, 'CAPACITY_EXCEEDED');
     }
 
-    await this.batchRepository.addStudentsToBatch(sourceStudentIds, data.target_batch_id, instituteId);
+    return await prisma.$transaction(async (tx) => {
+      // 1. Add students to target batch
+      await Promise.all(
+        sourceStudentIds.map((sId) => tx.studentBatch.upsert({
+          where: { student_id_batch_id: { student_id: sId, batch_id: data.target_batch_id } },
+          update: { is_active: true, left_date: null },
+          create: { student_id: sId, batch_id: data.target_batch_id, institute_id: instituteId },
+        }))
+      );
 
-    if (data.deactivate_source ?? true) {
-      await prisma.studentBatch.updateMany({
-        where: {
-          institute_id: instituteId,
-          batch_id: batchId,
-          student_id: { in: sourceStudentIds },
-          is_active: true,
-        },
-        data: {
-          is_active: false,
-          left_date: new Date(),
-        },
-      });
+      // 2. Deactivate source batch entries if requested
+      if (data.deactivate_source ?? true) {
+        await tx.studentBatch.updateMany({
+          where: {
+            institute_id: instituteId,
+            batch_id: batchId,
+            student_id: { in: sourceStudentIds },
+            is_active: true,
+          },
+          data: {
+            is_active: false,
+            left_date: new Date(),
+          },
+        });
 
-      await this.batchRepository.toggleStatus(batchId, false);
-    }
+        await tx.batch.update({
+          where: { id: batchId },
+          data: { is_active: false }
+        });
+      }
 
-    if (data.activate_target ?? true) {
-      await this.batchRepository.toggleStatus(data.target_batch_id, true);
-    }
+      // 3. Activate target batch if requested
+      if (data.activate_target ?? true) {
+        await tx.batch.update({
+          where: { id: data.target_batch_id },
+          data: { is_active: true }
+        });
+      }
 
-    return {
-      migrated_count: sourceStudentIds.length,
-      source_batch_id: batchId,
-      target_batch_id: data.target_batch_id,
-      source_deactivated: data.deactivate_source ?? true,
-    };
+      return {
+        migrated_count: sourceStudentIds.length,
+        source_batch_id: batchId,
+        target_batch_id: data.target_batch_id,
+        source_deactivated: data.deactivate_source ?? true,
+      };
+    });
   }
 }

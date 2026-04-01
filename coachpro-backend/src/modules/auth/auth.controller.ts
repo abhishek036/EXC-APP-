@@ -108,7 +108,7 @@ export class AuthController {
     try {
       const { name } = req.body;
       if (!name || name.trim().length < 2) {
-        return next({ message: 'Name must be at least 2 characters', status: 400 });
+        return next({ message: 'Name must be at least 2 characters', statusCode: 400 });
       }
       const userId = req.user!.userId;
       const role = req.user!.role;
@@ -128,7 +128,7 @@ export class AuthController {
       if (email != null) {
         const trimmedEmail = String(email).trim();
         if (trimmedEmail.length > 0 && !/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
-          return next({ message: 'Enter a valid email address', status: 400 });
+          return next({ message: 'Enter a valid email address', statusCode: 400 });
         }
       }
 
@@ -142,7 +142,7 @@ export class AuthController {
   updateAvatar = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.file) {
-        return next({ message: 'No image file provided', status: 400 });
+        return next({ message: 'No image file provided', statusCode: 400 });
       }
 
       const userId = req.user!.userId;

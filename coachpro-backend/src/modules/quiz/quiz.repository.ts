@@ -2,32 +2,74 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../server';
 
 export class QuizRepository {
+  private static isLegacyQuizColumnError(error: unknown): boolean {
+    const code = (error as any)?.code;
+    const column = String((error as any)?.meta?.column ?? '').toLowerCase();
+    return code === 'P2022' && (column.includes('quiz_questions.option_a_image') || column.includes('option_a_image'));
+  }
+
   static async createQuiz(
     data: Prisma.QuizUncheckedCreateInput,
     questions: Prisma.QuizQuestionUncheckedCreateWithoutQuizInput[]
   ) {
-    return prisma.quiz.create({
-      data: {
-        ...data,
-        questions: {
-          create: questions,
+    try {
+      return await prisma.quiz.create({
+        data: {
+          ...data,
+          questions: { create: questions },
         },
-      },
-      include: {
-        questions: true,
-      },
-    });
+        include: { questions: true },
+      });
+    } catch (error) {
+      if (!this.isLegacyQuizColumnError(error)) throw error;
+      
+      // Fallback for missing image columns
+      const legacyQuestions = questions.map(q => {
+        const { option_a_image, option_b_image, option_c_image, option_d_image, ...rest } = q as any;
+        return rest;
+      });
+
+      return prisma.quiz.create({
+        data: {
+          ...data,
+          questions: { create: legacyQuestions },
+        },
+        include: { questions: { select: {
+          id: true, quiz_id: true, question_text: true, image_url: true,
+          option_a: true, option_b: true, option_c: true, option_d: true,
+          correct_option: true, marks: true, order_index: true
+        } } },
+      });
+    }
   }
 
   static async findQuizById(id: string, instituteId: string) {
-    return prisma.quiz.findFirst({
-      where: { id, institute_id: instituteId },
-      include: {
-        questions: {
-          orderBy: { order_index: 'asc' },
+    try {
+      return await prisma.quiz.findFirst({
+        where: { id, institute_id: instituteId },
+        include: {
+          questions: {
+            orderBy: { order_index: 'asc' },
+          },
         },
-      },
-    });
+      });
+    } catch (error) {
+      if (!this.isLegacyQuizColumnError(error)) throw error;
+
+      return prisma.quiz.findFirst({
+        where: { id, institute_id: instituteId },
+        include: {
+          questions: {
+            select: {
+              id: true, quiz_id: true, question_text: true, image_url: true,
+              option_a: true, option_b: true, option_c: true, option_d: true,
+              correct_option: true, marks: true, order_index: true
+            },
+            orderBy: { order_index: 'asc' },
+          },
+        },
+      });
+    }
   }
 
   static async listQuizzes(instituteId: string, filter: any) {
@@ -65,24 +107,43 @@ export class QuizRepository {
       });
 
       if (questions.length > 0) {
-        await tx.quizQuestion.createMany({
-          data: questions.map((question) => ({
-            quiz_id: id,
-            question_text: question.question_text,
-            image_url: question.image_url,
-            option_a: question.option_a,
-            option_a_image: question.option_a_image,
-            option_b: question.option_b,
-            option_b_image: question.option_b_image,
-            option_c: question.option_c,
-            option_c_image: question.option_c_image,
-            option_d: question.option_d,
-            option_d_image: question.option_d_image,
-            correct_option: question.correct_option,
-            marks: question.marks,
-            order_index: question.order_index,
-          })),
-        });
+        try {
+          await tx.quizQuestion.createMany({
+            data: questions.map((question) => ({
+              quiz_id: id,
+              question_text: question.question_text,
+              image_url: question.image_url,
+              option_a: question.option_a,
+              option_a_image: question.option_a_image,
+              option_b: question.option_b,
+              option_b_image: question.option_b_image,
+              option_c: question.option_c,
+              option_c_image: question.option_c_image,
+              option_d: question.option_d,
+              option_d_image: question.option_d_image,
+              correct_option: question.correct_option,
+              marks: question.marks,
+              order_index: question.order_index,
+            })),
+          });
+        } catch (error) {
+          if (!QuizRepository.isLegacyQuizColumnError(error)) throw error;
+
+          await tx.quizQuestion.createMany({
+            data: questions.map((question) => ({
+              quiz_id: id,
+              question_text: question.question_text,
+              image_url: question.image_url,
+              option_a: question.option_a,
+              option_b: question.option_b,
+              option_c: question.option_c,
+              option_d: question.option_d,
+              correct_option: question.correct_option,
+              marks: question.marks,
+              order_index: question.order_index,
+            })),
+          });
+        }
       }
 
       return tx.quiz.findFirst({

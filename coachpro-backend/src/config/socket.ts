@@ -33,9 +33,17 @@ const roomInstitute = (instituteId: string) => `institute_${instituteId}`;
 const roomRole = (instituteId: string, role: string) => `role_${role}_${instituteId}`;
 
 export const initSocket = (server: http.Server) => {
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
+
     io = new Server(server, {
         cors: {
-            origin: '*', // For development; refine in production
+            origin: function(origin: any, callback: any) {
+                if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+                    callback(null, true);
+                } else {
+                    callback(new Error(`Origin ${origin} not allowed by Socket.io CORS`));
+                }
+            },
             methods: ['GET', 'POST']
         }
     });

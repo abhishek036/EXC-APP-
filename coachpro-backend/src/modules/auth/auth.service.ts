@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { AuthRepository } from './auth.repository';
 import { generateOTP, generateTokens } from '../../utils/otp';
 import { ApiError } from '../../middleware/error.middleware';
+import { prisma } from '../../server';
 
 export class AuthService {
     private authRepository: AuthRepository;
@@ -42,7 +43,6 @@ export class AuthService {
         console.log(`[AUTH] sendOtp requested for phone: "${phone}", purpose: ${purpose}`);
 
         const user = await this.authRepository.findUserByPhone(phone);
-        const { prisma } = require('../../server');
 
         let isPreRegistered = false;
         if (!user) {
@@ -101,8 +101,9 @@ export class AuthService {
     }
 
     async verifyOtp(phone: string, otp: string, purpose: string, joinCode?: string, role?: string) {
-        // Allow bypass for faster testing in development mode
-        const isDevBypass = process.env.NODE_ENV === 'development' && otp === '123456';
+        // --- 1. OTP CHECK (Outside main transaction to avoid locking OTP table long-term) ---
+        const isDevBypass = (process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_OTP === 'true') && 
+                            otp === (process.env.TEST_OTP || '123456');
 
         if (!isDevBypass) {
             const validOtp = await this.authRepository.verifyOtp(phone, otp, purpose);
@@ -114,119 +115,145 @@ export class AuthService {
             console.log(`[AUTH] Master OTP used for ${phone}`);
         }
 
-        let user: any = await this.authRepository.findUserByPhone(phone);
-        let isNewUser = false;
-        
-        const { prisma } = require('../../server');
-        
-        // --- LOOK UP EXISTING PERMISSIONS/PROFILES ---
-        const phonesToSearch = [phone];
-        if (phone.startsWith('+91')) phonesToSearch.push(phone.substring(3));
-        if (phone.length === 10) phonesToSearch.push(`+91${phone}`);
+        // --- 2. RUN REGISTRATION/LOGIN LOGIC IN TRANSACTION ---
+        return await prisma.$transaction(async (tx: any) => {
+            let user: any = await tx.user.findFirst({
+                where: { phone: { in: this._phoneVariants(phone) }, is_active: true }
+            });
 
-        const [staff, teacher, student, parent] = await Promise.all([
-            prisma.staff.findFirst({ where: { phone: { in: phonesToSearch } } }),
-            prisma.teacher.findFirst({ where: { phone: { in: phonesToSearch } } }),
-            prisma.student.findFirst({ where: { phone: { in: phonesToSearch } } }),
-            prisma.parent.findFirst({ where: { phone: { in: phonesToSearch } } })
-        ]);
-
-        // --- STABLE INSTITUTE DETERMINATION ---
-        let instituteIdToUse = user?.institute_id || staff?.institute_id || teacher?.institute_id || student?.institute_id || parent?.institute_id;
-        
-        if (!instituteIdToUse && joinCode) {
-            const inst = await prisma.institute.findUnique({ where: { join_code: joinCode } });
-            if (inst) instituteIdToUse = inst.id;
-        }
-
-        if (!instituteIdToUse) {
-            const inst = await prisma.institute.findFirst();
-            if (inst) instituteIdToUse = inst.id;
-        }
-
-        if (!instituteIdToUse) throw new ApiError('No institute context found.', 400, 'NO_INSTITUTE');
-
-        // --- SUPER USER ROLE SWITCHING ---
-        const SUPER_USERS = ['9630457025', '8427996261', '+919630457025', '+918427996261'];
-        const isSuperUser = SUPER_USERS.includes(phone);
-        let assignedRole = role || user?.role || (staff ? 'admin' : (teacher ? 'teacher' : (student ? 'student' : (parent ? 'parent' : 'student'))));
-
-        if (isSuperUser && role) {
-            assignedRole = role;
-            console.log(`[AUTH] Super User Switch: ${phone} -> ${assignedRole}`);
+            let isNewUser = false;
             
-            if (user && user.role !== assignedRole) {
-                user = await prisma.user.update({
-                    where: { id: user.id },
-                    data: { role: assignedRole as any }
+            // --- LOOK UP EXISTING PERMISSIONS/PROFILES ---
+            const phonesToSearch = this._phoneVariants(phone);
+
+            const [staff, teacher, student, parent] = await Promise.all([
+                tx.staff.findFirst({ where: { phone: { in: phonesToSearch } } }),
+                tx.teacher.findFirst({ where: { phone: { in: phonesToSearch } } }),
+                tx.student.findFirst({ where: { phone: { in: phonesToSearch } } }),
+                tx.parent.findFirst({ where: { phone: { in: phonesToSearch } } })
+            ]);
+
+            // --- STABLE INSTITUTE DETERMINATION ---
+            let instituteIdToUse = user?.institute_id || staff?.institute_id || teacher?.institute_id || student?.institute_id || parent?.institute_id;
+            
+            if (!instituteIdToUse && joinCode) {
+                const inst = await tx.institute.findUnique({ where: { join_code: joinCode } });
+                if (inst) instituteIdToUse = inst.id;
+            }
+
+            if (!instituteIdToUse) {
+                const inst = await tx.institute.findFirst();
+                if (inst) instituteIdToUse = inst.id;
+            }
+
+            if (!instituteIdToUse) throw new ApiError('No institute context found.', 400, 'NO_INSTITUTE');
+
+            // --- SUPER USER ROLE SWITCHING ---
+            const SUPER_USER_PHONES = (process.env.SUPER_USER_PHONES || '9630457025,8427996261').split(',').map(p => p.trim()).filter(Boolean);
+            const isSuperUser = SUPER_USER_PHONES.some(p => phone.includes(p));
+            
+            let assignedRole = role || user?.role || (staff ? 'admin' : (teacher ? 'teacher' : (student ? 'student' : (parent ? 'parent' : 'student'))));
+
+            if (isSuperUser && role) {
+                assignedRole = role;
+                console.log(`[AUTH] Super User Switch: ${phone} -> ${assignedRole}`);
+                
+                if (user && user.role !== assignedRole) {
+                    user = await tx.user.update({
+                        where: { id: user.id },
+                        data: { role: assignedRole as any }
+                    });
+                }
+            }
+
+            // --- CREATE USER IF NOT EXISTS ---
+            if (!user) {
+                user = await tx.user.create({
+                    data: {
+                        phone,
+                        institute_id: instituteIdToUse,
+                        role: assignedRole,
+                        status: 'ACTIVE'
+                    }
+                });
+                isNewUser = true;
+            } else {
+                if (user.status === 'BLOCKED') throw new ApiError('Blocked.', 403, 'BLOCKED');
+                if (user.status === 'PENDING') {
+                    user = await tx.user.update({ where: { id: user.id }, data: { status: 'ACTIVE' } });
+                }
+            }
+
+            // --- ENSURE PROFILE MATCHES ROLE AND SYNC user_id ---
+            if (assignedRole === 'teacher' && !teacher) {
+                await tx.teacher.create({
+                    data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Faculty Member', phone: user.phone, is_active: true }
+                });
+            } else if (assignedRole === 'student' && !student) {
+                await tx.student.create({
+                    data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Student Profile', phone: user.phone, is_active: true }
                 });
             }
-        }
 
-        // --- CREATE USER IF NOT EXISTS ---
-        if (!user) {
-            user = await prisma.user.create({
+            // Link existing loose profiles
+            if (teacher && !teacher.user_id) await tx.teacher.update({ where: { id: teacher.id }, data: { user_id: user.id } });
+            if (student && !student.user_id) await tx.student.update({ where: { id: student.id }, data: { user_id: user.id } });
+            if (parent && !parent.user_id) await tx.parent.update({ where: { id: parent.id }, data: { user_id: user.id } });
+
+            const sessionStartedAt = new Date();
+            await tx.user.update({
+                where: { id: user.id },
+                data: { last_login_at: sessionStartedAt },
+            });
+
+            // CLEAR ALL PREVIOUS REFRESH TOKENS (Single device login compliance)
+            await tx.refreshToken.deleteMany({
+                where: { user_id: user.id }
+            });
+
+            // Generate JWT pairs
+            const { accessToken, refreshToken } = generateTokens({
+                userId: user.id,
+                role: user.role,
+                instituteId: user.institute_id,
+                phone: user.phone
+            });
+
+            const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+            const expiresAt = new Date(Date.now() + this._refreshExpiryMs());
+            
+            await tx.refreshToken.create({
                 data: {
-                    phone,
-                    institute_id: instituteIdToUse,
-                    role: assignedRole,
-                    status: 'ACTIVE'
+                    user_id: user.id,
+                    token_hash: refreshHash,
+                    expires_at: expiresAt
                 }
-            }) as any;
-            isNewUser = true;
-        } else {
-            // Profile status check
-            if (user.status === 'BLOCKED') throw new ApiError('Blocked.', 403, 'BLOCKED');
-            if (user.status === 'PENDING') {
-                user = await prisma.user.update({ where: { id: user.id }, data: { status: 'ACTIVE' } });
-            }
-        }
-
-        // --- ENSURE PROFILE MATCHES ROLE ---
-        if (assignedRole === 'teacher' && !teacher) {
-            await prisma.teacher.create({
-                data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Faculty Member', phone: user.phone, is_active: true }
             });
-        } else if (assignedRole === 'student' && !student) {
-            await prisma.student.create({
-                data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Student Profile', phone: user.phone, is_active: true }
-            });
-        }
-        // Link existing loose profiles to user if needed
-        if (teacher && !teacher.user_id) await prisma.teacher.update({ where: { id: teacher.id }, data: { user_id: user.id } });
-        if (student && !student.user_id) await prisma.student.update({ where: { id: student.id }, data: { user_id: user.id } });
-        if (parent && !parent.user_id) await prisma.parent.update({ where: { id: parent.id }, data: { user_id: user.id } });
-        const sessionStartedAt = new Date();
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { last_login_at: sessionStartedAt },
+
+            let profile: { name?: string } | null = null;
+            try {
+                // profile fetch might look inside tx or outside?
+                // we'll fetch it outside the tx if it's purely read, but better inside if it uses tx client.
+                profile = await tx.student.findFirst({ where: { user_id: user.id } })
+                         || await tx.teacher.findFirst({ where: { user_id: user.id } })
+                         || await tx.parent.findFirst({ where: { user_id: user.id } })
+                         || await tx.staff.findFirst({ where: { phone: { in: this._phoneVariants(phone) } } });
+            } catch (e: any) {}
+
+            return {
+                user: { id: user.id, role: user.role, instituteId: user.institute_id, name: profile?.name },
+                accessToken,
+                refreshToken,
+                isNewUser
+            };
         });
+    }
 
-        // Generate JWT pairs
-        const { accessToken, refreshToken } = generateTokens({
-            userId: user.id,
-            role: user.role,
-            instituteId: user.institute_id,
-            phone: user.phone
-        });
-
-        const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-        const refreshExpiresInMs = this._refreshExpiryMs();
-        await this.authRepository.storeRefreshToken(user.id, refreshHash, new Date(Date.now() + refreshExpiresInMs));
-
-        let profile: { name?: string } | null = null;
-        try {
-            profile = await this.getUserProfile(user.id);
-        } catch (e: any) {
-            console.error('[AUTH] Profile fetch failed after OTP verify:', e?.message || e);
-        }
-
-        return {
-            user: { id: user.id, role: user.role, instituteId: user.institute_id, name: profile?.name },
-            accessToken,
-            refreshToken,
-            isNewUser
-        };
+    private _phoneVariants(phone: string) {
+        const variants = [phone];
+        if (phone.startsWith('+91')) variants.push(phone.substring(3));
+        if (phone.length === 10) variants.push(`+91${phone}`);
+        return variants;
     }
 
     async loginWithPassword(phone: string, password: string, joinCode?: string) {

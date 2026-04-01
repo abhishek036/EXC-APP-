@@ -260,11 +260,19 @@ export class QuizService {
 
     if (obtainedMarks < 0) obtainedMarks = 0;
 
-    const updatedAttempt = await QuizRepository.updateAttempt(quizId, studentProfileId, {
-      submitted_at: new Date(),
-      total_marks: totalMarks,
-      obtained_marks: obtainedMarks,
-      answers: answers as Prisma.JsonObject,
+    const finalObtainedMarks = obtainedMarks;
+    const finalTotalMarks = totalMarks;
+
+    const updatedAttempt = await prisma.$transaction(async (tx) => {
+      return tx.quizAttempt.update({
+        where: { quiz_id_student_id: { quiz_id: quizId, student_id: studentProfileId } },
+        data: {
+          submitted_at: new Date(),
+          total_marks: finalTotalMarks,
+          obtained_marks: finalObtainedMarks,
+          answers: answers as Prisma.JsonObject,
+        },
+      });
     });
 
     // Notify student about result if enabled
@@ -278,7 +286,7 @@ export class QuizService {
         if (studentUser?.user_id) {
           await NotificationService.sendNotificationToUser(studentUser.user_id, {
             title: 'Quiz Result Available',
-            body: `You scored ${obtainedMarks}/${totalMarks} in "${quiz.title}".`,
+            body: `You scored ${finalObtainedMarks}/${finalTotalMarks} in "${quiz.title}".`,
             type: 'exam',
             institute_id: instituteId,
             meta: {
@@ -308,11 +316,11 @@ export class QuizService {
       if (teacherUser?.user_id && studentUser) {
         await NotificationService.sendNotificationToUser(teacherUser.user_id, {
           title: 'Quiz Submitted',
-          body: `${studentUser.name || 'A student'} submitted "${quiz.title}"${quiz.show_instant_result ? ` and scored ${obtainedMarks}/${totalMarks}` : ''}.`,
+          body: `${studentUser.name || 'A student'} submitted "${quiz.title}"${quiz.show_instant_result ? ` and scored ${finalObtainedMarks}/${finalTotalMarks}` : ''}.`,
           type: 'exam',
           institute_id: instituteId,
           meta: {
-            route: '/teacher/quiz/${quiz.id}/results',
+            route: `/teacher/quiz/${quiz.id}/results`,
             quiz_id: quiz.id,
             student_id: studentProfileId
           }

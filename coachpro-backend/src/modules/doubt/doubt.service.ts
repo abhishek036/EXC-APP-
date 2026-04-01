@@ -79,25 +79,27 @@ export class DoubtService {
 
     // 4. Notify Student
     try {
-      const fullDoubt = await prisma.doubt.findUnique({
-        where: { id },
-        include: { student: { select: { user_id: true } } }
-      });
-      if (fullDoubt?.student?.user_id) {
-        await (async () => {
-             const { NotificationService } = require('../notification/notification.service');
-             await NotificationService.sendNotificationToUser(fullDoubt.student.user_id, {
-               title: 'Doubt Answered',
-               body: `A teacher has replied to your doubt: "${(fullDoubt.question_text || 'doubt').substring(0, 50)}..."`,
-               type: 'doubt',
-               role_target: 'student',
-               institute_id: instituteId,
-               meta: {
-                 route: '/student/doubts/history',
-                 doubt_id: id
-               }
-             });
-        })();
+      const doubtWithStudent = await DoubtRepository.findById(id, instituteId);
+      if (doubtWithStudent) {
+        const student = await prisma.student.findUnique({
+          where: { id: doubtWithStudent.student_id },
+          select: { user_id: true }
+        });
+        
+        if (student?.user_id) {
+          const { NotificationService } = require('../notification/notification.service');
+          await NotificationService.sendNotificationToUser(student.user_id, {
+            title: 'Doubt Answered',
+            body: `A teacher has replied to your doubt: "${(doubtWithStudent.question_text || 'doubt').substring(0, 50)}..."`,
+            type: 'doubt',
+            role_target: 'student',
+            institute_id: instituteId,
+            meta: {
+              route: '/student/doubts/history',
+              doubt_id: id
+            }
+          });
+        }
       }
     } catch (e) {
       console.error('[DoubtService] Push failed:', e);
@@ -117,26 +119,28 @@ export class DoubtService {
 
     // Notify student
     try {
-      const fullDoubt = await prisma.doubt.findUnique({
-        where: { id },
-        include: { student: { select: { user_id: true } } }
-      });
-      if (fullDoubt?.student?.user_id) {
-        await (async () => {
-          const { NotificationService } = require('../notification/notification.service');
-          await NotificationService.sendNotificationToUser(fullDoubt.student.user_id, {
-            title: 'Doubt Resolved',
-            body: `Your doubt has been marked as resolved.`,
-            type: 'doubt',
-            role_target: 'student',
-            institute_id: instituteId,
-            meta: {
-              route: '/student/doubts/history',
-              doubt_id: id
-            }
-          });
-        })();
-      }
+       const doubtWithStudent = await DoubtRepository.findById(id, instituteId);
+       if (doubtWithStudent) {
+         const student = await prisma.student.findUnique({
+           where: { id: doubtWithStudent.student_id },
+           select: { user_id: true }
+         });
+
+         if (student?.user_id) {
+           const { NotificationService } = require('../notification/notification.service');
+           await NotificationService.sendNotificationToUser(student.user_id, {
+             title: 'Doubt Resolved',
+             body: `Your doubt has been marked as resolved.`,
+             type: 'doubt',
+             role_target: 'student',
+             institute_id: instituteId,
+             meta: {
+               route: '/student/doubts/history',
+               doubt_id: id
+             }
+           });
+         }
+       }
     } catch (e) {
       console.error('[DoubtService] Resolve push failed:', e);
     }

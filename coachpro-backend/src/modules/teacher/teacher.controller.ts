@@ -197,16 +197,30 @@ export class TeacherController {
         res,
         data: {
           teacher: { id: teacher.id, name: teacher.name, subjects: teacher.subjects, photo_url: teacher.photo_url },
-          batches: batches.map(b => ({
-            id: b.id,
-            name: b.name,
-            subject: b.subject,
-            room: b.room,
-            start_time: b.start_time,
-            end_time: b.end_time,
-            days_of_week: b.days_of_week,
-            student_count: b._count.student_batches
-          })),
+          batches: batches.map(b => {
+            const formatTime = (d: Date | null | undefined) => {
+                if (!d) return 'TBA';
+                const date = d instanceof Date ? d : new Date(d);
+                if (isNaN(date.getTime())) return 'TBA';
+                const istOffsetMs = 5.5 * 60 * 60 * 1000;
+                const ist = new Date(date.getTime() + istOffsetMs);
+                const hh = ist.getUTCHours();
+                const mm = ist.getUTCMinutes().toString().padStart(2, '0');
+                const ampm = hh >= 12 ? 'PM' : 'AM';
+                const hh12 = hh % 12 || 12;
+                return `${hh12}:${mm} ${ampm}`;
+            };
+            return {
+              id: b.id,
+              name: b.name,
+              subject: b.subject,
+              room: b.room,
+              start_time: formatTime(b.start_time),
+              end_time: formatTime(b.end_time),
+              days_of_week: b.days_of_week,
+              student_count: b._count.student_batches
+            };
+          }),
           schedules: todaySchedules,
           stats: {
             total_batches: batches.length,

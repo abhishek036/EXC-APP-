@@ -123,9 +123,16 @@ export class StudentController {
               const duration = l.duration_minutes || 60;
               const end = start ? new Date(start.getTime() + duration * 60000) : null;
               const toIstStr = (d: Date | null) => {
-                  if (!d) return '00:00';
-                  const ist = new Date(d.getTime() + istOffsetMs);
-                  return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
+                  if (!d) return 'TBA';
+                  const date = d instanceof Date ? d : new Date(d);
+                  if (isNaN(date.getTime())) return 'TBA';
+                  const istOffsetMs = 5.5 * 60 * 60 * 1000;
+                  const ist = new Date(date.getTime() + istOffsetMs);
+                  const hh = ist.getUTCHours();
+                  const mm = ist.getUTCMinutes().toString().padStart(2, '0');
+                  const ampm = hh >= 12 ? 'PM' : 'AM';
+                  const hh12 = hh % 12 || 12;
+                  return `${hh12}:${mm} ${ampm}`;
               };
               return {
                   ...l,
