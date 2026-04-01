@@ -3,6 +3,98 @@ import { MarkAttendanceInput } from './attendance.validator';
 import { Prisma } from '@prisma/client';
 
 export class AttendanceRepository {
+    private isLegacyAttendanceSubjectColumnError(error: unknown): boolean {
+        const code = (error as any)?.code;
+        const column = String((error as any)?.meta?.column ?? '').toLowerCase();
+        return code === 'P2022' && column.includes('attendance_sessions.subject');
+    }
+
+    private mapLegacySessionRow(row: any) {
+        return {
+            id: row.id,
+            batch_id: row.batch_id,
+            institute_id: row.institute_id,
+            teacher_id: row.teacher_id,
+            session_date: row.session_date,
+            subject: null,
+            submitted_at: row.submitted_at,
+            is_corrected: row.is_corrected,
+        };
+    }
+
+    private mapLegacyRecordRow(row: any) {
+        return {
+            id: row.id,
+            session_id: row.session_id,
+            student_id: row.student_id,
+            institute_id: row.institute_id,
+            status: row.status,
+            correction_note: row.correction_note,
+            corrected_by_id: row.corrected_by_id,
+            student: {
+                id: row.student_id,
+                name: row.student_name,
+            },
+        };
+    }
+
+    private async listSessionsLegacy(instituteId: string, startDate: Date, endDate: Date, filter: { batchId?: string }) {
+        const rows = await prisma.$queryRawUnsafe<any[]>(
+            `SELECT id::text,
+                    batch_id::text,
+                    institute_id::text,
+                    teacher_id::text,
+                    session_date,
+                    submitted_at,
+                    is_corrected
+             FROM attendance_sessions
+             WHERE institute_id::text = $1::text
+               AND session_date >= $2::date
+               AND session_date <= $3::date
+               AND ($4::text IS NULL OR batch_id::text = $4::text)
+             ORDER BY session_date ASC`,
+            instituteId,
+            startDate,
+            endDate,
+            filter.batchId ?? null,
+        );
+
+        return rows.map((row) => this.mapLegacySessionRow(row));
+    }
+
+    private async listSessionRecordsLegacy(sessionId: string) {
+        const rows = await prisma.$queryRawUnsafe<any[]>(
+            `SELECT ar.id::text,
+                    ar.session_id::text,
+                    ar.student_id::text,
+                    ar.institute_id::text,
+                    ar.status,
+                    ar.correction_note,
+                    ar.corrected_by::text as corrected_by_id,
+                    s.name as student_name
+             FROM attendance_records ar
+             LEFT JOIN students s ON s.id = ar.student_id
+             WHERE ar.session_id::text = $1::text`,
+            sessionId,
+        );
+
+        return rows.map((row) => this.mapLegacyRecordRow(row));
+    }
+
+    private async hydrateLegacySessionsWithRecords(sessions: any[]) {
+        const enriched = await Promise.all(
+            sessions.map(async (session) => {
+                const records = await this.listSessionRecordsLegacy(session.id);
+                return {
+                    ...session,
+                    records,
+                };
+            }),
+        );
+
+        return enriched;
+    }
+
     async markAttendance(
         instituteId: string,
         actorUserId: string,
@@ -67,22 +159,28 @@ export class AttendanceRepository {
   }
 
   async getBatchAttendanceForMonth(batchId: string, instituteId: string, startDate: Date, endDate: Date, subject?: string) {
-      return prisma.attendanceSession.findMany({
-         where: {
-            batch_id: batchId,
-            institute_id: instituteId,
-            session_date: { gte: startDate, lte: endDate },
-            ...(subject ? { subject } : {})
-         },
-         include: {
-            records: {
-               include: {
-                  student: { select: { id: true, name: true } }
-               }
-            }
-         },
-         orderBy: { session_date: 'asc' }
-      });
+        try {
+             return await prisma.attendanceSession.findMany({
+                 where: {
+                     batch_id: batchId,
+                     institute_id: instituteId,
+                     session_date: { gte: startDate, lte: endDate },
+                     ...(subject ? { subject } : {})
+                 },
+                 include: {
+                     records: {
+                         include: {
+                             student: { select: { id: true, name: true } }
+                         }
+                     }
+                 },
+                 orderBy: { session_date: 'asc' }
+             });
+        } catch (error) {
+             if (!this.isLegacyAttendanceSubjectColumnError(error)) throw error;
+             const sessions = await this.listSessionsLegacy(instituteId, startDate, endDate, { batchId });
+             return this.hydrateLegacySessionsWithRecords(sessions);
+        }
   }
 
   async getStudentAttendance(studentId: string, instituteId: string, batchId?: string, subject?: string) {
@@ -94,53 +192,98 @@ export class AttendanceRepository {
           };
       }
 
-      return prisma.attendanceRecord.findMany({
-         where,
-         include: {
-            session: {
-               select: { session_date: true, batch: { select: { name: true } } }
-            }
-         },
-         orderBy: { session: { session_date: 'desc' } }
-      });
+      try {
+          return await prisma.attendanceRecord.findMany({
+             where,
+             include: {
+                session: {
+                   select: { session_date: true, batch: { select: { name: true } } }
+                }
+             },
+             orderBy: { session: { session_date: 'desc' } }
+          });
+      } catch (error) {
+          if (!this.isLegacyAttendanceSubjectColumnError(error) || !subject) throw error;
+
+          const fallbackWhere: Prisma.AttendanceRecordWhereInput = {
+              student_id: studentId,
+              institute_id: instituteId,
+              ...(batchId ? { session: { batch_id: batchId } } : {}),
+          };
+
+          return prisma.attendanceRecord.findMany({
+              where: fallbackWhere,
+              include: {
+                  session: {
+                      select: { session_date: true, batch: { select: { name: true } } },
+                  },
+              },
+              orderBy: { session: { session_date: 'desc' } },
+          });
+      }
   }
 
   async getSessionsInRange(instituteId: string, start: Date, end: Date, batchId?: string, subject?: string) {
-      return (prisma.attendanceSession as any).findMany({
-          where: {
-              institute_id: instituteId,
-              session_date: { gte: start, lte: end },
-              ...(batchId ? { batch_id: batchId } : {}),
-              ...(subject ? { subject: subject } : {})
-          },
-          include: {
-              records: {
-                  include: {
-                      student: { select: { id: true, name: true } }
+      try {
+          return await (prisma.attendanceSession as any).findMany({
+              where: {
+                  institute_id: instituteId,
+                  session_date: { gte: start, lte: end },
+                  ...(batchId ? { batch_id: batchId } : {}),
+                  ...(subject ? { subject: subject } : {})
+              },
+              include: {
+                  records: {
+                      include: {
+                          student: { select: { id: true, name: true } }
+                      }
                   }
               }
-          }
-      });
+          });
+      } catch (error) {
+          if (!this.isLegacyAttendanceSubjectColumnError(error)) throw error;
+          const sessions = await this.listSessionsLegacy(instituteId, start, end, { batchId });
+          return this.hydrateLegacySessionsWithRecords(sessions);
+      }
   }
 
   async getAggregateStats(instituteId: string, start: Date, end: Date, batchId?: string, subject?: string) {
        // This could be optimized into a single group-by if complex, but simple for now
-       const records = await prisma.attendanceRecord.findMany({
-           where: {
-               institute_id: instituteId,
-               ...(batchId || subject ? { 
-                   session: { 
-                       ...(batchId ? { batch_id: batchId } : {}),
-                       ...(subject ? { subject: subject } : {}),
-                       session_date: { gte: start, lte: end }
-                   }
-               } : {
-                   session: { session_date: { gte: start, lte: end } }
-               }),
-           },
-           select: { status: true, session: { select: { session_date: true } } }
-       });
+       try {
+           const records = await prisma.attendanceRecord.findMany({
+               where: {
+                   institute_id: instituteId,
+                   ...(batchId || subject ? {
+                       session: {
+                           ...(batchId ? { batch_id: batchId } : {}),
+                           ...(subject ? { subject: subject } : {}),
+                           session_date: { gte: start, lte: end }
+                       }
+                   } : {
+                       session: { session_date: { gte: start, lte: end } }
+                   }),
+               },
+               select: { status: true, session: { select: { session_date: true } } }
+           });
 
-       return records;
+           return records;
+       } catch (error) {
+           if (!this.isLegacyAttendanceSubjectColumnError(error) || !subject) throw error;
+
+           return prisma.attendanceRecord.findMany({
+               where: {
+                   institute_id: instituteId,
+                   ...(batchId ? {
+                       session: {
+                           batch_id: batchId,
+                           session_date: { gte: start, lte: end }
+                       }
+                   } : {
+                       session: { session_date: { gte: start, lte: end } }
+                   }),
+               },
+               select: { status: true, session: { select: { session_date: true } } }
+           });
+       }
   }
 }
