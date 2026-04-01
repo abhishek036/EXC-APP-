@@ -83,11 +83,11 @@ class RoleLiveDashboardPage extends StatelessWidget {
           _ActionConfig(label: 'Attendance', path: '/teacher/attendance', icon: Icons.fact_check_outlined),
           _ActionConfig(label: 'Create Quiz', path: '/teacher/create-quiz', icon: Icons.quiz_outlined),
           _ActionConfig(label: 'Doubts', path: '/teacher/doubts', icon: Icons.help_outline),
-          _ActionConfig(label: 'Results', path: '/teacher/quiz-results', icon: Icons.assessment_outlined),
+          _ActionConfig(label: 'Results', path: '/teacher/batches', icon: Icons.assessment_outlined),
         ];
       case AppRole.parent:
         return const [
-          _ActionConfig(label: 'Weekly Report', path: '/parent/weekly-report', icon: Icons.insights_outlined),
+          _ActionConfig(label: 'Weekly Report', path: '/parent', icon: Icons.insights_outlined),
           _ActionConfig(label: 'Payment History', path: '/parent/payment-history', icon: Icons.history_outlined),
           _ActionConfig(label: 'Fees', path: '/parent/fee-payment', icon: Icons.receipt_long_outlined),
           _ActionConfig(label: 'Notices', path: '/parent/announcements', icon: Icons.campaign_outlined),

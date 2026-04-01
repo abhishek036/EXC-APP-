@@ -10,6 +10,7 @@ import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/utils/role_prefix.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../student/data/repositories/student_repository.dart';
+import '../../../teacher/data/repositories/teacher_repository.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -23,9 +24,17 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  final _repo = sl<StudentRepository>();
+  late final _repo = _getRepo();
   final _realtime = sl<RealtimeSyncService>();
   StreamSubscription? _syncSub;
+
+  dynamic _getRepo() {
+    final prefix = context.rolePrefix;
+    if (prefix == '/teacher' || prefix == '/admin') {
+      return sl<TeacherRepository>();
+    }
+    return sl<StudentRepository>();
+  }
 
   final List<Map<String, dynamic>> _notifications = [];
   bool _isLoading = true;
@@ -63,6 +72,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
       if (type == 'notification' ||
           type == 'broadcast' ||
+          type == 'notification_deleted' ||
+          type == 'unread_count_update' ||
           reason.contains('notification') ||
           reason.contains('announcement')) {
         _fetchNotifications(reset: true);
@@ -133,6 +144,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
       'type': (input['type'] ?? 'system').toString(),
       'time': (input['created_at'] ?? input['date'] ?? '').toString(),
       'dateTime': dt,
+      'batchName': input['batch_name'] ??
+          input['batchName'] ??
+          (input['meta'] is Map ? input['meta']['batchName'] : null),
     };
   }
 
@@ -145,6 +159,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
     setState(() => _notifications[index]['isRead'] = read);
     try {
       await _repo.markNotificationRead(id, read: read);
+      final count = await _repo.getUnreadCount();
+      _realtime.updateUnreadCount(count);
     } catch (_) {
       if (!mounted) return;
       setState(() => _notifications[index]['isRead'] = !read);
@@ -164,6 +180,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
     try {
       await _repo.markAllNotificationsRead();
+      final count = await _repo.getUnreadCount();
+      _realtime.updateUnreadCount(count);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -187,6 +205,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
       } else {
         await _repo.deleteNotification(id);
       }
+      final count = await _repo.getUnreadCount();
+      _realtime.updateUnreadCount(count);
       _fetchNotifications(reset: true);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -636,16 +656,32 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                                         ),
                                                       ),
                                                     Expanded(
-                                                      child: Text(
-                                                        notif['title']
-                                                            .toString()
-                                                            .toUpperCase(),
-                                                        style: GoogleFonts.sora(
-                                                          fontSize: 13,
-                                                          fontWeight: FontWeight.w800,
-                                                          color: CT.textH(context),
-                                                          letterSpacing: -0.2,
-                                                        ),
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            notif['title'].toString().toUpperCase(),
+                                                            style: GoogleFonts.sora(
+                                                              fontSize: 13,
+                                                              fontWeight: FontWeight.w800,
+                                                              color: CT.textH(context),
+                                                              letterSpacing: -0.2,
+                                                            ),
+                                                          ),
+                                                          if (notif['batchName'] != null)
+                                                            Padding(
+                                                              padding: const EdgeInsets.only(top: 2),
+                                                              child: Text(
+                                                                'BATCH: ${notif['batchName'].toString().toUpperCase()}',
+                                                                style: GoogleFonts.jetBrainsMono(
+                                                                  fontWeight: FontWeight.w900,
+                                                                  fontSize: 9,
+                                                                  color: AppColors.electricBlue,
+                                                                  letterSpacing: 0.5,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                        ],
                                                       ),
                                                     ),
                                                   ],

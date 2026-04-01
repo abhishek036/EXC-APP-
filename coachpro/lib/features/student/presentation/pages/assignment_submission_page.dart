@@ -16,8 +16,13 @@ import '../../data/repositories/student_repository.dart';
 
 class AssignmentSubmissionPage extends StatefulWidget {
   final String? initialAssignmentId;
+  final String? initialFileUrl;
 
-  const AssignmentSubmissionPage({super.key, this.initialAssignmentId});
+  const AssignmentSubmissionPage({
+    super.key,
+    this.initialAssignmentId,
+    this.initialFileUrl,
+  });
 
   @override
   State<AssignmentSubmissionPage> createState() =>
@@ -42,8 +47,11 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
   @override
   void initState() {
     super.initState();
+    _fileUrl = widget.initialFileUrl;
     _loadAssignments();
   }
+
+  String? _fileUrl;
 
   @override
   void dispose() {
@@ -73,6 +81,9 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
       setState(() {
         _assignments = list;
         _selectedAssignment = selected ?? (list.isNotEmpty ? list.first : null);
+        if (_selectedAssignment != null) {
+          _fileUrl = _selectedAssignment!['file_url']?.toString() ?? _fileUrl;
+        }
         _isLoading = false;
       });
     } catch (e) {
@@ -213,6 +224,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                                     (item['id'] ?? '').toString() == value,
                                 orElse: () => _assignments.first,
                               );
+                              _fileUrl = _selectedAssignment?['file_url']?.toString();
                             });
                           },
                         ),
@@ -253,13 +265,19 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    title,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -270,6 +288,44 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                       height: 1.5,
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  if (_fileUrl != null && _fileUrl!.isNotEmpty) ...[
+                    CPPressable(
+                      onTap: () async {
+                        final uri = Uri.tryParse(_fileUrl!);
+                        if (uri != null && await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.moltenAmber,
+                          border: Border.all(color: AppColors.elitePrimary, width: 2),
+                          boxShadow: const [BoxShadow(color: AppColors.elitePrimary, offset: Offset(3, 3))],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.description_rounded, size: 20, color: AppColors.elitePrimary),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'DOWNLOAD INSTRUCTION FILE',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 12,
+                                  color: AppColors.elitePrimary,
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.download_for_offline_rounded, size: 20, color: AppColors.elitePrimary),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                   const SizedBox(height: 32),
 
                   // Upload Box

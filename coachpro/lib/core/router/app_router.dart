@@ -410,7 +410,7 @@ class AppRouter {
                         pageBuilder: (c, s) => _page(
                           s,
                           BulkResultEntryPage(
-                            exam: s.extra as Map<String, dynamic>,
+                            exam: (s.extra as Map<String, dynamic>?) ?? const {},
                           ),
                         ),
                       ),
@@ -1000,6 +1000,7 @@ class AppRouter {
                         s,
                         AssignmentSubmissionPage(
                           initialAssignmentId: args['assignmentId']?.toString(),
+                          initialFileUrl: args['fileUrl']?.toString(),
                         ),
                       );
                     },

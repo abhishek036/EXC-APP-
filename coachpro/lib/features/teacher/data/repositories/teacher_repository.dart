@@ -637,4 +637,106 @@ class TeacherRepository {
       response.data['message'] ?? 'Failed to create YouTube Live Stream',
     );
   }
+
+  // ── Notifications ────────────────────────────────────────
+  Future<List<Map<String, dynamic>>> getNotifications({
+    int page = 1,
+    int perPage = 20,
+    String? type,
+    String readStatus = 'all',
+  }) async {
+    final response = await _api.dio.get(
+      'notifications',
+      queryParameters: {
+        'page': page,
+        'perPage': perPage,
+        if (type != null && type.isNotEmpty) 'type': type,
+        'read_status': readStatus,
+      },
+    );
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(
+      response.data['message'] ?? 'Failed to fetch notifications',
+    );
+  }
+
+  Future<int> getUnreadCount() async {
+    try {
+      final response = await _api.dio.get('notifications/unread-count');
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data is Map) return (data['unread_count'] as num?)?.toInt() ?? 0;
+      }
+    } catch (_) {}
+    return 0;
+  }
+
+  Future<void> markNotificationRead(
+    String notificationId, {
+    bool read = true,
+  }) async {
+    final response = await _api.dio.patch(
+      'notifications/$notificationId/read',
+      data: {'read_status': read},
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        response.data['message'] ?? 'Failed to update notification status',
+      );
+    }
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    final response = await _api.dio.patch('notifications/read-all');
+    if (response.statusCode != 200) {
+      throw Exception(
+        response.data['message'] ?? 'Failed to mark all notifications as read',
+      );
+    }
+  }
+
+  Future<void> deleteNotification(String notificationId) async {
+    final response = await _api.dio.delete('notifications/$notificationId');
+    if (response.statusCode != 200) {
+      throw Exception(
+        response.data['message'] ?? 'Failed to delete notification',
+      );
+    }
+  }
+
+  Future<void> sendManualNotification({
+    required String title,
+    required String body,
+    required String type,
+    required String roleTarget,
+  }) async {
+    final response = await _api.dio.post(
+      'notifications/send',
+      data: {
+        'title': title,
+        'body': body,
+        'type': type,
+        'role_target': roleTarget,
+      },
+    );
+    if (response.statusCode != 201 && response.statusCode != 200) {
+      throw Exception(
+        response.data['message'] ?? 'Failed to send notification',
+      );
+    }
+  }
+
+  Future<void> deleteNotificationGlobally(String notificationId) async {
+    final response = await _api.dio.delete(
+      'notifications/$notificationId/global',
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        response.data['message'] ??
+            'Failed to delete notification for all recipients',
+      );
+    }
+  }
 }

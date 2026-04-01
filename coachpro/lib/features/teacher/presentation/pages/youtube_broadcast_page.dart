@@ -17,7 +17,7 @@ class YoutubeBroadcastPage extends StatefulWidget {
 
 class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
   final _teacherRepo = sl<TeacherRepository>();
-  late ApiVideoLiveStreamController _controller;
+  ApiVideoLiveStreamController? _controller;
 
   bool _isInit = false;
   bool _isStreaming = false;
@@ -39,7 +39,7 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
 
   Future<void> _initController() async {
     try {
-      _controller = ApiVideoLiveStreamController(
+      final controller = ApiVideoLiveStreamController(
         initialAudioConfig: AudioConfig(bitrate: 128000),
         initialVideoConfig: VideoConfig.withDefaultBitrate(
           resolution: Resolution.RESOLUTION_720,
@@ -80,7 +80,8 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
           }
         },
       );
-      await _controller.startPreview();
+      _controller = controller;
+      await controller.startPreview();
       if (mounted) {
         setState(() => _isInit = true);
       }
@@ -91,8 +92,10 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
 
   @override
   void dispose() {
-    _controller.stopPreview();
-    if (_isStreaming) _controller.stopStreaming();
+    if (_isInit && _controller != null) {
+      _controller!.stopPreview();
+      if (_isStreaming) _controller!.stopStreaming();
+    }
     _titleController.dispose();
     _descController.dispose();
     super.dispose();
@@ -129,7 +132,7 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
       }
 
       // 2. Start pushing the camera feed to the URL
-      await _controller.startStreaming(
+      await _controller!.startStreaming(
         streamKey: _streamKey!,
         url: _streamUrl!,
       );
@@ -150,16 +153,16 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
   }
 
   Future<void> _stopLiveStream() async {
-    await _controller.stopStreaming();
+    await _controller!.stopStreaming();
     setState(() => _isStreaming = false);
   }
 
   Future<void> _toggleCamera() async {
-    await _controller.switchCamera();
+    await _controller!.switchCamera();
   }
 
   Future<void> _toggleMicrophone() async {
-    await _controller.toggleMute();
+    await _controller!.toggleMute();
   }
 
   @override
@@ -179,7 +182,7 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
         children: [
           // Camera Preview Full Screen
           Positioned.fill(
-            child: ApiVideoCameraPreview(controller: _controller),
+            child: ApiVideoCameraPreview(controller: _controller!),
           ),
 
           // Header / Controls Overlay

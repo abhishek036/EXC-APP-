@@ -37,6 +37,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   List<Map<String, dynamic>> _pendingDoubts = [];
   bool _isLoading = true;
   String? _error;
+  int _unreadCount = 0;
 
   @override
   void initState() {
@@ -61,6 +62,17 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       if (!mounted) return;
       final type = (event['type'] ?? '').toString();
       final reason = (event['reason'] ?? '').toString().toLowerCase();
+
+      if (type == 'unread_count_update') {
+        final count = (event['unread_count'] as num?)?.toInt() ?? 0;
+        if (mounted) setState(() => _unreadCount = count);
+        return;
+      }
+      if (type == 'notification_deleted') {
+        _loadDashboard(silent: true); // Refresh everything
+        return;
+      }
+
       final shouldRefresh =
           type == 'dashboard_sync' ||
           type == 'batch_sync' ||
@@ -113,6 +125,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       final results = await Future.wait([
         _teacherRepo.getDashboardStats(),
         _teacherRepo.getPendingDoubts(),
+        _teacherRepo.getUnreadCount(),
       ]);
       final data = Map<String, dynamic>.from(
         results[0] as Map<String, dynamic>,
@@ -120,6 +133,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       final doubts = List<Map<String, dynamic>>.from(
         results[1] as List<Map<String, dynamic>>,
       );
+      final unreadCount = results[2] as int;
 
       if (!mounted) return;
 
@@ -136,6 +150,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       setState(() {
         _dashboardData = data;
         _pendingDoubts = doubts;
+        _unreadCount = unreadCount;
         _isLoading = false;
         _error = null;
       });
@@ -294,7 +309,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         _appBarAction(Icons.notifications_none_rounded, () {
           HapticFeedback.mediumImpact();
           context.push('/teacher/notifications');
-        }, badge: _pendingDoubts.isNotEmpty),
+        }, badge: _unreadCount > 0),
       ],
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);
   }
@@ -824,14 +839,31 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                   color: AppColors.elitePrimary,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(
-                  child: Text(
-                    (c['start_time'] ?? '10:00 AM').toString().split(' ')[0],
-                    style: GoogleFonts.jetBrainsMono(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      (c['start_time'] ?? '10:00 AM').toString().split(' ')[0],
+                      style: GoogleFonts.jetBrainsMono(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                        height: 1.0,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 2),
+                    Text(
+                      (c['start_time'] ?? '10:00 AM').toString().contains(' ') 
+                        ? (c['start_time'] ?? '10:00 AM').toString().split(' ')[1] 
+                        : '',
+                      style: GoogleFonts.jetBrainsMono(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 9,
+                        height: 1.0,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 16),

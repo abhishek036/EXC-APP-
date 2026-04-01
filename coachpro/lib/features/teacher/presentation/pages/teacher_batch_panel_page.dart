@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:async';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../data/repositories/teacher_repository.dart';
 import 'assignment_review_page.dart';
 import 'attendance_marking_page.dart';
@@ -38,6 +40,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   List<Map<String, dynamic>> _practiceQuizzes = [];
   List<Map<String, dynamic>> _scheduledTests = [];
   List<Map<String, dynamic>> _notes = [];
+  List<Map<String, dynamic>> _assignments = [];
   final Set<String> _completedTopicIds = {};
   final Set<String> _manualWeakIds = {};
   final Set<String> _removedWeakIds = {};
@@ -48,11 +51,34 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   bool _isDeletingQuiz = false;
   DateTime _selectedQuizMonth = DateTime.now();
   DateTime _selectedAttendanceDate = DateTime.now();
+  StreamSubscription? _syncSub;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _initRealtime();
+  }
+
+  void _initRealtime() {
+    final sync = sl<RealtimeSyncService>();
+    sync.joinBatch(widget.batchId);
+    _syncSub = sync.updates.listen((event) {
+      final type = event['type'] as String?;
+      final eventBatchId = (event['batch_id'] ?? '') as String;
+
+      if (type == 'batch_sync' || type == 'dashboard_sync') {
+        if (eventBatchId.isEmpty || eventBatchId == widget.batchId) {
+          if (mounted) _load();
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -79,6 +105,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         subject: _selectedSubject,
       );
       final notesFuture = _teacherRepo.getBatchNotes(widget.batchId, subject: _selectedSubject);
+      final assignmentsFuture = _teacherRepo.getAssignments(batchId: widget.batchId, subject: _selectedSubject);
 
       final batches = await batchesFuture;
       final selected = batches
@@ -102,6 +129,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       final practiceQuizzes = await practiceQuizzesFuture;
       final scheduledTests = await scheduledTestsFuture;
       final notes = await notesFuture;
+      final assignments = await assignmentsFuture;
 
       final pendingDoubts =
           (((execution['doubts'] as Map?)?['pending_items']) as List? ??
@@ -135,6 +163,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         _practiceQuizzes = practiceQuizzes;
         _scheduledTests = scheduledTests;
         _notes = notes;
+        _assignments = assignments;
         _completedTopicIds
           ..clear()
           ..addAll(completedTopicIds);
@@ -822,10 +851,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     final pending = _toNum(assignmentsSummary['pending_evaluation_count']).toInt();
     final late = _toNum(assignmentsSummary['late_submissions_count']).toInt();
 
-    final items = _notes.where((n) {
-      final type = (n['file_type'] ?? '').toString().toLowerCase();
-      return type == 'assignment';
-    }).toList();
+    final items = _assignments;
 
     return ListView(
       padding: const EdgeInsets.all(20),

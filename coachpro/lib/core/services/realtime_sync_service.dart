@@ -83,6 +83,11 @@ class RealtimeSyncService {
     }
   }
 
+  /// Manually inject an unread count update into the stream.
+  void updateUnreadCount(int unreadCount) {
+    _controller.add({'type': 'unread_count_update', 'unread_count': unreadCount});
+  }
+
   void dispose() {
     disconnect();
     _controller.close();

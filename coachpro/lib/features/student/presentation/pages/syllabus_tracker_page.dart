@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -7,6 +8,7 @@ import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../data/repositories/student_repository.dart';
 
 class SyllabusTrackerPage extends StatefulWidget {
@@ -24,11 +26,30 @@ class _SyllabusTrackerPageState extends State<SyllabusTrackerPage> {
   List<String> _subjects = [];
   Map<String, List<_Chapter>> _chaptersBySubject = {};
   int _selectedSub = 0;
+  StreamSubscription? _syncSub;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _initRealtime();
+  }
+
+  void _initRealtime() {
+    final sync = sl<RealtimeSyncService>();
+    _syncSub = sync.updates.listen((event) {
+      final type = event['type'] as String?;
+      final reason = (event['reason'] ?? '') as String;
+      if (type == 'dashboard_sync' || (type == 'batch_sync' && reason.contains('syllabus'))) {
+        if (mounted) _loadData();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadData() async {

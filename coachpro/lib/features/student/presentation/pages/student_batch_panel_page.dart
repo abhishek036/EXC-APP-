@@ -99,11 +99,9 @@ class _StudentBatchPanelPageState extends State<StudentBatchPanelPage> {
     }
 
     final name = (widget.batchInfo['name'] ?? 'Batch').toString();
-    final tabIndex = widget.initialTabIndex.clamp(0, 4);
-
     return DefaultTabController(
-      length: 5,
-      initialIndex: tabIndex,
+      length: 7,
+      initialIndex: widget.initialTabIndex.clamp(0, 6),
       child: Scaffold(
         backgroundColor: primaryBlue,
         appBar: AppBar(
@@ -164,6 +162,8 @@ class _StudentBatchPanelPageState extends State<StudentBatchPanelPage> {
             tabs: const [
               Tab(text: 'CONTENT'),
               Tab(text: 'SCHEDULE'),
+              Tab(text: 'ASSIGNMENTS'),
+              Tab(text: 'QUIZZES'),
               Tab(text: 'ATTENDANCE'),
               Tab(text: 'RESULTS'),
               Tab(text: 'DOUBTS'),
@@ -173,23 +173,39 @@ class _StudentBatchPanelPageState extends State<StudentBatchPanelPage> {
         body: TabBarView(
           children: [
             _ContentTab(
+              key: ValueKey('content_$_refreshKey'),
               batchId: widget.batchId,
               batchInfo: widget.batchInfo,
               selectedSubject: _selectedSubject,
             ),
             _ScheduleTab(
+              key: ValueKey('schedule_$_refreshKey'),
+              batchId: widget.batchId,
+              selectedSubject: _selectedSubject,
+            ),
+            _AssignmentsPane(
+              key: ValueKey('assignments_$_refreshKey'),
+              batchId: widget.batchId,
+              teacherName: widget.batchInfo['teacher_name'],
+              selectedSubject: _selectedSubject,
+            ),
+            _QuizPane(
+              key: ValueKey('quiz_$_refreshKey'),
               batchId: widget.batchId,
               selectedSubject: _selectedSubject,
             ),
             _AttendanceTab(
+              key: ValueKey('attendance_$_refreshKey'),
               batchId: widget.batchId,
               selectedSubject: _selectedSubject,
             ),
             _ResultsTab(
+              key: ValueKey('results_$_refreshKey'),
               batchId: widget.batchId,
               selectedSubject: _selectedSubject,
             ),
             _DoubtsTab(
+              key: ValueKey('doubts_$_refreshKey'),
               batchId: widget.batchId,
               batchInfo: widget.batchInfo,
               selectedSubject: _selectedSubject,
@@ -317,7 +333,7 @@ class _ContentTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 2,
       child: Column(
         children: [
           Container(
@@ -335,8 +351,6 @@ class _ContentTab extends StatelessWidget {
               tabs: const [
                 Tab(text: 'VIDEOS'),
                 Tab(text: 'NOTES'),
-                Tab(text: 'ASSIGNMENTS'),
-                Tab(text: 'QUIZ'),
               ],
             ),
           ),
@@ -352,12 +366,6 @@ class _ContentTab extends StatelessWidget {
                   teacherName: batchInfo['teacher_name'],
                   selectedSubject: selectedSubject,
                 ),
-                _AssignmentsPane(
-                  batchId: batchId,
-                  teacherName: batchInfo['teacher_name'],
-                  selectedSubject: selectedSubject,
-                ),
-                _QuizPane(batchId: batchId, selectedSubject: selectedSubject),
               ],
             ),
           ),
@@ -476,18 +484,27 @@ class _LecturesPaneState extends State<_LecturesPane> {
               return GestureDetector(
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  context.push(
-                    '/student/video-player',
-                    extra: {
-                      'videoUrl':
-                          lec['video_url'] ??
-                          lec['url'] ??
-                          lec['file_url'] ??
-                          '',
-                      'title': title,
-                      'lectureId': lec['id']?.toString() ?? '',
-                    },
-                  );
+                  final url = (lec['video_url'] ?? lec['url'] ?? lec['file_url'] ?? '').toString();
+                  final isYoutube = url.contains('youtube.com') || url.contains('youtu.be');
+                  
+                  if (isYoutube) {
+                    context.push(
+                      '/student/youtube-player',
+                      extra: {
+                        'videoId': url,
+                        'title': title,
+                      },
+                    );
+                  } else {
+                    context.push(
+                      '/student/video-player',
+                      extra: {
+                        'videoUrl': url,
+                        'title': title,
+                        'lectureId': lec['id']?.toString() ?? '',
+                      },
+                    );
+                  }
                 },
                 child: _PremiumCard(
                   padding: const EdgeInsets.all(12),
@@ -618,7 +635,13 @@ class _NotesPaneState extends State<_NotesPane> {
         .then((list) {
           return list.where((item) {
             final type = (item['file_type'] ?? '').toString().toLowerCase();
-            return type != 'video' && type != 'assignment';
+            final title = (item['title'] ?? '').toString().toLowerCase();
+            // Strictly exclude non-notes
+            return type != 'video' && 
+                   type != 'assignment' && 
+                   !title.contains('assignment') && 
+                   !title.contains('test') &&
+                   !title.contains('quiz');
           }).toList();
         });
   }
@@ -2190,20 +2213,62 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: Colors.white.withValues(alpha: 0.3)),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: GoogleFonts.plusJakartaSans(
-              color: Colors.white70,
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+          decoration: BoxDecoration(
+            color: _StudentBatchPanelPageState.surfaceWhite,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: _StudentBatchPanelPageState.primaryBlue,
+              width: 3,
             ),
+            boxShadow: const [
+              BoxShadow(
+                color: _StudentBatchPanelPageState.primaryBlue,
+                offset: Offset(6, 6),
+              ),
+            ],
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _StudentBatchPanelPageState.accentYellow,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _StudentBatchPanelPageState.primaryBlue,
+                    width: 2,
+                  ),
+                ),
+                child: Icon(icon, size: 40, color: _StudentBatchPanelPageState.primaryBlue),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                message.toUpperCase(),
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  color: _StudentBatchPanelPageState.primaryBlue,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Checking for updates...',
+                style: GoogleFonts.plusJakartaSans(
+                  color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.6),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

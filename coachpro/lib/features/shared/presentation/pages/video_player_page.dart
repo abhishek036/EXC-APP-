@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/widgets/cp_pressable.dart';
 
 class VideoPlayerPage extends StatefulWidget {
   final String? videoUrl;
@@ -17,11 +17,205 @@ class VideoPlayerPage extends StatefulWidget {
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  bool _isPlaying = false;
-  final double _progress = 0.3; // 30% played
+  late YoutubePlayerController? _controller;
+  bool _isYoutube = false;
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final url = widget.videoUrl ?? '';
+    final videoId = YoutubePlayer.convertUrlToId(url);
+    
+    if (videoId != null) {
+      _isYoutube = true;
+      _controller = YoutubePlayerController(
+        initialVideoId: videoId,
+        flags: const YoutubePlayerFlags(
+          autoPlay: true,
+          mute: false,
+          disableDragSeek: false,
+          loop: false,
+          isLive: false,
+          forceHD: false,
+          enableCaption: true,
+        ),
+      )..addListener(_listener);
+    } else {
+      _isYoutube = false;
+      _controller = null;
+    }
+  }
+
+  void _listener() {
+    if (mounted && _controller != null && _controller!.value.isReady && !_ready) {
+      setState(() {
+        _ready = true;
+      });
+    }
+  }
+
+  @override
+  void deactivate() {
+    _controller?.pause();
+    super.deactivate();
+  }
+
+  @override
+  void dispose() {
+    _controller?.removeListener(_listener);
+    _controller?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (!_isYoutube) {
+      return _buildFallback();
+    }
+
+    return YoutubePlayerBuilder(
+      onExitFullScreen: () {
+        SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+      },
+      player: YoutubePlayer(
+        controller: _controller!,
+        showVideoProgressIndicator: true,
+        progressIndicatorColor: AppColors.primary,
+        topActions: [
+          const SizedBox(width: 8.0),
+          Expanded(
+            child: Text(
+              _controller!.metadata.title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18.0,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+        ],
+        onReady: () {
+          _ready = true;
+        },
+        onEnded: (data) {
+          // Optional: handle end
+        },
+      ),
+      builder: (context, player) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              'LECTURE MODULE',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: Colors.white70,
+                letterSpacing: 2,
+              ),
+            ),
+            centerTitle: true,
+          ),
+          extendBodyBehindAppBar: true,
+          body: Column(
+            children: [
+              Expanded(
+                child: Center(
+                  child: player,
+                ),
+              ),
+              _buildInfoSection(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 48),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F0F0F),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.moltenAmber,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'VIDEO',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  widget.title ?? _controller?.metadata.title ?? 'Untitled Lecture',
+                  style: GoogleFonts.sora(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _controller?.metadata.author ?? 'Educational Content',
+            style: GoogleFonts.jetBrainsMono(
+              color: Colors.white54,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Link: ${widget.videoUrl}',
+            style: GoogleFonts.jetBrainsMono(
+              color: Colors.white24,
+              fontSize: 9,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFallback() {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -29,308 +223,63 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white,
-            size: 20,
-          ),
+          icon: const Icon(Icons.close, color: Colors.white),
         ),
-        title: Text(
-          'LAB MODULE',
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: Colors.white70,
-            letterSpacing: 2,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.cast, color: Colors.white, size: 20),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.more_horiz_rounded,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-        ],
       ),
-      extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          // SIMULATED CINEMATIC FEED
-          Positioned.fill(
-            child: Container(
-              color: const Color(0xFF0A0A0A),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.grain_rounded,
-                      size: 48,
-                      color: Colors.white.withValues(alpha: 0.1),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'ENCODING STREAM...',
-                      style: GoogleFonts.jetBrainsMono(
-                        color: Colors.white24,
-                        fontSize: 10,
-                        letterSpacing: 4,
-                      ),
-                    ),
-                  ],
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.link_off_rounded, size: 80, color: Colors.white24),
+              const SizedBox(height: 24),
+              Text(
+                'EXTERNAL CONTENT',
+                style: GoogleFonts.sora(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
                 ),
               ),
-            ),
-          ),
-
-          // NEO-BRUTALIST OVERLAY
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 80, 24, 48),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black,
-                    Colors.black.withValues(alpha: 0.8),
-                    Colors.transparent,
-                  ],
+              const SizedBox(height: 12),
+              Text(
+                'This link cannot be played directly within the app. Please open it in your browser or external player.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white60,
+                  fontSize: 14,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title Node
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.moltenAmber,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          'LIVE',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'ROTATIONAL DYNAMICS L1',
-                          style: GoogleFonts.sora(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'PHYSICS • UNIT 4 • BY DR. SHARMA',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: Colors.white54,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // PROGRESS AXIS
-                  Row(
-                    children: [
-                      Text(
-                        '12:45',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            return Stack(
-                              alignment: Alignment.centerLeft,
-                              children: [
-                                Container(
-                                  height: 6,
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white12,
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
-                                Container(
-                                  height: 6,
-                                  width: constraints.maxWidth * _progress,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
-                                Positioned(
-                                  left: (constraints.maxWidth * _progress) - 8,
-                                  child: Container(
-                                    height: 16,
-                                    width: 16,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.black,
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        '45:00',
-                        style: GoogleFonts.jetBrainsMono(
-                          color: Colors.white38,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // CORE CONTROLS
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.replay_10_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      CPPressable(
-                            onTap: () {
-                              HapticFeedback.mediumImpact();
-                              setState(() => _isPlaying = !_isPlaying);
-                            },
-                            child: Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.black,
-                                  width: 3,
-                                ),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.white12,
-                                    blurRadius: 20,
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                _isPlaying
-                                    ? Icons.pause_rounded
-                                    : Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: 48,
-                              ),
-                            ),
-                          )
-                          .animate(target: _isPlaying ? 1 : 0)
-                          .scale(
-                            begin: const Offset(1, 1),
-                            end: const Offset(1.05, 1.05),
-                          ),
-                      const SizedBox(width: 24),
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.forward_10_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 48),
-
-                  // OPTION STRIP
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final uri = Uri.tryParse(widget.videoUrl ?? '');
+                    if (uri != null && await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.moltenAmber,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _playerAction(Icons.speed_rounded, '1.5X'),
-                        _playerAction(Icons.closed_caption_rounded, 'ENG'),
-                        _playerAction(Icons.high_quality_rounded, '1080P'),
-                        _playerAction(Icons.fullscreen_rounded, 'FULL'),
-                      ],
-                    ),
                   ),
-                ],
+                  child: Text(
+                    'OPEN EXTERNALLY',
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _playerAction(IconData icon, String label) {
-    return TextButton.icon(
-      onPressed: () => HapticFeedback.selectionClick(),
-      icon: Icon(icon, color: Colors.white70, size: 18),
-      label: Text(
-        label,
-        style: GoogleFonts.jetBrainsMono(
-          color: Colors.white70,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
         ),
       ),
     );
   }
 }
+

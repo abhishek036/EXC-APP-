@@ -140,27 +140,8 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         return;
       }
       formattedLink = normalized;
-    } else if (_selectedType == 'note') {
-      if (_selectedFile == null && _linkCtrl.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please upload a file or provide a link.'),
-          ),
-        );
-        return;
-      }
-      if (_selectedFile == null) {
-        final rawLink = _linkCtrl.text.trim();
-        final normalized = _normalizeUrl(rawLink);
-        if (normalized == null || !_isValidHttpUrl(normalized)) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Invalid link.')));
-          return;
-        }
-        formattedLink = normalized;
-      }
     } else {
+      // For Notes/Assignments, file or link is optional
       final rawLink = _linkCtrl.text.trim();
       if (rawLink.isNotEmpty) {
         final normalized = _normalizeUrl(rawLink);

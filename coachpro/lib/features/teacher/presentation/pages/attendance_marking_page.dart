@@ -139,11 +139,15 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
 
       // Find session for the specific day
       final sessionForDay = monthAttendance.firstWhere((s) {
-        final sDate = DateTime.tryParse(s['session_date']?.toString() ?? '');
+        final sVal = s['session_date'];
+        if (sVal == null) return false;
+        final sDate = DateTime.tryParse(sVal.toString());
         if (sDate == null) return false;
-        return sDate.year == _selectedDate.year &&
-            sDate.month == _selectedDate.month &&
-            sDate.day == _selectedDate.day;
+        // Compare year/month/day in local time for consistent UI matching
+        final localSDate = sDate.toLocal();
+        return localSDate.year == _selectedDate.year &&
+            localSDate.month == _selectedDate.month &&
+            localSDate.day == _selectedDate.day;
       }, orElse: () => <String, dynamic>{});
 
       final existingRecords = (sessionForDay['records'] as List?) ?? [];
@@ -224,8 +228,8 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
     }
     setState(() => _isSubmitting = true);
 
-    final sessionDate =
-        '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+    final sessionDate = _selectedDate.toUtc().toIso8601String();
+    
     const statusMap = {
       'P': 'present',
       'A': 'absent',

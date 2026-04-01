@@ -776,8 +776,23 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           final l = lectures[index];
           final subject = (l['title'] ?? l['subject'] ?? 'No Subject')
               .toString();
-          final time =
-              '${l['start_time'] ?? '00:00'} - ${l['end_time'] ?? '00:00'}';
+          
+          String formatT(dynamic t) {
+            if (t == null) return '--:--';
+            final s = t.toString();
+            if (s.contains('T')) {
+               final dt = DateTime.tryParse(s);
+               if (dt != null) {
+                  final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+                  final m = dt.minute.toString().padLeft(2, '0');
+                  final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+                  return '$h:$m $ampm';
+               }
+            }
+            return s;
+          }
+
+          final time = '${formatT(l['start_time'])} - ${formatT(l['end_time'])}';
           final teacher = l['teacher_name'] ?? 'TBA';
 
           Color c = AppColors.elitePrimary;
