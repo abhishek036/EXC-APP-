@@ -254,15 +254,68 @@ export class DoubtRepository {
   }
 
   static async findById(id: string, instituteId: string) {
-    return prisma.doubt.findFirst({
-      where: { id, institute_id: instituteId },
-    });
+    try {
+      return await prisma.doubt.findFirst({
+        where: { id, institute_id: instituteId },
+      });
+    } catch (error) {
+      if (!this.isLegacyDoubtSubjectColumnError(error)) throw error;
+
+      const rows = await prisma.$queryRawUnsafe<any[]>(
+        `SELECT id::text,
+                batch_id::text,
+                student_id::text,
+                institute_id::text,
+                assigned_to::text as assigned_to_id,
+                question_text,
+                question_img,
+                answer_text,
+                answer_img,
+                status,
+                created_at,
+                resolved_at
+         FROM doubts
+         WHERE id::text = $1::text
+           AND institute_id::text = $2::text
+         LIMIT 1`,
+        id,
+        instituteId,
+      );
+
+      if (!rows[0]) return null;
+      return this.mapDoubtRow(rows[0]);
+    }
   }
 
   static async update(id: string, instituteId: string, data: Prisma.DoubtUncheckedUpdateInput) {
-    return prisma.doubt.updateMany({
-      where: { id, institute_id: instituteId },
-      data,
-    });
+    try {
+      return await prisma.doubt.updateMany({
+        where: { id, institute_id: instituteId },
+        data,
+      });
+    } catch (error) {
+      if (!this.isLegacyDoubtSubjectColumnError(error)) throw error;
+
+      const normalizedData = data as any;
+      const result = await prisma.$executeRawUnsafe(
+        `UPDATE doubts
+         SET assigned_to = COALESCE($1::uuid, assigned_to),
+             answer_text = COALESCE($2, answer_text),
+             answer_img = COALESCE($3, answer_img),
+             status = COALESCE($4, status),
+             resolved_at = COALESCE($5::timestamptz, resolved_at)
+         WHERE id::text = $6::text
+           AND institute_id::text = $7::text`,
+        normalizedData.assigned_to_id ?? null,
+        normalizedData.answer_text ?? null,
+        normalizedData.answer_img ?? null,
+        normalizedData.status ?? null,
+        normalizedData.resolved_at ?? null,
+        id,
+        instituteId,
+      );
+
+      return { count: Number(result) };
+    }
   }
 }
