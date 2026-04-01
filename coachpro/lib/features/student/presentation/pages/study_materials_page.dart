@@ -25,7 +25,7 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
   final _studentRepo = sl<StudentRepository>();
   late Future<List<_Material>> _materialsFuture;
 
-  final _types = ['Notes', 'Assignments', 'Videos'];
+  final _types = ['Notes', 'Videos'];
   final _subjects = ['Recent', 'Physics', 'Chemistry', 'Mathematics'];
 
   List<Map<String, dynamic>> _batches = [];
@@ -58,7 +58,6 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
 
   Future<List<_Material>> _loadMaterials() async {
     final notes = await _studentRepo.getStudyMaterials(batchId: _selectedBatchId);
-    final assignments = await _studentRepo.getAssignments(batchId: _selectedBatchId);
 
     final noteMaterials = notes
         .map(
@@ -75,22 +74,7 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
         )
         .toList();
 
-    final assignmentMaterials = assignments
-        .map(
-          (assignment) => _Material.fromMap({
-            'title': assignment['title'],
-            'subject': assignment['subject'] ?? 'General',
-            'teacherName': 'Teacher',
-            'meta': assignment['due_date'] != null
-                ? 'Due: ${assignment['due_date'].toString().split('T').first}'
-                : '',
-            'type': 'assignment',
-            'url': assignment['file_url'] ?? assignment['url'],
-          }),
-        )
-        .toList();
-
-    return [...noteMaterials, ...assignmentMaterials];
+    return noteMaterials;
   }
 
   @override
@@ -285,10 +269,8 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                     : _subjects[_selectedSubject].toLowerCase();
 
                 final filtered = materials.where((item) {
-                  final typeMatch = selectedType == 'notes'
+                    final typeMatch = selectedType == 'notes'
                       ? item.type != 'assignment' && item.type != 'video' && item.type != 'link'
-                      : selectedType == 'assignments'
-                      ? item.type == 'assignment'
                       : item.type == 'video' || item.type == 'link';
 
                   final subjectMatch =
@@ -333,8 +315,6 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                 'videoId': material.url,
                 'title': material.title,
               });
-            } else if (material.type == 'assignment') {
-              context.push('/student/assignment-submit');
             }
           },
           child: Container(

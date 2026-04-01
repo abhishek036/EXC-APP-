@@ -140,7 +140,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         return;
       }
       formattedLink = normalized;
-    } else {
+    } else if (_selectedType == 'note') {
       if (_selectedFile == null && _linkCtrl.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -151,6 +151,18 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       }
       if (_selectedFile == null) {
         final rawLink = _linkCtrl.text.trim();
+        final normalized = _normalizeUrl(rawLink);
+        if (normalized == null || !_isValidHttpUrl(normalized)) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Invalid link.')));
+          return;
+        }
+        formattedLink = normalized;
+      }
+    } else {
+      final rawLink = _linkCtrl.text.trim();
+      if (rawLink.isNotEmpty) {
         final normalized = _normalizeUrl(rawLink);
         if (normalized == null || !_isValidHttpUrl(normalized)) {
           ScaffoldMessenger.of(

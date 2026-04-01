@@ -21,16 +21,24 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
   late YoutubePlayerController _controller;
   bool _isPlayerReady = false;
 
+  String _resolveVideoId(String input) {
+    final raw = input.trim();
+    if (raw.isEmpty) return '';
+    final idFromUrl = YoutubePlayer.convertUrlToId(raw);
+    return idFromUrl ?? raw;
+  }
+
   @override
   void initState() {
     super.initState();
+    final videoId = _resolveVideoId(widget.videoId);
     _controller = YoutubePlayerController(
-      initialVideoId: widget.videoId,
+      initialVideoId: videoId,
       flags: const YoutubePlayerFlags(
         autoPlay: true,
         mute: false,
         enableCaption: true,
-        isLive: true,
+        isLive: false,
       ),
     )..addListener(listener);
   }

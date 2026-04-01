@@ -297,17 +297,33 @@ class TeacherRepository {
     String? fileUrl,
     String? description,
   }) async {
-    final response = await _api.dio.post(
-      'content/notes',
-      data: {
-        'title': title,
-        'subject': subject,
-        'file_type': type,
-        'batch_id': batchId,
-        'file_url': fileUrl,
-        'description': description,
-      },
-    );
+    final trimmedSubject = subject.trim();
+    final trimmedFileUrl = fileUrl?.trim();
+
+    final response = type == 'assignment'
+        ? await _api.dio.post(
+            'content/assignments',
+            data: {
+              'title': title,
+              if (trimmedSubject.isNotEmpty) 'subject': trimmedSubject,
+              'batch_id': batchId,
+              if (description != null && description.trim().isNotEmpty)
+                'description': description.trim(),
+              if (trimmedFileUrl != null && trimmedFileUrl.isNotEmpty)
+                'file_url': trimmedFileUrl,
+            },
+          )
+        : await _api.dio.post(
+            'content/notes',
+            data: {
+              'title': title,
+              'subject': trimmedSubject,
+              'file_type': type,
+              'batch_id': batchId,
+              'file_url': trimmedFileUrl,
+              'description': description,
+            },
+          );
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
     }

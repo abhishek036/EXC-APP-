@@ -746,13 +746,7 @@ class _AssignmentsPaneState extends State<_AssignmentsPane> {
         .getAssignments(
           batchId: widget.batchId,
           subject: widget.selectedSubject,
-        )
-        .then((list) {
-          return list.where((item) {
-            final type = (item['file_type'] ?? '').toString().toLowerCase();
-            return type == 'assignment';
-          }).toList();
-        });
+        );
   }
 
   @override

@@ -994,8 +994,15 @@ class AppRouter {
                   GoRoute(
                     path: 'assignment-submit',
                     name: 'assignment-submit',
-                    pageBuilder: (c, s) =>
-                        _page(s, const AssignmentSubmissionPage()),
+                    pageBuilder: (c, s) {
+                      final args = s.extra as Map<String, dynamic>? ?? {};
+                      return _page(
+                        s,
+                        AssignmentSubmissionPage(
+                          initialAssignmentId: args['assignmentId']?.toString(),
+                        ),
+                      );
+                    },
                   ),
                   GoRoute(
                     path: 'notifications',

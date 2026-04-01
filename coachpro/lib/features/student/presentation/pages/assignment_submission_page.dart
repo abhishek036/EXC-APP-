@@ -15,7 +15,9 @@ import '../../../../core/services/cloud_storage_service.dart';
 import '../../data/repositories/student_repository.dart';
 
 class AssignmentSubmissionPage extends StatefulWidget {
-  const AssignmentSubmissionPage({super.key});
+  final String? initialAssignmentId;
+
+  const AssignmentSubmissionPage({super.key, this.initialAssignmentId});
 
   @override
   State<AssignmentSubmissionPage> createState() =>
@@ -57,10 +59,20 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
     });
     try {
       final list = await _studentRepo.getAssignments();
+      final targetId = (widget.initialAssignmentId ?? '').trim();
+      Map<String, dynamic>? selected;
+      if (targetId.isNotEmpty) {
+        for (final item in list) {
+          if ((item['id'] ?? '').toString() == targetId) {
+            selected = item;
+            break;
+          }
+        }
+      }
       if (!mounted) return;
       setState(() {
         _assignments = list;
-        _selectedAssignment = list.isNotEmpty ? list.first : null;
+        _selectedAssignment = selected ?? (list.isNotEmpty ? list.first : null);
         _isLoading = false;
       });
     } catch (e) {
