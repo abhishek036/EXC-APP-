@@ -286,10 +286,12 @@ export class QuizService {
         where: { id: studentProfileId },
         select: { user_id: true, name: true }
       });
-      const teacherUser = await prisma.teacher.findFirst({
-        where: { id: quiz.teacher_id },
-        select: { user_id: true }
-      });
+      const teacherUser = quiz.teacher_id 
+        ? await prisma.teacher.findFirst({
+            where: { id: quiz.teacher_id },
+            select: { user_id: true }
+          })
+        : null;
       if (teacherUser?.user_id && studentUser) {
         await NotificationService.sendNotificationToUser(teacherUser.user_id, {
           title: 'Quiz Submitted',

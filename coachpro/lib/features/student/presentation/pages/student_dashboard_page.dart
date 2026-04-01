@@ -93,17 +93,25 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     });
     try {
       final data = await _studentRepo.getDashboardStats();
-      final count = await _studentRepo.getUnreadCount();
+      int count = 0;
+      try {
+        count = await _studentRepo.getUnreadCount();
+      } catch (e) {
+        debugPrint('Failed to fetch unread count dashboard call: $e');
+      }
+
       setState(() {
         _dashboardData = data;
         _unreadCount = count;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
