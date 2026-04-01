@@ -187,6 +187,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       } else {
         await _repo.deleteNotification(id);
       }
+      _fetchNotifications(reset: true);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -730,7 +731,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           PopupMenuItem(
             value: 'delete_global',
             child: Text(
-              'Recall Broadast',
+              'Recall Broadcast',
               style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.error),
             ),
           ),

@@ -599,16 +599,33 @@ export class TimetableService {
 
               if (targetUserIds.length > 0) {
                   const batchName = (lecture as any).batch?.name || 'Your Batch';
-                  const displayTime = scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const displayTime = new Intl.DateTimeFormat('en-IN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                    timeZone: 'Asia/Kolkata',
+                  }).format(scheduledAt);
+                  const displayDate = new Intl.DateTimeFormat('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    timeZone: 'Asia/Kolkata',
+                  }).format(scheduledAt);
 
                   for (const uid of targetUserIds) {
                       await NotificationService.sendNotificationToUser(uid, {
                           title: 'New Class Scheduled',
-                          body: `A new class "${title}" has been scheduled for your batch "${batchName}" at ${displayTime}.`,
+                      body: `A new class "${title}" has been scheduled for batch "${batchName}" on ${displayDate} at ${displayTime}.`,
                           type: 'schedule',
                           role_target: 'student',
                           institute_id: instituteId,
-                          meta: { route: '/student/timetable', lecture_id: lecture.id, batch_id: batchId },
+                      meta: {
+                        route: '/student/timetable',
+                        lecture_id: lecture.id,
+                        batch_id: batchId,
+                        batch_name: batchName,
+                        scheduled_at: scheduledAt.toISOString(),
+                      },
                       });
                   }
               }
@@ -741,7 +758,13 @@ export class TimetableService {
             type: 'schedule',
             role_target: 'student',
             institute_id: instituteId,
-            meta: { route: '/student/timetable', lecture_id: lectureId, batch_id: nextBatchId },
+            meta: {
+              route: '/student/timetable',
+              lecture_id: lectureId,
+              batch_id: nextBatchId,
+              batch_name: batch?.name || 'your batch',
+              scheduled_at: nextScheduledAt.toISOString(),
+            },
           });
         }
       }
@@ -788,7 +811,12 @@ export class TimetableService {
             type: 'schedule',
             role_target: 'student',
             institute_id: instituteId,
-            meta: { route: '/student/timetable', lecture_id: lectureId, batch_id: lecture.batch_id },
+            meta: {
+              route: '/student/timetable',
+              lecture_id: lectureId,
+              batch_id: lecture.batch_id,
+              batch_name: batch?.name || 'your batch',
+            },
           });
         }
       }

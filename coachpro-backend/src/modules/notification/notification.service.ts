@@ -99,6 +99,13 @@ export class NotificationService {
         meta: payload.meta,
       });
 
+      const { emitInstituteDashboardSync } = await import('../../config/socket');
+      emitInstituteDashboardSync(payload.institute_id, 'notification_created', {
+        user_id: userId,
+        notification_id: notification.id,
+        type: payload.type,
+      });
+
       const userTokens = Array.from(new Set(tokensByUser.get(userId) ?? []));
       if (userTokens.length === 0) {
         await NotificationRepository.createDeliveryLog({
@@ -252,6 +259,13 @@ export class NotificationService {
     const count = await NotificationRepository.getUnreadCount(params.instituteId, params.userId);
     emitUnreadCount(params.instituteId, params.userId, count);
 
+    const { emitInstituteDashboardSync } = await import('../../config/socket');
+    emitInstituteDashboardSync(params.instituteId, 'notification_updated', {
+      user_id: params.userId,
+      notification_id: params.notificationId,
+      read_status: params.readStatus,
+    });
+
     return { success: true };
   }
 
@@ -262,6 +276,12 @@ export class NotificationService {
     const { emitUnreadCount } = await import('../../config/socket');
     emitUnreadCount(params.instituteId, params.userId, 0);
 
+    const { emitInstituteDashboardSync } = await import('../../config/socket');
+    emitInstituteDashboardSync(params.instituteId, 'notification_updated', {
+      user_id: params.userId,
+      read_all: true,
+    });
+
     return { updated: result.count };
   }
 
@@ -270,6 +290,16 @@ export class NotificationService {
     if (result.count === 0) {
       throw new ApiError('Notification not found', 404, 'NOT_FOUND');
     }
+
+    const { emitUnreadCount, emitInstituteDashboardSync } = await import('../../config/socket');
+    const count = await NotificationRepository.getUnreadCount(params.instituteId, params.userId);
+    emitUnreadCount(params.instituteId, params.userId, count);
+    emitInstituteDashboardSync(params.instituteId, 'notification_deleted', {
+      user_id: params.userId,
+      notification_id: params.notificationId,
+      global: false,
+    });
+
     return { deleted: result.count };
   }
 
@@ -291,17 +321,59 @@ export class NotificationService {
 
     const broadcastId = typeof meta.broadcast_id === 'string' ? meta.broadcast_id : '';
     if (broadcastId) {
+      const affectedUserIds = await NotificationRepository.findUserIdsByBroadcastId(params.instituteId, broadcastId);
       const result = await NotificationRepository.removeByBroadcastId(params.instituteId, broadcastId);
+      const { emitUnreadCount, emitInstituteDashboardSync } = await import('../../config/socket');
+      await Promise.all(
+        affectedUserIds.map(async (userId) => {
+          const count = await NotificationRepository.getUnreadCount(params.instituteId, userId);
+          emitUnreadCount(params.instituteId, userId, count);
+        }),
+      );
+      emitInstituteDashboardSync(params.instituteId, 'notification_deleted', {
+        notification_id: params.notificationId,
+        global: true,
+        scope: 'broadcast',
+        affected_users: affectedUserIds.length,
+      });
       return { deleted: result.count, scope: 'broadcast' };
     }
 
     const announcementId = typeof meta.announcement_id === 'string' ? meta.announcement_id : '';
     if (announcementId) {
+      const affectedUserIds = await NotificationRepository.findUserIdsByAnnouncementId(params.instituteId, announcementId);
       const result = await NotificationRepository.removeByAnnouncementId(params.instituteId, announcementId);
+      const { emitUnreadCount, emitInstituteDashboardSync } = await import('../../config/socket');
+      await Promise.all(
+        affectedUserIds.map(async (userId) => {
+          const count = await NotificationRepository.getUnreadCount(params.instituteId, userId);
+          emitUnreadCount(params.instituteId, userId, count);
+        }),
+      );
+      emitInstituteDashboardSync(params.instituteId, 'notification_deleted', {
+        notification_id: params.notificationId,
+        global: true,
+        scope: 'announcement',
+        affected_users: affectedUserIds.length,
+      });
       return { deleted: result.count, scope: 'announcement' };
     }
 
+    const affectedUserIds = await NotificationRepository.findUserIdsByNotificationId(params.instituteId, notification.id);
     const fallback = await NotificationRepository.removeById(params.instituteId, notification.id);
+    const { emitUnreadCount, emitInstituteDashboardSync } = await import('../../config/socket');
+    await Promise.all(
+      affectedUserIds.map(async (userId) => {
+        const count = await NotificationRepository.getUnreadCount(params.instituteId, userId);
+        emitUnreadCount(params.instituteId, userId, count);
+      }),
+    );
+    emitInstituteDashboardSync(params.instituteId, 'notification_deleted', {
+      notification_id: notification.id,
+      global: true,
+      scope: 'single',
+      affected_users: affectedUserIds.length,
+    });
     return { deleted: fallback.count, scope: 'single' };
   }
 

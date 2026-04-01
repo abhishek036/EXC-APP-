@@ -226,15 +226,17 @@ class TeacherRepository {
     String? subject,
     bool notifyParents = true,
   }) async {
+    final payload = <String, dynamic>{
+      'batch_id': batchId,
+      'session_date': sessionDate,
+      'records': records,
+      'notify_parents': notifyParents,
+      if (subject != null && subject.trim().isNotEmpty) 'subject': subject.trim(),
+    };
+
     final response = await _api.dio.post(
       'attendance/mark',
-      data: {
-        'batch_id': batchId,
-        'session_date': sessionDate,
-        'subject': subject,
-        'records': records,
-        'notify_parents': notifyParents,
-      },
+      data: payload,
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});

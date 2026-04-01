@@ -252,10 +252,11 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
       );
 
       if (!mounted) return;
+      await _loadStudents();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Attendance submitted successfully')),
+        const SnackBar(content: Text('Attendance saved and refreshed successfully')),
       );
-      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

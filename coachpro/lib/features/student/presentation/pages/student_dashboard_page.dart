@@ -547,9 +547,12 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
 
         _appBarAction(
           Icons.notifications_none_rounded,
-          () {
+          () async {
             HapticFeedback.mediumImpact();
-            context.go('/student/notifications');
+            await context.push('/student/notifications');
+            if (mounted) {
+              _checkNotifications();
+            }
           },
           isDark,
           badge: _unreadCount > 0,

@@ -251,6 +251,54 @@ export class NotificationRepository {
     });
   }
 
+  static async findUserIdsByBroadcastId(instituteId: string, broadcastId: string): Promise<string[]> {
+    const rows = await prisma.notification.findMany({
+      where: {
+        institute_id: instituteId,
+        meta: {
+          path: ['broadcast_id'],
+          equals: broadcastId,
+        },
+      },
+      select: { user_id: true },
+      distinct: ['user_id'],
+    });
+    return rows
+      .map((row) => row.user_id)
+      .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
+  }
+
+  static async findUserIdsByAnnouncementId(instituteId: string, announcementId: string): Promise<string[]> {
+    const rows = await prisma.notification.findMany({
+      where: {
+        institute_id: instituteId,
+        meta: {
+          path: ['announcement_id'],
+          equals: announcementId,
+        },
+      },
+      select: { user_id: true },
+      distinct: ['user_id'],
+    });
+    return rows
+      .map((row) => row.user_id)
+      .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
+  }
+
+  static async findUserIdsByNotificationId(instituteId: string, notificationId: string): Promise<string[]> {
+    const rows = await prisma.notification.findMany({
+      where: {
+        institute_id: instituteId,
+        id: notificationId,
+      },
+      select: { user_id: true },
+      distinct: ['user_id'],
+    });
+    return rows
+      .map((row) => row.user_id)
+      .filter((userId): userId is string => typeof userId === 'string' && userId.length > 0);
+  }
+
   static async countActiveDeviceTokensByInstitute(instituteId: string) {
     return prisma.userDeviceToken.count({
       where: {

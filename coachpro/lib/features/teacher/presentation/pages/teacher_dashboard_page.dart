@@ -67,7 +67,14 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           reason.contains('batch') ||
           reason.contains('schedule') ||
           reason.contains('lecture') ||
-          reason.contains('attendance');
+          reason.contains('attendance') ||
+          reason.contains('assignment') ||
+          reason.contains('doubt') ||
+          reason.contains('quiz') ||
+          reason.contains('note') ||
+          reason.contains('material') ||
+          reason.contains('content') ||
+          reason.contains('notification');
       if (shouldRefresh && !_isLoadInFlight) {
         _loadDashboard(silent: true);
       }
