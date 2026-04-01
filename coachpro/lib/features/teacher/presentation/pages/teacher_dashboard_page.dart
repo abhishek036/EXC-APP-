@@ -281,6 +281,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         ),
         _appBarAction(Icons.search_rounded, () {
           HapticFeedback.mediumImpact();
+          context.go('/teacher/batches');
         }),
         const SizedBox(width: 8),
         _appBarAction(Icons.notifications_none_rounded, () {

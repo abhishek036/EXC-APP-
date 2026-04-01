@@ -6,6 +6,14 @@ import '../../../../core/di/injection_container.dart';
 class StudentRepository {
   final ApiClient _api = sl<ApiClient>();
 
+  Future<void> _assertStaffNotificationPrivilege() async {
+    final me = await getProfile();
+    final role = (me['role'] ?? '').toString().toLowerCase();
+    if (role != 'admin' && role != 'teacher') {
+      throw Exception('Forbidden: only admin/teacher can send or globally delete notifications');
+    }
+  }
+
   // ── Helper ───────────────────────────────────────────────
   List<Map<String, dynamic>> _extractList(dynamic responseData) {
     final payload = responseData is Map<String, dynamic>
@@ -381,6 +389,7 @@ class StudentRepository {
     required String type,
     required String roleTarget,
   }) async {
+    await _assertStaffNotificationPrivilege();
     final response = await _api.dio.post(
       'notifications/send',
       data: {
@@ -398,6 +407,7 @@ class StudentRepository {
   }
 
   Future<void> deleteNotificationGlobally(String notificationId) async {
+    await _assertStaffNotificationPrivilege();
     final response = await _api.dio.delete(
       'notifications/$notificationId/global',
     );

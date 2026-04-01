@@ -93,7 +93,13 @@ export class QuizController {
 
   static async updateQuiz(req: Request, res: Response, next: NextFunction) {
     try {
-      const quiz = await QuizService.updateQuiz(req.params.id, req.instituteId!, req.body);
+      const quiz = await QuizService.updateQuiz(
+        req.params.id,
+        req.instituteId!,
+        req.body,
+        req.user!.role,
+        req.user!.userId,
+      );
       return sendResponse({ res, data: quiz, message: 'Quiz updated successfully' });
     } catch (error) {
       next(error);
@@ -102,7 +108,7 @@ export class QuizController {
 
   static async publishQuiz(req: Request, res: Response, next: NextFunction) {
     try {
-      await QuizService.publishQuiz(req.params.id, req.instituteId!);
+      await QuizService.publishQuiz(req.params.id, req.instituteId!, req.user!.role, req.user!.userId);
       return sendResponse({ res, data: null, message: 'Quiz published successfully' });
     } catch (error) {
       next(error);
@@ -111,7 +117,7 @@ export class QuizController {
 
   static async deleteQuiz(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await QuizService.deleteQuiz(req.params.id, req.instituteId!);
+      const data = await QuizService.deleteQuiz(req.params.id, req.instituteId!, req.user!.role, req.user!.userId);
       return sendResponse({ res, data, message: 'Quiz deleted successfully' });
     } catch (error) {
       next(error);

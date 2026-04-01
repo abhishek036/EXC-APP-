@@ -3,9 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../../core/utils/role_prefix.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
+import '../../../parent/data/repositories/parent_repository.dart';
+import '../../../student/data/repositories/student_repository.dart';
 
 class FeePaymentPage extends StatefulWidget {
   const FeePaymentPage({super.key});
@@ -16,6 +20,82 @@ class FeePaymentPage extends StatefulWidget {
 
 class _FeePaymentPageState extends State<FeePaymentPage> {
   String _selectedMethod = 'UPI';
+  final _studentRepo = sl<StudentRepository>();
+  final _parentRepo = sl<ParentRepository>();
+
+  bool _loading = true;
+  String? _error;
+  String _invoiceLabel = 'CURRENT DUE';
+  double _amountDue = 0;
+  String _dueText = 'DUE DATE UNAVAILABLE';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFeeData();
+  }
+
+  Future<void> _loadFeeData() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final rolePrefix = context.rolePrefix;
+      final records = rolePrefix == '/parent'
+          ? await _parentRepo.getPaymentHistory()
+          : await _studentRepo.getFeeHistory();
+
+      final pending = records.where((r) {
+        final status = (r['status'] ?? '').toString().toLowerCase();
+        return status == 'pending' || status == 'overdue';
+      }).toList();
+
+      pending.sort((a, b) {
+        final aDue = DateTime.tryParse((a['due_date'] ?? '').toString());
+        final bDue = DateTime.tryParse((b['due_date'] ?? '').toString());
+        if (aDue == null && bDue == null) return 0;
+        if (aDue == null) return 1;
+        if (bDue == null) return -1;
+        return aDue.compareTo(bDue);
+      });
+
+      final target = pending.isNotEmpty ? pending.first : (records.isNotEmpty ? records.first : <String, dynamic>{});
+      final amount = _toDouble(target['final_amount'] ?? target['amount_due'] ?? target['amount'] ?? 0);
+
+      final month = (target['month'] as num?)?.toInt();
+      final year = (target['year'] as num?)?.toInt();
+      final monthNames = const ['', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      final label = (month != null && month >= 1 && month <= 12 && year != null)
+          ? '${monthNames[month]} $year'
+          : 'CURRENT DUE';
+
+      final dueDt = DateTime.tryParse((target['due_date'] ?? '').toString());
+      final dueStr = dueDt == null
+          ? 'DUE DATE UNAVAILABLE'
+          : 'DUE BY ${dueDt.day.toString().padLeft(2, '0')} ${monthNames[dueDt.month]}, ${dueDt.year}';
+
+      if (!mounted) return;
+      setState(() {
+        _invoiceLabel = label;
+        _amountDue = amount;
+        _dueText = dueStr;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Unable to load fee details';
+        _loading = false;
+      });
+    }
+  }
+
+  double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +153,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'INSTALLMENT #2',
+                                  _invoiceLabel,
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 11,
                                     color: CT.elevated(context),
@@ -90,7 +170,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              '₹12,500.00',
+                              '₹${_amountDue.toStringAsFixed(2)}',
                               style: GoogleFonts.sora(
                                 fontSize: 36,
                                 color: CT.elevated(context),
@@ -117,7 +197,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'DUE BY 15 AUG, 2026',
+                                    _dueText,
                                     style: GoogleFonts.sora(
                                       fontSize: 11,
                                       color: CT.elevated(context),
@@ -135,6 +215,24 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                       .slideY(begin: -0.05, end: 0),
 
                   const SizedBox(height: 40),
+
+                  if (_loading)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 16),
+                      child: LinearProgressIndicator(),
+                    ),
+                  if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        _error!,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: CT.error(context),
+                        ),
+                      ),
+                    ),
 
                   Text(
                     'SELECT GATEWAY',
@@ -279,7 +377,16 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
             ),
             child: SafeArea(
               child: CPPressable(
-                onTap: () => HapticFeedback.heavyImpact(),
+                onTap: () {
+                  HapticFeedback.heavyImpact();
+                  final rolePrefix = context.rolePrefix;
+                  final action = rolePrefix == '/admin'
+                      ? 'Proceed with admin verification workflow.'
+                      : 'Payment requests are admin-verified. Please contact admin after payment.';
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(action)),
+                  );
+                },
                 child: Container(
                   height: 60,
                   decoration: BoxDecoration(
@@ -301,7 +408,9 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          'PAY ₹12,500 SECURELY',
+                          _amountDue > 0
+                              ? 'PAY ₹${_amountDue.toStringAsFixed(0)} SECURELY'
+                              : 'VERIFY PAYMENT STATUS',
                           style: GoogleFonts.sora(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,

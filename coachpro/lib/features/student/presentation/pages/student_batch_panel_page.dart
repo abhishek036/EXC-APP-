@@ -911,10 +911,9 @@ class _QuizPaneState extends State<_QuizPane> {
                   '${q['questions_count'] ?? q['_count']?['questions'] ?? 0} Questions • ${q['time_limit_min'] ?? 0} mins',
               meta: 'START',
               onTap: () {
-                context.push(
-                  '/student/quiz-taking',
-                  extra: {'quizId': q['id']?.toString() ?? ''},
-                );
+                final quizId = q['id']?.toString() ?? '';
+                if (quizId.isEmpty) return;
+                context.push('/student/quiz/$quizId');
               },
             );
           },
@@ -1364,8 +1363,6 @@ class _ResultsTabState extends State<_ResultsTab> {
                     meta: isPassed ? grade : 'Needs Improvement',
                     onTap: () {},
                   );
-                },
-              );
             },
           ),
         ),

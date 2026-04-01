@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { TimetableService } from './timetable.service';
 import { sendResponse } from '../../utils/response';
 import { emitBatchSync } from '../../config/socket';
+import { ApiError } from '../../middleware/error.middleware';
 
 export class TimetableController {
   private service: TimetableService;
@@ -10,15 +11,163 @@ export class TimetableController {
     this.service = new TimetableService();
   }
 
-  // schedule = async (req: Request, res: Response, next: NextFunction) => {
-  //   try {
-  //     const data = await this.service.scheduleLecture(req.instituteId!, req.body);
-  //     return sendResponse({ res, data, message: 'Lecture scheduled successfully' });
-  //   } catch (error) { next(error); }
-  // };
+  private async assertCanAccessBatch(batchId: string, req: Request) {
+    const role = (req.user?.role || '').toLowerCase();
+    if (role === 'admin') return;
+
+    const { prisma } = await import('../../server');
+
+    if (role === 'teacher') {
+      const teacher = await prisma.teacher.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! },
+        select: { id: true },
+      });
+      if (!teacher) {
+        throw new ApiError('Teacher profile not found', 404, 'NOT_FOUND');
+      }
+      const batch = await prisma.batch.findFirst({
+        where: { id: batchId, institute_id: req.instituteId!, teacher_id: teacher.id, is_active: true },
+        select: { id: true },
+      });
+      if (!batch) {
+        throw new ApiError('You do not have access to this batch timetable', 403, 'FORBIDDEN');
+      }
+      return;
+    }
+
+    if (role === 'student') {
+      const student = await prisma.student.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! },
+        select: { id: true },
+      });
+      if (!student) {
+        throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+      }
+      const membership = await prisma.studentBatch.findFirst({
+        where: { student_id: student.id, batch_id: batchId, is_active: true },
+        select: { id: true },
+      });
+      if (!membership) {
+        throw new ApiError('You do not have access to this batch timetable', 403, 'FORBIDDEN');
+      }
+      return;
+    }
+
+    if (role === 'parent') {
+      const parent = await prisma.parent.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! },
+        select: { id: true },
+      });
+      if (!parent) {
+        throw new ApiError('Parent profile not found', 404, 'NOT_FOUND');
+      }
+      const membership = await prisma.studentBatch.findFirst({
+        where: {
+          batch_id: batchId,
+          is_active: true,
+          student: {
+            parent_students: {
+              some: { parent_id: parent.id },
+            },
+          },
+        },
+        select: { id: true },
+      });
+      if (!membership) {
+        throw new ApiError('You do not have access to this batch timetable', 403, 'FORBIDDEN');
+      }
+      return;
+    }
+
+    throw new ApiError('You do not have access to this batch timetable', 403, 'FORBIDDEN');
+  }
+
+  private async assertCanAccessTeacher(teacherId: string, req: Request) {
+    const role = (req.user?.role || '').toLowerCase();
+    if (role === 'admin') return;
+
+    const { prisma } = await import('../../server');
+
+    if (role === 'teacher') {
+      const teacher = await prisma.teacher.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! },
+        select: { id: true },
+      });
+      if (!teacher || teacher.id !== teacherId) {
+        throw new ApiError('You do not have access to this teacher timetable', 403, 'FORBIDDEN');
+      }
+      return;
+    }
+
+    if (role === 'student') {
+      const student = await prisma.student.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! },
+        select: { id: true },
+      });
+      if (!student) {
+        throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+      }
+      const hasBatch = await prisma.studentBatch.findFirst({
+        where: {
+          student_id: student.id,
+          is_active: true,
+          batch: {
+            teacher_id: teacherId,
+            institute_id: req.instituteId!,
+            is_active: true,
+          },
+        },
+        select: { id: true },
+      });
+      if (!hasBatch) {
+        throw new ApiError('You do not have access to this teacher timetable', 403, 'FORBIDDEN');
+      }
+      return;
+    }
+
+    if (role === 'parent') {
+      const parent = await prisma.parent.findFirst({
+        where: { user_id: req.user!.userId, institute_id: req.instituteId! },
+        select: { id: true },
+      });
+      if (!parent) {
+        throw new ApiError('Parent profile not found', 404, 'NOT_FOUND');
+      }
+      const hasBatch = await prisma.studentBatch.findFirst({
+        where: {
+          is_active: true,
+          batch: {
+            teacher_id: teacherId,
+            institute_id: req.instituteId!,
+            is_active: true,
+          },
+          student: {
+            parent_students: {
+              some: { parent_id: parent.id },
+            },
+          },
+        },
+        select: { id: true },
+      });
+      if (!hasBatch) {
+        throw new ApiError('You do not have access to this teacher timetable', 403, 'FORBIDDEN');
+      }
+      return;
+    }
+
+    throw new ApiError('You do not have access to this teacher timetable', 403, 'FORBIDDEN');
+  }
+
+  schedule = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.service.scheduleLecture(req.instituteId!, req.body);
+      return sendResponse({ res, data, message: 'Lecture scheduled successfully' });
+    } catch (error) { next(error); }
+  };
 
   getByBatch = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await this.assertCanAccessBatch(req.params.batchId, req);
       const data = await this.service.getBatchTimetable(req.params.batchId, req.instituteId!);
       return sendResponse({ res, data, message: 'Batch timetable fetched' });
     } catch (error) {
@@ -35,6 +184,7 @@ export class TimetableController {
 
   getByTeacher = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await this.assertCanAccessTeacher(req.params.teacherId, req);
       const data = await this.service.getTeacherTimetable(req.params.teacherId, req.instituteId!);
       return sendResponse({ res, data, message: 'Teacher timetable fetched' });
     } catch (error) {

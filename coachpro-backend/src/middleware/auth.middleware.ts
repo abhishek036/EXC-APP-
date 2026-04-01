@@ -78,11 +78,6 @@ export const requireRole = (rolesOrFirst: string | string[], ...rest: string[]) 
 
         const userRole = req.user.role.trim().toLowerCase();
         
-        // Let SUPER_USER bypass role restrictions or check if specifically allowed
-        if (userRole === 'super_user' || userRole === 'super user') {
-            return next();
-        }
-
         if (!allowedRoles.includes(userRole)) {
             return next(new ApiError('You do not have permission to perform this action', 403, 'FORBIDDEN'));
         }

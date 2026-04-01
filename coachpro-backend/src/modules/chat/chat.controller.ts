@@ -24,7 +24,14 @@ export class ChatController {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       const before = req.query.before as string | undefined;
-      const history = await ChatService.getHistory(req.params.batchId, req.instituteId!, limit, before);
+      const history = await ChatService.getHistory(
+        req.params.batchId,
+        req.instituteId!,
+        req.user!.userId,
+        req.user!.role,
+        limit,
+        before,
+      );
       return sendResponse({ res, data: history, message: 'Chat history fetched' });
     } catch (error) {
       next(error);
@@ -55,6 +62,11 @@ export class ChatController {
           where: { user_id: req.user!.userId, institute_id: req.instituteId! }
         });
         senderName = teacher?.name || 'Teacher';
+      } else if (role === 'parent') {
+        const parent = await prisma.parent.findFirst({
+          where: { user_id: req.user!.userId, institute_id: req.instituteId! }
+        });
+        senderName = parent?.name || 'Parent';
       } else {
         senderName = 'Admin';
       }

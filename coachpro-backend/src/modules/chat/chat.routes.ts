@@ -9,11 +9,11 @@ router.use(authenticateJWT);
 router.use(tenantMiddleware);
 
 // Chat rooms (batch-based conversations)
-router.get('/rooms', ChatController.getRooms);
+router.get('/rooms', requireRole('admin', 'teacher', 'student', 'parent'), ChatController.getRooms);
 
 // Messages within a batch chat room
-router.get('/batch/:batchId/history', requireRole('admin', 'teacher', 'student'), ChatController.getHistory);
-router.post('/batch/:batchId/messages', requireRole('admin', 'teacher', 'student'), ChatController.sendMessage);
+router.get('/batch/:batchId/history', requireRole('admin', 'teacher', 'student', 'parent'), ChatController.getHistory);
+router.post('/batch/:batchId/messages', requireRole('admin', 'teacher', 'student', 'parent'), ChatController.sendMessage);
 
 // Message management
 router.delete('/message/:id', requireRole('admin', 'teacher'), ChatController.deleteMessage);

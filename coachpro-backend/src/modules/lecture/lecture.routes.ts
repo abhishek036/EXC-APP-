@@ -10,7 +10,7 @@ const router = Router();
 router.use(authenticateJWT);
 router.use(tenantMiddleware);
 
-router.get('/batch/:batchId', requireRole('admin', 'teacher', 'student'), LectureController.listLectures);
+router.get('/batch/:batchId', requireRole('admin', 'teacher', 'student', 'parent'), LectureController.listLectures);
 router.post('/', requireRole('admin', 'teacher'), validate(createLectureSchema), LectureController.createLecture);
 router.put('/:id', requireRole('admin', 'teacher'), validate(updateLectureSchema), LectureController.updateLecture);
 router.delete('/:id', requireRole('admin', 'teacher'), LectureController.deleteLecture);

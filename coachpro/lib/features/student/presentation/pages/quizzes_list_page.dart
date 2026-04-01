@@ -127,6 +127,9 @@ class _QuizzesListPageState extends State<QuizzesListPage> {
     final batchName = quiz['batch']?['name'] ?? 'All Batches';
     final timeLimit = quiz['time_limit_min'] ?? 0;
     final questionCount = quiz['_count']?['questions'] ?? 0;
+    final marksPerQuestion =
+      (quiz['marks_per_question'] ?? quiz['marksPerQuestion'] ?? 1)
+        .toString();
 
     return CPPressable(
           onTap: () => _confirmStart(quiz),
@@ -197,7 +200,7 @@ class _QuizzesListPageState extends State<QuizzesListPage> {
                   children: [
                     _infoChip(Icons.help_outline, '$questionCount Qs'),
                     const SizedBox(width: 12),
-                    _infoChip(Icons.stars_outlined, '4.0 Marks/Q'),
+                    _infoChip(Icons.stars_outlined, '$marksPerQuestion Marks/Q'),
                     const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(

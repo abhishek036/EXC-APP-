@@ -43,13 +43,23 @@ export class AttendanceController {
     try {
       const { studentId } = req.params;
       const { userId, role } = req.user!;
+      const { prisma } = await import('../../server');
 
       // Security: Students can only view their own attendance
       if (role === 'student') {
-        const { prisma } = await import('../../server');
         const student = await prisma.student.findFirst({ where: { user_id: userId } });
         if (!student || student.id !== studentId) {
           throw new ApiError('Unauthorized: You can only view your own attendance records', 403, 'FORBIDDEN');
+        }
+      }
+
+      if (role === 'parent') {
+        const parent = await prisma.parent.findFirst({
+          where: { user_id: userId, institute_id: req.instituteId! },
+          include: { parent_students: { where: { student_id: studentId } } },
+        });
+        if (!parent || parent.parent_students.length === 0) {
+          throw new ApiError('Unauthorized: You can only view your child attendance records', 403, 'FORBIDDEN');
         }
       }
 
@@ -62,6 +72,27 @@ export class AttendanceController {
 
   reportIssue = async (req: Request, res: Response, next: NextFunction) => {
     try {
+       const { studentId } = req.params;
+       const { userId, role } = req.user!;
+       const { prisma } = await import('../../server');
+
+       if (role === 'student') {
+         const student = await prisma.student.findFirst({ where: { user_id: userId, institute_id: req.instituteId! } });
+         if (!student || student.id !== studentId) {
+           throw new ApiError('Unauthorized: You can report issues only for your own attendance records', 403, 'FORBIDDEN');
+         }
+       }
+
+       if (role === 'parent') {
+         const parent = await prisma.parent.findFirst({
+           where: { user_id: userId, institute_id: req.instituteId! },
+           include: { parent_students: { where: { student_id: studentId } } },
+         });
+         if (!parent || parent.parent_students.length === 0) {
+           throw new ApiError('Unauthorized: You can report issues only for your child records', 403, 'FORBIDDEN');
+         }
+       }
+
        // Typically a student or parent hitting this 
        // For now just returning success as this is often sent to an admin mailbox or doubt system
        return sendResponse({ res, data: null, message: 'Attendance issue reported successfully to Admin' });

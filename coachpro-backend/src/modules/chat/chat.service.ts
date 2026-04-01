@@ -1,7 +1,12 @@
 import { ChatRepository } from './chat.repository';
+import { ApiError } from '../../middleware/error.middleware';
 
 export class ChatService {
-  static async getHistory(batchId: string, instituteId: string, limit: number = 50, before?: string) {
+  static async getHistory(batchId: string, instituteId: string, userId: string, role: string, limit: number = 50, before?: string) {
+    const canAccess = await ChatRepository.canAccessBatch(userId, role, instituteId, batchId);
+    if (!canAccess) {
+      throw new ApiError('You do not have access to this chat room', 403, 'FORBIDDEN');
+    }
     return ChatRepository.getHistory(batchId, instituteId, limit, before);
   }
 
@@ -14,6 +19,10 @@ export class ChatService {
     message?: string;
     imageUrl?: string;
   }) {
+    const canAccess = await ChatRepository.canAccessBatch(data.senderId, data.senderRole, data.instituteId, data.batchId);
+    if (!canAccess) {
+      throw new ApiError('You do not have access to this chat room', 403, 'FORBIDDEN');
+    }
     return ChatRepository.sendMessage(data);
   }
 
@@ -22,10 +31,13 @@ export class ChatService {
   }
 
   static async getRooms(userId: string, role: string, instituteId: string) {
-    if (role === 'student') {
+    const normalizedRole = (role || '').toLowerCase();
+    if (normalizedRole === 'student') {
       return ChatRepository.getRoomsForStudent(userId, instituteId);
-    } else if (role === 'teacher') {
+    } else if (normalizedRole === 'teacher') {
       return ChatRepository.getRoomsForTeacher(userId, instituteId);
+    } else if (normalizedRole === 'parent') {
+      return ChatRepository.getRoomsForParent(userId, instituteId);
     } else {
       return ChatRepository.getRoomsForAdmin(instituteId);
     }

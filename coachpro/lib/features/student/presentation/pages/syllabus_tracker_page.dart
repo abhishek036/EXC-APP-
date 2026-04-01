@@ -158,7 +158,7 @@ class _SyllabusTrackerPageState extends State<SyllabusTrackerPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'You are on track to complete the syllabus by Nov 2026.',
+                          'You are on track to complete the syllabus this academic term.',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             color: Colors.white70,

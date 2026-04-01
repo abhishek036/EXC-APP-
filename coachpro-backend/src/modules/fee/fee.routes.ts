@@ -18,8 +18,7 @@ router.get('/structure/:batchId', requireRole('admin', 'teacher'), controller.ge
 router.post('/generate', requireRole('admin'), validate(generateMonthlyFeesSchema), controller.generateMonthly);
 router.get('/records', requireRole('admin', 'student', 'parent'), controller.getRecords);
 
-// Payment Logging
-// Allow students and parents to record payments (not only admin)
-router.post('/pay', requireRole(['admin','student','parent']), validate(recordFeePaymentSchema), controller.recordPayment);
+// Payment Logging (admin-verified)
+router.post('/pay', requireRole('admin'), validate(recordFeePaymentSchema), controller.recordPayment);
 
 export default router;

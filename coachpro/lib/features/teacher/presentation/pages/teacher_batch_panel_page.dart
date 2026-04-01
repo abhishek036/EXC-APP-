@@ -1110,7 +1110,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                           return;
                         }
                         if (value == 'view_attendance') {
-                          _showActionSnack('Attendance details opening soon');
+                          context.push('/teacher/attendance');
                           return;
                         }
                         if (value == 'mark_weak') {
@@ -1134,9 +1134,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                           return;
                         }
                         if (value == 'message_parent') {
-                          _showActionSnack(
-                            'Parent communication shortcut coming soon',
-                          );
+                          context.push('/teacher/chat-list');
                         }
                       },
                       itemBuilder: (ctx) {

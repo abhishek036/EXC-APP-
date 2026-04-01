@@ -1,6 +1,70 @@
 import { prisma } from '../../server';
 
 export class ChatRepository {
+  static async canAccessBatch(userId: string, role: string, instituteId: string, batchId: string): Promise<boolean> {
+    const normalizedRole = (role || '').toLowerCase();
+
+    if (normalizedRole === 'admin') {
+      const batch = await prisma.batch.findFirst({
+        where: { id: batchId, institute_id: instituteId, is_active: true },
+        select: { id: true }
+      });
+      return Boolean(batch);
+    }
+
+    if (normalizedRole === 'teacher') {
+      const teacher = await prisma.teacher.findFirst({
+        where: { user_id: userId, institute_id: instituteId },
+        select: { id: true }
+      });
+      if (!teacher) return false;
+
+      const batch = await prisma.batch.findFirst({
+        where: { id: batchId, institute_id: instituteId, teacher_id: teacher.id, is_active: true },
+        select: { id: true }
+      });
+      return Boolean(batch);
+    }
+
+    if (normalizedRole === 'student') {
+      const student = await prisma.student.findFirst({
+        where: { user_id: userId, institute_id: instituteId },
+        select: { id: true }
+      });
+      if (!student) return false;
+
+      const membership = await prisma.studentBatch.findFirst({
+        where: { student_id: student.id, batch_id: batchId, is_active: true },
+        select: { id: true }
+      });
+      return Boolean(membership);
+    }
+
+    if (normalizedRole === 'parent') {
+      const parent = await prisma.parent.findFirst({
+        where: { user_id: userId, institute_id: instituteId },
+        select: { id: true }
+      });
+      if (!parent) return false;
+
+      const membership = await prisma.studentBatch.findFirst({
+        where: {
+          batch_id: batchId,
+          is_active: true,
+          student: {
+            parent_students: {
+              some: { parent_id: parent.id },
+            },
+          },
+        },
+        select: { id: true }
+      });
+      return Boolean(membership);
+    }
+
+    return false;
+  }
+
   static async getHistory(batchId: string, instituteId: string, limit: number = 50, before?: string) {
     return prisma.chatMessage.findMany({
       where: {
@@ -121,5 +185,48 @@ export class ChatRepository {
       student_count: b._count.student_batches,
       type: 'batch',
     }));
+  }
+
+  static async getRoomsForParent(userId: string, instituteId: string) {
+    const parent = await prisma.parent.findFirst({
+      where: { user_id: userId, institute_id: instituteId }
+    });
+    if (!parent) return [];
+
+    const batches = await prisma.studentBatch.findMany({
+      where: {
+        is_active: true,
+        student: {
+          parent_students: {
+            some: { parent_id: parent.id }
+          }
+        }
+      },
+      include: {
+        batch: {
+          select: {
+            id: true,
+            name: true,
+            subject: true,
+            _count: { select: { chat_messages: true } }
+          }
+        }
+      }
+    });
+
+    const unique = new Map<string, { id: string; name: string; subject: string | null; message_count: number; type: string }>();
+    for (const sb of batches) {
+      if (!unique.has(sb.batch.id)) {
+        unique.set(sb.batch.id, {
+          id: sb.batch.id,
+          name: sb.batch.name,
+          subject: sb.batch.subject,
+          message_count: sb.batch._count.chat_messages,
+          type: 'batch',
+        });
+      }
+    }
+
+    return Array.from(unique.values());
   }
 }

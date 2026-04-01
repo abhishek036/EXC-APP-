@@ -4,6 +4,13 @@ import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
 
 export class QuizService {
+  private static async ensureTeacherOwnsQuiz(userId: string, instituteId: string, quizTeacherId: string | null | undefined) {
+    const teacherId = await QuizService.resolveTeacherProfileId(userId, instituteId);
+    if (!quizTeacherId || quizTeacherId !== teacherId) {
+      throw new ApiError('You can only manage quizzes created by you', 403, 'FORBIDDEN');
+    }
+  }
+
   private static async resolveTeacherProfileId(userId: string, instituteId: string): Promise<string> {
     const teacher = await prisma.teacher.findFirst({
       where: { user_id: userId, institute_id: instituteId, is_active: true },
@@ -106,10 +113,13 @@ export class QuizService {
     return quiz;
   }
 
-  static async updateQuiz(id: string, instituteId: string, data: any) {
+  static async updateQuiz(id: string, instituteId: string, data: any, requesterRole: string, requesterUserId: string) {
     const quiz = await QuizRepository.findQuizById(id, instituteId);
     if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
     if (quiz.is_published) throw new ApiError('Cannot edit a published quiz', 400, 'BAD_REQUEST');
+    if ((requesterRole || '').toLowerCase() === 'teacher') {
+      await QuizService.ensureTeacherOwnsQuiz(requesterUserId, instituteId, quiz.teacher_id);
+    }
 
     const normalizedData: Prisma.QuizUncheckedUpdateInput = {
       ...(data.batch_id ? { batch_id: data.batch_id } : {}),
@@ -148,10 +158,13 @@ export class QuizService {
     return QuizRepository.updateQuizWithQuestions(id, instituteId, normalizedData, formattedQuestions);
   }
 
-  static async publishQuiz(id: string, instituteId: string) {
+  static async publishQuiz(id: string, instituteId: string, requesterRole: string, requesterUserId: string) {
     const quiz = await QuizRepository.findQuizById(id, instituteId);
     if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
     if (quiz.is_published) throw new ApiError('Quiz is already published', 400, 'BAD_REQUEST');
+    if ((requesterRole || '').toLowerCase() === 'teacher') {
+      await QuizService.ensureTeacherOwnsQuiz(requesterUserId, instituteId, quiz.teacher_id);
+    }
 
     const result = await QuizRepository.publishQuiz(id, instituteId);
 
@@ -336,9 +349,12 @@ export class QuizService {
     };
   }
 
-  static async deleteQuiz(id: string, instituteId: string) {
+  static async deleteQuiz(id: string, instituteId: string, requesterRole: string, requesterUserId: string) {
     const quiz = await QuizRepository.findQuizById(id, instituteId);
     if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
+    if ((requesterRole || '').toLowerCase() === 'teacher') {
+      await QuizService.ensureTeacherOwnsQuiz(requesterUserId, instituteId, quiz.teacher_id);
+    }
 
     await QuizRepository.deleteQuiz(id, instituteId);
     return { id };

@@ -16,7 +16,7 @@ router.post('/mark', requireRole('admin', 'teacher'), validate(markAttendanceSch
 router.get('/batch/:batchId', requireRole('admin', 'teacher'), controller.getBatch);
 
 // Any role checking a specific student
-router.get('/student/:studentId', controller.getStudent);
+router.get('/student/:studentId', requireRole('admin', 'teacher', 'student', 'parent'), controller.getStudent);
 router.post('/student/:studentId/report-issue', requireRole('student', 'parent'), validate(reportIssueSchema), controller.reportIssue);
 
 export default router;
