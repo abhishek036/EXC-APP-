@@ -618,6 +618,68 @@ export class TimetableService {
       }, 0);
   }
 
+  async scheduleLecture(
+    instituteId: string,
+    data: {
+      batchId: string;
+      teacherId: string;
+      title?: string;
+      subject?: string;
+      scheduledAt: string;
+      duration?: number;
+      room?: string;
+      link?: string;
+      dates?: string[];
+    },
+  ) {
+    const teacher = await prisma.teacher.findFirst({
+      where: { id: data.teacherId, institute_id: instituteId, is_active: true },
+      select: { id: true },
+    });
+    if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
+
+    const batch = await prisma.batch.findFirst({
+      where: { id: data.batchId, institute_id: instituteId, is_active: true },
+      select: { id: true, name: true, subject: true },
+    });
+    if (!batch) throw new ApiError('Batch not found', 404, 'NOT_FOUND');
+
+    const dates = Array.isArray(data.dates) && data.dates.length > 0 ? data.dates : [data.scheduledAt];
+    const duration = data.duration && data.duration > 0 ? data.duration : 60;
+    const createdLectures: any[] = [];
+
+    for (const dateStr of dates) {
+      const scheduledAt = new Date(dateStr);
+      if (isNaN(scheduledAt.getTime())) continue;
+
+      await this.checkTeacherLectureConflict(instituteId, teacher.id, scheduledAt, duration);
+
+      const lecture = await this.createLectureRaw(
+        instituteId,
+        batch.id,
+        teacher.id,
+        data.title || data.subject || batch.name,
+        scheduledAt,
+        duration,
+        data.subject || batch.subject || undefined,
+        data.link,
+        data.room,
+      );
+
+      createdLectures.push(lecture);
+      this.notifyNewLecture(
+        lecture,
+        null,
+        scheduledAt,
+        instituteId,
+        batch.id,
+        data.title || data.subject || batch.name,
+      );
+    }
+
+    return createdLectures.length > 0 ? createdLectures[0] : null;
+  }
+
   async updateTeacherScheduleByUser(
     userId: string,
     instituteId: string,
