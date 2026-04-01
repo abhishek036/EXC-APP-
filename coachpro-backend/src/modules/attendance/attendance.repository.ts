@@ -95,6 +95,85 @@ export class AttendanceRepository {
         return enriched;
     }
 
+    private async markAttendanceLegacy(
+        tx: Prisma.TransactionClient,
+        instituteId: string,
+        actorUserId: string,
+        teacherProfileId: string | null,
+        data: MarkAttendanceInput,
+    ) {
+        const sessionDate = new Date(data.session_date);
+        const existingRows = await tx.$queryRawUnsafe<any[]>(
+            `SELECT id::text
+             FROM attendance_sessions
+             WHERE institute_id::text = $1::text
+               AND batch_id::text = $2::text
+               AND session_date = $3::date
+             ORDER BY submitted_at DESC NULLS LAST, id DESC
+             LIMIT 1`,
+            instituteId,
+            data.batch_id,
+            sessionDate,
+        );
+
+        let sessionId: string;
+        if (existingRows.length > 0) {
+            sessionId = existingRows[0].id;
+            await tx.$executeRawUnsafe(
+                `UPDATE attendance_sessions
+                 SET submitted_at = NOW(),
+                     teacher_id = COALESCE($1::uuid, teacher_id)
+                 WHERE id::text = $2::text`,
+                teacherProfileId,
+                sessionId,
+            );
+        } else {
+            const insertedRows = await tx.$queryRawUnsafe<any[]>(
+                `INSERT INTO attendance_sessions (institute_id, batch_id, session_date, submitted_at, teacher_id)
+                 VALUES ($1::uuid, $2::uuid, $3::date, NOW(), $4::uuid)
+                 RETURNING id::text`,
+                instituteId,
+                data.batch_id,
+                sessionDate,
+                teacherProfileId,
+            );
+            sessionId = insertedRows[0].id;
+        }
+
+        const upsertPromises = data.records.map((record) =>
+            tx.attendanceRecord.upsert({
+                where: {
+                    session_id_student_id: {
+                        session_id: sessionId,
+                        student_id: record.student_id,
+                    },
+                },
+                update: {
+                    status: record.status,
+                    correction_note: record.note,
+                    corrected_by_id: actorUserId,
+                },
+                create: {
+                    institute_id: instituteId,
+                    session_id: sessionId,
+                    student_id: record.student_id,
+                    status: record.status,
+                    correction_note: record.note,
+                },
+            }),
+        );
+
+        await Promise.all(upsertPromises);
+
+        return {
+            id: sessionId,
+            batch_id: data.batch_id,
+            institute_id: instituteId,
+            session_date: sessionDate,
+            subject: null,
+        };
+    }
+
     async markAttendance(
         instituteId: string,
         actorUserId: string,
@@ -102,59 +181,59 @@ export class AttendanceRepository {
         data: MarkAttendanceInput,
     ) {
      return prisma.$transaction(async (tx) => {
-         // Find or create session
-         const sessionDate = new Date(data.session_date);
-         
-         const session = await tx.attendanceSession.upsert({
-             where: {
-                 batch_id_session_date_subject: {
-                     batch_id: data.batch_id,
-                     session_date: sessionDate,
-                     subject: data.subject || null as any
-                 }
-             },
-             update: {
-                 submitted_at: new Date(),
-                 ...(teacherProfileId ? { teacher_id: teacherProfileId } : {}),
-             },
-             create: {
-                 institute_id: instituteId,
-                 batch_id: data.batch_id,
-                 session_date: sessionDate,
-                 subject: data.subject || null,
-                 submitted_at: new Date(),
-                 ...(teacherProfileId ? { teacher_id: teacherProfileId } : {}),
-             }
-         });
-
-         // Bulk Insert/Update Records
-         // We do it sequentially or via Promise.all mapping for upserts. Prisma doesn't perfectly support bulk upsert without some raw queries or createMany with skipDuplicates.
-         const upsertPromises = data.records.map(record => 
-             tx.attendanceRecord.upsert({
+         try {
+             const sessionDate = new Date(data.session_date);
+             const session = await tx.attendanceSession.upsert({
                  where: {
-                     session_id_student_id: {
-                         session_id: session.id,
-                         student_id: record.student_id
+                     batch_id_session_date_subject: {
+                         batch_id: data.batch_id,
+                         session_date: sessionDate,
+                         subject: data.subject || null as any,
                      }
                  },
                  update: {
-                     status: record.status,
-                     correction_note: record.note,
-                     corrected_by_id: actorUserId,
+                     submitted_at: new Date(),
+                     ...(teacherProfileId ? { teacher_id: teacherProfileId } : {}),
                  },
                  create: {
                      institute_id: instituteId,
-                     session_id: session.id,
-                     student_id: record.student_id,
-                     status: record.status,
-                     correction_note: record.note
+                     batch_id: data.batch_id,
+                     session_date: sessionDate,
+                     subject: data.subject || null,
+                     submitted_at: new Date(),
+                     ...(teacherProfileId ? { teacher_id: teacherProfileId } : {}),
                  }
-             })
-         );
+             });
 
-         await Promise.all(upsertPromises);
+             const upsertPromises = data.records.map(record =>
+                 tx.attendanceRecord.upsert({
+                     where: {
+                         session_id_student_id: {
+                             session_id: session.id,
+                             student_id: record.student_id,
+                         }
+                     },
+                     update: {
+                         status: record.status,
+                         correction_note: record.note,
+                         corrected_by_id: actorUserId,
+                     },
+                     create: {
+                         institute_id: instituteId,
+                         session_id: session.id,
+                         student_id: record.student_id,
+                         status: record.status,
+                         correction_note: record.note,
+                     }
+                 })
+             );
 
-         return session;
+             await Promise.all(upsertPromises);
+             return session;
+         } catch (error) {
+             if (!this.isLegacyAttendanceSubjectColumnError(error)) throw error;
+             return this.markAttendanceLegacy(tx, instituteId, actorUserId, teacherProfileId, data);
+         }
      });
   }
 
