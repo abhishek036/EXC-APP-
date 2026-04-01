@@ -1363,6 +1363,8 @@ class _ResultsTabState extends State<_ResultsTab> {
                     meta: isPassed ? grade : 'Needs Improvement',
                     onTap: () {},
                   );
+                },
+              );
             },
           ),
         ),
