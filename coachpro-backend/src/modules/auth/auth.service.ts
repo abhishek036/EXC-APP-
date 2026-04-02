@@ -81,17 +81,22 @@ export class AuthService {
             console.log(`[DEV OTP]: Sent ${otp} to ${phone} for ${purpose}`);
         }
 
-        // Always attempt to send via WhatsApp (even in dev, if API key is configured)
-        try {
-            const { RenflairOtpService } = await import('../whatsapp/renflair-otp.service');
-            const sent = await RenflairOtpService.sendOTP(phone, otp);
-            if (sent) {
-                console.log(`[AUTH] ✅ WhatsApp OTP sent via Renflair to ${phone}`);
-            } else {
-                console.warn(`[AUTH] ⚠️ Renflair send failed for ${phone} — OTP was saved to DB, user can check console in dev`);
+        const whatsappOtpEnabled = (process.env.ENABLE_WHATSAPP_OTP ?? 'true').toLowerCase() === 'true';
+
+        if (whatsappOtpEnabled) {
+            try {
+                const { RenflairOtpService } = await import('../whatsapp/renflair-otp.service');
+                const sent = await RenflairOtpService.sendOTP(phone, otp);
+                if (sent) {
+                    console.log(`[AUTH] ✅ WhatsApp OTP sent via Renflair to ${phone}`);
+                } else {
+                    console.warn(`[AUTH] ⚠️ Renflair send failed for ${phone} — OTP was saved to DB, user can check console in dev`);
+                }
+            } catch (e: any) {
+                console.error(`[AUTH] Renflair OTP delivery error:`, e.message);
             }
-        } catch (e: any) {
-            console.error(`[AUTH] Renflair OTP delivery error:`, e.message);
+        } else {
+            console.log(`[AUTH] WhatsApp OTP delivery disabled via ENABLE_WHATSAPP_OTP=false`);
         }
 
         return {
