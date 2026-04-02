@@ -197,9 +197,13 @@ class StudentRepository {
     throw Exception(response.data['message'] ?? 'Failed to submit doubt');
   }
 
-  Future<List<Map<String, dynamic>>> getMyDoubts({String? subject}) async {
+  Future<List<Map<String, dynamic>>> getMyDoubts({
+    String? subject,
+    String? batchId,
+  }) async {
     final response = await _api.dio.get('students/me/doubts', queryParameters: {
       if (subject != null && subject.isNotEmpty) 'subject': subject,
+      if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
     });
     if (response.statusCode == 200) {
       return _extractList(response.data);

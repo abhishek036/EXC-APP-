@@ -334,7 +334,7 @@ class _ContentTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 4,
       child: Column(
         children: [
           Container(
@@ -350,14 +350,20 @@ class _ContentTab extends StatelessWidget {
                 fontSize: 12,
               ),
               tabs: const [
+                Tab(text: 'SYLLABUS'),
                 Tab(text: 'VIDEOS'),
                 Tab(text: 'NOTES'),
+                Tab(text: 'ASSIGNMENTS'),
               ],
             ),
           ),
           Expanded(
             child: TabBarView(
               children: [
+                _SyllabusPane(
+                  batchId: batchId,
+                  selectedSubject: selectedSubject,
+                ),
                 _LecturesPane(
                   batchId: batchId,
                   selectedSubject: selectedSubject,
@@ -365,6 +371,10 @@ class _ContentTab extends StatelessWidget {
                 _NotesPane(
                   batchId: batchId,
                   teacherName: batchInfo['teacher_name'],
+                  selectedSubject: selectedSubject,
+                ),
+                _AssignmentsPane(
+                  batchId: batchId,
                   selectedSubject: selectedSubject,
                 ),
               ],
@@ -485,7 +495,7 @@ class _LecturesPaneState extends State<_LecturesPane> {
               return GestureDetector(
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  final url = (lec['video_url'] ?? lec['url'] ?? lec['file_url'] ?? '').toString();
+                  final url = (lec['link'] ?? lec['video_url'] ?? lec['url'] ?? lec['file_url'] ?? '').toString();
                   final isYoutube = url.contains('youtube.com') || url.contains('youtu.be');
                   
                   if (isYoutube) {
@@ -637,11 +647,13 @@ class _NotesPaneState extends State<_NotesPane> {
           return list.where((item) {
             final type = (item['file_type'] ?? '').toString().toLowerCase();
             final title = (item['title'] ?? '').toString().toLowerCase();
-            // Strictly exclude non-notes
-            return type != 'video' && 
-                   type != 'assignment' && 
+            // Show as Note if it's explicitly 'note' OR if it's not a video/assignment
+            if (type == 'note') return true;
+            if (type == 'video' || type == 'assignment') return false;
+            
+            // Fallback: exclude strings that strongly imply other types
+            return !title.contains('video') && 
                    !title.contains('assignment') && 
-                   !title.contains('test') &&
                    !title.contains('quiz');
           }).toList();
         });
@@ -1868,7 +1880,10 @@ class _DoubtsTabState extends State<_DoubtsTab> {
   }
 
   void _load() {
-    _future = _repo.getMyDoubts(subject: widget.selectedSubject);
+    _future = _repo.getMyDoubts(
+      batchId: widget.batchId,
+      subject: widget.selectedSubject,
+    );
   }
 
   @override
@@ -1884,7 +1899,10 @@ class _DoubtsTabState extends State<_DoubtsTab> {
     return RefreshIndicator(
       onRefresh: () async {
         setState(() {
-          _future = _repo.getMyDoubts(subject: widget.selectedSubject);
+          _future = _repo.getMyDoubts(
+            batchId: widget.batchId,
+            subject: widget.selectedSubject,
+          );
         });
       },
       child: Column(
@@ -1906,6 +1924,7 @@ class _DoubtsTabState extends State<_DoubtsTab> {
                   if (mounted) {
                     setState(() {
                       _future = _repo.getMyDoubts(
+                        batchId: widget.batchId,
                         subject: widget.selectedSubject,
                       );
                     });
@@ -2282,6 +2301,117 @@ class _EmptyState extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+
+class _SyllabusPane extends StatefulWidget {
+  final String batchId;
+  final String? selectedSubject;
+  const _SyllabusPane({required this.batchId, this.selectedSubject});
+
+  @override
+  State<_SyllabusPane> createState() => _SyllabusPaneState();
+}
+
+class _SyllabusPaneState extends State<_SyllabusPane> {
+  final _repo = sl<StudentRepository>();
+  late Future<List<Map<String, dynamic>>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() {
+    _future = _repo.getLectures(
+      batchId: widget.batchId,
+      subject: widget.selectedSubject,
+    );
+  }
+
+  @override
+  void didUpdateWidget(_SyllabusPane oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedSubject != widget.selectedSubject) {
+      _load();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final items = snapshot.data ?? [];
+        if (items.isEmpty) {
+          return Center(
+            child: Text(
+              'SYLLABUS NOT CONFIGURED',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.bold,
+                color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.5),
+              ),
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async => setState(() => _load()),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final topic = items[index];
+              final chapter = (topic['chapter_name'] ?? '').toString();
+              final title = (topic['topic_name'] ?? topic['title'] ?? '').toString();
+              final isComp = (topic['is_completed'] == true) || ((topic['progress'] ?? 0) >= 100);
+
+              return _PremiumCard(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      isComp ? Icons.check_circle : Icons.radio_button_unchecked,
+                      color: isComp ? Colors.green : _StudentBatchPanelPageState.primaryBlue,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (chapter.isNotEmpty)
+                            Text(
+                              chapter.toUpperCase(),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 10,
+                                color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.5),
+                              ),
+                            ),
+                          Text(
+                            title,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                              color: _StudentBatchPanelPageState.primaryBlue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
