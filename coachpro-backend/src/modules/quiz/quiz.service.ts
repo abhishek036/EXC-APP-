@@ -52,12 +52,16 @@ export class QuizService {
     const candidates = await prisma.student.findMany({
       where: {
         institute_id: instituteId,
-        is_active: true,
-        OR: orFilters,
+        AND: [
+          { OR: [{ is_active: true }, { is_active: null }] },
+          { OR: orFilters },
+        ],
       },
       include: {
         student_batches: {
-          where: { is_active: true },
+          where: {
+            OR: [{ is_active: true }, { is_active: null }],
+          },
           select: { id: true },
         },
       },

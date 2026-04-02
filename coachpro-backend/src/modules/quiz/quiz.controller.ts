@@ -41,13 +41,24 @@ export class QuizController {
           const candidates = await prisma.student.findMany({
               where: {
                 institute_id: req.instituteId!,
-                is_active: true,
-                OR: [
-                  { user_id: req.user!.userId },
-                  ...(phones.size > 0 ? [{ phone: { in: Array.from(phones) } }] : []),
+                AND: [
+                  { OR: [{ is_active: true }, { is_active: null }] },
+                  {
+                    OR: [
+                      { user_id: req.user!.userId },
+                      ...(phones.size > 0 ? [{ phone: { in: Array.from(phones) } }] : []),
+                    ],
+                  },
                 ],
               },
-              include: { student_batches: { where: { is_active: true }, select: { batch_id: true } } },
+              include: {
+                student_batches: {
+                  where: {
+                    OR: [{ is_active: true }, { is_active: null }],
+                  },
+                  select: { batch_id: true },
+                },
+              },
               orderBy: { created_at: 'desc' },
           });
 

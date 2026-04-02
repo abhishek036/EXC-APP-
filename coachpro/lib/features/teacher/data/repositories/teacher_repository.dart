@@ -406,7 +406,15 @@ class TeacherRepository {
 
     final response = await _api.dio.post('quizzes', data: payload);
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+      final created = Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+
+      // Teacher UI label says "Publish Quiz"; publish immediately after creation.
+      final quizId = created['id']?.toString();
+      if (quizId != null && quizId.isNotEmpty) {
+        await _api.dio.post('quizzes/$quizId/publish');
+      }
+
+      return created;
     }
     throw Exception(response.data['message'] ?? 'Failed to create quiz');
   }
