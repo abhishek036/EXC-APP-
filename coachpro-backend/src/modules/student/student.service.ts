@@ -9,6 +9,67 @@ export class StudentService {
     this.studentRepository = new StudentRepository();
   }
 
+  private phoneVariants(phone: string): string[] {
+    const cleaned = (phone || '').replace(/[\s\-()]/g, '');
+    if (!cleaned) return [];
+
+    const variants = new Set<string>([cleaned]);
+    if (cleaned.startsWith('+91') && cleaned.length >= 13) {
+      variants.add(cleaned.substring(3));
+    }
+    if (cleaned.startsWith('91') && cleaned.length === 12) {
+      const ten = cleaned.substring(2);
+      variants.add(ten);
+      variants.add(`+91${ten}`);
+    }
+    if (/^\d{10}$/.test(cleaned)) {
+      variants.add(`+91${cleaned}`);
+      variants.add(`91${cleaned}`);
+    }
+
+    return Array.from(variants);
+  }
+
+  private canonicalPhone(phone?: string): string | undefined {
+    if (!phone) return undefined;
+    const cleaned = phone.replace(/[\s\-()]/g, '');
+    if (cleaned.startsWith('+91') && cleaned.length >= 13) return cleaned.substring(3);
+    if (cleaned.startsWith('91') && cleaned.length === 12) return cleaned.substring(2);
+    return cleaned;
+  }
+
+  private async ensureBatchCapacity(instituteId: string, batchId: string, studentId?: string) {
+    const { prisma } = require('../../server');
+
+    const batch = await prisma.batch.findUnique({
+      where: { id: batchId },
+      select: { id: true, name: true, capacity: true, institute_id: true },
+    });
+
+    if (!batch || batch.institute_id !== instituteId) {
+      throw new ApiError('Batch not found', 404, 'NOT_FOUND');
+    }
+
+    if (!batch.capacity) return;
+
+    const existingMembership = studentId
+      ? await prisma.studentBatch.findFirst({
+          where: { student_id: studentId, batch_id: batchId, is_active: true },
+          select: { id: true },
+        })
+      : null;
+
+    if (existingMembership) return;
+
+    const activeCount = await prisma.studentBatch.count({
+      where: { batch_id: batchId, institute_id: instituteId, is_active: true },
+    });
+
+    if (activeCount >= batch.capacity) {
+      throw new ApiError(`Batch "${batch.name}" is already full (Capacity: ${batch.capacity})`, 400, 'BATCH_FULL');
+    }
+  }
+
   async listStudents(instituteId: string, query: { name?: string, phone?: string, batchId?: string, isActive?: boolean, page?: number, perPage?: number }) {
     const page = parseInt(query.page as any) || 1;
     const perPage = parseInt(query.perPage as any) || 20;
@@ -50,36 +111,76 @@ export class StudentService {
   }
 
   async createStudent(instituteId: string, data: CreateStudentInput) {
-    // 1. Check if student already exists in this institute with this phone
-    if (data.phone) {
-        const existing = await this.studentRepository.findStudentByPhone(data.phone, instituteId);
-        if (existing) {
-            throw new ApiError('Student with this phone number already exists in this institute', 400, 'DUPLICATE_PHONE');
-        }
+    const canonicalPhone = this.canonicalPhone(data.phone);
+    const normalizedData: CreateStudentInput = {
+      ...data,
+      ...(canonicalPhone ? { phone: canonicalPhone } : {}),
+    };
+
+    // 1. Find existing student by phone variants; if found, reuse/update instead of creating duplicate.
+    let existingStudent: any = null;
+    if (normalizedData.phone) {
+      const matches = await this.studentRepository.findStudentsByPhoneVariants(
+        this.phoneVariants(normalizedData.phone),
+        instituteId,
+      );
+      existingStudent =
+        matches.find((s: any) => s.user_id) ||
+        matches.find((s: any) => s.is_active !== false) ||
+        matches[0] ||
+        null;
     }
 
     // 2. Check batch capacity if batch_ids are provided
-    if (data.batch_ids && data.batch_ids.length > 0) {
-        const { prisma } = require('../../server');
-        for (const batchId of data.batch_ids) {
-            const batch = await prisma.batch.findUnique({
-                where: { id: batchId },
-                include: { _count: { select: { student_batches: true } } }
-            });
-            if (batch && batch.capacity && batch._count.student_batches >= batch.capacity) {
-                throw new ApiError(`Batch "${batch.name}" is already full (Capacity: ${batch.capacity})`, 400, 'BATCH_FULL');
-            }
+    if (normalizedData.batch_ids && normalizedData.batch_ids.length > 0) {
+      for (const batchId of normalizedData.batch_ids) {
+        await this.ensureBatchCapacity(instituteId, batchId, existingStudent?.id);
+      }
+    }
+
+    if (existingStudent) {
+      const { prisma } = require('../../server');
+
+      // Update basic details and parent relation on the existing record.
+      await this.studentRepository.updateStudent(existingStudent.id, instituteId, {
+        name: normalizedData.name,
+        phone: normalizedData.phone,
+        dob: normalizedData.dob,
+        gender: normalizedData.gender,
+        address: normalizedData.address,
+        blood_group: normalizedData.blood_group,
+        prev_institute: normalizedData.prev_institute,
+        parent_name: normalizedData.parent_name,
+        parent_phone: normalizedData.parent_phone,
+        parent_relation: normalizedData.parent_relation,
+        // Keep existing enrollments intact; create flow should not drop old batches.
+        batch_ids: undefined,
+      });
+
+      // Non-destructive batch linking for create-on-existing flow.
+      if (normalizedData.batch_ids && normalizedData.batch_ids.length > 0) {
+        const uniqueBatchIds = Array.from(new Set(normalizedData.batch_ids.map((id: string) => id.trim())));
+        for (const batchId of uniqueBatchIds) {
+          await prisma.studentBatch.upsert({
+            where: { student_id_batch_id: { student_id: existingStudent.id, batch_id: batchId } },
+            update: { is_active: true, left_date: null },
+            create: { student_id: existingStudent.id, batch_id: batchId, institute_id: instituteId },
+          });
         }
+      }
+
+      const updated = await this.studentRepository.findStudentById(existingStudent.id, instituteId);
+      return updated || existingStudent;
     }
 
     // 3. Create student
-    const createdStudent = await this.studentRepository.createStudentWithUserAndParent(instituteId, data);
+    const createdStudent = await this.studentRepository.createStudentWithUserAndParent(instituteId, normalizedData);
 
     // 4. Update Lead status if lead_id is provided
-    if (data.lead_id) {
+    if (normalizedData.lead_id) {
         const { prisma } = await import('../../server');
         await prisma.lead.update({
-            where: { id: data.lead_id, institute_id: instituteId },
+        where: { id: normalizedData.lead_id, institute_id: instituteId },
             data: { status: 'Converted' }
         }).catch(err => console.error('Failed to update lead status:', err));
     }

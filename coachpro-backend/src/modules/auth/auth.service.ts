@@ -126,12 +126,28 @@ export class AuthService {
             // --- LOOK UP EXISTING PERMISSIONS/PROFILES ---
             const phonesToSearch = this._phoneVariants(phone);
 
-            const [staff, teacher, student, parent] = await Promise.all([
+            const [staff, teacher, studentCandidates, parent] = await Promise.all([
                 tx.staff.findFirst({ where: { phone: { in: phonesToSearch } } }),
                 tx.teacher.findFirst({ where: { phone: { in: phonesToSearch } } }),
-                tx.student.findFirst({ where: { phone: { in: phonesToSearch } } }),
+                tx.student.findMany({
+                    where: { phone: { in: phonesToSearch } },
+                    include: {
+                        student_batches: {
+                            where: { is_active: true },
+                            select: { id: true },
+                        },
+                    },
+                    orderBy: { created_at: 'desc' },
+                }),
                 tx.parent.findFirst({ where: { phone: { in: phonesToSearch } } })
             ]);
+
+            const student =
+                studentCandidates.find((s: any) => s.user_id === user?.id) ||
+                studentCandidates.find((s: any) => !!s.user_id) ||
+                studentCandidates.find((s: any) => (s.student_batches?.length || 0) > 0) ||
+                studentCandidates[0] ||
+                null;
 
             // --- STABLE INSTITUTE DETERMINATION ---
             let instituteIdToUse = user?.institute_id || staff?.institute_id || teacher?.institute_id || student?.institute_id || parent?.institute_id;

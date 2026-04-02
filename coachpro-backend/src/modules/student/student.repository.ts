@@ -66,6 +66,16 @@ export class StudentRepository {
     });
   }
 
+  async findStudentsByPhoneVariants(phones: string[], instituteId: string) {
+    return prisma.student.findMany({
+      where: {
+        institute_id: instituteId,
+        phone: { in: phones },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+  }
+
   async createStudentWithUserAndParent(instituteId: string, data: CreateStudentInput, passwordHash?: string) {
      return prisma.$transaction(async (tx: any) => {
          // 1. Create Student record
