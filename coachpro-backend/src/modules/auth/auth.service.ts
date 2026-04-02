@@ -77,7 +77,7 @@ export class AuthService {
 
         await this.authRepository.saveOtp(phone, otp, purpose, expiresAt);
 
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_OTP === 'true') {
             console.log(`[DEV OTP]: Sent ${otp} to ${phone} for ${purpose}`);
         }
 

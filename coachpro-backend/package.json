@@ -14,6 +14,7 @@
     "test:panel-sync": "node tests/panel_sync_e2e.mjs",
     "test:auth-regression": "node scripts/auth-panel-regression.js",
     "test:panel-load": "node scripts/panel-load-resilience.js",
+    "otp:last": "node scripts/show-latest-otp.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "smoke:push": "node scripts/push-smoke.js",

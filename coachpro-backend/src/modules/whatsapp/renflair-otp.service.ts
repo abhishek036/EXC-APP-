@@ -64,7 +64,15 @@ export class RenflairOtpService {
       console.log(`[RENFLAIR] Response:`, JSON.stringify(data));
 
       // Renflair typically returns { status: true/false, message: "..." }
-      if (data?.status === true || data?.status === 'true' || response.status === 200) {
+      // Treat HTTP 200 with status=false as delivery failure.
+      const statusValue = String(data?.status ?? '').toLowerCase();
+      if (
+        data?.status === true ||
+        data?.status === 'true' ||
+        data?.status === 1 ||
+        data?.status === '1' ||
+        statusValue === 'success'
+      ) {
         console.log(`[RENFLAIR] ✅ OTP sent successfully to ${cleanPhone}`);
         return true;
       }
