@@ -325,6 +325,7 @@ class _ContentTab extends StatelessWidget {
   final String? selectedSubject;
 
   const _ContentTab({
+    super.key,
     required this.batchId,
     required this.batchInfo,
     this.selectedSubject,
@@ -745,6 +746,7 @@ class _AssignmentsPane extends StatefulWidget {
   final String? teacherName;
   final String? selectedSubject;
   const _AssignmentsPane({
+    super.key,
     required this.batchId,
     this.teacherName,
     this.selectedSubject,
@@ -860,7 +862,7 @@ class _AssignmentsPaneState extends State<_AssignmentsPane> {
 class _QuizPane extends StatefulWidget {
   final String batchId;
   final String? selectedSubject;
-  const _QuizPane({required this.batchId, this.selectedSubject});
+  const _QuizPane({super.key, required this.batchId, this.selectedSubject});
 
   @override
   State<_QuizPane> createState() => _QuizPaneState();
@@ -943,7 +945,7 @@ class _QuizPaneState extends State<_QuizPane> {
 class _ScheduleTab extends StatefulWidget {
   final String batchId;
   final String? selectedSubject;
-  const _ScheduleTab({required this.batchId, this.selectedSubject});
+  const _ScheduleTab({super.key, required this.batchId, this.selectedSubject});
 
   @override
   State<_ScheduleTab> createState() => _ScheduleTabState();
@@ -1085,7 +1087,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
 class _ResultsTab extends StatefulWidget {
   final String batchId;
   final String? selectedSubject;
-  const _ResultsTab({required this.batchId, this.selectedSubject});
+  const _ResultsTab({super.key, required this.batchId, this.selectedSubject});
 
   @override
   State<_ResultsTab> createState() => _ResultsTabState();
@@ -1393,7 +1395,7 @@ class _ResultsTabState extends State<_ResultsTab> {
 class _AttendanceTab extends StatefulWidget {
   final String batchId;
   final String? selectedSubject;
-  const _AttendanceTab({required this.batchId, this.selectedSubject});
+  const _AttendanceTab({super.key, required this.batchId, this.selectedSubject});
 
   @override
   State<_AttendanceTab> createState() => _AttendanceTabState();
@@ -1845,6 +1847,7 @@ class _DoubtsTab extends StatefulWidget {
   final Map<String, dynamic> batchInfo;
   final String? selectedSubject;
   const _DoubtsTab({
+    super.key,
     required this.batchId,
     required this.batchInfo,
     this.selectedSubject,
@@ -2177,7 +2180,12 @@ class _PremiumCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
 
-  const _PremiumCard({required this.child, this.padding, this.margin});
+  const _PremiumCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.margin,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2208,7 +2216,11 @@ class _EmptyState extends StatelessWidget {
   final String message;
   final IconData icon;
 
-  const _EmptyState({required this.message, required this.icon});
+  const _EmptyState({
+    super.key,
+    required this.message,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {

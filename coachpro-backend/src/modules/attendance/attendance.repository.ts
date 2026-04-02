@@ -191,7 +191,7 @@ export class AttendanceRepository {
                      batch_id_session_date_subject: {
                          batch_id: data.batch_id,
                          session_date: sessionDate,
-                         subject: data.subject || null as any,
+                         subject: data.subject?.trim() || '',
                      }
                  },
                  update: {
@@ -202,7 +202,7 @@ export class AttendanceRepository {
                      institute_id: instituteId,
                      batch_id: data.batch_id,
                      session_date: sessionDate,
-                     subject: data.subject || null,
+                     subject: data.subject?.trim() || '',
                      submitted_at: new Date(),
                      ...(teacherProfileId ? { teacher_id: teacherProfileId } : {}),
                  }
