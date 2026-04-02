@@ -5,7 +5,7 @@
  * Run: node tests/comprehensive_test.mjs
  */
 
-const BASE_URL = 'https://abc-appxyz-hvfchqhagycbfcbp.centralindia-01.azurewebsites.net/api';
+const BASE_URL = process.env.BASE_URL || 'https://abc-appxyz-hvfchqhagycbfcbp.centralindia-01.azurewebsites.net/api';
 
 let ADMIN_TOKEN = null;
 let TEACHER_TOKEN = null;

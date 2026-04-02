@@ -11,6 +11,7 @@
     "dev": "nodemon src/server.ts",
     "build": "tsc",
     "test": "jest --forceExit --detectOpenHandles --passWithNoTests",
+    "test:panel-sync": "node tests/panel_sync_e2e.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "smoke:push": "node scripts/push-smoke.js",
