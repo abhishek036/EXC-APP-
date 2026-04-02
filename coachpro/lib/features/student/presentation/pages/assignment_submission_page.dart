@@ -44,15 +44,16 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
   List<Map<String, dynamic>> _assignments = [];
   Map<String, dynamic>? _selectedAssignment;
   PlatformFile? _selectedFile;
+  Map<String, dynamic>? _mySubmission;
 
   @override
   void initState() {
     super.initState();
-    _fileUrl = widget.initialFileUrl;
+    _assignmentFileUrl = widget.initialFileUrl;
     _loadAssignments();
   }
 
-  String? _fileUrl;
+  String? _assignmentFileUrl;
 
   @override
   void dispose() {
@@ -82,9 +83,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
       setState(() {
         _assignments = list;
         _selectedAssignment = selected ?? (list.isNotEmpty ? list.first : null);
-        if (_selectedAssignment != null) {
-          _fileUrl = _selectedAssignment!['file_url']?.toString() ?? _fileUrl;
-        }
+        _applySelectedAssignmentState();
         _isLoading = false;
       });
     } catch (e) {
@@ -96,11 +95,41 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
     }
   }
 
+  void _applySelectedAssignmentState() {
+    final assignment = _selectedAssignment;
+    if (assignment == null) {
+      _assignmentFileUrl = widget.initialFileUrl;
+      _mySubmission = null;
+      _submissionTextCtrl.clear();
+      _selectedFile = null;
+      _isFileUploaded = false;
+      return;
+    }
+
+    _assignmentFileUrl = assignment['file_url']?.toString() ?? widget.initialFileUrl;
+    final existing = assignment['my_submission'];
+    if (existing is Map) {
+      _mySubmission = Map<String, dynamic>.from(existing);
+      _submissionTextCtrl.text = (_mySubmission?['submission_text'] ?? '').toString();
+    } else {
+      _mySubmission = null;
+      _submissionTextCtrl.clear();
+    }
+    _selectedFile = null;
+    _isFileUploaded = false;
+  }
+
   Future<void> _submitAssignment() async {
     final assignmentId = (_selectedAssignment?['id'] ?? '').toString();
     if (assignmentId.isEmpty) return;
 
-    if (!_isFileUploaded && _submissionTextCtrl.text.trim().isEmpty) {
+    final existingFileUrl = (_mySubmission?['file_url'] ?? '').toString().trim();
+    final existingText = (_mySubmission?['submission_text'] ?? '').toString().trim();
+    final currentText = _submissionTextCtrl.text.trim();
+
+    final hasPayload = _isFileUploaded || currentText.isNotEmpty || existingFileUrl.isNotEmpty || existingText.isNotEmpty;
+
+    if (!hasPayload) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Upload a file or add text before submitting'),
@@ -121,17 +150,25 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
         }
       }
 
+      final effectiveFileUrl = (uploadedUrl != null && uploadedUrl.trim().isNotEmpty)
+          ? uploadedUrl.trim()
+          : (existingFileUrl.isNotEmpty ? existingFileUrl : null);
+
+      final effectiveText = currentText.isNotEmpty
+          ? currentText
+          : (existingText.isNotEmpty ? existingText : null);
+
       await _studentRepo.submitAssignment(
         assignmentId: assignmentId,
-        fileUrl: uploadedUrl,
-        submissionText: _submissionTextCtrl.text.trim().isNotEmpty
-            ? _submissionTextCtrl.text.trim()
-            : null,
+        fileUrl: effectiveFileUrl,
+        submissionText: effectiveText,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Assignment submitted successfully')),
       );
+      await _loadAssignments();
+      if (!mounted) return;
       context.pop();
     } catch (e) {
       if (!mounted) return;
@@ -225,7 +262,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                                     (item['id'] ?? '').toString() == value,
                                 orElse: () => _assignments.first,
                               );
-                              _fileUrl = _selectedAssignment?['file_url']?.toString();
+                              _applySelectedAssignmentState();
                             });
                           },
                         ),
@@ -290,10 +327,10 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  if (_fileUrl != null && _fileUrl!.isNotEmpty) ...[
+                  if (_assignmentFileUrl != null && _assignmentFileUrl!.isNotEmpty) ...[
                     CPPressable(
                       onTap: () async {
-                        final uri = Uri.tryParse(_fileUrl!);
+                        final uri = Uri.tryParse(_assignmentFileUrl!);
                         if (uri != null && await canLaunchUrl(uri)) {
                           await launchUrl(uri, mode: LaunchMode.externalApplication);
                         }
@@ -326,6 +363,58 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                       ),
                     ),
                     const SizedBox(height: 24),
+                  ],
+                  if (_mySubmission != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: CT.card(context),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.success.withValues(alpha: 0.35)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Existing submission detected (editable)',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.success,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Status: ${(_mySubmission?['status'] ?? 'submitted').toString()}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              color: CT.textS(context),
+                            ),
+                          ),
+                          if (((_mySubmission?['file_url'] ?? '').toString().trim().isNotEmpty)) ...[
+                            const SizedBox(height: 8),
+                            CPPressable(
+                              onTap: () async {
+                                final uri = Uri.tryParse((_mySubmission?['file_url'] ?? '').toString());
+                                if (uri != null && await canLaunchUrl(uri)) {
+                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                }
+                              },
+                              child: Text(
+                                'Open previously submitted file',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
                   ],
                   const SizedBox(height: 32),
 
@@ -528,7 +617,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                               text: _isSubmitting
                                   ? 'Submitting...'
                                   : 'Turn In Assignment',
-                              onPressed: (_isFileUploaded && !_isSubmitting)
+                              onPressed: !_isSubmitting
                                   ? _submitAssignment
                                   : null,
                             ),

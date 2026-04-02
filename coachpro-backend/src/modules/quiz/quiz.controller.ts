@@ -17,10 +17,46 @@ export class QuizController {
   static async getAvailableQuizzes(req: Request, res: Response, next: NextFunction) {
       try {
           const { prisma } = await import('../../server');
-          const student = await prisma.student.findFirst({
-              where: { user_id: req.user!.userId, institute_id: req.instituteId! },
-              include: { student_batches: { select: { batch_id: true } } }
+          const user = await prisma.user.findUnique({
+            where: { id: req.user!.userId },
+            select: { phone: true },
           });
+
+          const phones = new Set<string>();
+          const raw = String(user?.phone ?? '').replace(/[\s\-()]/g, '');
+          if (raw) {
+            phones.add(raw);
+            if (raw.startsWith('+91') && raw.length >= 13) phones.add(raw.substring(3));
+            if (raw.startsWith('91') && raw.length === 12) {
+              const ten = raw.substring(2);
+              phones.add(ten);
+              phones.add(`+91${ten}`);
+            }
+            if (/^\d{10}$/.test(raw)) {
+              phones.add(`+91${raw}`);
+              phones.add(`91${raw}`);
+            }
+          }
+
+          const candidates = await prisma.student.findMany({
+              where: {
+                institute_id: req.instituteId!,
+                is_active: true,
+                OR: [
+                  { user_id: req.user!.userId },
+                  ...(phones.size > 0 ? [{ phone: { in: Array.from(phones) } }] : []),
+                ],
+              },
+              include: { student_batches: { where: { is_active: true }, select: { batch_id: true } } },
+              orderBy: { created_at: 'desc' },
+          });
+
+          const student =
+            candidates.find((s) => s.user_id === req.user!.userId) ||
+            candidates.find((s) => !!s.user_id) ||
+            candidates.find((s) => (s.student_batches?.length || 0) > 0) ||
+            candidates[0] ||
+            null;
           
           if (!student) {
               return sendResponse({ res, data: [] });

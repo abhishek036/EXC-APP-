@@ -21,22 +21,52 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   bool _isYoutube = false;
   bool _ready = false;
 
+  String? _extractYoutubeId(String input) {
+    final raw = input.trim();
+    if (raw.isEmpty) return null;
+
+    final fromUrl = YoutubePlayer.convertUrlToId(raw);
+    if (fromUrl != null && fromUrl.isNotEmpty) return fromUrl;
+
+    final uri = Uri.tryParse(raw);
+    if (uri != null) {
+      final host = uri.host.toLowerCase();
+      if (host.contains('youtube.com') || host.contains('youtu.be')) {
+        final path = uri.path;
+        final liveMatch = RegExp(r"/live/([a-zA-Z0-9_-]{11})").firstMatch(path);
+        if (liveMatch != null) return liveMatch.group(1);
+
+        final shortsMatch = RegExp(r"/shorts/([a-zA-Z0-9_-]{11})").firstMatch(path);
+        if (shortsMatch != null) return shortsMatch.group(1);
+
+        final embedMatch = RegExp(r"/embed/([a-zA-Z0-9_-]{11})").firstMatch(path);
+        if (embedMatch != null) return embedMatch.group(1);
+
+        final v = uri.queryParameters['v'];
+        if (v != null && v.length == 11) return v;
+      }
+    }
+
+    if (RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(raw)) return raw;
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
     final url = widget.videoUrl ?? '';
-    final videoId = YoutubePlayer.convertUrlToId(url);
+    final videoId = _extractYoutubeId(url);
     
     if (videoId != null) {
       _isYoutube = true;
       _controller = YoutubePlayerController(
         initialVideoId: videoId,
-        flags: const YoutubePlayerFlags(
+        flags: YoutubePlayerFlags(
           autoPlay: true,
           mute: false,
           disableDragSeek: false,
           loop: false,
-          isLive: false,
+          isLive: url.contains('/live/') || url.contains('live=1'),
           forceHD: false,
           enableCaption: true,
         ),

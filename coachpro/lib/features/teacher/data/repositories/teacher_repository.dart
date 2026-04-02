@@ -298,6 +298,7 @@ class TeacherRepository {
     String? batchId,
     String? fileUrl,
     String? description,
+    DateTime? dueDate,
   }) async {
     final trimmedSubject = subject.trim();
     final trimmedFileUrl = fileUrl?.trim();
@@ -313,6 +314,7 @@ class TeacherRepository {
                 'description': description.trim(),
               if (trimmedFileUrl != null && trimmedFileUrl.isNotEmpty)
                 'file_url': trimmedFileUrl,
+              if (dueDate != null) 'due_date': dueDate.toUtc().toIso8601String(),
             },
           )
         : await _api.dio.post(

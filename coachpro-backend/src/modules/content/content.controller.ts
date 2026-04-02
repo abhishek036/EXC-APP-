@@ -19,6 +19,70 @@ export class ContentController {
     return teacher?.id ?? null;
   }
 
+  private phoneVariants(phone: string | null | undefined): string[] {
+    const clean = String(phone ?? '').replace(/[\s\-()]/g, '');
+    if (!clean) return [];
+    const set = new Set<string>([clean]);
+    if (clean.startsWith('+91') && clean.length >= 13) set.add(clean.substring(3));
+    if (clean.startsWith('91') && clean.length === 12) {
+      const ten = clean.substring(2);
+      set.add(ten);
+      set.add(`+91${ten}`);
+    }
+    if (/^\d{10}$/.test(clean)) {
+      set.add(`+91${clean}`);
+      set.add(`91${clean}`);
+    }
+    return Array.from(set);
+  }
+
+  private async resolveStudentProfile(instituteId: string, userId: string): Promise<{ id: string; name: string | null } | null> {
+    const linked = await prisma.student.findFirst({
+      where: { institute_id: instituteId, user_id: userId, is_active: true },
+      select: { id: true, name: true },
+    });
+    if (linked) return linked;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { phone: true },
+    });
+    const phones = this.phoneVariants(user?.phone);
+    if (phones.length === 0) return null;
+
+    const candidates = await prisma.student.findMany({
+      where: {
+        institute_id: instituteId,
+        is_active: true,
+        phone: { in: phones },
+      },
+      include: {
+        student_batches: {
+          where: { is_active: true },
+          select: { id: true },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    const best =
+      candidates.find((s) => !!s.user_id) ||
+      candidates.find((s) => (s.student_batches?.length || 0) > 0) ||
+      candidates[0] ||
+      null;
+
+    if (!best) return null;
+
+    if (!best.user_id) {
+      await prisma.student.update({
+        where: { id: best.id },
+        data: { user_id: userId },
+      });
+    }
+
+    return { id: best.id, name: best.name ?? null };
+  }
+
   // NOTES
   createNote = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -101,16 +165,54 @@ export class ContentController {
         subject: req.query.subject as string
       };
       const data = await this.service.listAssignments(req.instituteId!, filter);
+
+      if (req.user?.role === 'student' && Array.isArray(data) && data.length > 0) {
+        const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
+        if (student) {
+          const assignmentIds = data
+            .map((a: any) => String(a?.id ?? ''))
+            .filter((id: string) => id.length > 0);
+
+          if (assignmentIds.length > 0) {
+            const submissions = await prisma.assignmentSubmission.findMany({
+              where: {
+                institute_id: req.instituteId!,
+                student_id: student.id,
+                assignment_id: { in: assignmentIds },
+              },
+              select: {
+                id: true,
+                assignment_id: true,
+                file_url: true,
+                submission_text: true,
+                status: true,
+                submitted_at: true,
+                reviewed_at: true,
+                marks_obtained: true,
+                remarks: true,
+              },
+            });
+
+            const byAssignment = new Map<string, any>();
+            for (const s of submissions) byAssignment.set(s.assignment_id, s);
+
+            const enriched = data.map((a: any) => ({
+              ...a,
+              my_submission: byAssignment.get(String(a?.id ?? '')) ?? null,
+            }));
+
+            return sendResponse({ res, data: enriched, message: 'Assignments fetched successfully' });
+          }
+        }
+      }
+
       return sendResponse({ res, data, message: 'Assignments fetched successfully' });
     } catch (e) { next(e); }
   }
 
   submitAssignment = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const student = await prisma.student.findFirst({
-        where: { user_id: req.user!.userId, institute_id: req.instituteId! },
-        select: { id: true, name: true },
-      });
+      const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
       if (!student) {
         throw new Error('Student profile not found');
       }

@@ -29,13 +29,24 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
     final idFromUrl = YoutubePlayer.convertUrlToId(raw);
     if (idFromUrl != null) return idFromUrl;
 
-    // Handle /live/ links specifically
-    final liveMatch = RegExp(r"youtube\.com/live/([a-zA-Z0-9_-]{11})").firstMatch(raw);
-    if (liveMatch != null) return liveMatch.group(1)!;
+    final uri = Uri.tryParse(raw);
+    if (uri != null) {
+      final path = uri.path;
+      final liveMatch = RegExp(r"/live/([a-zA-Z0-9_-]{11})").firstMatch(path);
+      if (liveMatch != null) return liveMatch.group(1)!;
 
-    // Handle other common patterns if needed
+      final shortsMatch = RegExp(r"/shorts/([a-zA-Z0-9_-]{11})").firstMatch(path);
+      if (shortsMatch != null) return shortsMatch.group(1)!;
+
+      final embedMatch = RegExp(r"/embed/([a-zA-Z0-9_-]{11})").firstMatch(path);
+      if (embedMatch != null) return embedMatch.group(1)!;
+
+      final v = uri.queryParameters['v'];
+      if (v != null && v.length == 11) return v;
+    }
+
     if (raw.length == 11) return raw;
-    
+
     return raw;
   }
 
@@ -45,11 +56,11 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
     final videoId = _resolveVideoId(widget.videoId);
     _controller = YoutubePlayerController(
       initialVideoId: videoId,
-      flags: const YoutubePlayerFlags(
+      flags: YoutubePlayerFlags(
         autoPlay: true,
         mute: false,
         enableCaption: true,
-        isLive: false,
+        isLive: widget.videoId.contains('/live/') || widget.videoId.contains('live=1'),
       ),
     )..addListener(listener);
   }

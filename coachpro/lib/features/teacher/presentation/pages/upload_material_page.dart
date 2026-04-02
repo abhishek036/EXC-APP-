@@ -46,6 +46,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   final TextEditingController _linkCtrl = TextEditingController();
 
   PlatformFile? _selectedFile;
+  DateTime? _assignmentDueDate;
 
   bool _isUploading = false;
 
@@ -187,6 +188,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         description: _descCtrl.text.trim(),
         type: _selectedType,
         fileUrl: formattedLink,
+        dueDate: _selectedType == 'assignment' ? _assignmentDueDate : null,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -400,6 +402,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
             primary,
             maxLines: 3,
           ),
+          if (_selectedType == 'assignment') ...[
+            const SizedBox(height: 24),
+            _inputLabel('END DATE (OPTIONAL)', primary),
+            _buildOptionalDueDate(primary),
+          ],
           const SizedBox(height: 24),
           _selectedType == 'video'
               ? _inputLabel('VIDEO LINK (Youtube/Drive)', primary)
@@ -657,6 +664,67 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                 ),
               ),
       ),
+    );
+  }
+
+  Widget _buildOptionalDueDate(Color primary) {
+    final elevated = CT.elevated(context);
+    final label = _assignmentDueDate == null
+        ? 'No end date'
+        : '${_assignmentDueDate!.day.toString().padLeft(2, '0')}-${_assignmentDueDate!.month.toString().padLeft(2, '0')}-${_assignmentDueDate!.year}';
+
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: elevated,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: primary, width: 2),
+            ),
+            child: Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w700,
+                color: primary,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton(
+          onPressed: () async {
+            final now = DateTime.now();
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: _assignmentDueDate ?? now,
+              firstDate: now.subtract(const Duration(days: 1)),
+              lastDate: DateTime(now.year + 5),
+            );
+            if (picked == null) return;
+            setState(() {
+              _assignmentDueDate = DateTime(picked.year, picked.month, picked.day, 23, 59, 59);
+            });
+          },
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: primary, width: 2),
+            foregroundColor: primary,
+          ),
+          child: const Text('Set'),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton(
+          onPressed: _assignmentDueDate == null
+              ? null
+              : () => setState(() => _assignmentDueDate = null),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: primary, width: 2),
+            foregroundColor: primary,
+          ),
+          child: const Text('Clear'),
+        ),
+      ],
     );
   }
 }

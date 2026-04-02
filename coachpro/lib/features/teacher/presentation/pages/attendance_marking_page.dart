@@ -28,6 +28,9 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
   final TeacherRepository _teacherRepo = sl<TeacherRepository>();
 
   bool _notifyParents = true;
+
+  String _dateKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   bool _isSubmitting = false;
   bool _isLoading = false;
   List<_AttStudent> _students = [];
@@ -134,20 +137,20 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
 
       if (!mounted) return;
 
-      final dateStr =
-          '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+      final selectedDateKey = _dateKey(_selectedDate);
 
       // Find session for the specific day
       final sessionForDay = monthAttendance.firstWhere((s) {
         final sVal = s['session_date'];
         if (sVal == null) return false;
-        final sDate = DateTime.tryParse(sVal.toString());
+        final raw = sVal.toString();
+        // Prefer raw date-part comparison to avoid timezone shifts from Date parsing.
+        if (raw.length >= 10) {
+          return raw.substring(0, 10) == selectedDateKey;
+        }
+        final sDate = DateTime.tryParse(raw);
         if (sDate == null) return false;
-        // Compare year/month/day in local time for consistent UI matching
-        final localSDate = sDate.toLocal();
-        return localSDate.year == _selectedDate.year &&
-            localSDate.month == _selectedDate.month &&
-            localSDate.day == _selectedDate.day;
+        return _dateKey(sDate) == selectedDateKey;
       }, orElse: () => <String, dynamic>{});
 
       final existingRecords = (sessionForDay['records'] as List?) ?? [];
@@ -228,7 +231,8 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
     }
     setState(() => _isSubmitting = true);
 
-    final sessionDate = _selectedDate.toUtc().toIso8601String();
+    // Send date-only key to keep backend @db.Date matching stable across timezones.
+    final sessionDate = _dateKey(_selectedDate);
     
     const statusMap = {
       'P': 'present',

@@ -23,14 +23,64 @@ export class QuizService {
   }
 
   private static async resolveStudentProfileId(userId: string, instituteId: string): Promise<string> {
-    const student = await prisma.student.findFirst({
+    const linked = await prisma.student.findFirst({
       where: { user_id: userId, institute_id: instituteId, is_active: true },
       select: { id: true },
     });
-    if (!student) {
+    if (linked) return linked.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { phone: true, institute_id: true },
+    });
+
+    if (!user || user.institute_id !== instituteId || !user.phone) {
       throw new ApiError('Student profile not found for this account', 404, 'NOT_FOUND');
     }
-    return student.id;
+
+    const raw = String(user.phone).replace(/[\s\-()]/g, '');
+    const variants = new Set<string>([raw]);
+    if (raw.startsWith('+91') && raw.length >= 13) variants.add(raw.substring(3));
+    if (raw.startsWith('91') && raw.length === 12) {
+      variants.add(raw.substring(2));
+      variants.add(`+91${raw.substring(2)}`);
+    }
+    if (/^\d{10}$/.test(raw)) {
+      variants.add(`+91${raw}`);
+      variants.add(`91${raw}`);
+    }
+
+    const candidates = await prisma.student.findMany({
+      where: {
+        institute_id: instituteId,
+        is_active: true,
+        phone: { in: Array.from(variants) },
+      },
+      include: {
+        student_batches: {
+          where: { is_active: true },
+          select: { id: true },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    const selected =
+      candidates.find((s) => s.user_id === userId) ||
+      candidates.find((s) => !!s.user_id) ||
+      candidates.find((s) => (s.student_batches?.length || 0) > 0) ||
+      candidates[0] ||
+      null;
+
+    if (!selected) {
+      throw new ApiError('Student profile not found for this account', 404, 'NOT_FOUND');
+    }
+
+    if (!selected.user_id) {
+      await prisma.student.update({ where: { id: selected.id }, data: { user_id: userId } });
+    }
+
+    return selected.id;
   }
 
   static async createQuiz(
