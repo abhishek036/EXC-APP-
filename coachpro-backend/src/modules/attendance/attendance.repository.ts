@@ -183,62 +183,70 @@ export class AttendanceRepository {
         teacherProfileId: string | null,
         data: MarkAttendanceInput,
     ) {
-     return prisma.$transaction(async (tx) => {
-         try {
-             const sessionDate = new Date(data.session_date);
-             const session = await tx.attendanceSession.upsert({
-                 where: {
-                     batch_id_session_date_subject: {
-                         batch_id: data.batch_id,
-                         session_date: sessionDate,
-                         subject: data.subject?.trim() || '',
-                     }
-                 },
-                 update: {
-                     submitted_at: new Date(),
-                     ...(teacherProfileId ? { teacher_id: teacherProfileId } : {}),
-                 },
-                 create: {
-                     institute_id: instituteId,
-                     batch_id: data.batch_id,
-                     session_date: sessionDate,
-                     subject: data.subject?.trim() || '',
-                     submitted_at: new Date(),
-                     ...(teacherProfileId ? { teacher_id: teacherProfileId } : {}),
-                 }
-             });
+        try {
+            // First attempt: Modern approach (requires 'subject' column)
+            return await prisma.$transaction(async (tx) => {
+                const sessionDate = new Date(data.session_date);
+                const session = await tx.attendanceSession.upsert({
+                    where: {
+                        batch_id_session_date_subject: {
+                            batch_id: data.batch_id,
+                            session_date: sessionDate,
+                            subject: data.subject?.trim() || '',
+                        }
+                    },
+                    update: {
+                        submitted_at: new Date(),
+                        ...(teacherProfileId ? { teacher_id: teacherProfileId } : {}),
+                    },
+                    create: {
+                        institute_id: instituteId,
+                        batch_id: data.batch_id,
+                        session_date: sessionDate,
+                        subject: data.subject?.trim() || '',
+                        submitted_at: new Date(),
+                        ...(teacherProfileId ? { teacher_id: teacherProfileId } : {}),
+                    }
+                });
 
-             const upsertPromises = data.records.map(record =>
-                 tx.attendanceRecord.upsert({
-                     where: {
-                         session_id_student_id: {
-                             session_id: session.id,
-                             student_id: record.student_id,
-                         }
-                     },
-                     update: {
-                         status: record.status,
-                         correction_note: record.note,
-                         corrected_by_id: actorUserId,
-                     },
-                     create: {
-                         institute_id: instituteId,
-                         session_id: session.id,
-                         student_id: record.student_id,
-                         status: record.status,
-                         correction_note: record.note,
-                     }
-                 })
-             );
+                const upsertPromises = data.records.map(record =>
+                    tx.attendanceRecord.upsert({
+                        where: {
+                            session_id_student_id: {
+                                session_id: session.id,
+                                student_id: record.student_id,
+                            }
+                        },
+                        update: {
+                            status: record.status,
+                            correction_note: record.note,
+                            corrected_by_id: actorUserId,
+                        },
+                        create: {
+                            institute_id: instituteId,
+                            session_id: session.id,
+                            student_id: record.student_id,
+                            status: record.status,
+                            correction_note: record.note,
+                        }
+                    })
+                );
 
-             await Promise.all(upsertPromises);
-             return session;
-         } catch (error) {
-             if (!this.isLegacyAttendanceSubjectColumnError(error)) throw error;
-             return this.markAttendanceLegacy(tx, instituteId, actorUserId, teacherProfileId, data);
-         }
-     });
-  }
+                await Promise.all(upsertPromises);
+                return session;
+            });
+        } catch (error) {
+            // If the failure is due to a missing 'subject' column (legacy schema), use the legacy fallback
+            if (!this.isLegacyAttendanceSubjectColumnError(error)) {
+                throw error;
+            }
+
+            // Start a FRESH transaction for the legacy approach to avoid "commands ignored" error (25P02)
+            return prisma.$transaction(async (tx) => {
+                return this.markAttendanceLegacy(tx, instituteId, actorUserId, teacherProfileId, data);
+            });
+        }
+    }
 
   async getBatchAttendanceForMonth(batchId: string, instituteId: string, startDate: Date, endDate: Date, subject?: string) {
         try {
