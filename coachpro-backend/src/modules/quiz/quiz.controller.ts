@@ -51,18 +51,41 @@ export class QuizController {
               orderBy: { created_at: 'desc' },
           });
 
-          const student =
-            candidates.find((s) => s.user_id === req.user!.userId) ||
-            candidates.find((s) => !!s.user_id) ||
-            candidates.find((s) => (s.student_batches?.length || 0) > 0) ||
-            candidates[0] ||
-            null;
+          const ranked = [...candidates].sort((a, b) => {
+            const aBatchCount = a.student_batches?.length || 0;
+            const bBatchCount = b.student_batches?.length || 0;
+            if (bBatchCount != aBatchCount) return bBatchCount - aBatchCount;
+
+            const aLinked = a.user_id === req.user!.userId ? 1 : 0;
+            const bLinked = b.user_id === req.user!.userId ? 1 : 0;
+            if (bLinked != aLinked) return bLinked - aLinked;
+
+            const aHasUser = a.user_id ? 1 : 0;
+            const bHasUser = b.user_id ? 1 : 0;
+            if (bHasUser != aHasUser) return bHasUser - aHasUser;
+
+            const aCreated = new Date(a.created_at as any).getTime() || 0;
+            const bCreated = new Date(b.created_at as any).getTime() || 0;
+            return bCreated - aCreated;
+          });
+
+          const student = ranked[0] || null;
           
           if (!student) {
               return sendResponse({ res, data: [] });
           }
 
+          if (!student.user_id) {
+              await prisma.student.update({
+                  where: { id: student.id },
+                  data: { user_id: req.user!.userId },
+              });
+          }
+
           const batchIds = student.student_batches.map(sb => sb.batch_id);
+          if (batchIds.length === 0) {
+            return sendResponse({ res, data: [] });
+          }
 
           const { subject } = req.query;
           try {
@@ -72,7 +95,14 @@ export class QuizController {
                     batch_id: { in: batchIds },
                     // Removed is_published: true filter so user can see drafts for verification
                     // Removed attempts filter so students can see and re-take quizzes
-                    ...(subject ? { subject: subject as string } : {})
+                    ...(subject
+                      ? {
+                          subject: {
+                            equals: String(subject),
+                            mode: 'insensitive',
+                          },
+                        }
+                      : {})
                 },
                 include: {
                     batch: { select: { name: true } },
@@ -90,6 +120,11 @@ export class QuizController {
                           WHERE q.institute_id::text = $1::text 
                             AND q.batch_id::text IN (${batchIds.map((_, i) => `$${i + 2}`).join(',')})`;
              const params = [req.instituteId, ...batchIds];
+
+             if (subject) {
+               query += ` AND LOWER(COALESCE(q.subject, '')) = LOWER($${params.length + 1}::text)`;
+               params.push(String(subject));
+             }
              
              query += ` ORDER BY q.created_at DESC`;
              const rawPuzzles = await prisma.$queryRawUnsafe<any[]>(query, ...params);

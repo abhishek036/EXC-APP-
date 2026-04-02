@@ -23,38 +23,37 @@ export class QuizService {
   }
 
   private static async resolveStudentProfileId(userId: string, instituteId: string): Promise<string> {
-    const linked = await prisma.student.findFirst({
-      where: { user_id: userId, institute_id: instituteId, is_active: true },
-      select: { id: true },
-    });
-    if (linked) return linked.id;
-
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { phone: true, institute_id: true },
     });
 
-    if (!user || user.institute_id !== instituteId || !user.phone) {
+    if (!user || user.institute_id !== instituteId) {
       throw new ApiError('Student profile not found for this account', 404, 'NOT_FOUND');
     }
 
-    const raw = String(user.phone).replace(/[\s\-()]/g, '');
-    const variants = new Set<string>([raw]);
-    if (raw.startsWith('+91') && raw.length >= 13) variants.add(raw.substring(3));
-    if (raw.startsWith('91') && raw.length === 12) {
-      variants.add(raw.substring(2));
-      variants.add(`+91${raw.substring(2)}`);
-    }
-    if (/^\d{10}$/.test(raw)) {
-      variants.add(`+91${raw}`);
-      variants.add(`91${raw}`);
+    const orFilters: Array<Record<string, any>> = [{ user_id: userId }];
+
+    const raw = String(user.phone ?? '').replace(/[\s\-()]/g, '');
+    if (raw) {
+      const variants = new Set<string>([raw]);
+      if (raw.startsWith('+91') && raw.length >= 13) variants.add(raw.substring(3));
+      if (raw.startsWith('91') && raw.length === 12) {
+        variants.add(raw.substring(2));
+        variants.add(`+91${raw.substring(2)}`);
+      }
+      if (/^\d{10}$/.test(raw)) {
+        variants.add(`+91${raw}`);
+        variants.add(`91${raw}`);
+      }
+      orFilters.push({ phone: { in: Array.from(variants) } });
     }
 
     const candidates = await prisma.student.findMany({
       where: {
         institute_id: instituteId,
         is_active: true,
-        phone: { in: Array.from(variants) },
+        OR: orFilters,
       },
       include: {
         student_batches: {
@@ -65,12 +64,25 @@ export class QuizService {
       orderBy: { created_at: 'desc' },
     });
 
-    const selected =
-      candidates.find((s) => s.user_id === userId) ||
-      candidates.find((s) => !!s.user_id) ||
-      candidates.find((s) => (s.student_batches?.length || 0) > 0) ||
-      candidates[0] ||
-      null;
+    const ranked = [...candidates].sort((a, b) => {
+      const aBatchCount = a.student_batches?.length || 0;
+      const bBatchCount = b.student_batches?.length || 0;
+      if (bBatchCount != aBatchCount) return bBatchCount - aBatchCount;
+
+      const aLinked = a.user_id === userId ? 1 : 0;
+      const bLinked = b.user_id === userId ? 1 : 0;
+      if (bLinked != aLinked) return bLinked - aLinked;
+
+      const aHasUser = a.user_id ? 1 : 0;
+      const bHasUser = b.user_id ? 1 : 0;
+      if (bHasUser != aHasUser) return bHasUser - aHasUser;
+
+      const aCreated = new Date(a.created_at as any).getTime() || 0;
+      const bCreated = new Date(b.created_at as any).getTime() || 0;
+      return bCreated - aCreated;
+    });
+
+    const selected = ranked[0] || null;
 
     if (!selected) {
       throw new ApiError('Student profile not found for this account', 404, 'NOT_FOUND');

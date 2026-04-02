@@ -122,6 +122,62 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
     }
   }
 
+  String _normalizeSubject(dynamic value) {
+    return (value ?? '').toString().trim().toLowerCase();
+  }
+
+  String _sessionDateKey(dynamic value) {
+    if (value == null) return '';
+    final raw = value.toString();
+    if (raw.length >= 10) return raw.substring(0, 10);
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return '';
+    return _dateKey(parsed);
+  }
+
+  Map<String, dynamic> _pickSessionForDate(
+    List<Map<String, dynamic>> sessions,
+    String selectedDateKey,
+  ) {
+    final sameDay = sessions
+        .where((s) => _sessionDateKey(s['session_date']) == selectedDateKey)
+        .map((s) => Map<String, dynamic>.from(s))
+        .toList();
+
+    if (sameDay.isEmpty) return <String, dynamic>{};
+
+    sameDay.sort((a, b) {
+      final aTime =
+          DateTime.tryParse(
+            (a['submitted_at'] ?? a['updated_at'] ?? a['created_at'] ?? '')
+                .toString(),
+          ) ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+      final bTime =
+          DateTime.tryParse(
+            (b['submitted_at'] ?? b['updated_at'] ?? b['created_at'] ?? '')
+                .toString(),
+          ) ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+      return bTime.compareTo(aTime);
+    });
+
+    final wanted = _normalizeSubject(_selectedSubject);
+    if (wanted.isNotEmpty) {
+      final exact = sameDay
+          .where((s) => _normalizeSubject(s['subject']) == wanted)
+          .toList();
+      if (exact.isNotEmpty) return exact.first;
+
+      final noSubject = sameDay
+          .where((s) => _normalizeSubject(s['subject']).isEmpty)
+          .toList();
+      if (noSubject.isNotEmpty) return noSubject.first;
+    }
+
+    return sameDay.first;
+  }
+
   Future<void> _loadStudents() async {
     final batchId = _safeSelectedBatchId;
     if (!mounted || batchId == null) return;
@@ -132,37 +188,36 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
         batchId: batchId,
         month: _selectedDate.month,
         year: _selectedDate.year,
-        subject: _selectedSubject,
       );
 
       if (!mounted) return;
 
       final selectedDateKey = _dateKey(_selectedDate);
 
-      // Find session for the specific day
-      final sessionForDay = monthAttendance.firstWhere((s) {
-        final sVal = s['session_date'];
-        if (sVal == null) return false;
-        final raw = sVal.toString();
-        // Prefer raw date-part comparison to avoid timezone shifts from Date parsing.
-        if (raw.length >= 10) {
-          return raw.substring(0, 10) == selectedDateKey;
-        }
-        final sDate = DateTime.tryParse(raw);
-        if (sDate == null) return false;
-        return _dateKey(sDate) == selectedDateKey;
-      }, orElse: () => <String, dynamic>{});
+      final sessionForDay = _pickSessionForDate(monthAttendance, selectedDateKey);
 
       final existingRecords = (sessionForDay['records'] as List?) ?? [];
 
       setState(() {
         _students = studentsData.map((e) {
           final student = _AttStudent.fromMap(e);
-          // Check if this student has an existing status for this date
-          final matchingRecord = existingRecords.firstWhere(
-            (r) => r['student_id']?.toString() == student.id,
-            orElse: () => null,
-          );
+
+          Map<String, dynamic>? matchingRecord;
+          for (final rawRecord in existingRecords) {
+            if (rawRecord is! Map) continue;
+            final record = Map<String, dynamic>.from(rawRecord);
+            final nestedStudent =
+                record['student'] is Map
+                ? (record['student'] as Map)['id']
+                : null;
+            final recordStudentId =
+                (record['student_id'] ?? nestedStudent ?? '').toString();
+            if (recordStudentId == student.id) {
+              matchingRecord = record;
+              break;
+            }
+          }
+
           if (matchingRecord != null) {
             final s = matchingRecord['status']?.toString().toLowerCase();
             if (s == 'present')

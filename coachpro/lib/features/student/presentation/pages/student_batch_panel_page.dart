@@ -406,26 +406,36 @@ class _LecturesPaneState extends State<_LecturesPane> {
   }
 
   void _load() {
-    _future = Future.wait([
-      _repo.getLectures(
-        batchId: widget.batchId,
-        subject: widget.selectedSubject,
-      ),
-      _repo
-          .getStudyMaterials(
-            batchId: widget.batchId,
-            subject: widget.selectedSubject,
-          )
-          .then((list) {
-            return list
-                .where(
-                  (item) =>
-                      (item['file_type'] ?? '').toString().toLowerCase() ==
-                      'video',
-                )
-                .toList();
-          }),
-    ]).then((lists) => [...lists[0], ...lists[1]]);
+    _future = (() async {
+      Future<List<Map<String, dynamic>>> loadLectureItems({String? subject}) {
+        return _repo.getLectures(batchId: widget.batchId, subject: subject);
+      }
+
+      Future<List<Map<String, dynamic>>> loadVideoMaterials({String? subject}) {
+        return _repo
+            .getStudyMaterials(batchId: widget.batchId, subject: subject)
+            .then((list) {
+              return list
+                  .where(
+                    (item) =>
+                        (item['file_type'] ?? '').toString().toLowerCase() ==
+                        'video',
+                  )
+                  .toList();
+            });
+      }
+
+      final selected = widget.selectedSubject?.trim();
+      var lectures = await loadLectureItems(subject: selected);
+      var videos = await loadVideoMaterials(subject: selected);
+
+      if ((selected ?? '').isNotEmpty && lectures.isEmpty && videos.isEmpty) {
+        lectures = await loadLectureItems();
+        videos = await loadVideoMaterials();
+      }
+
+      return [...lectures, ...videos];
+    })();
   }
 
   @override
@@ -779,11 +789,19 @@ class _AssignmentsPaneState extends State<_AssignmentsPane> {
   }
 
   void _load() {
-    _future = _repo
-        .getAssignments(
-          batchId: widget.batchId,
-          subject: widget.selectedSubject,
-        );
+    _future = (() async {
+      final selected = widget.selectedSubject?.trim();
+      var items = await _repo.getAssignments(
+        batchId: widget.batchId,
+        subject: selected,
+      );
+
+      if ((selected ?? '').isNotEmpty && items.isEmpty) {
+        items = await _repo.getAssignments(batchId: widget.batchId);
+      }
+
+      return items;
+    })();
   }
 
   @override
@@ -891,14 +909,23 @@ class _QuizPaneState extends State<_QuizPane> {
   }
 
   void _load() {
-    _future = _repo.getAvailableQuizzes(subject: widget.selectedSubject).then((
-      list,
-    ) {
-      if (widget.batchId.isEmpty) return list;
-      return list
-          .where((q) => (q['batch_id'] ?? '').toString() == widget.batchId)
-          .toList();
-    });
+    _future = (() async {
+      List<Map<String, dynamic>> byBatch(List<Map<String, dynamic>> list) {
+        if (widget.batchId.isEmpty) return list;
+        return list
+            .where((q) => (q['batch_id'] ?? '').toString() == widget.batchId)
+            .toList();
+      }
+
+      final selected = widget.selectedSubject?.trim();
+      var filtered = byBatch(await _repo.getAvailableQuizzes(subject: selected));
+
+      if ((selected ?? '').isNotEmpty && filtered.isEmpty) {
+        filtered = byBatch(await _repo.getAvailableQuizzes());
+      }
+
+      return filtered;
+    })();
   }
 
   @override

@@ -37,24 +37,22 @@ export class ContentController {
   }
 
   private async resolveStudentProfile(instituteId: string, userId: string): Promise<{ id: string; name: string | null } | null> {
-    const linked = await prisma.student.findFirst({
-      where: { institute_id: instituteId, user_id: userId, is_active: true },
-      select: { id: true, name: true },
-    });
-    if (linked) return linked;
-
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { phone: true },
     });
     const phones = this.phoneVariants(user?.phone);
-    if (phones.length === 0) return null;
+
+    const orFilters: Array<Record<string, any>> = [{ user_id: userId }];
+    if (phones.length > 0) {
+      orFilters.push({ phone: { in: phones } });
+    }
 
     const candidates = await prisma.student.findMany({
       where: {
         institute_id: instituteId,
         is_active: true,
-        phone: { in: phones },
+        OR: orFilters,
       },
       include: {
         student_batches: {
@@ -65,11 +63,25 @@ export class ContentController {
       orderBy: { created_at: 'desc' },
     });
 
-    const best =
-      candidates.find((s) => !!s.user_id) ||
-      candidates.find((s) => (s.student_batches?.length || 0) > 0) ||
-      candidates[0] ||
-      null;
+    const ranked = [...candidates].sort((a, b) => {
+      const aBatchCount = a.student_batches?.length || 0;
+      const bBatchCount = b.student_batches?.length || 0;
+      if (bBatchCount != aBatchCount) return bBatchCount - aBatchCount;
+
+      const aLinked = a.user_id === userId ? 1 : 0;
+      const bLinked = b.user_id === userId ? 1 : 0;
+      if (bLinked != aLinked) return bLinked - aLinked;
+
+      const aHasUser = a.user_id ? 1 : 0;
+      const bHasUser = b.user_id ? 1 : 0;
+      if (bHasUser != aHasUser) return bHasUser - aHasUser;
+
+      const aCreated = new Date(a.created_at as any).getTime() || 0;
+      const bCreated = new Date(b.created_at as any).getTime() || 0;
+      return bCreated - aCreated;
+    });
+
+    const best = ranked[0] || null;
 
     if (!best) return null;
 
