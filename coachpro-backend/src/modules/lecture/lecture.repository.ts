@@ -15,27 +15,15 @@ export class LectureRepository {
   }
 
   static async listByBatch(
-    batchId: string,
-    instituteId: string,
+    batch_id: string,
+    institute_id: string,
     subject?: string,
-  ): Promise<
-    Array<{
-      id: string;
-      title: string | null;
-      scheduled_at: Date | null;
-      duration_minutes?: number | null;
-      created_at: Date | null;
-      teacher_id: string | null;
-      batch_id: string;
-      is_active: boolean | null;
-      subject: string | null;
-    }>
-  > {
+  ): Promise<any[]> {
     try {
       return await prisma.lecture.findMany({
         where: {
-          batch_id: batchId,
-          institute_id: instituteId,
+          batch_id,
+          institute_id,
           is_active: true,
           ...(subject ? { subject } : {}),
         },
@@ -49,6 +37,8 @@ export class LectureRepository {
           batch_id: true,
           is_active: true,
           subject: true,
+          link: true,
+          lecture_type: true,
         },
         orderBy: { created_at: 'desc' },
       });
@@ -56,8 +46,8 @@ export class LectureRepository {
       if (!this.isMissingDurationColumn(error)) throw error;
       return prisma.lecture.findMany({
         where: {
-          batch_id: batchId,
-          institute_id: instituteId,
+          batch_id,
+          institute_id,
           is_active: true,
           ...(subject ? { subject } : {}),
         },
@@ -70,6 +60,8 @@ export class LectureRepository {
           batch_id: true,
           is_active: true,
           subject: true,
+          link: true,
+          lecture_type: true,
         },
         orderBy: { created_at: 'desc' },
       });

@@ -31,9 +31,9 @@ export class QuizController {
           const puzzles = await prisma.quiz.findMany({
               where: {
                   institute_id: req.instituteId!,
-                  is_published: true,
                   batch_id: { in: batchIds },
-                  attempts: { none: { student_id: student.id } }, // Only not attempted
+                  // Removed is_published: true filter so user can see drafts for verification
+                  // Removed attempts filter so students can see and re-take quizzes
                   ...(subject ? { subject: subject as string } : {})
               },
               include: {

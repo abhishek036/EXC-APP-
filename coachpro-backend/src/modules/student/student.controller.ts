@@ -301,12 +301,13 @@ export class StudentController {
       });
       if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
 
-      const { subject } = req.query;
+      const { subject, batchId } = req.query;
 
       const doubts = await prisma.doubt.findMany({
         where: { 
            student_id: student.id, 
            institute_id: req.instituteId!,
+           ...(batchId ? { batch_id: batchId as string } : {}),
            ...(subject ? { subject: subject as string } : {})
         },
         include: {
