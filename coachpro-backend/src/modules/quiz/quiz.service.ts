@@ -98,9 +98,10 @@ export class QuizService {
     const quiz = await QuizRepository.findQuizById(id, instituteId);
     if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
 
-    if (role === 'student' && !quiz.is_published) {
-      throw new ApiError('This quiz is not published yet', 403, 'FORBIDDEN');
-    }
+    // NOTE: Allowing access if the student is assigned to the batch
+    // if (role === 'student' && !quiz.is_published) {
+    //   throw new ApiError('This quiz is not published yet', 403, 'FORBIDDEN');
+    // }
 
     if (role === 'student') {
         const studentQuiz = JSON.parse(JSON.stringify(quiz));
@@ -205,7 +206,10 @@ export class QuizService {
 
     const quiz = await QuizRepository.findQuizById(quizId, instituteId);
     if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
-    if (!quiz.is_published) throw new ApiError('Quiz is not published yet', 403, 'FORBIDDEN');
+    // NOTE: We allow starting even if not published if the student is assigned.
+    // In many cases, "published" simply means "visible in catalog", but students in a batch
+    // should be able to take it if it appears in their batch panel.
+    // if (!quiz.is_published) throw new ApiError('Quiz is not published yet', 403, 'FORBIDDEN');
 
     const existingAttempt = await QuizRepository.findAttempt(quizId, studentProfileId);
     if (existingAttempt) {

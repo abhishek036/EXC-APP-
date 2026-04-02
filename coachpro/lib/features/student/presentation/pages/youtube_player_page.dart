@@ -24,8 +24,19 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
   String _resolveVideoId(String input) {
     final raw = input.trim();
     if (raw.isEmpty) return '';
+
+    // Standard convertUrlToId handles watch?v= and youtu.be
     final idFromUrl = YoutubePlayer.convertUrlToId(raw);
-    return idFromUrl ?? raw;
+    if (idFromUrl != null) return idFromUrl;
+
+    // Handle /live/ links specifically
+    final liveMatch = RegExp(r"youtube\.com/live/([a-zA-Z0-9_-]{11})").firstMatch(raw);
+    if (liveMatch != null) return liveMatch.group(1)!;
+
+    // Handle other common patterns if needed
+    if (raw.length == 11) return raw;
+    
+    return raw;
   }
 
   @override

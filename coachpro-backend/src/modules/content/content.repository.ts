@@ -1,11 +1,10 @@
 import { prisma } from '../../server';
 import { CreateNoteInput, CreateAssignmentInput, SubmitAssignmentInput, ReviewAssignmentSubmissionInput, CreateDoubtInput, RespondDoubtInput } from './content.validator';
+import { isLegacyColumnError } from '../../utils/prisma-errors';
 
 export class ContentRepository {
-    private isLegacyAssignmentColumnError(error: unknown): boolean {
-        const code = (error as any)?.code;
-        const column = String((error as any)?.meta?.column ?? '').toLowerCase();
-        return code === 'P2022' && column.includes('assignments.subject');
+    private isLegacyError(error: unknown, columnName?: string): boolean {
+        return isLegacyColumnError(error, columnName);
     }
 
     private mapAssignmentRow(row: any) {
@@ -22,39 +21,6 @@ export class ContentRepository {
         };
     }
 
-    private async listAssignmentsLegacy(instituteId: string, filter: { batchId?: string, teacherId?: string }) {
-        const rows = await prisma.$queryRawUnsafe<any[]>(
-            `SELECT id::text, batch_id::text, institute_id::text, teacher_id::text, title, description, due_date, file_url, created_at
-             FROM assignments
-             WHERE institute_id::text = $1
-                 AND ($2::text IS NULL OR batch_id::text = $2::text)
-                 AND ($3::text IS NULL OR teacher_id::text = $3::text)
-             ORDER BY created_at DESC`,
-            instituteId,
-            filter.batchId ?? null,
-            filter.teacherId ?? null,
-        );
-
-        return rows.map((row) => this.mapAssignmentRow(row));
-    }
-
-    private async createAssignmentLegacy(instituteId: string, teacherId: string | null, data: CreateAssignmentInput) {
-        const rows = await prisma.$queryRawUnsafe<any[]>(
-            `INSERT INTO assignments (batch_id, institute_id, teacher_id, title, description, due_date, file_url)
-             VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6, $7)
-             RETURNING id::text, batch_id::text, institute_id::text, teacher_id::text, title, description, due_date, file_url, created_at`,
-            data.batch_id,
-            instituteId,
-            teacherId,
-            data.title,
-            data.description ?? null,
-            data.due_date ? new Date(data.due_date) : null,
-            data.file_url ?? null,
-        );
-
-        return this.mapAssignmentRow(rows[0]);
-    }
-
   // NOTES
     async createNote(instituteId: string, teacherId: string | null, data: CreateNoteInput) {
       return prisma.note.create({
@@ -63,14 +29,38 @@ export class ContentRepository {
   }
 
   async listNotes(instituteId: string, filter: { batchId?: string, subject?: string }) {
-      return prisma.note.findMany({
-          where: { 
-            institute_id: instituteId, 
-            ...(filter.batchId && { batch_id: filter.batchId }),
-            ...(filter.subject && { subject: filter.subject })
-          },
-          orderBy: { created_at: 'desc' }
-      });
+      try {
+          return await prisma.note.findMany({
+              where: { 
+                institute_id: instituteId, 
+                ...(filter.batchId && { batch_id: filter.batchId }),
+                ...(filter.subject && { subject: filter.subject })
+              },
+              orderBy: { created_at: 'desc' }
+          });
+      } catch (error) {
+          if (!this.isLegacyError(error, 'subject')) throw error;
+          return this.listNotesLegacy(instituteId, filter);
+      }
+  }
+
+  private async listNotesLegacy(instituteId: string, filter: { batchId?: string, subject?: string }) {
+      // Fallback for when subject or file_type columns are missing
+      const rows = await prisma.$queryRawUnsafe<any[]>(
+          `SELECT id::text, 
+                  title, 
+                  description, 
+                  file_url, 
+                  COALESCE(file_type, 'note') as file_type, 
+                  created_at, 
+                  batch_id::text
+           FROM notes
+           WHERE institute_id::text = $1::text
+             AND ($2::text IS NULL OR batch_id::text = $2::text)`,
+          instituteId,
+          filter.batchId ?? null
+      );
+      return rows;
   }
 
   // ASSIGNMENTS
@@ -85,7 +75,7 @@ export class ContentRepository {
               } as any
           });
       } catch (error) {
-          if (!this.isLegacyAssignmentColumnError(error)) throw error;
+          if (!this.isLegacyError(error, 'subject')) throw error;
           return this.createAssignmentLegacy(instituteId, teacherId, data);
       }
   }
@@ -102,12 +92,47 @@ export class ContentRepository {
               orderBy: { created_at: 'desc' }
           });
       } catch (error) {
-          if (!this.isLegacyAssignmentColumnError(error)) throw error;
+          if (!this.isLegacyError(error, 'subject')) throw error;
           return this.listAssignmentsLegacy(instituteId, {
             batchId: filter.batchId,
             teacherId: filter.teacherId,
           });
       }
+  }
+
+  private async createAssignmentLegacy(instituteId: string, teacherId: string | null, data: CreateAssignmentInput) {
+      // Manual SQL insert avoiding columns that might not exist in production
+      const id = crypto.randomUUID();
+      const dueDate = data.due_date ? new Date(data.due_date).toISOString() : null;
+      
+      await prisma.$executeRawUnsafe(
+          `INSERT INTO assignments (id, institute_id, teacher_id, batch_id, title, description, file_url, due_date, created_at)
+           VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8::timestamp, NOW())`,
+          id,
+          instituteId,
+          teacherId,
+          data.batch_id,
+          data.title,
+          data.description ?? null,
+          data.file_url ?? null,
+          dueDate
+      );
+      
+      return { id, ...data, institute_id: instituteId, teacher_id: teacherId };
+  }
+
+  private async listAssignmentsLegacy(instituteId: string, filter: { batchId?: string, teacherId?: string, subject?: string }) {
+      const rows = await prisma.$queryRawUnsafe<any[]>(
+          `SELECT id::text, title, description, due_date, file_url, created_at, batch_id::text
+           FROM assignments
+           WHERE institute_id::text = $1::text
+             AND ($2::text IS NULL OR batch_id::text = $2::text)
+             AND ($3::text IS NULL OR teacher_id::text = $3::text)`,
+          instituteId,
+          filter.batchId ?? null,
+          filter.teacherId ?? null
+      );
+      return rows;
   }
 
   async submitAssignment(instituteId: string, assignmentId: string, studentId: string, data: SubmitAssignmentInput) {
@@ -187,16 +212,48 @@ export class ContentRepository {
   }
 
   async listDoubts(instituteId: string, filters: { batch_id?: string, student_id?: string, status?: string, subject?: string }) {
-      return prisma.doubt.findMany({
-          where: { 
-            institute_id: instituteId, 
-            ...filters 
-          },
-          include: {
-              student: { select: { name: true } },
-              assigned_to: { select: { name: true } }
-          },
-          orderBy: { created_at: 'desc' }
-      });
+      try {
+          return await prisma.doubt.findMany({
+              where: { 
+                institute_id: instituteId, 
+                ...filters 
+              },
+              include: {
+                  student: { select: { name: true } },
+                  assigned_to: { select: { name: true } }
+              },
+              orderBy: { created_at: 'desc' }
+          });
+      } catch (error) {
+          if (!this.isLegacyError(error, 'subject')) throw error;
+          return this.listDoubtsLegacy(instituteId, filters);
+      }
+  }
+
+  private async listDoubtsLegacy(instituteId: string, filters: { batch_id?: string, student_id?: string, status?: string, subject?: string }) {
+       const rows = await prisma.$queryRawUnsafe<any[]>(
+          `SELECT d.id::text, 
+                  d.title, 
+                  d.description, 
+                  d.status, 
+                  d.created_at, 
+                  d.student_id::text,
+                  s.name as student_name
+           FROM doubts d
+           LEFT JOIN students s ON d.student_id = s.id
+           WHERE d.institute_id::text = $1::text
+             AND ($2::text IS NULL OR d.batch_id::text = $2::text)
+             AND ($3::text IS NULL OR d.student_id::text = $3::text)
+             AND ($4::text IS NULL OR d.status = $4::text)`,
+          instituteId,
+          filters.batch_id ?? null,
+          filters.student_id ?? null,
+          filters.status ?? null
+      );
+      return rows.map(r => ({
+          ...r,
+          student: { name: r.student_name },
+          assigned_to: null
+      }));
   }
 }

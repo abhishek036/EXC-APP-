@@ -11,13 +11,6 @@ export class LectureController {
       const lectures = await LectureService.listLectures(req.params.batchId, req.instituteId!, subject as string);
       return sendResponse({ res, data: lectures });
     } catch (error) {
-      if ((error as any)?.code === 'P2022') {
-        return sendResponse({
-          res,
-          data: [],
-          message: 'Lecture list unavailable for current DB schema; returning empty result',
-        });
-      }
       next(error);
     }
   }

@@ -3,6 +3,8 @@ import { StudentService } from './student.service';
 import { sendResponse } from '../../utils/response';
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
+import { isLegacyColumnError } from '../../utils/prisma-errors';
+import { Prisma } from '@prisma/client';
 
 export class StudentController {
   private studentService: StudentService;
@@ -303,21 +305,37 @@ export class StudentController {
 
       const { subject, batchId } = req.query;
 
-      const doubts = await prisma.doubt.findMany({
-        where: { 
-           student_id: student.id, 
-           institute_id: req.instituteId!,
-           ...(batchId ? { batch_id: batchId as string } : {}),
-           ...(subject ? { subject: subject as string } : {})
-        },
-        include: {
-          assigned_to: { select: { name: true } },
-          batch: { select: { name: true } }
-        },
-        orderBy: { created_at: 'desc' }
-      });
-
-      return sendResponse({ res, data: doubts, message: 'Doubts fetched' });
+      try {
+        const doubts = await prisma.doubt.findMany({
+          where: { 
+             student_id: student.id, 
+             institute_id: req.instituteId!,
+             ...(batchId ? { batch_id: batchId as string } : {}),
+             ...(subject ? { subject: subject as string } : {})
+          },
+          include: {
+            assigned_to: { select: { name: true } },
+            batch: { select: { name: true } }
+          },
+          orderBy: { created_at: 'desc' }
+        });
+        return sendResponse({ res, data: doubts, message: 'Doubts fetched' });
+      } catch (error) {
+        if (!isLegacyColumnError(error, 'subject')) throw error;
+        
+        let query = `SELECT * FROM doubts WHERE student_id = $1 AND institute_id = $2`;
+        const params: any[] = [student.id, req.instituteId!];
+        
+        if (batchId) {
+          query += ` AND batch_id = $${params.length + 1}`;
+          params.push(batchId);
+        }
+        
+        query += ` ORDER BY created_at DESC`;
+        
+        const rawDoubts = await prisma.$queryRawUnsafe<any[]>(query, ...params);
+        return sendResponse({ res, data: rawDoubts, message: 'Doubts fetched (legacy fallback)' });
+      }
     } catch (error) { next(error); }
   };
 

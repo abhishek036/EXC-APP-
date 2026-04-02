@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { QuizService } from './quiz.service';
 import { sendResponse } from '../../utils/response';
+import { isLegacyColumnError } from '../../utils/prisma-errors';
 
 export class QuizController {
   static async listQuizzes(req: Request, res: Response, next: NextFunction) {
@@ -28,24 +29,44 @@ export class QuizController {
           const batchIds = student.student_batches.map(sb => sb.batch_id);
 
           const { subject } = req.query;
-          const puzzles = await prisma.quiz.findMany({
-              where: {
-                  institute_id: req.instituteId!,
-                  batch_id: { in: batchIds },
-                  // Removed is_published: true filter so user can see drafts for verification
-                  // Removed attempts filter so students can see and re-take quizzes
-                  ...(subject ? { subject: subject as string } : {})
-              },
-              include: {
-                  batch: { select: { name: true } },
-                  _count: { select: { questions: true } }
-              },
-              orderBy: { created_at: 'desc' }
-          });
-
-          return sendResponse({ res, data: puzzles, message: 'Available quizzes fetched' });
+          try {
+            const puzzles = await prisma.quiz.findMany({
+                where: {
+                    institute_id: req.instituteId!,
+                    batch_id: { in: batchIds },
+                    // Removed is_published: true filter so user can see drafts for verification
+                    // Removed attempts filter so students can see and re-take quizzes
+                    ...(subject ? { subject: subject as string } : {})
+                },
+                include: {
+                    batch: { select: { name: true } },
+                    _count: { select: { questions: true } }
+                },
+                orderBy: { created_at: 'desc' }
+            });
+            return sendResponse({ res, data: puzzles, message: 'Available quizzes fetched' });
+          } catch (error) {
+             if (!isLegacyColumnError(error, 'subject')) throw error;
+             
+             let query = `SELECT q.*, b.name as batch_name 
+                          FROM quizzes q 
+                          LEFT JOIN batches b ON q.batch_id = b.id 
+                          WHERE q.institute_id::text = $1::text 
+                            AND q.batch_id::text IN (${batchIds.map((_, i) => `$${i + 2}`).join(',')})`;
+             const params = [req.instituteId, ...batchIds];
+             
+             query += ` ORDER BY q.created_at DESC`;
+             const rawPuzzles = await prisma.$queryRawUnsafe<any[]>(query, ...params);
+             
+             const puzzles = rawPuzzles.map(p => ({
+                 ...p,
+                 batch: { name: p.batch_name },
+                 _count: { questions: 0 } // Legacy fallback simplification
+             }));
+             return sendResponse({ res, data: puzzles, message: 'Available quizzes fetched (legacy fallback)' });
+          }
       } catch (error) { next(error); }
-  }
+  };
 
 
   static async createQuiz(req: Request, res: Response, next: NextFunction) {

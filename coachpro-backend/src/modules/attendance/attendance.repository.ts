@@ -4,12 +4,26 @@ import { Prisma } from '@prisma/client';
 
 export class AttendanceRepository {
     private isLegacyAttendanceSubjectColumnError(error: unknown): boolean {
-        const isValidationError = error instanceof Error && error.toString().includes('PrismaClientValidationError');
+        const errorStr = String(error);
+        const isValidationError = errorStr.includes('PrismaClientValidationError') || 
+                                 (error as any)?.constructor?.name === 'PrismaClientValidationError';
         if (isValidationError) return true;
 
         const code = (error as any)?.code;
-        const column = String((error as any)?.meta?.column ?? '').toLowerCase();
-        return code === 'P2022' && (column.includes('attendance_sessions.subject') || column.includes('subject'));
+        const meta = (error as any)?.meta;
+        const message = (error as any)?.message || '';
+        
+        // P2022: Column not found
+        // P2021: Table not found (rare but can happen)
+        // P2002: Unique constraint failed (but if it mentions subject in a broken schema, it might be relevant)
+        if (code === 'P2022' || code === 'P2021') return true;
+        
+        const column = String(meta?.column ?? '').toLowerCase();
+        const target = String(meta?.target ?? '').toLowerCase();
+        
+        return column.includes('subject') || 
+               target.includes('subject') || 
+               message.toLowerCase().includes('subject');
     }
 
     private mapLegacySessionRow(row: any) {

@@ -2336,7 +2336,7 @@ class _SyllabusPaneState extends State<_SyllabusPane> {
   void didUpdateWidget(_SyllabusPane oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selectedSubject != widget.selectedSubject) {
-      _load();
+      setState(() => _load());
     }
   }
 

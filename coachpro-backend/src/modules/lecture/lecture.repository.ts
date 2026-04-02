@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../server';
+import { isLegacyColumnError } from '../../utils/prisma-errors';
 
 export class LectureRepository {
   private static isMissingDurationColumn(error: unknown): boolean {
@@ -43,28 +44,13 @@ export class LectureRepository {
         orderBy: { created_at: 'desc' },
       });
     } catch (error) {
-      if (!this.isMissingDurationColumn(error)) throw error;
-      return prisma.lecture.findMany({
-        where: {
-          batch_id,
-          institute_id,
-          is_active: true,
-          ...(subject ? { subject } : {}),
-        },
-        select: {
-          id: true,
-          title: true,
-          scheduled_at: true,
-          created_at: true,
-          teacher_id: true,
-          batch_id: true,
-          is_active: true,
-          subject: true,
-          link: true,
-          lecture_type: true,
-        },
-        orderBy: { created_at: 'desc' },
-      });
+      if (!isLegacyColumnError(error)) throw error;
+      
+      const query = `SELECT id::text, title, scheduled_at, duration_minutes, created_at, teacher_id::text, batch_id::text, is_active, subject, link, lecture_type 
+                     FROM lectures 
+                     WHERE batch_id::uuid = $1::uuid AND institute_id::uuid = $2::uuid AND is_active = true
+                     ORDER BY created_at DESC`;
+      return prisma.$queryRawUnsafe<any[]>(query, batch_id, institute_id);
     }
   }
 
