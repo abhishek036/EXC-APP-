@@ -344,7 +344,7 @@ export class ContentController {
       }
       : (noteFiles.isNotEmpty ? noteFiles[0] : null);
 
-    const secureFileAvailable = hasId(primary?.id) || noteFiles.any((item: any) => hasId(item?.id));
+    const secureFileAvailable = hasId(primary?.id) || noteFiles.some((item: any) => hasId(item?.id));
 
     return {
       ...note,
