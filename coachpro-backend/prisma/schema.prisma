@@ -583,11 +583,23 @@ model Assignment {
   title        String    @db.VarChar(200)
   subject      String?   @db.VarChar(100)
   description  String?   @db.Text
+  instructions String?   @db.Text
+  max_marks    Decimal?  @db.Decimal(6, 2)
   due_date     DateTime? @db.Date
   file_url     String?   @db.Text
+  allow_late_submission Boolean @default(false)
+  late_grace_minutes    Int      @default(0)
+  max_attempts          Int      @default(1)
+  allow_text_submission Boolean  @default(true)
+  allow_file_submission Boolean  @default(true)
+  max_file_size_kb      Int      @default(20480)
+  allowed_file_types    String[] @default(["pdf", "jpg", "jpeg", "png", "doc", "docx"])
+  correct_solution_url  String?  @db.Text
   created_at   DateTime? @default(now()) @db.Timestamptz
+  updated_at   DateTime? @updatedAt @db.Timestamptz
 
   submissions AssignmentSubmission[]
+  feedbacks    AssignmentFeedback[]
 
   @@map("assignments")
 }
@@ -600,21 +612,59 @@ model AssignmentSubmission {
   student         Student     @relation(fields: [student_id], references: [id], onDelete: Cascade)
   institute_id    String      @db.Uuid
   institute       Institute   @relation(fields: [institute_id], references: [id], onDelete: Cascade)
+  attempt_no      Int         @default(1)
+  is_draft        Boolean     @default(false)
+  is_latest       Boolean     @default(true)
+  is_late         Boolean     @default(false)
+  file_name       String?     @db.VarChar(255)
+  file_mime_type  String?     @db.VarChar(120)
+  file_size_kb    Int?
+  scan_status     String?     @default("pending") @db.VarChar(20)
   file_url        String?     @db.Text
   submission_text String?     @db.Text
   status          String?     @default("submitted") @db.VarChar(20)
   marks_obtained  Decimal?    @db.Decimal(6, 2)
   remarks         String?     @db.Text
+  draft_saved_at  DateTime?   @db.Timestamptz
   submitted_at    DateTime?   @default(now()) @db.Timestamptz
   reviewed_at     DateTime?   @db.Timestamptz
   reviewed_by_id  String?     @db.Uuid
   reviewed_by     User?       @relation("ReviewedSubmissions", fields: [reviewed_by_id], references: [id])
 
-  @@unique([assignment_id, student_id])
+  feedbacks AssignmentFeedback[]
+
+  @@unique([assignment_id, student_id, attempt_no])
   @@index([assignment_id])
   @@index([student_id])
   @@index([institute_id])
+  @@index([assignment_id, student_id, is_latest])
+  @@index([assignment_id, status])
   @@map("assignment_submissions")
+}
+
+model AssignmentFeedback {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assignment_id            String    @db.Uuid
+  assignment               Assignment @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
+  assignment_submission_id String    @db.Uuid
+  submission               AssignmentSubmission @relation(fields: [assignment_submission_id], references: [id], onDelete: Cascade)
+  institute_id             String    @db.Uuid
+  student_id               String    @db.Uuid
+  reviewer_user_id         String?   @db.Uuid
+  marks_obtained           Decimal?  @db.Decimal(6, 2)
+  feedback_text            String?   @db.Text
+  feedback_audio_url       String?   @db.Text
+  annotated_file_url       String?   @db.Text
+  rubric_json              Json?
+  revision_no              Int       @default(1)
+  is_latest                Boolean   @default(true)
+  created_at               DateTime  @default(now()) @db.Timestamptz
+  updated_at               DateTime  @updatedAt @db.Timestamptz
+
+  @@unique([assignment_submission_id, revision_no])
+  @@index([assignment_id, student_id, is_latest])
+  @@index([institute_id, is_latest])
+  @@map("assignment_feedbacks")
 }
 
 model Doubt {

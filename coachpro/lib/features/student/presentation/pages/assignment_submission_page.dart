@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:async';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
@@ -35,6 +36,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
 
   bool _isLoading = true;
   bool _isSubmitting = false;
+  bool _isDraftSaving = false;
   bool _isFileUploaded = false;
   String? _error;
 
@@ -45,11 +47,16 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
   Map<String, dynamic>? _selectedAssignment;
   PlatformFile? _selectedFile;
   Map<String, dynamic>? _mySubmission;
+  Timer? _draftTimer;
+  DateTime? _lastDraftSavedAt;
+  String _lastDraftSignature = '';
 
   @override
   void initState() {
     super.initState();
     _assignmentFileUrl = widget.initialFileUrl;
+    _submissionTextCtrl.addListener(_onDraftInputChanged);
+    _startDraftTimer();
     _loadAssignments();
   }
 
@@ -57,9 +64,70 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
 
   @override
   void dispose() {
+    _draftTimer?.cancel();
+    _submissionTextCtrl.removeListener(_onDraftInputChanged);
     _fileUrlCtrl.dispose();
     _submissionTextCtrl.dispose();
     super.dispose();
+  }
+
+  void _startDraftTimer() {
+    _draftTimer?.cancel();
+    _draftTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      _autoSaveDraft();
+    });
+  }
+
+  void _onDraftInputChanged() {
+    // Debounced via periodic timer; listener ensures latest text is tracked.
+  }
+
+  String _fileExt(String? fileName) {
+    final raw = (fileName ?? '').trim().toLowerCase();
+    if (raw.isEmpty || !raw.contains('.')) return '';
+    return raw.split('.').last;
+  }
+
+  String _draftSignature() {
+    final assignmentId = (_selectedAssignment?['id'] ?? '').toString();
+    final text = _submissionTextCtrl.text.trim();
+    final existingFileUrl = (_mySubmission?['file_url'] ?? '').toString().trim();
+    final localFile = _selectedFile?.name ?? '';
+    return '$assignmentId|$text|$existingFileUrl|$localFile';
+  }
+
+  Future<void> _autoSaveDraft({bool force = false}) async {
+    if (_isLoading || _isSubmitting || _isDraftSaving) return;
+    final assignmentId = (_selectedAssignment?['id'] ?? '').toString();
+    if (assignmentId.isEmpty) return;
+
+    final currentText = _submissionTextCtrl.text.trim();
+    final existingFileUrl = (_mySubmission?['file_url'] ?? '').toString().trim();
+    final hasDraftContent = currentText.isNotEmpty || existingFileUrl.isNotEmpty || _isFileUploaded;
+    if (!hasDraftContent) return;
+
+    final signature = _draftSignature();
+    if (!force && signature == _lastDraftSignature) return;
+
+    setState(() => _isDraftSaving = true);
+    try {
+      await _studentRepo.saveAssignmentDraft(
+        assignmentId: assignmentId,
+        fileUrl: existingFileUrl.isNotEmpty ? existingFileUrl : null,
+        submissionText: currentText.isNotEmpty ? currentText : null,
+        fileName: _selectedFile?.name,
+        fileMimeType: _selectedFile?.extension,
+        fileSizeKb: _selectedFile != null ? (_selectedFile!.size / 1024).ceil() : null,
+        fileExt: _fileExt(_selectedFile?.name),
+        scanStatus: 'pending',
+      );
+      _lastDraftSignature = signature;
+      _lastDraftSavedAt = DateTime.now();
+    } catch (_) {
+      // Silent failure: autosave should not block user flow.
+    } finally {
+      if (mounted) setState(() => _isDraftSaving = false);
+    }
   }
 
   Future<void> _loadAssignments() async {
@@ -117,6 +185,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
     }
     _selectedFile = null;
     _isFileUploaded = false;
+    _lastDraftSignature = _draftSignature();
   }
 
   Future<void> _submitAssignment() async {
@@ -303,6 +372,38 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                        ),
+                        child: Text(
+                          (assignment['progress_label'] ?? 'Not Started').toString(),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      if (_isDraftSaving)
+                        Text(
+                          'Saving draft...',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textM(context)),
+                        )
+                      else if (_lastDraftSavedAt != null)
+                        Text(
+                          'Draft saved',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, color: AppColors.success),
+                        ),
+                    ],
+                  ),
                   Row(
                     children: [
                       Expanded(
@@ -438,10 +539,19 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                                 withData: kIsWeb,
                               );
                               if (result != null && result.files.isNotEmpty) {
+                                final picked = result.files.first;
+                                if (picked.size > 20 * 1024 * 1024) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('File too large. Max size is 20MB.')),
+                                  );
+                                  return;
+                                }
                                 setState(() {
-                                  _selectedFile = result.files.first;
+                                  _selectedFile = picked;
                                   _isFileUploaded = true;
                                 });
+                                await _autoSaveDraft(force: true);
                               }
                             } catch (e) {
                               if (!context.mounted) return;
@@ -557,8 +667,12 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                                 ),
                               ),
                               IconButton(
-                                onPressed: () =>
-                                    setState(() => _isFileUploaded = false),
+                                onPressed: () {
+                                  setState(() {
+                                    _isFileUploaded = false;
+                                    _selectedFile = null;
+                                  });
+                                },
                                 icon: Icon(
                                   Icons.close,
                                   color: CT.textM(context),

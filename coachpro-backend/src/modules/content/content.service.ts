@@ -26,6 +26,10 @@ export class ContentService {
       return this.repo.listAssignments(instituteId, filter);
   }
 
+  async saveAssignmentDraft(instituteId: string, assignmentId: string, studentId: string, data: SubmitAssignmentInput) {
+      return this.repo.saveAssignmentDraft(instituteId, assignmentId, studentId, data);
+  }
+
   async submitAssignment(instituteId: string, assignmentId: string, studentId: string, data: SubmitAssignmentInput) {
       return this.repo.submitAssignment(instituteId, assignmentId, studentId, data);
   }
@@ -34,8 +38,20 @@ export class ContentService {
       return this.repo.listAssignmentSubmissions(instituteId, assignmentId);
   }
 
+  async listMyAssignmentSubmissions(instituteId: string, assignmentId: string, studentId: string) {
+      return this.repo.listMyAssignmentSubmissions(instituteId, assignmentId, studentId);
+  }
+
+  async getAssignmentSubmissionFeedback(instituteId: string, submissionId: string) {
+      return this.repo.getAssignmentSubmissionFeedback(instituteId, submissionId);
+  }
+
   async reviewAssignmentSubmission(instituteId: string, submissionId: string, reviewerUserId: string, data: ReviewAssignmentSubmissionInput) {
       return this.repo.reviewAssignmentSubmission(instituteId, submissionId, reviewerUserId, data);
+  }
+
+  async getAssignmentAnalytics(instituteId: string, filter: { batchId?: string, teacherId?: string, subject?: string }) {
+      return this.repo.getAssignmentAnalytics(instituteId, filter);
   }
 
   // DOUBTS

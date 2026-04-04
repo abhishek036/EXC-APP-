@@ -1078,6 +1078,39 @@ class AdminRepository {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getAssignmentSubmissionFeedback(
+    String submissionId,
+  ) async {
+    final response = await _api.dio.get(
+      'content/assignments/submissions/$submissionId/feedback',
+    );
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(
+      response.data['message'] ?? 'Failed to fetch assignment feedback history',
+    );
+  }
+
+  Future<Map<String, dynamic>> getAssignmentAnalytics({
+    String? batchId,
+    String? teacherId,
+    String? subject,
+  }) async {
+    final response = await _api.dio.get(
+      'content/assignments/analytics',
+      queryParameters: {
+        if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
+        if (teacherId != null && teacherId.isNotEmpty) 'teacherId': teacherId,
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
+      },
+    );
+    if (response.statusCode == 200) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch assignment analytics');
+  }
+
   // ── Fees ───────────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getFeeRecords({
     String? batchId,

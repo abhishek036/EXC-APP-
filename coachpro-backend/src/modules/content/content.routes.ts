@@ -16,8 +16,12 @@ router.get('/notes', requireRole('admin', 'teacher', 'student'), controller.list
 
 router.post('/assignments', requireRole('admin', 'teacher'), validate(createAssignmentSchema), controller.createAssignment);
 router.get('/assignments', requireRole('admin', 'teacher', 'student'), controller.listAssignments);
+router.get('/assignments/analytics', requireRole('admin', 'teacher'), controller.assignmentAnalytics);
+router.post('/assignments/:assignmentId/draft', requireRole('student'), validate(submitAssignmentSchema), controller.saveAssignmentDraft);
 router.post('/assignments/:assignmentId/submit', requireRole('student'), validate(submitAssignmentSchema), controller.submitAssignment);
+router.get('/assignments/:assignmentId/my-submissions', requireRole('student'), controller.listMyAssignmentSubmissions);
 router.get('/assignments/:assignmentId/submissions', requireRole('admin', 'teacher'), controller.listAssignmentSubmissions);
+router.get('/assignments/submissions/:submissionId/feedback', requireRole('admin', 'teacher', 'student'), controller.getAssignmentSubmissionFeedback);
 router.patch('/assignments/submissions/:submissionId/review', requireRole('admin', 'teacher'), validate(reviewAssignmentSubmissionSchema), controller.reviewAssignmentSubmission);
 
 // Doubts (Student creation, Staff responding)

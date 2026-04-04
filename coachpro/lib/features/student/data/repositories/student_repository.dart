@@ -324,6 +324,48 @@ class StudentRepository {
     throw Exception(response.data['message'] ?? 'Failed to submit assignment');
   }
 
+  Future<Map<String, dynamic>> saveAssignmentDraft({
+    required String assignmentId,
+    String? fileUrl,
+    String? submissionText,
+    String? fileName,
+    String? fileMimeType,
+    int? fileSizeKb,
+    String? fileExt,
+    String? scanStatus,
+  }) async {
+    final payload = <String, dynamic>{
+      'file_url': fileUrl?.trim(),
+      'submission_text': submissionText?.trim(),
+      'file_name': fileName?.trim(),
+      'file_mime_type': fileMimeType?.trim(),
+      'file_size_kb': fileSizeKb,
+      'file_ext': fileExt?.trim().toLowerCase(),
+      'scan_status': scanStatus?.trim().toLowerCase(),
+      'is_draft': true,
+    };
+    payload.removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+
+    final response = await _api.dio.post(
+      'content/assignments/$assignmentId/draft',
+      data: payload,
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to save assignment draft');
+  }
+
+  Future<List<Map<String, dynamic>>> getMyAssignmentSubmissions(String assignmentId) async {
+    final response = await _api.dio.get(
+      'content/assignments/$assignmentId/my-submissions',
+    );
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch submission history');
+  }
+
   // ── Announcements ────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getAnnouncements() async {
     final response = await _api.dio.get('announcements');

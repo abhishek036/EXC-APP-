@@ -3,6 +3,7 @@ import { ContentService } from './content.service';
 import { sendResponse } from '../../utils/response';
 import { prisma } from '../../server';
 import { emitBatchSync, emitInstituteDashboardSync } from '../../config/socket';
+import { ApiError } from '../../middleware/error.middleware';
 
 export class ContentController {
   private service: ContentService;
@@ -36,7 +37,7 @@ export class ContentController {
     return Array.from(set);
   }
 
-  private async resolveStudentProfile(instituteId: string, userId: string): Promise<{ id: string; name: string | null } | null> {
+  private async resolveStudentProfile(instituteId: string, userId: string): Promise<{ id: string; name: string | null; batch_ids: string[] } | null> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { phone: true },
@@ -57,7 +58,7 @@ export class ContentController {
       include: {
         student_batches: {
           where: { is_active: true },
-          select: { id: true },
+          select: { id: true, batch_id: true },
         },
       },
       orderBy: { created_at: 'desc' },
@@ -92,7 +93,72 @@ export class ContentController {
       });
     }
 
-    return { id: best.id, name: best.name ?? null };
+    return {
+      id: best.id,
+      name: best.name ?? null,
+      batch_ids: (best.student_batches ?? []).map((item: any) => String(item.batch_id)).filter(Boolean),
+    };
+  }
+
+  private assignmentProgressStatus(assignment: any, submission: any, feedback: any): 'not_started' | 'in_progress' | 'submitted' | 'late_submission' | 'evaluated' {
+    if (!submission) return 'not_started';
+    if (submission.is_draft || submission.status === 'in_progress') return 'in_progress';
+    if (feedback || submission.status === 'evaluated') return 'evaluated';
+    if (submission.is_late || submission.status === 'late_submission') return 'late_submission';
+    return 'submitted';
+  }
+
+  private progressLabel(status: 'not_started' | 'in_progress' | 'submitted' | 'late_submission' | 'evaluated'): string {
+    const map: Record<string, string> = {
+      not_started: 'Not Started',
+      in_progress: 'In Progress',
+      submitted: 'Submitted',
+      late_submission: 'Late Submission',
+      evaluated: 'Evaluated',
+    };
+    return map[status] ?? 'Not Started';
+  }
+
+  private async ensureTeacherCanAccessAssignment(instituteId: string, userId: string, assignmentId: string) {
+    const teacherId = await this.resolveTeacherId(instituteId, userId);
+    if (!teacherId) {
+      throw new ApiError('Teacher profile not found', 403, 'FORBIDDEN');
+    }
+
+    const assignment = await prisma.assignment.findFirst({
+      where: {
+        id: assignmentId,
+        institute_id: instituteId,
+        OR: [
+          { teacher_id: teacherId },
+          { batch: { teacher_id: teacherId } },
+        ],
+      },
+      select: { id: true, batch_id: true, title: true, teacher_id: true },
+    });
+
+    if (!assignment) {
+      throw new ApiError('You are not authorized to access this assignment', 403, 'FORBIDDEN');
+    }
+
+    return assignment;
+  }
+
+  private async ensureStudentCanAccessAssignment(instituteId: string, student: { id: string; batch_ids: string[] }, assignmentId: string) {
+    const assignment = await prisma.assignment.findFirst({
+      where: { id: assignmentId, institute_id: instituteId },
+      select: { id: true, batch_id: true, title: true, teacher_id: true },
+    });
+
+    if (!assignment) {
+      throw new ApiError('Assignment not found', 404, 'NOT_FOUND');
+    }
+
+    if (student.batch_ids.length > 0 && !student.batch_ids.includes(String(assignment.batch_id))) {
+      throw new ApiError('You are not authorized to access this assignment', 403, 'FORBIDDEN');
+    }
+
+    return assignment;
   }
 
   // NOTES
@@ -176,49 +242,110 @@ export class ContentController {
         teacherId: req.query.teacherId as string,
         subject: req.query.subject as string
       };
-      const data = await this.service.listAssignments(req.instituteId!, filter);
+      const baseAssignments = await this.service.listAssignments(req.instituteId!, filter);
 
-      if (req.user?.role === 'student' && Array.isArray(data) && data.length > 0) {
+      if (req.user?.role === 'student' && Array.isArray(baseAssignments)) {
         const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
-        if (student) {
-          const assignmentIds = data
-            .map((a: any) => String(a?.id ?? ''))
-            .filter((id: string) => id.length > 0);
+        if (!student) {
+          throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+        }
 
-          if (assignmentIds.length > 0) {
-            const submissions = await prisma.assignmentSubmission.findMany({
-              where: {
-                institute_id: req.instituteId!,
-                student_id: student.id,
-                assignment_id: { in: assignmentIds },
-              },
-              select: {
-                id: true,
-                assignment_id: true,
-                file_url: true,
-                submission_text: true,
-                status: true,
-                submitted_at: true,
-                reviewed_at: true,
-                marks_obtained: true,
-                remarks: true,
-              },
-            });
+        const studentAssignments = baseAssignments.filter((assignment: any) => {
+          if (!assignment?.batch_id) return false;
+          if (student.batch_ids.length === 0) return true;
+          return student.batch_ids.includes(String(assignment.batch_id));
+        });
 
-            const byAssignment = new Map<string, any>();
-            for (const s of submissions) byAssignment.set(s.assignment_id, s);
+        const assignmentIds = studentAssignments.map((a: any) => String(a.id)).filter(Boolean);
+        if (assignmentIds.length === 0) {
+          return sendResponse({ res, data: [], message: 'Assignments fetched successfully' });
+        }
 
-            const enriched = data.map((a: any) => ({
-              ...a,
-              my_submission: byAssignment.get(String(a?.id ?? '')) ?? null,
-            }));
+        const submissions = await prisma.assignmentSubmission.findMany({
+          where: {
+            institute_id: req.instituteId!,
+            student_id: student.id,
+            assignment_id: { in: assignmentIds },
+            is_latest: true,
+          },
+          select: {
+            id: true,
+            assignment_id: true,
+            file_url: true,
+            file_name: true,
+            file_mime_type: true,
+            file_size_kb: true,
+            submission_text: true,
+            status: true,
+            is_draft: true,
+            is_late: true,
+            attempt_no: true,
+            submitted_at: true,
+            reviewed_at: true,
+            marks_obtained: true,
+            remarks: true,
+          },
+        });
 
-            return sendResponse({ res, data: enriched, message: 'Assignments fetched successfully' });
+        const submissionIds = submissions.map((item) => item.id);
+        const feedbacks = submissionIds.length > 0
+          ? await prisma.assignmentFeedback.findMany({
+            where: {
+              institute_id: req.instituteId!,
+              assignment_submission_id: { in: submissionIds },
+              is_latest: true,
+            },
+            orderBy: { revision_no: 'desc' },
+          })
+          : [];
+
+        const byAssignment = new Map<string, any>();
+        for (const item of submissions) byAssignment.set(String(item.assignment_id), item);
+
+        const bySubmission = new Map<string, any>();
+        for (const fb of feedbacks) {
+          if (!bySubmission.has(String(fb.assignment_submission_id))) {
+            bySubmission.set(String(fb.assignment_submission_id), fb);
           }
         }
+
+        const enriched = studentAssignments.map((assignment: any) => {
+          const submission = byAssignment.get(String(assignment.id)) ?? null;
+          const feedback = submission ? bySubmission.get(String(submission.id)) ?? null : null;
+          const progressStatus = this.assignmentProgressStatus(assignment, submission, feedback);
+          return {
+            ...assignment,
+            my_submission: submission,
+            my_feedback: feedback,
+            progress_status: progressStatus,
+            progress_label: this.progressLabel(progressStatus),
+          };
+        });
+
+        return sendResponse({ res, data: enriched, message: 'Assignments fetched successfully' });
       }
 
-      return sendResponse({ res, data, message: 'Assignments fetched successfully' });
+      return sendResponse({ res, data: baseAssignments, message: 'Assignments fetched successfully' });
+    } catch (e) { next(e); }
+  }
+
+  saveAssignmentDraft = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
+      if (!student) {
+        throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+      }
+
+      await this.ensureStudentCanAccessAssignment(req.instituteId!, student, req.params.assignmentId);
+
+      const data = await this.service.saveAssignmentDraft(
+        req.instituteId!,
+        req.params.assignmentId,
+        student.id,
+        req.body,
+      );
+
+      return sendResponse({ res, data, message: 'Assignment draft saved successfully', statusCode: 201 });
     } catch (e) { next(e); }
   }
 
@@ -226,8 +353,10 @@ export class ContentController {
     try {
       const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
       if (!student) {
-        throw new Error('Student profile not found');
+        throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
       }
+
+      const assignment = await this.ensureStudentCanAccessAssignment(req.instituteId!, student, req.params.assignmentId);
 
       const data = await this.service.submitAssignment(
         req.instituteId!,
@@ -236,10 +365,6 @@ export class ContentController {
         req.body,
       );
 
-      const assignment = await prisma.assignment.findFirst({
-        where: { id: req.params.assignmentId, institute_id: req.instituteId! },
-        select: { batch_id: true, title: true, teacher_id: true },
-      });
       if (assignment?.batch_id) {
         emitBatchSync(req.instituteId!, assignment.batch_id, 'assignment_submitted', {
           assignment_id: req.params.assignmentId,
@@ -277,15 +402,80 @@ export class ContentController {
     } catch (e) { next(e); }
   }
 
+  listMyAssignmentSubmissions = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
+      if (!student) {
+        throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+      }
+
+      await this.ensureStudentCanAccessAssignment(req.instituteId!, student, req.params.assignmentId);
+
+      const data = await this.service.listMyAssignmentSubmissions(
+        req.instituteId!,
+        req.params.assignmentId,
+        student.id,
+      );
+
+      return sendResponse({ res, data, message: 'My assignment submissions fetched successfully' });
+    } catch (e) { next(e); }
+  }
+
   listAssignmentSubmissions = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (req.user?.role === 'teacher') {
+        await this.ensureTeacherCanAccessAssignment(req.instituteId!, req.user!.userId, req.params.assignmentId);
+      }
+
       const data = await this.service.listAssignmentSubmissions(req.instituteId!, req.params.assignmentId);
       return sendResponse({ res, data, message: 'Assignment submissions fetched successfully' });
     } catch (e) { next(e); }
   }
 
+  getAssignmentSubmissionFeedback = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const submission = await prisma.assignmentSubmission.findFirst({
+        where: { id: req.params.submissionId, institute_id: req.instituteId! },
+        include: {
+          assignment: { select: { id: true, batch_id: true, teacher_id: true } },
+        },
+      });
+
+      if (!submission) {
+        throw new ApiError('Assignment submission not found', 404, 'NOT_FOUND');
+      }
+
+      if (req.user?.role === 'student') {
+        const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
+        if (!student || submission.student_id !== student.id) {
+          throw new ApiError('You are not authorized to access this feedback', 403, 'FORBIDDEN');
+        }
+      }
+
+      if (req.user?.role === 'teacher') {
+        await this.ensureTeacherCanAccessAssignment(req.instituteId!, req.user!.userId, submission.assignment_id);
+      }
+
+      const data = await this.service.getAssignmentSubmissionFeedback(req.instituteId!, req.params.submissionId);
+      return sendResponse({ res, data, message: 'Assignment feedback history fetched successfully' });
+    } catch (e) { next(e); }
+  }
+
   reviewAssignmentSubmission = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (req.user?.role === 'teacher') {
+        const submission = await prisma.assignmentSubmission.findFirst({
+          where: { id: req.params.submissionId, institute_id: req.instituteId! },
+          select: { assignment_id: true },
+        });
+
+        if (!submission) {
+          throw new ApiError('Assignment submission not found', 404, 'NOT_FOUND');
+        }
+
+        await this.ensureTeacherCanAccessAssignment(req.instituteId!, req.user!.userId, submission.assignment_id);
+      }
+
       const data = await this.service.reviewAssignmentSubmission(
         req.instituteId!,
         req.params.submissionId,
@@ -325,6 +515,27 @@ export class ContentController {
       }
 
       return sendResponse({ res, data, message: 'Assignment submission reviewed successfully' });
+    } catch (e) { next(e); }
+  }
+
+  assignmentAnalytics = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const filter = {
+        batchId: req.query.batchId as string,
+        teacherId: req.query.teacherId as string,
+        subject: req.query.subject as string,
+      };
+
+      if (req.user?.role === 'teacher') {
+        const teacherId = await this.resolveTeacherId(req.instituteId!, req.user!.userId);
+        if (!teacherId) {
+          throw new ApiError('Teacher profile not found', 403, 'FORBIDDEN');
+        }
+        filter.teacherId = teacherId;
+      }
+
+      const data = await this.service.getAssignmentAnalytics(req.instituteId!, filter);
+      return sendResponse({ res, data, message: 'Assignment analytics fetched successfully' });
     } catch (e) { next(e); }
   }
 

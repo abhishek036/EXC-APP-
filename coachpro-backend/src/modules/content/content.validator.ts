@@ -1,5 +1,16 @@
 import { z } from 'zod';
 
+const assignmentFileTypes = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'] as const;
+
+const extractExtension = (value?: string | null): string | null => {
+  const raw = (value ?? '').trim().toLowerCase();
+  if (!raw) return null;
+  const byQuery = raw.split('?')[0];
+  const parts = byQuery.split('.');
+  if (parts.length < 2) return null;
+  return parts[parts.length - 1] || null;
+};
+
 export const createNoteSchema = z.object({
   body: z.object({
     title: z.string().min(2).max(200),
@@ -15,10 +26,40 @@ export const createAssignmentSchema = z.object({
   body: z.object({
     title: z.string().min(2).max(200),
     description: z.string().optional(),
+    instructions: z.string().max(4000).optional(),
     batch_id: z.string().uuid(),
     due_date: z.string().datetime().optional(),
+    max_marks: z.number().positive().max(1000).optional(),
     file_url: z.string().url().optional(),
+    question_file_url: z.string().url().optional(),
     subject: z.string().max(100).optional(),
+    allow_late_submission: z.boolean().optional(),
+    late_grace_minutes: z.number().int().min(0).max(60 * 24 * 30).optional(),
+    max_attempts: z.number().int().min(1).max(20).optional(),
+    allow_text_submission: z.boolean().optional(),
+    allow_file_submission: z.boolean().optional(),
+    max_file_size_kb: z.number().int().min(50).max(200 * 1024).optional(),
+    allowed_file_types: z.array(z.enum(assignmentFileTypes)).min(1).max(6).optional(),
+    correct_solution_url: z.string().url().optional(),
+  }).superRefine((value, ctx) => {
+    if (value.allow_text_submission === false && value.allow_file_submission === false) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'At least one submission mode must be enabled',
+        path: ['allow_text_submission'],
+      });
+    }
+
+    if (value.due_date) {
+      const dueDate = new Date(value.due_date);
+      if (Number.isFinite(dueDate.getTime()) && dueDate.getTime() <= Date.now()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Due date must be in the future',
+          path: ['due_date'],
+        });
+      }
+    }
   })
 });
 
@@ -26,19 +67,45 @@ export const submitAssignmentSchema = z.object({
   body: z.object({
     file_url: z.string().url().optional(),
     submission_text: z.string().max(4000).optional(),
-  }).refine((value) => {
-    return !!(value.file_url || value.submission_text?.trim());
-  }, {
-    message: 'Either file_url or submission_text is required',
-    path: ['file_url'],
+    is_draft: z.boolean().optional(),
+    file_name: z.string().max(255).optional(),
+    file_mime_type: z.string().max(120).optional(),
+    file_size_kb: z.number().int().min(1).max(200 * 1024).optional(),
+    file_ext: z.enum(assignmentFileTypes).optional(),
+    scan_status: z.enum(['pending', 'clean', 'infected']).optional(),
+  }).superRefine((value, ctx) => {
+    const text = value.submission_text?.trim() ?? '';
+    const isDraft = value.is_draft === true;
+    if (!isDraft && !value.file_url && !text) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Either file_url or submission_text is required',
+        path: ['file_url'],
+      });
+    }
+
+    if (value.file_url) {
+      const ext = (value.file_ext ?? extractExtension(value.file_name ?? value.file_url) ?? '').toLowerCase();
+      if (ext && !assignmentFileTypes.includes(ext as typeof assignmentFileTypes[number])) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Unsupported file type for assignment submission',
+          path: ['file_ext'],
+        });
+      }
+    }
   }),
 });
 
 export const reviewAssignmentSubmissionSchema = z.object({
   body: z.object({
-    status: z.enum(['submitted', 'reviewed']).optional(),
+    status: z.enum(['submitted', 'late_submission', 'evaluated']).optional(),
     marks_obtained: z.number().min(0).max(1000).optional(),
     remarks: z.string().max(4000).optional(),
+    feedback_text: z.string().max(4000).optional(),
+    feedback_audio_url: z.string().url().optional(),
+    annotated_file_url: z.string().url().optional(),
+    rubric_json: z.record(z.string(), z.any()).optional(),
   }),
 });
 
