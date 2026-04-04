@@ -220,14 +220,15 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
 
           if (matchingRecord != null) {
             final s = matchingRecord['status']?.toString().toLowerCase();
-            if (s == 'present')
+            if (s == 'present') {
               student.status = 'P';
-            else if (s == 'absent')
+            } else if (s == 'absent') {
               student.status = 'A';
-            else if (s == 'late')
+            } else if (s == 'late') {
               student.status = 'L';
-            else if (s == 'excused')
+            } else if (s == 'excused') {
               student.status = 'Lv';
+            }
           }
           return student;
         }).toList();

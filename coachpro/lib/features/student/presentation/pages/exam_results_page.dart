@@ -125,7 +125,7 @@ class _ExamResultsPageState extends State<ExamResultsPage> {
         'Overall: ${_overallPercentage.toStringAsFixed(1)}% (Grade $grade)\n'
         'Exams taken: $_examsTaken\n\n'
         '${_subjectAverages.entries.map((e) => '${e.key}: ${e.value.round()}%').join('\n')}';
-    Share.share(text);
+    SharePlus.instance.share(ShareParams(text: text));
   }
 
   @override

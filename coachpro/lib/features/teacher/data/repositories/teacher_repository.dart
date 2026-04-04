@@ -196,10 +196,11 @@ class TeacherRepository {
   }
 
   Future<Map<String, dynamic>> getBatchExecutionSummary(String batchId, {String? subject}) async {
+    final normalizedSubject = subject?.trim();
     final response = await _api.dio.get(
       'teachers/me/batches/$batchId/execution',
       queryParameters: {
-        if (subject != null) 'subject': subject,
+        if (normalizedSubject?.isNotEmpty ?? false) 'subject': normalizedSubject,
       },
     );
     if (response.statusCode == 200) {
@@ -250,12 +251,13 @@ class TeacherRepository {
     required int year,
     String? subject,
   }) async {
+    final normalizedSubject = subject?.trim();
     final response = await _api.dio.get(
       'attendance/batch/$batchId',
       queryParameters: {
         'month': month,
         'year': year,
-        if (subject != null) 'subject': subject,
+        if (normalizedSubject?.isNotEmpty ?? false) 'subject': normalizedSubject,
       },
     );
     if (response.statusCode == 200) {
@@ -335,11 +337,12 @@ class TeacherRepository {
   }
 
   Future<List<Map<String, dynamic>>> getBatchNotes(String batchId, {String? subject}) async {
+    final normalizedSubject = subject?.trim();
     final response = await _api.dio.get(
       'content/notes',
       queryParameters: {
         'batchId': batchId,
-        if (subject != null) 'subject': subject,
+        if (normalizedSubject?.isNotEmpty ?? false) 'subject': normalizedSubject,
       },
     );
     if (response.statusCode == 200) {
@@ -424,13 +427,14 @@ class TeacherRepository {
     String? assessmentType,
     String? subject,
   }) async {
+    final normalizedSubject = subject?.trim();
     final response = await _api.dio.get(
       'quizzes',
       queryParameters: {
         'batch_id': batchId,
         if (assessmentType != null && assessmentType.trim().isNotEmpty)
           'assessment_type': assessmentType.trim().toUpperCase(),
-        if (subject != null) 'subject': subject,
+        if (normalizedSubject?.isNotEmpty ?? false) 'subject': normalizedSubject,
       },
     );
     if (response.statusCode == 200) {

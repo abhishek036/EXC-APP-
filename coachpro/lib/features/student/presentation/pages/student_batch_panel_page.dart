@@ -258,7 +258,7 @@ class _StudentBatchPanelPageState extends State<StudentBatchPanelPage> {
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               itemCount: _subjects.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 16),
+              separatorBuilder: (context, index) => const SizedBox(height: 16),
               itemBuilder: (context, i) {
                 final sub = _subjects[i];
                 return GestureDetector(
@@ -492,7 +492,7 @@ class _LecturesPaneState extends State<_LecturesPane> {
           child: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: lectures.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, i) {
               final lec = lectures[i];
               final title = (lec['title'] ?? 'Lecture ${i + 1}').toString();
@@ -723,11 +723,10 @@ class _NotesPaneState extends State<_NotesPane> {
           child: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: notes.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, i) {
               final note = notes[i];
               return _buildItemCard(
-                context: context,
                 icon: Icons.picture_as_pdf_rounded,
                 title: (note['title'] ?? 'Note ${i + 1}').toString(),
                 subtitle: 'By ${widget.teacherName ?? "Teacher"}',
@@ -858,11 +857,10 @@ class _AssignmentsPaneState extends State<_AssignmentsPane> {
           child: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: assignments.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, i) {
               final assignment = assignments[i];
               return _buildItemCard(
-                context: context,
                 icon: Icons.assignment_rounded,
                 title: (assignment['title'] ?? 'Assignment ${i + 1}')
                     .toString(),
@@ -958,11 +956,10 @@ class _QuizPaneState extends State<_QuizPane> {
         return ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: items.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, i) {
             final q = items[i];
             return _buildItemCard(
-              context: context,
               icon: Icons.timer_outlined,
               title: (q['title'] ?? 'Quiz').toString(),
               subtitle:
@@ -1037,7 +1034,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
         return ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: schedule.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, i) {
             final item = schedule[i];
             return _PremiumCard(
@@ -1161,10 +1158,6 @@ class _ResultsTabState extends State<_ResultsTab> {
   }
 
   Future<void> _pickMonth() async {
-    final now = DateTime.now();
-    final first = DateTime(2024);
-    final last = DateTime(now.year + 1);
-
     // Using a simple list for month selection as a quick solution
     final List<String> months = [
       'January',
@@ -1387,7 +1380,7 @@ class _ResultsTabState extends State<_ResultsTab> {
               return ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: results.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
                 itemBuilder: (context, i) {
                   final res = results[i];
                   final exam = res['exam'] as Map<String, dynamic>? ?? {};
@@ -1412,7 +1405,6 @@ class _ResultsTabState extends State<_ResultsTab> {
                           : 'D');
                   final isPassed = pct >= 50;
                   return _buildItemCard(
-                    context: context,
                     icon: Icons.assignment_turned_in_rounded,
                     title:
                         (res['quiz_title'] ?? exam['title'] ?? 'Test ${i + 1}')
@@ -1469,10 +1461,6 @@ class _AttendanceTabState extends State<_AttendanceTab> {
   }
 
   Future<void> _pickMonth() async {
-    final now = DateTime.now();
-    final first = DateTime(2024);
-    final last = DateTime(now.year + 1);
-
     final List<String> months = [
       'January',
       'February',
@@ -2014,7 +2002,7 @@ class _DoubtsTabState extends State<_DoubtsTab> {
                 return ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: doubts.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (context, i) {
                     final doubt = doubts[i];
                     return _PremiumCard(
@@ -2137,7 +2125,6 @@ class _DoubtsTabState extends State<_DoubtsTab> {
 // ── Reusable Widgets ──────────────────────────────────────────
 
 Widget _buildItemCard({
-  required BuildContext context,
   required IconData icon,
   required String title,
   required String subtitle,
@@ -2227,7 +2214,6 @@ class _PremiumCard extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
 
   const _PremiumCard({
-    super.key,
     required this.child,
     this.padding,
     this.margin,
@@ -2263,7 +2249,6 @@ class _EmptyState extends StatelessWidget {
   final IconData icon;
 
   const _EmptyState({
-    super.key,
     required this.message,
     required this.icon,
   });

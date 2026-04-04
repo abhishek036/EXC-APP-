@@ -385,15 +385,14 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                         return;
                       }
                     }
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('No valid URL for ${material.title}'),
-                          backgroundColor: AppColors.error,
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    }
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('No valid URL for ${material.title}'),
+                        backgroundColor: AppColors.error,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
                   },
                   icon: const Icon(
                     Icons.file_download_outlined,

@@ -52,9 +52,13 @@ class CloudStorageService {
     String mimeType = 'application/octet-stream';
     if (fileName.endsWith('.pdf')) {
       mimeType = 'application/pdf';
-    } else if (fileName.endsWith('.png')) mimeType = 'image/png';
-    else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) mimeType = 'image/jpeg';
-    else if (fileName.endsWith('.mp4')) mimeType = 'video/mp4';
+    } else if (fileName.endsWith('.png')) {
+      mimeType = 'image/png';
+    } else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+      mimeType = 'image/jpeg';
+    } else if (fileName.endsWith('.mp4')) {
+      mimeType = 'video/mp4';
+    }
 
     final formData = FormData.fromMap({
       'file': MultipartFile.fromBytes(

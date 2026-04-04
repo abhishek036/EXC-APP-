@@ -1,3 +1,5 @@
+// ignore_for_file: use_null_aware_elements
+
 import '../../../../core/network/api_client.dart';
 import '../../../../core/di/injection_container.dart';
 
@@ -71,13 +73,15 @@ class StudentRepository {
 
   // ── Schedule / Timetable ─────────────────────────────────
   Future<List<Map<String, dynamic>>> getTodaySchedule({int? dayIndex, DateTime? date, String? batchId, String? subject}) async {
+    final normalizedBatchId = batchId?.trim();
+    final normalizedSubject = subject?.trim();
     final response = await _api.dio.get(
       'students/me/schedule/today',
       queryParameters: {
-        if (dayIndex != null) 'day': dayIndex,
+        if (dayIndex case final day?) 'day': day,
         if (date != null) 'date': date.toIso8601String(),
-        if (batchId != null && batchId.isNotEmpty) 'batch_id': batchId,
-        if (subject != null && subject.isNotEmpty) 'subject': subject,
+        if (normalizedBatchId?.isNotEmpty ?? false) 'batch_id': normalizedBatchId,
+        if (normalizedSubject?.isNotEmpty ?? false) 'subject': normalizedSubject,
       },
     );
     if (response.statusCode == 200) {
@@ -87,9 +91,11 @@ class StudentRepository {
   }
 
   Future<List<Map<String, dynamic>>> getLectures({String? batchId, String? subject}) async {
+    final normalizedBatchId = batchId?.trim();
+    final normalizedSubject = subject?.trim();
     final response = await _api.dio.get('students/me/lectures', queryParameters: {
-      if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
-      if (subject != null && subject.isNotEmpty) 'subject': subject,
+      if (normalizedBatchId?.isNotEmpty ?? false) 'batchId': normalizedBatchId,
+      if (normalizedSubject?.isNotEmpty ?? false) 'subject': normalizedSubject,
     });
     if (response.statusCode == 200) {
       return _extractList(response.data);
@@ -99,13 +105,15 @@ class StudentRepository {
 
   // ── Attendance ───────────────────────────────────────────
   Future<Map<String, dynamic>> getMyAttendance({String? batchId, int? month, int? year, String? subject}) async {
+    final normalizedBatchId = batchId?.trim();
+    final normalizedSubject = subject?.trim();
     final response = await _api.dio.get(
       'students/me/attendance',
       queryParameters: {
-        if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
-        if (month != null) 'month': month,
-        if (year != null) 'year': year,
-        if (subject != null && subject.isNotEmpty) 'subject': subject,
+        if (normalizedBatchId?.isNotEmpty ?? false) 'batchId': normalizedBatchId,
+        if (month case final selectedMonth?) 'month': selectedMonth,
+        if (year case final selectedYear?) 'year': selectedYear,
+        if (normalizedSubject?.isNotEmpty ?? false) 'subject': normalizedSubject,
       },
     );
     if (response.statusCode == 200) {
@@ -116,8 +124,9 @@ class StudentRepository {
 
   // ── Exams & Results ──────────────────────────────────────
   Future<List<Map<String, dynamic>>> getUpcomingExams({String? subject}) async {
+    final normalizedSubject = subject?.trim();
     final response = await _api.dio.get('students/me/exams/upcoming', queryParameters: {
-      if (subject != null && subject.isNotEmpty) 'subject': subject,
+      if (normalizedSubject?.isNotEmpty ?? false) 'subject': normalizedSubject,
     });
     if (response.statusCode == 200) {
       return _extractList(response.data);
@@ -126,11 +135,13 @@ class StudentRepository {
   }
 
   Future<List<Map<String, dynamic>>> getMyResults({String? batchId, int? month, int? year, String? subject}) async {
+    final normalizedBatchId = batchId?.trim();
+    final normalizedSubject = subject?.trim();
     final response = await _api.dio.get('students/me/results', queryParameters: {
-      if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
-      if (month != null) 'month': month,
-      if (year != null) 'year': year,
-      if (subject != null && subject.isNotEmpty) 'subject': subject,
+      if (normalizedBatchId?.isNotEmpty ?? false) 'batchId': normalizedBatchId,
+      if (month case final selectedMonth?) 'month': selectedMonth,
+      if (year case final selectedYear?) 'year': selectedYear,
+      if (normalizedSubject?.isNotEmpty ?? false) 'subject': normalizedSubject,
     });
     if (response.statusCode == 200) {
       return _extractList(response.data);

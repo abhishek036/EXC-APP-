@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { AuthRepository } from './auth.repository';
@@ -77,11 +77,16 @@ export class AuthService {
 
         await this.authRepository.saveOtp(phone, otp, purpose, expiresAt);
 
-        if (process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_OTP === 'true') {
+        const testOtpEnabled =
+            process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_OTP === 'true';
+
+        if (testOtpEnabled) {
             console.log(`[DEV OTP]: Sent ${otp} to ${phone} for ${purpose}`);
         }
 
         const whatsappOtpEnabled = (process.env.ENABLE_WHATSAPP_OTP ?? 'true').toLowerCase() === 'true';
+        let delivered = false;
+        let deliveryChannel: 'whatsapp' | 'none' = 'none';
 
         if (whatsappOtpEnabled) {
             try {
@@ -89,6 +94,8 @@ export class AuthService {
                 const sent = await RenflairOtpService.sendOTP(phone, otp);
                 if (sent) {
                     console.log(`[AUTH] ✅ WhatsApp OTP sent via Renflair to ${phone}`);
+                    delivered = true;
+                    deliveryChannel = 'whatsapp';
                 } else {
                     console.warn(`[AUTH] ⚠️ Renflair send failed for ${phone} — OTP was saved to DB, user can check console in dev`);
                 }
@@ -99,9 +106,16 @@ export class AuthService {
             console.log(`[AUTH] WhatsApp OTP delivery disabled via ENABLE_WHATSAPP_OTP=false`);
         }
 
+        const debugOtp = testOtpEnabled ? (process.env.TEST_OTP || '123456') : undefined;
+
         return {
             success: true,
-            message: 'OTP sent successfully to registered phone number'
+            message: delivered
+                ? 'OTP sent successfully to registered phone number'
+                : 'OTP generated but delivery channel is unavailable',
+            deliveryChannel,
+            delivered,
+            debugOtp,
         };
     }
 

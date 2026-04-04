@@ -204,7 +204,7 @@ export class StudentService {
 
   async importExcel(instituteId: string, fileBuffer: Buffer, batchId?: string) {
     const { parseExcel } = await import('../../utils/excel');
-    const data = parseExcel(fileBuffer);
+    const data = await parseExcel(fileBuffer);
     
     let processed = 0;
     let errors: string[] = [];

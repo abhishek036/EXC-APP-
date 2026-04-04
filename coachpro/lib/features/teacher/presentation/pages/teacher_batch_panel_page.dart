@@ -32,7 +32,6 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   final _teacherRepo = sl<TeacherRepository>();
 
   bool _loading = true;
-  String? _error;
   Map<String, dynamic>? _batch;
   Map<String, dynamic> _execution = {};
   List<Map<String, dynamic>> _students = [];
@@ -49,8 +48,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   List<String> _subjects = [];
   bool _isReplying = false;
   bool _isDeletingQuiz = false;
-  DateTime _selectedQuizMonth = DateTime.now();
   DateTime _selectedAttendanceDate = DateTime.now();
+  DateTime _selectedQuizMonth = DateTime.now();
   StreamSubscription? _syncSub;
 
   @override
@@ -85,7 +84,6 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     if (!mounted) return;
     setState(() {
       _loading = true;
-      _error = null;
     });
     try {
       final batchesFuture = _teacherRepo.getMyBatches();
@@ -172,7 +170,6 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
         _loading = false;
       });
     }
