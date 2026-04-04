@@ -133,7 +133,6 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx); // Close dialog
-              context.pop(); // Leave quiz page
               context.go('/student/quiz/${widget.quizId}/result');
             },
             child: const Text('View Quiz Analysis'),

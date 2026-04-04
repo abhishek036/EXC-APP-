@@ -12,13 +12,30 @@ import '../bloc/auth_bloc.dart';
 class OtpRouteArgs {
   final String phoneNumber;
   final AppRole role;
-  const OtpRouteArgs({required this.phoneNumber, required this.role});
+  final String? infoMessage;
+  final String? debugOtp;
+
+  const OtpRouteArgs({
+    required this.phoneNumber,
+    required this.role,
+    this.infoMessage,
+    this.debugOtp,
+  });
 }
 
 class OtpPage extends StatefulWidget {
   final String? phoneNumber;
   final AppRole? role;
-  const OtpPage({super.key, this.phoneNumber, this.role});
+  final String? infoMessage;
+  final String? debugOtp;
+
+  const OtpPage({
+    super.key,
+    this.phoneNumber,
+    this.role,
+    this.infoMessage,
+    this.debugOtp,
+  });
 
   @override
   State<OtpPage> createState() => _OtpPageState();
@@ -38,6 +55,26 @@ class _OtpPageState extends State<OtpPage> {
     super.initState();
     _stablePhone = widget.phoneNumber ?? '98******10';
     _startTimer();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final hint = widget.debugOtp?.trim();
+      if (hint != null && hint.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Delivery unavailable. Use OTP: $hint',
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            backgroundColor: Colors.orange.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
   }
 
   String get _maskedPhone {
@@ -169,7 +206,26 @@ class _OtpPageState extends State<OtpPage> {
           _focusNodes[0].requestFocus();
         }
         if (state is AuthOtpSent) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP resent successfully!', style: TextStyle(color: Colors.white)), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating));
+          final hint = state.debugOtp?.trim();
+          final message = (hint == null || hint.isEmpty)
+              ? (state.infoMessage ?? 'OTP resent successfully!')
+              : 'OTP resent. Use OTP: $hint';
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                message,
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              backgroundColor: (hint == null || hint.isEmpty)
+                  ? Colors.green
+                  : Colors.orange.shade700,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
       },
       builder: (context, state) {
@@ -231,9 +287,17 @@ class _OtpPageState extends State<OtpPage> {
                         style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.8)
                       ).animate(delay: 200.ms).fadeIn(),
                       const SizedBox(height: 6),
-                      Text('We sent a code via WhatsApp to\n$_maskedPhone', 
-                        textAlign: TextAlign.center, 
-                        style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.white.withValues(alpha: 0.55), fontWeight: FontWeight.w500, height: 1.5)
+                      Text(
+                        (widget.debugOtp?.trim().isNotEmpty ?? false)
+                            ? 'Automatic delivery is unavailable for this environment.\nUse the OTP shown in the message.'
+                            : 'We sent a code to\n$_maskedPhone',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          color: Colors.white.withValues(alpha: 0.55),
+                          fontWeight: FontWeight.w500,
+                          height: 1.5,
+                        ),
                       ).animate(delay: 300.ms).fadeIn(),
 
                       const SizedBox(height: 40),

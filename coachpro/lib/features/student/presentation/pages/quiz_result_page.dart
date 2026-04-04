@@ -75,62 +75,69 @@ class _QuizResultPageState extends State<QuizResultPage> {
     final quiz = Map<String, dynamic>.from(_result['quiz'] as Map? ?? const {});
     final title = (quiz['title'] ?? 'Quiz Result').toString();
 
-    return Scaffold(
-      backgroundColor: CT.bg(context),
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        context.go('/student/quiz');
+      },
+      child: Scaffold(
         backgroundColor: CT.bg(context),
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => context.canPop() ? context.pop() : context.go('/student/quiz'),
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: CT.textH(context)),
-        ),
-        title: Text(
-          'Quiz Analysis',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: CT.textH(context),
+        appBar: AppBar(
+          backgroundColor: CT.bg(context),
+          elevation: 0,
+          leading: IconButton(
+            onPressed: () => context.go('/student/quiz'),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: CT.textH(context)),
+          ),
+          title: Text(
+            'Quiz Analysis',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: CT.textH(context),
+            ),
           ),
         ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? _buildError(context)
-              : RefreshIndicator(
-                  onRefresh: _fetch,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppDimensions.pagePaddingH,
-                      AppDimensions.sm,
-                      AppDimensions.pagePaddingH,
-                      24,
-                    ),
-                    children: [
-                      _summaryCard(context, title),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Question Review',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: CT.textH(context),
-                        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? _buildError(context)
+                : RefreshIndicator(
+                    onRefresh: _fetch,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppDimensions.pagePaddingH,
+                        AppDimensions.sm,
+                        AppDimensions.pagePaddingH,
+                        24,
                       ),
-                      const SizedBox(height: 10),
-                      if (_questions.isEmpty)
-                        _emptyQuestions(context)
-                      else
-                        ..._questions.asMap().entries.map(
-                              (entry) => _questionCard(
-                                context,
-                                entry.key + 1,
-                                entry.value,
+                      children: [
+                        _summaryCard(context, title),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Question Review',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: CT.textH(context),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        if (_questions.isEmpty)
+                          _emptyQuestions(context)
+                        else
+                          ..._questions.asMap().entries.map(
+                                (entry) => _questionCard(
+                                  context,
+                                  entry.key + 1,
+                                  entry.value,
+                                ),
                               ),
-                            ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+      ),
     );
   }
 

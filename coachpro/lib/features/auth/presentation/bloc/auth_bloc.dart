@@ -209,12 +209,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     _pendingRole = event.role.name;
 
     try {
-      await _apiAuth.sendOtp(
+      final otpResponse = await _apiAuth.sendOtp(
         phone: phone,
         joinCode: _pendingJoinCode,
         role: _pendingRole,
       );
-      emit(const AuthOtpSent());
+      emit(AuthOtpSent(
+        infoMessage: otpResponse['message']?.toString(),
+        debugOtp: otpResponse['debugOtp']?.toString(),
+      ));
     } catch (e) {
       emit(AuthError(_friendlyAuthError(e, fallback: 'Failed to send OTP. $e')));
     }

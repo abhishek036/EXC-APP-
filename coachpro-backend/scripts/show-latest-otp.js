@@ -5,13 +5,21 @@ const prisma = new PrismaClient();
 
 async function run() {
   const phone = process.argv[2] || process.env.SMOKE_PHONE || '8888888888';
+  const purpose = process.argv[3] || 'login';
+
+  const phonesToTry = Array.from(new Set([
+    phone,
+    phone.startsWith('+91') ? phone.substring(3) : phone,
+    phone.startsWith('+') ? phone : `+91${phone}`,
+  ]));
+
   const row = await prisma.otpCode.findFirst({
-    where: { phone, purpose: 'login' },
+    where: { phone: { in: phonesToTry }, purpose },
     orderBy: { created_at: 'desc' },
   });
 
   if (!row) {
-    console.log(`No OTP rows found for ${phone}`);
+    console.log(`No OTP rows found for phone=${phone}, purpose=${purpose}`);
     return;
   }
 

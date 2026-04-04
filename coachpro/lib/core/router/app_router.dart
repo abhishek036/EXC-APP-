@@ -958,24 +958,22 @@ class AppRouter {
                     pageBuilder: (c, s) => _page(s, const QuizzesListPage()),
                     routes: [
                       GoRoute(
+                        path: ':id/result',
+                        name: 'quiz-result',
+                        pageBuilder: (c, s) => _page(
+                          s,
+                          QuizResultPage(
+                            quizId: s.pathParameters['id'] ?? '',
+                          ),
+                        ),
+                      ),
+                      GoRoute(
                         path: ':id',
                         name: 'quiz-taking',
                         pageBuilder: (c, s) => _page(
                           s,
                           QuizTakingPage(quizId: s.pathParameters['id'] ?? ''),
                         ),
-                        routes: [
-                          GoRoute(
-                            path: 'result',
-                            name: 'quiz-result',
-                            pageBuilder: (c, s) => _page(
-                              s,
-                              QuizResultPage(
-                                quizId: s.pathParameters['id'] ?? '',
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),

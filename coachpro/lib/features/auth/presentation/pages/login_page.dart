@@ -105,6 +105,8 @@ class _LoginPageState extends State<LoginPage> {
           context.push('/otp', extra: OtpRouteArgs(
             phoneNumber: _phoneController.text.trim(),
             role: _selectedRole.toAppRole(),
+            infoMessage: state.infoMessage,
+            debugOtp: state.debugOtp,
           ));
         }
       },

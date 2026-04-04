@@ -20,7 +20,13 @@ class AuthLoading extends AuthState {
 
 /// OTP has been sent to the phone number — navigate to OTP page.
 class AuthOtpSent extends AuthState {
-  const AuthOtpSent();
+  final String? infoMessage;
+  final String? debugOtp;
+
+  const AuthOtpSent({this.infoMessage, this.debugOtp});
+
+  @override
+  List<Object?> get props => [infoMessage, debugOtp];
 }
 
 /// Fully authenticated user with a valid token.

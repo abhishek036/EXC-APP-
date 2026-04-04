@@ -9,7 +9,7 @@ class ApiAuthService {
   final ApiClient _api = sl<ApiClient>();
 
   /// Sends an OTP to the given phone number with the given role.
-  Future<void> sendOtp({
+  Future<Map<String, dynamic>> sendOtp({
     required String phone,
     String purpose = 'login',
     String? joinCode,
@@ -34,6 +34,12 @@ class ApiAuthService {
     if (response.statusCode != 200) {
       throw Exception(response.data['message'] ?? 'Failed to send OTP');
     }
+
+    final payload = response.data;
+    if (payload is Map && payload['data'] is Map<String, dynamic>) {
+      return payload['data'] as Map<String, dynamic>;
+    }
+    return <String, dynamic>{};
   }
 
   /// Verifies the OTP and returns token and user data.
