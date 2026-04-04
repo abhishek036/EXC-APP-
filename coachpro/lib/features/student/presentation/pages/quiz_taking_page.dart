@@ -107,6 +107,7 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
       );
 
       if (mounted) {
+        setState(() => _isLoading = false);
         _showResultDialog();
       }
     } catch (e) {
@@ -133,14 +134,14 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
             onPressed: () {
               Navigator.pop(ctx); // Close dialog
               context.pop(); // Leave quiz page
-              context.go('/student/results');
+              context.go('/student/quiz/${widget.quizId}/result');
             },
-            child: const Text('View Results'),
+            child: const Text('View Quiz Analysis'),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              context.pop();
+              context.go('/student');
             },
             child: const Text('Back to Dashboard'),
           ),

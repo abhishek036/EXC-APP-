@@ -10,8 +10,8 @@ const router = Router();
 router.use(authenticateJWT);
 router.use(tenantMiddleware);
 
-// Roles: teacher, admin, student
-router.get('/', requireRole('admin', 'teacher', 'student'), QuizController.listQuizzes);
+// Roles: teacher, admin
+router.get('/', requireRole('admin', 'teacher'), QuizController.listQuizzes);
 router.post('/', requireRole('admin', 'teacher'), validate(createQuizSchema), QuizController.createQuiz);
 router.get('/available', requireRole('student'), QuizController.getAvailableQuizzes);
 router.get('/:id', requireRole('admin', 'teacher', 'student'), QuizController.getQuiz);

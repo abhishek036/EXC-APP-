@@ -80,6 +80,27 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
         .toList();
   }
 
+  List<Map<String, dynamic>> get _classResults {
+    final items = (_report['class_results'] as List?) ?? const [];
+    if (items.isEmpty) {
+      return _attempts
+          .map(
+            (a) => {
+              'student_name': ((a['student'] as Map?)?['name'] ?? 'Student')
+                  .toString(),
+              'status': a['submitted_at'] != null ? 'submitted' : 'pending',
+              'obtained_marks': a['obtained_marks'],
+              'total_marks': a['total_marks'],
+            },
+          )
+          .toList();
+    }
+    return items
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
   num _toNum(dynamic value) {
     if (value == null) return 0;
     if (value is num) return value;
@@ -259,6 +280,8 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
                     blue,
                     surface,
                   ),
+                  const SizedBox(height: 24),
+                  _buildClassResults(blue, surface),
                   const SizedBox(height: 24),
                   _buildLeaderboard(blue, surface),
                   const SizedBox(height: 40),
@@ -721,6 +744,97 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
             );
           }),
       ],
+    );
+  }
+
+  Widget _buildClassResults(Color blue, Color surface) {
+    final rows = _classResults;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border.all(color: blue, width: 2.5),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: blue, offset: const Offset(5, 5))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'CLASS RESULTS',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: blue,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (rows.isEmpty)
+            Text(
+              'No students found for this batch yet.',
+              style: GoogleFonts.plusJakartaSans(
+                color: blue.withValues(alpha: 0.65),
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            ...rows.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final row = entry.value;
+              final name = (row['student_name'] ?? row['name'] ?? 'Student')
+                  .toString()
+                  .toUpperCase();
+              final status = (row['status'] ?? '').toString().toLowerCase();
+              final submitted = status == 'submitted' || row['submitted_at'] != null;
+              final obtained = _toNum(row['obtained_marks']).toInt();
+              final total = _toNum(row['total_marks']).toInt();
+              final marksText = submitted
+                  ? '$obtained/${total > 0 ? total : _totalMarks}'
+                  : 'PENDING';
+
+              return Container(
+                margin: EdgeInsets.only(bottom: idx == rows.length - 1 ? 0 : 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: submitted
+                        ? blue.withValues(alpha: 0.25)
+                        : AppColors.moltenAmber.withValues(alpha: 0.7),
+                    width: 1.3,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: blue,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      marksText,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        color: submitted ? blue : AppColors.moltenAmber,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 }

@@ -26,6 +26,7 @@ import '../../features/teacher/presentation/pages/attendance_marking_page.dart';
 import '../../features/teacher/presentation/pages/pending_doubts_page.dart';
 import '../../features/teacher/presentation/pages/doubt_response_page.dart';
 import '../../features/student/presentation/pages/quiz_taking_page.dart';
+import '../../features/student/presentation/pages/quiz_result_page.dart';
 import '../../features/student/presentation/pages/quizzes_list_page.dart';
 import '../../features/student/presentation/pages/exam_results_page.dart';
 import '../../features/student/presentation/pages/syllabus_tracker_page.dart';
@@ -310,16 +311,28 @@ class AppRouter {
         pageBuilder: (c, s) {
           String? phone;
           AppRole? role;
+          String? infoMessage;
+          String? debugOtp;
           final extra = s.extra;
 
           if (extra is OtpRouteArgs) {
             phone = extra.phoneNumber;
             role = extra.role;
+            infoMessage = extra.infoMessage;
+            debugOtp = extra.debugOtp;
           } else if (extra is String) {
             phone = extra;
           }
 
-          return _page(s, OtpPage(phoneNumber: phone, role: role));
+          return _page(
+            s,
+            OtpPage(
+              phoneNumber: phone,
+              role: role,
+              infoMessage: infoMessage,
+              debugOtp: debugOtp,
+            ),
+          );
         },
       ),
       GoRoute(
@@ -951,6 +964,18 @@ class AppRouter {
                           s,
                           QuizTakingPage(quizId: s.pathParameters['id'] ?? ''),
                         ),
+                        routes: [
+                          GoRoute(
+                            path: 'result',
+                            name: 'quiz-result',
+                            pageBuilder: (c, s) => _page(
+                              s,
+                              QuizResultPage(
+                                quizId: s.pathParameters['id'] ?? '',
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

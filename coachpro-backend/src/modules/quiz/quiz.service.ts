@@ -99,6 +99,26 @@ export class QuizService {
     return selected.id;
   }
 
+  private static async ensureStudentCanAccessQuizBatch(
+    studentProfileId: string,
+    batchId: string,
+    instituteId: string,
+  ): Promise<void> {
+    const membership = await prisma.studentBatch.findFirst({
+      where: {
+        student_id: studentProfileId,
+        batch_id: batchId,
+        institute_id: instituteId,
+        OR: [{ is_active: true }, { is_active: null }],
+      },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      throw new ApiError('You are not allowed to access this quiz', 403, 'FORBIDDEN');
+    }
+  }
+
   static async createQuiz(
     instituteId: string,
     teacherUserId: string,
@@ -160,16 +180,28 @@ export class QuizService {
     return QuizRepository.listQuizzes(instituteId, filter);
   }
 
-  static async getQuizById(id: string, instituteId: string, role: string) {
+  static async getQuizById(id: string, instituteId: string, role: string, requesterUserId: string) {
     const quiz = await QuizRepository.findQuizById(id, instituteId);
     if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
 
-    // NOTE: Allowing access if the student is assigned to the batch
-    // if (role === 'student' && !quiz.is_published) {
-    //   throw new ApiError('This quiz is not published yet', 403, 'FORBIDDEN');
-    // }
+    const normalizedRole = (role || '').toLowerCase();
 
-    if (role === 'student') {
+    if (normalizedRole === 'teacher') {
+      await QuizService.ensureTeacherOwnsQuiz(requesterUserId, instituteId, quiz.teacher_id);
+    }
+
+    if (normalizedRole === 'student') {
+        const studentProfileId = await QuizService.resolveStudentProfileId(requesterUserId, instituteId);
+        await QuizService.ensureStudentCanAccessQuizBatch(studentProfileId, quiz.batch_id, instituteId);
+
+        if (!quiz.is_published) {
+          throw new ApiError('This quiz is not published yet', 403, 'FORBIDDEN');
+        }
+
+        if (quiz.scheduled_at && new Date(quiz.scheduled_at) > new Date()) {
+          throw new ApiError('This quiz is not available yet', 403, 'FORBIDDEN');
+        }
+
         const studentQuiz = JSON.parse(JSON.stringify(quiz));
         studentQuiz.questions.forEach((q: any) => {
             delete q.correct_option; // Don't expose answers to students
@@ -272,10 +304,16 @@ export class QuizService {
 
     const quiz = await QuizRepository.findQuizById(quizId, instituteId);
     if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
-    // NOTE: We allow starting even if not published if the student is assigned.
-    // In many cases, "published" simply means "visible in catalog", but students in a batch
-    // should be able to take it if it appears in their batch panel.
-    // if (!quiz.is_published) throw new ApiError('Quiz is not published yet', 403, 'FORBIDDEN');
+
+    await QuizService.ensureStudentCanAccessQuizBatch(studentProfileId, quiz.batch_id, instituteId);
+
+    if (!quiz.is_published) {
+      throw new ApiError('Quiz is not published yet', 403, 'FORBIDDEN');
+    }
+
+    if (quiz.scheduled_at && new Date(quiz.scheduled_at) > new Date()) {
+      throw new ApiError('Quiz is not available yet', 403, 'FORBIDDEN');
+    }
 
     const existingAttempt = await QuizRepository.findAttempt(quizId, studentProfileId);
     if (existingAttempt) {
@@ -306,9 +344,36 @@ export class QuizService {
     const quiz = await QuizRepository.findQuizById(quizId, instituteId);
     if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
 
+    await QuizService.ensureStudentCanAccessQuizBatch(studentProfileId, quiz.batch_id, instituteId);
+
+    if (!quiz.is_published) {
+      throw new ApiError('Quiz is not published yet', 403, 'FORBIDDEN');
+    }
+
+    if (quiz.scheduled_at && new Date(quiz.scheduled_at) > new Date()) {
+      throw new ApiError('Quiz is not available yet', 403, 'FORBIDDEN');
+    }
+
     const attempt = await QuizRepository.findAttempt(quizId, studentProfileId);
     if (!attempt) throw new ApiError('Quiz attempt not started', 404, 'NOT_FOUND');
     if (attempt.submitted_at) throw new ApiError('Quiz already submitted', 400, 'BAD_REQUEST');
+
+    const startedAtMs = attempt.started_at ? new Date(attempt.started_at).getTime() : Date.now();
+    const timeLimitMin = Number(quiz.time_limit_min ?? 0);
+    if (timeLimitMin > 0) {
+      const allowedMs = timeLimitMin * 60 * 1000;
+      const elapsedMs = Date.now() - startedAtMs;
+      if (elapsedMs > allowedMs + 5000) {
+        throw new ApiError('Time limit exceeded for this quiz', 400, 'TIME_LIMIT_EXCEEDED');
+      }
+    }
+
+    const allowedQuestionIds = new Set(quiz.questions.map((q) => q.id));
+    for (const questionId of Object.keys(answers || {})) {
+      if (!allowedQuestionIds.has(questionId)) {
+        throw new ApiError('Submitted answers contain invalid question ids', 400, 'INVALID_ANSWERS');
+      }
+    }
 
     let totalMarks = 0;
     let obtainedMarks = 0;
@@ -406,24 +471,169 @@ export class QuizService {
   static async getStudentResult(quizId: string, studentId: string, instituteId: string) {
     const studentProfileId = await QuizService.resolveStudentProfileId(studentId, instituteId);
 
+    const quiz = await QuizRepository.findQuizById(quizId, instituteId);
+    if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
+
+    await QuizService.ensureStudentCanAccessQuizBatch(studentProfileId, quiz.batch_id, instituteId);
+
     const attempt = await QuizRepository.findAttempt(quizId, studentProfileId);
     if (!attempt) throw new ApiError('Attempt not found', 404, 'NOT_FOUND');
     if (!attempt.submitted_at) throw new ApiError('Quiz not submitted yet', 400, 'BAD_REQUEST');
-    
-    return attempt;
+
+    const answerMap = (attempt.answers && typeof attempt.answers === 'object')
+      ? (attempt.answers as Record<string, string>)
+      : {};
+
+    let correctAnswers = 0;
+    let wrongAnswers = 0;
+    let unansweredQuestions = 0;
+
+    const questions = quiz.questions.map((q, idx) => {
+      const qAny = q as any;
+      const selectedOption = answerMap[q.id] ?? null;
+      const hasAnswered = !!selectedOption;
+      const isCorrect = hasAnswered && selectedOption === q.correct_option;
+
+      if (!hasAnswered) {
+        unansweredQuestions += 1;
+      } else if (isCorrect) {
+        correctAnswers += 1;
+      } else {
+        wrongAnswers += 1;
+      }
+
+      return {
+        id: q.id,
+        order_index: q.order_index ?? idx,
+        question_text: q.question_text,
+        image_url: q.image_url,
+        option_a: q.option_a,
+        option_a_image: qAny.option_a_image ?? null,
+        option_b: q.option_b,
+        option_b_image: qAny.option_b_image ?? null,
+        option_c: q.option_c,
+        option_c_image: qAny.option_c_image ?? null,
+        option_d: q.option_d,
+        option_d_image: qAny.option_d_image ?? null,
+        correct_option: q.correct_option,
+        selected_option: selectedOption,
+        is_correct: isCorrect,
+        marks: q.marks ?? 1,
+      };
+    });
+
+    const totalQuestions = questions.length;
+    const answeredQuestions = totalQuestions - unansweredQuestions;
+    const totalMarks = attempt.total_marks ?? quiz.questions.reduce((sum, q) => sum + (q.marks ?? 1), 0);
+    const obtainedMarks = attempt.obtained_marks ?? 0;
+    const percentage = totalMarks > 0 ? Number(((obtainedMarks / totalMarks) * 100).toFixed(2)) : 0;
+
+    return {
+      quiz: {
+        id: quiz.id,
+        title: quiz.title,
+        subject: quiz.subject,
+        assessment_type: quiz.assessment_type,
+        batch_id: quiz.batch_id,
+      },
+      attempt: {
+        id: attempt.id,
+        started_at: attempt.started_at,
+        submitted_at: attempt.submitted_at,
+      },
+      summary: {
+        total_questions: totalQuestions,
+        answered_questions: answeredQuestions,
+        correct_answers: correctAnswers,
+        wrong_answers: wrongAnswers,
+        unanswered_questions: unansweredQuestions,
+        total_marks: totalMarks,
+        obtained_marks: obtainedMarks,
+        percentage,
+      },
+      questions,
+    };
   }
 
-  static async getLeaderboard(quizId: string, instituteId: string) {
+  static async getLeaderboard(
+    quizId: string,
+    instituteId: string,
+    requesterRole: string,
+    requesterUserId: string,
+  ) {
+    const quiz = await QuizRepository.findQuizById(quizId, instituteId);
+    if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
+
+    if ((requesterRole || '').toLowerCase() === 'teacher') {
+      await QuizService.ensureTeacherOwnsQuiz(requesterUserId, instituteId, quiz.teacher_id);
+    }
+
     return QuizRepository.getLeaderboard(quizId, instituteId);
   }
 
-  static async getFullReport(quizId: string, instituteId: string) {
+  static async getFullReport(
+    quizId: string,
+    instituteId: string,
+    requesterRole: string,
+    requesterUserId: string,
+  ) {
     const attempts = await QuizRepository.getAttemptsByQuiz(quizId, instituteId);
     const quiz = await QuizRepository.findQuizById(quizId, instituteId);
+    if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
+
+    if ((requesterRole || '').toLowerCase() === 'teacher') {
+      await QuizService.ensureTeacherOwnsQuiz(requesterUserId, instituteId, quiz.teacher_id);
+    }
+
+    const batchStudents = await prisma.studentBatch.findMany({
+      where: {
+        batch_id: quiz.batch_id,
+        institute_id: instituteId,
+        OR: [{ is_active: true }, { is_active: null }],
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            photo_url: true,
+          },
+        },
+      },
+    });
+
+    const attemptByStudent = new Map<string, any>();
+    for (const attempt of attempts) {
+      attemptByStudent.set(attempt.student_id, attempt);
+    }
+
+    const class_results = batchStudents
+      .map((sb) => {
+        const att = attemptByStudent.get(sb.student_id);
+        return {
+          student_id: sb.student_id,
+          student_name: sb.student?.name ?? 'Student',
+          student_phone: sb.student?.phone ?? '',
+          student_photo_url: sb.student?.photo_url ?? null,
+          submitted_at: att?.submitted_at ?? null,
+          obtained_marks: att?.obtained_marks ?? null,
+          total_marks: att?.total_marks ?? null,
+          status: att?.submitted_at ? 'submitted' : 'pending',
+        };
+      })
+      .sort((a, b) => {
+        if (a.status !== b.status) return a.status === 'submitted' ? -1 : 1;
+        const aMarks = a.obtained_marks ?? -1;
+        const bMarks = b.obtained_marks ?? -1;
+        if (aMarks !== bMarks) return bMarks - aMarks;
+        return a.student_name.localeCompare(b.student_name);
+      });
     
     return {
        quiz,
-       attempts
+       attempts,
+       class_results,
     };
   }
 

@@ -104,8 +104,11 @@ export class QuizController {
                 where: {
                     institute_id: req.instituteId!,
                     batch_id: { in: batchIds },
-                    // Removed is_published: true filter so user can see drafts for verification
-                    // Removed attempts filter so students can see and re-take quizzes
+                    is_published: true,
+                    OR: [
+                      { scheduled_at: null },
+                      { scheduled_at: { lte: new Date() } },
+                    ],
                     ...(subject
                       ? {
                           subject: {
@@ -117,7 +120,11 @@ export class QuizController {
                 },
                 include: {
                     batch: { select: { name: true } },
-                    _count: { select: { questions: true } }
+                    _count: { select: { questions: true } },
+                    attempts: {
+                      where: { student_id: student.id },
+                      select: { submitted_at: true, obtained_marks: true, total_marks: true },
+                    },
                 },
                 orderBy: { created_at: 'desc' }
             });
@@ -129,7 +136,9 @@ export class QuizController {
                           FROM quizzes q 
                           LEFT JOIN batches b ON q.batch_id = b.id 
                           WHERE q.institute_id::text = $1::text 
-                            AND q.batch_id::text IN (${batchIds.map((_, i) => `$${i + 2}`).join(',')})`;
+                            AND q.batch_id::text IN (${batchIds.map((_, i) => `$${i + 2}`).join(',')})
+                            AND COALESCE(q.is_published, false) = true
+                            AND (q.scheduled_at IS NULL OR q.scheduled_at <= NOW())`;
              const params = [req.instituteId, ...batchIds];
 
              if (subject) {
@@ -187,7 +196,7 @@ export class QuizController {
 
   static async getQuiz(req: Request, res: Response, next: NextFunction) {
     try {
-      const quiz = await QuizService.getQuizById(req.params.id, req.instituteId!, req.user!.role);
+      const quiz = await QuizService.getQuizById(req.params.id, req.instituteId!, req.user!.role, req.user!.userId);
       return sendResponse({ res, data: quiz });
     } catch (error) {
       next(error);
@@ -257,7 +266,12 @@ export class QuizController {
 
   static async getLeaderboard(req: Request, res: Response, next: NextFunction) {
     try {
-      const leaderboard = await QuizService.getLeaderboard(req.params.id, req.instituteId!);
+      const leaderboard = await QuizService.getLeaderboard(
+        req.params.id,
+        req.instituteId!,
+        req.user!.role,
+        req.user!.userId,
+      );
       return sendResponse({ res, data: leaderboard });
     } catch (error) {
       next(error);
@@ -266,7 +280,12 @@ export class QuizController {
 
   static async getReport(req: Request, res: Response, next: NextFunction) {
     try {
-      const report = await QuizService.getFullReport(req.params.id, req.instituteId!);
+      const report = await QuizService.getFullReport(
+        req.params.id,
+        req.instituteId!,
+        req.user!.role,
+        req.user!.userId,
+      );
       return sendResponse({ res, data: report });
     } catch (error) {
       next(error);
