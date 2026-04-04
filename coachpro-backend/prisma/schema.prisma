@@ -41,6 +41,9 @@ model Institute {
   quizzes                   Quiz[]
   quiz_attempts             QuizAttempt[]
   notes                     Note[]
+  note_files                NoteFile[]
+  download_logs             DownloadLog[]
+  note_bookmarks            NoteBookmark[]
   assignments               Assignment[]
   assignment_submissions    AssignmentSubmission[]
   doubts                    Doubt[]
@@ -237,6 +240,8 @@ model Student {
   syllabus_progress StudentSyllabusProgress[]
   assignment_submissions AssignmentSubmission[]
   lecture_progress       LectureProgress[]
+  note_download_logs     DownloadLog[]
+  note_bookmarks         NoteBookmark[]
 
   @@map("students")
 }
@@ -563,13 +568,87 @@ model Note {
   teacher_id   String?   @db.Uuid
   teacher      Teacher?  @relation(fields: [teacher_id], references: [id])
   title        String    @db.VarChar(200)
+  description  String?   @db.Text
   subject      String?   @db.VarChar(100)
+  chapter_title String?  @db.VarChar(150)
+  chapter_order Int      @default(0)
   file_url     String    @db.Text
   file_type    String?   @db.VarChar(20)
   file_size_kb Int?
+  is_deleted   Boolean   @default(false)
+  deleted_at   DateTime? @db.Timestamptz
   created_at   DateTime? @default(now()) @db.Timestamptz
+  updated_at   DateTime? @updatedAt @db.Timestamptz
+
+  note_files    NoteFile[]
+  download_logs DownloadLog[]
+  bookmarks     NoteBookmark[]
 
   @@map("notes")
+}
+
+model NoteFile {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  note_id          String    @db.Uuid
+  note             Note      @relation(fields: [note_id], references: [id], onDelete: Cascade)
+  institute_id     String    @db.Uuid
+  institute        Institute @relation(fields: [institute_id], references: [id], onDelete: Cascade)
+  file_url         String    @db.Text
+  file_name        String?   @db.VarChar(255)
+  file_type        String?   @db.VarChar(20)
+  mime_type        String?   @db.VarChar(120)
+  file_size_kb     Int?
+  storage_provider String?   @db.VarChar(30)
+  storage_path     String?   @db.Text
+  file_hash        String?   @db.VarChar(80)
+  version_no       Int       @default(1)
+  is_latest        Boolean   @default(true)
+  is_deleted       Boolean   @default(false)
+  created_at       DateTime  @default(now()) @db.Timestamptz
+  updated_at       DateTime  @updatedAt @db.Timestamptz
+
+  download_logs DownloadLog[]
+
+  @@index([note_id, is_latest])
+  @@index([institute_id, file_type])
+  @@map("note_files")
+}
+
+model DownloadLog {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  note_id       String    @db.Uuid
+  note          Note      @relation(fields: [note_id], references: [id], onDelete: Cascade)
+  note_file_id  String?   @db.Uuid
+  note_file     NoteFile? @relation(fields: [note_file_id], references: [id], onDelete: SetNull)
+  student_id    String?   @db.Uuid
+  student       Student?  @relation(fields: [student_id], references: [id], onDelete: SetNull)
+  institute_id  String    @db.Uuid
+  institute     Institute @relation(fields: [institute_id], references: [id], onDelete: Cascade)
+  action        String    @default("view") @db.VarChar(20)
+  ip_address    String?   @db.VarChar(64)
+  user_agent    String?   @db.Text
+  created_at    DateTime  @default(now()) @db.Timestamptz
+
+  @@index([note_id, created_at])
+  @@index([student_id, created_at])
+  @@index([institute_id, action])
+  @@map("download_logs")
+}
+
+model NoteBookmark {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  note_id      String    @db.Uuid
+  note         Note      @relation(fields: [note_id], references: [id], onDelete: Cascade)
+  student_id   String    @db.Uuid
+  student      Student   @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  institute_id String    @db.Uuid
+  institute    Institute @relation(fields: [institute_id], references: [id], onDelete: Cascade)
+  created_at   DateTime  @default(now()) @db.Timestamptz
+
+  @@unique([note_id, student_id])
+  @@index([student_id, created_at])
+  @@index([institute_id])
+  @@map("note_bookmarks")
 }
 
 model Assignment {

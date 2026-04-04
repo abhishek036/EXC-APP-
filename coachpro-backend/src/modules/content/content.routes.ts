@@ -1,18 +1,27 @@
 import { Router } from 'express';
 import { ContentController } from './content.controller';
 import { validate } from '../../middleware/validate.middleware';
-import { createNoteSchema, createAssignmentSchema, submitAssignmentSchema, reviewAssignmentSubmissionSchema, createDoubtSchema, respondDoubtSchema } from './content.validator';
+import { createNoteSchema, noteBookmarkSchema, noteFileAccessSchema, createAssignmentSchema, submitAssignmentSchema, reviewAssignmentSubmissionSchema, createDoubtSchema, respondDoubtSchema } from './content.validator';
 import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
 import { tenantMiddleware } from '../../middleware/tenant.middleware';
 
 const router = Router();
 const controller = new ContentController();
 
+// Token-signed temporary streaming endpoint (no active session required).
+router.get('/notes/:noteId/files/:fileId/stream', validate(noteFileAccessSchema), controller.streamNoteFile);
+
 router.use(authenticateJWT, tenantMiddleware);
 
 // Notes / Assignments (Staff creation, Student viewing)
 router.post('/notes', requireRole('admin', 'teacher'), validate(createNoteSchema), controller.createNote);
 router.get('/notes', requireRole('admin', 'teacher', 'student'), controller.listNotes);
+router.get('/notes/analytics', requireRole('admin', 'teacher'), controller.noteAnalytics);
+router.get('/notes/bookmarks', requireRole('student'), controller.listBookmarkedNotes);
+router.post('/notes/:noteId/bookmark', requireRole('student'), validate(noteBookmarkSchema), controller.bookmarkNote);
+router.delete('/notes/:noteId/bookmark', requireRole('student'), validate(noteBookmarkSchema), controller.unbookmarkNote);
+router.get('/notes/:noteId/files/:fileId/access', requireRole('admin', 'teacher', 'student'), validate(noteFileAccessSchema), controller.noteFileAccess);
+router.delete('/notes/:noteId', requireRole('admin', 'teacher'), validate(noteBookmarkSchema), controller.deleteNote);
 
 router.post('/assignments', requireRole('admin', 'teacher'), validate(createAssignmentSchema), controller.createAssignment);
 router.get('/assignments', requireRole('admin', 'teacher', 'student'), controller.listAssignments);

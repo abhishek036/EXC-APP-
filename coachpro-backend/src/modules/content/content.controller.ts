@@ -4,12 +4,16 @@ import { sendResponse } from '../../utils/response';
 import { prisma } from '../../server';
 import { emitBatchSync, emitInstituteDashboardSync } from '../../config/socket';
 import { ApiError } from '../../middleware/error.middleware';
+import { createHmac, timingSafeEqual } from 'crypto';
+import { UploadController } from '../upload/upload.controller';
 
 export class ContentController {
   private service: ContentService;
+  private uploadController: UploadController;
 
   constructor() {
     this.service = new ContentService();
+    this.uploadController = new UploadController();
   }
 
   private async resolveTeacherId(instituteId: string, userId: string): Promise<string | null> {
@@ -161,6 +165,195 @@ export class ContentController {
     return assignment;
   }
 
+  private noteAccessTokenSecret(): string {
+    return process.env.JWT_SECRET || process.env.NOTE_ACCESS_SECRET || 'coachpro-note-access-secret';
+  }
+
+  private createNoteAccessToken(payload: {
+    instituteId: string;
+    noteId: string;
+    fileId: string;
+    action: 'view' | 'download';
+    userId?: string;
+    role?: string;
+    studentId?: string | null;
+    expiresInSeconds?: number;
+  }): { token: string; expiresAt: string; expiresInSeconds: number } {
+    const expiresInSeconds = payload.expiresInSeconds ?? 5 * 60;
+    const exp = Date.now() + expiresInSeconds * 1000;
+    const body = {
+      i: payload.instituteId,
+      u: payload.userId ?? null,
+      r: payload.role ?? null,
+      s: payload.studentId ?? null,
+      n: payload.noteId,
+      f: payload.fileId,
+      a: payload.action,
+      e: exp,
+    };
+
+    const encoded = Buffer.from(JSON.stringify(body)).toString('base64url');
+    const signature = createHmac('sha256', this.noteAccessTokenSecret()).update(encoded).digest('base64url');
+
+    return {
+      token: `${encoded}.${signature}`,
+      expiresAt: new Date(exp).toISOString(),
+      expiresInSeconds,
+    };
+  }
+
+  private verifyNoteAccessToken(token: string): {
+    i: string;
+    u?: string | null;
+    r?: string | null;
+    s?: string | null;
+    n: string;
+    f: string;
+    a: 'view' | 'download';
+    e: number;
+  } {
+    const [encoded, signature] = String(token || '').split('.');
+    if (!encoded || !signature) {
+      throw new ApiError('Invalid note access token', 403, 'FORBIDDEN');
+    }
+
+    const expectedSignature = createHmac('sha256', this.noteAccessTokenSecret()).update(encoded).digest('base64url');
+    const left = Buffer.from(signature);
+    const right = Buffer.from(expectedSignature);
+    if (left.length !== right.length || !timingSafeEqual(left, right)) {
+      throw new ApiError('Invalid note access token signature', 403, 'FORBIDDEN');
+    }
+
+    let payload: any;
+    try {
+      payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
+    } catch {
+      throw new ApiError('Invalid note access token payload', 403, 'FORBIDDEN');
+    }
+
+    if (!payload?.e || Number(payload.e) < Date.now()) {
+      throw new ApiError('Note access token expired', 403, 'TOKEN_EXPIRED');
+    }
+
+    return payload as {
+      i: string;
+      u?: string | null;
+      r?: string | null;
+      s?: string | null;
+      n: string;
+      f: string;
+      a: 'view' | 'download';
+      e: number;
+    };
+  }
+
+  private requestIp(req: Request): string | null {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (typeof forwarded === 'string' && forwarded.trim()) {
+      return forwarded.split(',')[0].trim();
+    }
+    if (Array.isArray(forwarded) && forwarded.length > 0) {
+      return String(forwarded[0]);
+    }
+    return req.ip || null;
+  }
+
+  private resolveAction(value: unknown): 'view' | 'download' {
+    return String(value || '').toLowerCase() === 'download' ? 'download' : 'view';
+  }
+
+  private async ensureStudentCanAccessNote(instituteId: string, student: { id: string; batch_ids: string[] }, noteId: string) {
+    const note = await this.service.getNoteById(instituteId, noteId);
+    if (!note || (note as any)?.is_deleted) {
+      throw new ApiError('Note not found', 404, 'NOT_FOUND');
+    }
+
+    if (student.batch_ids.length > 0 && !student.batch_ids.includes(String((note as any).batch_id))) {
+      throw new ApiError('You are not authorized to access this note', 403, 'FORBIDDEN');
+    }
+
+    return note;
+  }
+
+  private async ensureTeacherCanAccessNote(instituteId: string, userId: string, noteId: string) {
+    const teacherId = await this.resolveTeacherId(instituteId, userId);
+    if (!teacherId) {
+      throw new ApiError('Teacher profile not found', 403, 'FORBIDDEN');
+    }
+
+    const note = await prisma.note.findFirst({
+      where: {
+        id: noteId,
+        institute_id: instituteId,
+        is_deleted: false,
+        OR: [
+          { teacher_id: teacherId },
+          { batch: { teacher_id: teacherId } },
+        ],
+      },
+      select: { id: true, batch_id: true, teacher_id: true },
+    });
+
+    if (!note) {
+      throw new ApiError('You are not authorized to access this note', 403, 'FORBIDDEN');
+    }
+
+    return note;
+  }
+
+  private async authorizeNoteFileAccess(req: Request, noteId: string, fileId: string) {
+    const instituteId = req.instituteId!;
+    const role = req.user?.role;
+
+    const noteFile = await this.service.getNoteFile(instituteId, noteId, fileId);
+    if (!noteFile) {
+      throw new ApiError('Note file not found', 404, 'NOT_FOUND');
+    }
+
+    let studentId: string | null = null;
+
+    if (role === 'student') {
+      const student = await this.resolveStudentProfile(instituteId, req.user!.userId);
+      if (!student) {
+        throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+      }
+      await this.ensureStudentCanAccessNote(instituteId, student, noteId);
+      studentId = student.id;
+    }
+
+    if (role === 'teacher') {
+      await this.ensureTeacherCanAccessNote(instituteId, req.user!.userId, noteId);
+    }
+
+    return { noteFile, studentId };
+  }
+
+  private sanitizeNoteForStudent(note: any) {
+    const hasId = (value: any) => value != null && String(value).trim().length > 0;
+    const noteFiles = Array.isArray(note?.note_files)
+      ? note.note_files.map((file: any) => ({
+        ...file,
+        file_url: hasId(file?.id) ? null : (file?.file_url ?? null),
+      }))
+      : [];
+
+    const primary = note?.primary_file
+      ? {
+        ...note.primary_file,
+        file_url: hasId(note?.primary_file?.id) ? null : (note?.primary_file?.file_url ?? null),
+      }
+      : (noteFiles.isNotEmpty ? noteFiles[0] : null);
+
+    const secureFileAvailable = hasId(primary?.id) || noteFiles.any((item: any) => hasId(item?.id));
+
+    return {
+      ...note,
+      file_url: secureFileAvailable ? null : (note?.file_url ?? null),
+      note_files: noteFiles,
+      primary_file: primary,
+    };
+  }
+
   // NOTES
   createNote = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -195,8 +388,250 @@ export class ContentController {
 
   listNotes = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.service.listNotes(req.instituteId!, req.query.batchId as string, req.query.subject as string);
-      return sendResponse({ res, data, message: 'Notes fetched successfully' });
+      const filter = {
+        batchId: req.query.batchId as string,
+        subject: req.query.subject as string,
+        chapterTitle: req.query.chapterTitle as string,
+        includeDeleted: String(req.query.includeDeleted || '').toLowerCase() === 'true',
+      };
+
+      const notes = await this.service.listNotes(req.instituteId!, filter);
+
+      if (req.user?.role === 'student') {
+        const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
+        if (!student) {
+          throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+        }
+
+        const visible = (notes as any[]).filter((note: any) => {
+          if (!note?.batch_id) return false;
+          if (student.batch_ids.length === 0) return true;
+          return student.batch_ids.includes(String(note.batch_id));
+        });
+
+        const bookmarks = await this.service.listStudentBookmarksMap(
+          req.instituteId!,
+          student.id,
+          visible.map((item) => String(item.id)).filter(Boolean),
+        );
+
+        const enriched = visible.map((note: any) => ({
+          ...this.sanitizeNoteForStudent(note),
+          is_bookmarked: bookmarks.has(String(note.id)),
+        }));
+
+        return sendResponse({ res, data: enriched, message: 'Notes fetched successfully' });
+      }
+
+      if (req.user?.role === 'teacher') {
+        const teacherId = await this.resolveTeacherId(req.instituteId!, req.user!.userId);
+        if (!teacherId) {
+          throw new ApiError('Teacher profile not found', 403, 'FORBIDDEN');
+        }
+
+        const visible = (notes as any[]).filter((note: any) => {
+          const owner = note?.teacher_id && String(note.teacher_id) === String(teacherId);
+          return owner || !note?.teacher_id;
+        });
+
+        return sendResponse({ res, data: visible, message: 'Notes fetched successfully' });
+      }
+
+      return sendResponse({ res, data: notes, message: 'Notes fetched successfully' });
+    } catch (e) { next(e); }
+  }
+
+  bookmarkNote = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
+      if (!student) {
+        throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+      }
+
+      await this.ensureStudentCanAccessNote(req.instituteId!, student, req.params.noteId);
+      const data = await this.service.bookmarkNote(req.instituteId!, req.params.noteId, student.id);
+      return sendResponse({ res, data, message: 'Note bookmarked successfully', statusCode: 201 });
+    } catch (e) { next(e); }
+  }
+
+  unbookmarkNote = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
+      if (!student) {
+        throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+      }
+
+      await this.ensureStudentCanAccessNote(req.instituteId!, student, req.params.noteId);
+      const data = await this.service.unbookmarkNote(req.instituteId!, req.params.noteId, student.id);
+      return sendResponse({ res, data, message: 'Note bookmark removed successfully' });
+    } catch (e) { next(e); }
+  }
+
+  listBookmarkedNotes = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
+      if (!student) {
+        throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+      }
+
+      const data = await this.service.listBookmarkedNotes(req.instituteId!, student.id, {
+        batchId: req.query.batchId as string,
+        subject: req.query.subject as string,
+      });
+
+      const visible = (data as any[]).filter((note: any) => {
+        if (!note?.batch_id) return false;
+        if (student.batch_ids.length === 0) return true;
+        return student.batch_ids.includes(String(note.batch_id));
+      });
+
+      return sendResponse({
+        res,
+        data: visible.map((item: any) => this.sanitizeNoteForStudent(item)),
+        message: 'Bookmarked notes fetched successfully',
+      });
+    } catch (e) { next(e); }
+  }
+
+  noteFileAccess = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const action = this.resolveAction(req.query.action);
+      const { noteFile, studentId } = await this.authorizeNoteFileAccess(req, req.params.noteId, req.params.fileId);
+
+      const tokenPack = this.createNoteAccessToken({
+        instituteId: req.instituteId!,
+        userId: req.user!.userId,
+        role: req.user?.role,
+        studentId,
+        noteId: req.params.noteId,
+        fileId: req.params.fileId,
+        action,
+      });
+
+      const streamPath = `/api/content/notes/${encodeURIComponent(req.params.noteId)}/files/${encodeURIComponent(req.params.fileId)}/stream`;
+      const query = `action=${encodeURIComponent(action)}&token=${encodeURIComponent(tokenPack.token)}`;
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      return sendResponse({
+        res,
+        data: {
+          note_id: req.params.noteId,
+          note_file_id: req.params.fileId,
+          action,
+          file_name: (noteFile as any).file_name,
+          mime_type: (noteFile as any).mime_type,
+          access_url: `${baseUrl}${streamPath}?${query}`,
+          expires_at: tokenPack.expiresAt,
+          expires_in_seconds: tokenPack.expiresInSeconds,
+        },
+        message: 'Note file access generated successfully',
+      });
+    } catch (e) { next(e); }
+  }
+
+  streamNoteFile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const action = this.resolveAction(req.query.action);
+      const token = String(req.query.token || '');
+      if (!token) {
+        throw new ApiError('Access token is required', 403, 'FORBIDDEN');
+      }
+
+      const tokenPayload = this.verifyNoteAccessToken(token);
+      if (
+        String(tokenPayload.n) !== String(req.params.noteId)
+        || String(tokenPayload.f) !== String(req.params.fileId)
+        || String(tokenPayload.a) !== action
+      ) {
+        throw new ApiError('Note access token mismatch', 403, 'FORBIDDEN');
+      }
+
+      const instituteId = String(tokenPayload.i || '').trim();
+      if (!instituteId) {
+        throw new ApiError('Invalid note access token institute', 403, 'FORBIDDEN');
+      }
+
+      const noteFile = await this.service.getNoteFile(instituteId, req.params.noteId, req.params.fileId);
+      if (!noteFile) {
+        throw new ApiError('Note file not found', 404, 'NOT_FOUND');
+      }
+
+      const userAgentRaw = req.headers['user-agent'];
+      const userAgent = Array.isArray(userAgentRaw)
+        ? userAgentRaw.join(' ')
+        : userAgentRaw ?? null;
+
+      await this.service.logNoteAccess({
+        instituteId,
+        noteId: req.params.noteId,
+        noteFileId: req.params.fileId,
+        studentId: tokenPayload.s ?? null,
+        action,
+        ipAddress: this.requestIp(req),
+        userAgent,
+      });
+
+      const targetUrl = String((noteFile as any).file_url || '').trim();
+      if (!targetUrl) {
+        throw new ApiError('File URL missing for this note', 404, 'NOT_FOUND');
+      }
+
+      const uploadMarker = '/api/upload/file/';
+      const markerIndex = targetUrl.indexOf(uploadMarker);
+      if (markerIndex >= 0) {
+        const key = decodeURIComponent(targetUrl.substring(markerIndex + uploadMarker.length).split('?')[0]);
+        const proxyReq = req as any;
+        proxyReq.params = {
+          ...req.params,
+          key,
+        };
+        proxyReq.query = {
+          ...(req.query as any),
+          disposition: action === 'download' ? 'attachment' : 'inline',
+        };
+
+        await this.uploadController.downloadFile(proxyReq as Request, res);
+        return;
+      }
+
+      const append = targetUrl.includes('?') ? '&' : '?';
+      if (action === 'download') {
+        return res.redirect(302, `${targetUrl}${append}disposition=attachment`);
+      }
+
+      return res.redirect(302, targetUrl);
+    } catch (e) { next(e); }
+  }
+
+  noteAnalytics = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const filter: { batchId?: string; subject?: string; chapterTitle?: string; teacherId?: string } = {
+        batchId: req.query.batchId as string,
+        subject: req.query.subject as string,
+        chapterTitle: req.query.chapterTitle as string,
+      };
+
+      if (req.user?.role === 'teacher') {
+        const teacherId = await this.resolveTeacherId(req.instituteId!, req.user!.userId);
+        if (!teacherId) {
+          throw new ApiError('Teacher profile not found', 403, 'FORBIDDEN');
+        }
+        filter.teacherId = teacherId;
+      }
+
+      const data = await this.service.getNotesAnalytics(req.instituteId!, filter);
+      return sendResponse({ res, data, message: 'Notes analytics fetched successfully' });
+    } catch (e) { next(e); }
+  }
+
+  deleteNote = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (req.user?.role === 'teacher') {
+        await this.ensureTeacherCanAccessNote(req.instituteId!, req.user!.userId, req.params.noteId);
+      }
+
+      const data = await this.service.softDeleteNote(req.instituteId!, req.params.noteId);
+      return sendResponse({ res, data, message: 'Note deleted successfully' });
     } catch (e) { next(e); }
   }
 

@@ -289,6 +289,57 @@ class StudentRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch materials');
   }
 
+  Future<List<Map<String, dynamic>>> getBookmarkedStudyMaterials({
+    String? subject,
+    String? batchId,
+  }) async {
+    final response = await _api.dio.get(
+      'content/notes/bookmarks',
+      queryParameters: {
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
+        if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
+      },
+    );
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch bookmarked materials');
+  }
+
+  Future<void> bookmarkStudyMaterial(String noteId) async {
+    final response = await _api.dio.post('content/notes/$noteId/bookmark');
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return;
+    }
+    throw Exception(response.data['message'] ?? 'Failed to bookmark material');
+  }
+
+  Future<void> unbookmarkStudyMaterial(String noteId) async {
+    final response = await _api.dio.delete('content/notes/$noteId/bookmark');
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+    throw Exception(response.data['message'] ?? 'Failed to remove bookmark');
+  }
+
+  Future<Map<String, dynamic>> getStudyMaterialAccess({
+    required String noteId,
+    required String fileId,
+    String action = 'download',
+  }) async {
+    final normalizedAction = action.toLowerCase() == 'view' ? 'view' : 'download';
+    final response = await _api.dio.get(
+      'content/notes/$noteId/files/$fileId/access',
+      queryParameters: {
+        'action': normalizedAction,
+      },
+    );
+    if (response.statusCode == 200) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch secure file access');
+  }
+
   Future<List<Map<String, dynamic>>> getAssignments({String? batchId, String? subject}) async {
     final response = await _api.dio.get(
       'content/assignments',

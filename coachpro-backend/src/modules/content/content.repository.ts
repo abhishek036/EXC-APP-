@@ -2,6 +2,8 @@ import { prisma } from '../../server';
 import { CreateNoteInput, CreateAssignmentInput, SubmitAssignmentInput, ReviewAssignmentSubmissionInput, CreateDoubtInput, RespondDoubtInput } from './content.validator';
 import { isLegacyColumnError } from '../../utils/prisma-errors';
 import { ApiError } from '../../middleware/error.middleware';
+import { basename } from 'path';
+import { createHash } from 'crypto';
 
 export class ContentRepository {
     private isLegacyError(error: unknown, columnName?: string): boolean {
@@ -34,6 +36,103 @@ export class ContentRepository {
             created_at: row.created_at ?? null,
             updated_at: row.updated_at ?? null,
         };
+    }
+
+        private mapNoteRow(row: any) {
+            const type = this.normalizeNoteFileType(row.file_type, row.file_url, row.mime_type);
+            const primaryFile = {
+                id: row.file_id ?? null,
+                file_url: row.file_url,
+                file_name: row.file_name ?? this.fileNameFromUrl(row.file_url),
+                file_type: type,
+                mime_type: row.mime_type ?? null,
+                file_size_kb: row.file_size_kb ?? null,
+                storage_provider: row.storage_provider ?? null,
+                storage_path: row.storage_path ?? null,
+                version_no: row.version_no ?? 1,
+            };
+
+            return {
+                id: row.id,
+                batch_id: row.batch_id,
+                institute_id: row.institute_id,
+                teacher_id: row.teacher_id,
+                title: row.title,
+                description: row.description ?? null,
+                subject: row.subject ?? 'General',
+                chapter_title: row.chapter_title ?? 'General',
+                chapter_order: row.chapter_order ?? 0,
+                file_url: row.file_url,
+                file_type: type,
+                file_size_kb: row.file_size_kb ?? null,
+                created_at: row.created_at ?? null,
+                updated_at: row.updated_at ?? null,
+                downloads_count: row.downloads_count ?? 0,
+                primary_file: primaryFile,
+                note_files: [primaryFile],
+            };
+        }
+
+    private normalizeNoteFileType(type?: string | null, fileUrl?: string | null, mimeType?: string | null): string {
+            const normalized = String(type ?? '').trim().toLowerCase();
+            if (normalized) {
+                if (['pdf', 'image', 'video', 'zip', 'doc', 'docx', 'ppt', 'pptx', 'other'].includes(normalized)) {
+                    return normalized;
+                }
+            }
+
+            const mime = String(mimeType ?? '').toLowerCase();
+            if (mime.startsWith('image/')) return 'image';
+            if (mime.startsWith('video/')) return 'video';
+            if (mime.includes('pdf')) return 'pdf';
+            if (mime.includes('zip')) return 'zip';
+            if (mime.includes('word')) return 'docx';
+            if (mime.includes('powerpoint') || mime.includes('presentation')) return 'pptx';
+
+            const ext = this.extractExtension(fileUrl ?? undefined);
+            if (!ext) return 'other';
+            if (ext === 'pdf') return 'pdf';
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
+            if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) return 'video';
+            if (ext === 'zip') return 'zip';
+            if (['doc', 'docx'].includes(ext)) return ext;
+            if (['ppt', 'pptx'].includes(ext)) return ext;
+            return 'other';
+    }
+
+    private fileNameFromUrl(fileUrl?: string | null): string {
+            const raw = String(fileUrl ?? '').trim();
+            if (!raw) return 'material';
+            try {
+                const uri = new URL(raw);
+                const parts = uri.pathname.split('/').filter(Boolean);
+                return decodeURIComponent(parts[parts.length - 1] || 'material');
+            } catch {
+                const clean = raw.split('?')[0];
+                const parts = clean.split('/').filter(Boolean);
+                return decodeURIComponent(parts[parts.length - 1] || 'material');
+            }
+    }
+
+    private decodeUploadRef(fileUrl?: string | null): any | null {
+            const raw = String(fileUrl ?? '').trim();
+            if (!raw) return null;
+            const marker = '/api/upload/file/';
+            const idx = raw.indexOf(marker);
+            if (idx < 0) return null;
+            const keyRaw = raw.substring(idx + marker.length).split('?')[0];
+            const key = decodeURIComponent(keyRaw);
+            if (!key.startsWith('ref_')) return null;
+            try {
+                const json = Buffer.from(key.substring(4), 'base64url').toString('utf8');
+                return JSON.parse(json);
+            } catch {
+                return null;
+            }
+    }
+
+    private hashText(value: string): string {
+            return createHash('sha256').update(value).digest('hex');
     }
 
   private extractExtension(value?: string | null): string | null {
@@ -134,47 +233,422 @@ export class ContentRepository {
             };
     }
 
-  // NOTES
-    async createNote(instituteId: string, teacherId: string | null, data: CreateNoteInput) {
-      return prisma.note.create({
-                    data: { ...data, institute_id: instituteId, teacher_id: teacherId ?? null }
-      });
-  }
+    // NOTES
+        async createNote(instituteId: string, teacherId: string | null, data: CreateNoteInput) {
+            const chapterTitle = this.trimOrNull((data as any).chapter_title) ?? 'General';
+            const chapterOrder = Number((data as any).chapter_order ?? 0);
 
-  async listNotes(instituteId: string, filter: { batchId?: string, subject?: string }) {
-      try {
-          return await prisma.note.findMany({
-              where: { 
-                institute_id: instituteId, 
-                ...(filter.batchId && { batch_id: filter.batchId }),
-                ...(filter.subject && { subject: filter.subject })
-              },
-              orderBy: { created_at: 'desc' }
-          });
-      } catch (error) {
-          if (!this.isLegacyError(error, 'subject')) throw error;
-          return this.listNotesLegacy(instituteId, filter);
-      }
-  }
+            const payloadFiles: any[] = Array.isArray((data as any).note_files)
+                ? (data as any).note_files
+                : [];
 
-  private async listNotesLegacy(instituteId: string, filter: { batchId?: string, subject?: string }) {
-      // Fallback for when subject or file_type columns are missing
-      const rows = await prisma.$queryRawUnsafe<any[]>(
-          `SELECT id::text, 
-                  title, 
-                  description, 
-                  file_url, 
-                  COALESCE(file_type, 'note') as file_type, 
-                  created_at, 
-                  batch_id::text
-           FROM notes
-           WHERE institute_id::text = $1::text
-             AND ($2::text IS NULL OR batch_id::text = $2::text)`,
-          instituteId,
-          filter.batchId ?? null
-      );
-      return rows;
-  }
+            if ((data as any).file_url) {
+                payloadFiles.unshift({
+                    file_url: (data as any).file_url,
+                    file_name: null,
+                    file_type: (data as any).file_type,
+                    mime_type: null,
+                    file_size_kb: (data as any).file_size_kb,
+                });
+            }
+
+            const normalizedFiles = payloadFiles
+                .map((file) => {
+                    const fileUrl = this.trimOrNull(file.file_url);
+                    if (!fileUrl) return null;
+
+                    const storageMeta = this.decodeUploadRef(fileUrl);
+                    const fileName = this.trimOrNull(file.file_name)
+                        ?? storageMeta?.fileName
+                        ?? this.fileNameFromUrl(fileUrl);
+
+                    const fileType = this.normalizeNoteFileType(file.file_type, fileUrl, file.mime_type ?? storageMeta?.mimeType);
+                    const fileHash = this.trimOrNull(file.file_hash)
+                        ?? this.hashText(`${fileUrl}|${fileName}`);
+
+                    return {
+                        file_url: fileUrl,
+                        file_name: fileName,
+                        file_type: fileType,
+                        mime_type: this.trimOrNull(file.mime_type) ?? this.trimOrNull(storageMeta?.mimeType),
+                        file_size_kb: this.toNumberOrNull(file.file_size_kb) ?? this.toNumberOrNull(storageMeta?.sizeKb),
+                        storage_provider: this.trimOrNull(file.storage_provider)
+                            ?? this.trimOrNull(storageMeta?.provider)
+                            ?? (fileUrl.includes('/api/upload/file/') ? 'b2' : 'external'),
+                        storage_path: this.trimOrNull(file.storage_path)
+                            ?? this.trimOrNull(storageMeta?.key)
+                            ?? fileUrl,
+                        file_hash: fileHash,
+                    };
+                })
+                .filter((item): item is any => item !== null);
+
+            const dedupedFiles = Array.from(
+                new Map(normalizedFiles.map((file) => [file.file_hash, file])).values(),
+            );
+
+            if (dedupedFiles.length === 0) {
+                throw new ApiError('At least one valid note file is required', 400, 'NOTE_FILE_REQUIRED');
+            }
+
+            return prisma.$transaction(async (tx) => {
+                const firstFile = dedupedFiles[0];
+                const note = await tx.note.create({
+                    data: {
+                        institute_id: instituteId,
+                        teacher_id: teacherId ?? null,
+                        batch_id: data.batch_id,
+                        title: data.title,
+                        subject: this.trimOrNull(data.subject) ?? 'General',
+                        description: this.trimOrNull((data as any).description),
+                        chapter_title: chapterTitle,
+                        chapter_order: Number.isFinite(chapterOrder) ? chapterOrder : 0,
+                        file_url: firstFile.file_url,
+                        file_type: firstFile.file_type,
+                        file_size_kb: firstFile.file_size_kb,
+                    } as any,
+                });
+
+                await tx.noteFile.createMany({
+                    data: dedupedFiles.map((file) => ({
+                        note_id: note.id,
+                        institute_id: instituteId,
+                        file_url: file.file_url,
+                        file_name: file.file_name,
+                        file_type: file.file_type,
+                        mime_type: file.mime_type,
+                        file_size_kb: file.file_size_kb,
+                        storage_provider: file.storage_provider,
+                        storage_path: file.storage_path,
+                        file_hash: file.file_hash,
+                        version_no: 1,
+                        is_latest: true,
+                    })),
+                });
+
+                const created = await tx.note.findUnique({
+                    where: { id: note.id },
+                    include: {
+                        note_files: {
+                            where: { is_deleted: false, is_latest: true },
+                            orderBy: [{ version_no: 'desc' }, { created_at: 'desc' }],
+                        },
+                        _count: { select: { download_logs: true, bookmarks: true } },
+                    },
+                });
+
+                return {
+                    ...created,
+                    downloads_count: created?._count?.download_logs ?? 0,
+                    bookmarks_count: created?._count?.bookmarks ?? 0,
+                    primary_file: created?.note_files?.[0] ?? null,
+                };
+            });
+    }
+
+    async listNotes(instituteId: string, filter: { batchId?: string, subject?: string, chapterTitle?: string, includeDeleted?: boolean }) {
+            try {
+                    const rows = await prisma.note.findMany({
+                            where: {
+                                institute_id: instituteId,
+                                ...(filter.batchId && { batch_id: filter.batchId }),
+                                ...(filter.subject && { subject: filter.subject }),
+                                ...(filter.chapterTitle && { chapter_title: filter.chapterTitle }),
+                                ...(filter.includeDeleted ? {} : { is_deleted: false }),
+                            },
+                            include: {
+                                note_files: {
+                                    where: { is_deleted: false, is_latest: true },
+                                    orderBy: [{ version_no: 'desc' }, { created_at: 'desc' }],
+                                },
+                                _count: { select: { download_logs: true, bookmarks: true } },
+                            },
+                            orderBy: [
+                                { subject: 'asc' },
+                                { chapter_order: 'asc' },
+                                { created_at: 'desc' },
+                            ],
+                    });
+
+                    return rows.map((row: any) => ({
+                        ...row,
+                        downloads_count: row?._count?.download_logs ?? 0,
+                        bookmarks_count: row?._count?.bookmarks ?? 0,
+                        primary_file: Array.isArray(row.note_files) && row.note_files.length > 0 ? row.note_files[0] : null,
+                    }));
+            } catch (error) {
+                    if (!this.isLegacyError(error)) throw error;
+                    return this.listNotesLegacy(instituteId, filter);
+            }
+    }
+
+    private async listNotesLegacy(instituteId: string, filter: { batchId?: string, subject?: string, chapterTitle?: string, includeDeleted?: boolean }) {
+            // Fallback for older schemas missing note files and chapter columns.
+            const rows = await prisma.$queryRawUnsafe<any[]>(
+                    `SELECT id::text,
+                                    title,
+                                    NULL::text as description,
+                                    'General'::text as subject,
+                                    'General'::text as chapter_title,
+                                    0 as chapter_order,
+                                    file_url,
+                                    COALESCE(file_type, 'other') as file_type,
+                                    file_size_kb,
+                                    created_at,
+                                    batch_id::text,
+                                    institute_id::text,
+                                    teacher_id::text
+                     FROM notes
+                     WHERE institute_id::text = $1::text
+                         AND ($2::text IS NULL OR batch_id::text = $2::text)
+                     ORDER BY created_at DESC`,
+                    instituteId,
+                    filter.batchId ?? null,
+            );
+
+            return rows.map((row) => this.mapNoteRow(row));
+    }
+
+    async getNoteById(instituteId: string, noteId: string) {
+            return prisma.note.findFirst({
+                    where: {
+                        id: noteId,
+                        institute_id: instituteId,
+                        is_deleted: false,
+                    },
+                    include: {
+                        note_files: {
+                            where: { is_deleted: false, is_latest: true },
+                            orderBy: [{ version_no: 'desc' }, { created_at: 'desc' }],
+                        },
+                        _count: { select: { download_logs: true, bookmarks: true } },
+                    },
+            });
+    }
+
+    async getNoteFile(instituteId: string, noteId: string, fileId: string) {
+            return prisma.noteFile.findFirst({
+                where: {
+                    id: fileId,
+                    note_id: noteId,
+                    institute_id: instituteId,
+                    is_deleted: false,
+                    note: {
+                        id: noteId,
+                        institute_id: instituteId,
+                        is_deleted: false,
+                    },
+                },
+                include: {
+                    note: {
+                        select: {
+                            id: true,
+                            title: true,
+                            batch_id: true,
+                            teacher_id: true,
+                            institute_id: true,
+                            is_deleted: true,
+                        },
+                    },
+                },
+            });
+    }
+
+    async bookmarkNote(instituteId: string, noteId: string, studentId: string) {
+            return prisma.noteBookmark.upsert({
+                where: { note_id_student_id: { note_id: noteId, student_id: studentId } },
+                update: {},
+                create: {
+                    institute_id: instituteId,
+                    note_id: noteId,
+                    student_id: studentId,
+                },
+            });
+    }
+
+    async unbookmarkNote(instituteId: string, noteId: string, studentId: string) {
+            const result = await prisma.noteBookmark.deleteMany({
+                where: {
+                    institute_id: instituteId,
+                    note_id: noteId,
+                    student_id: studentId,
+                },
+            });
+            return { deleted_count: result.count };
+    }
+
+    async listBookmarkedNotes(instituteId: string, studentId: string, filter: { batchId?: string, subject?: string }) {
+            const rows = await prisma.noteBookmark.findMany({
+                where: {
+                    institute_id: instituteId,
+                    student_id: studentId,
+                    note: {
+                        is_deleted: false,
+                        ...(filter.batchId && { batch_id: filter.batchId }),
+                        ...(filter.subject && { subject: filter.subject }),
+                    },
+                },
+                include: {
+                    note: {
+                        include: {
+                            note_files: {
+                                where: { is_deleted: false, is_latest: true },
+                                orderBy: [{ version_no: 'desc' }, { created_at: 'desc' }],
+                            },
+                            _count: { select: { download_logs: true, bookmarks: true } },
+                        },
+                    },
+                },
+                orderBy: { created_at: 'desc' },
+            });
+
+            return rows.map((row: any) => ({
+                ...row.note,
+                is_bookmarked: true,
+                downloads_count: row.note?._count?.download_logs ?? 0,
+                bookmarks_count: row.note?._count?.bookmarks ?? 0,
+                primary_file: Array.isArray(row.note?.note_files) && row.note.note_files.length > 0 ? row.note.note_files[0] : null,
+            }));
+    }
+
+    async listStudentBookmarksMap(instituteId: string, studentId: string, noteIds: string[]) {
+            if (!noteIds.length) return new Set<string>();
+            const rows = await prisma.noteBookmark.findMany({
+                where: {
+                    institute_id: instituteId,
+                    student_id: studentId,
+                    note_id: { in: noteIds },
+                },
+                select: { note_id: true },
+            });
+            return new Set(rows.map((item) => String(item.note_id)));
+    }
+
+    async logNoteAccess(params: {
+            instituteId: string;
+            noteId: string;
+            noteFileId?: string | null;
+            studentId?: string | null;
+            action: 'view' | 'download';
+            ipAddress?: string | null;
+            userAgent?: string | null;
+    }) {
+            return prisma.downloadLog.create({
+                    data: {
+                        institute_id: params.instituteId,
+                        note_id: params.noteId,
+                        note_file_id: params.noteFileId ?? null,
+                        student_id: params.studentId ?? null,
+                        action: params.action,
+                        ip_address: params.ipAddress ?? null,
+                        user_agent: params.userAgent ?? null,
+                    },
+            });
+    }
+
+    async getNotesAnalytics(instituteId: string, filter: { batchId?: string, subject?: string, chapterTitle?: string, teacherId?: string }) {
+            const notes = await prisma.note.findMany({
+                where: {
+                    institute_id: instituteId,
+                    is_deleted: false,
+                    ...(filter.batchId && { batch_id: filter.batchId }),
+                    ...(filter.subject && { subject: filter.subject }),
+                    ...(filter.chapterTitle && { chapter_title: filter.chapterTitle }),
+                    ...(filter.teacherId && { teacher_id: filter.teacherId }),
+                },
+                include: {
+                    _count: { select: { download_logs: true, bookmarks: true } },
+                    download_logs: {
+                        where: { student_id: { not: null } },
+                        select: { student_id: true },
+                    },
+                },
+            });
+
+            const noteIds = notes.map((item) => item.id);
+            const logs = noteIds.length > 0
+                ? await prisma.downloadLog.findMany({
+                    where: {
+                        institute_id: instituteId,
+                        note_id: { in: noteIds },
+                    },
+                    select: {
+                        note_id: true,
+                        student_id: true,
+                        action: true,
+                    },
+                })
+                : [];
+
+            const downloads = logs.filter((item) => item.action === 'download');
+            const views = logs.filter((item) => item.action === 'view');
+            const uniqueStudents = new Set(logs.map((item) => item.student_id).filter(Boolean));
+
+            const byNote = notes.map((note) => {
+                const noteLogs = logs.filter((item) => item.note_id === note.id);
+                const noteDownloads = noteLogs.filter((item) => item.action === 'download').length;
+                const noteViews = noteLogs.filter((item) => item.action === 'view').length;
+                const engagedStudents = new Set(noteLogs.map((item) => item.student_id).filter(Boolean));
+                return {
+                    note_id: note.id,
+                    title: note.title,
+                    subject: note.subject,
+                    chapter_title: note.chapter_title,
+                    views_count: noteViews,
+                    downloads_count: noteDownloads,
+                    bookmarks_count: note._count.bookmarks,
+                    engagement_students: engagedStudents.size,
+                };
+            }).sort((a, b) => b.views_count - a.views_count);
+
+            return {
+                notes_count: notes.length,
+                total_views: views.length,
+                total_downloads: downloads.length,
+                unique_student_engagement: uniqueStudents.size,
+                most_viewed_notes: byNote.slice(0, 10),
+            };
+    }
+
+    async softDeleteNote(instituteId: string, noteId: string) {
+            return prisma.$transaction(async (tx) => {
+                await tx.noteFile.updateMany({
+                    where: {
+                        note_id: noteId,
+                        institute_id: instituteId,
+                        is_deleted: false,
+                    },
+                    data: {
+                        is_deleted: true,
+                        is_latest: false,
+                    },
+                });
+
+                const result = await tx.note.updateMany({
+                    where: {
+                        id: noteId,
+                        institute_id: instituteId,
+                        is_deleted: false,
+                    },
+                    data: {
+                        is_deleted: true,
+                        deleted_at: new Date(),
+                        updated_at: new Date(),
+                    },
+                });
+
+                if (result.count === 0) {
+                    throw new ApiError('Note not found', 404, 'NOT_FOUND');
+                }
+
+                return tx.note.findFirst({
+                    where: {
+                        id: noteId,
+                        institute_id: instituteId,
+                    },
+                });
+            });
+    }
 
   // ASSIGNMENTS
   async createAssignment(instituteId: string, teacherId: string | null, data: CreateAssignmentInput) {

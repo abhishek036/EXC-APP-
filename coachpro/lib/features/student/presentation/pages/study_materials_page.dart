@@ -22,6 +22,7 @@ class StudyMaterialsPage extends StatefulWidget {
 class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
   int _selectedType = 0;
   int _selectedSubject = 0;
+  bool _bookmarksOnly = false;
   final _studentRepo = sl<StudentRepository>();
   late Future<List<_Material>> _materialsFuture;
 
@@ -57,24 +58,129 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
   }
 
   Future<List<_Material>> _loadMaterials() async {
-    final notes = await _studentRepo.getStudyMaterials(batchId: _selectedBatchId);
+    final notes = _bookmarksOnly
+        ? await _studentRepo.getBookmarkedStudyMaterials(
+            batchId: _selectedBatchId,
+          )
+        : await _studentRepo.getStudyMaterials(
+            batchId: _selectedBatchId,
+          );
 
     final noteMaterials = notes
-        .map(
-          (note) => _Material.fromMap({
+        .map((note) {
+          final noteFilesRaw = note['note_files'];
+          final noteFiles = noteFilesRaw is List
+              ? noteFilesRaw
+                  .whereType<Map>()
+                  .map((e) => Map<String, dynamic>.from(e))
+                  .toList()
+              : <Map<String, dynamic>>[];
+
+          final primaryRaw = note['primary_file'];
+          final primary = primaryRaw is Map
+              ? Map<String, dynamic>.from(primaryRaw)
+              : (noteFiles.isNotEmpty ? noteFiles.first : <String, dynamic>{});
+
+          final fileType =
+              (primary['file_type'] ?? note['file_type'] ?? 'pdf').toString().toLowerCase();
+          final sizeKb = primary['file_size_kb'] ?? note['file_size_kb'];
+          final chapterTitle = (note['chapter_title'] ?? 'General').toString();
+          final downloadCount = note['downloads_count'] ?? note['download_count'] ?? 0;
+          final metaParts = <String>[
+            if (chapterTitle.trim().isNotEmpty) 'Chapter: $chapterTitle',
+            if (sizeKb != null) '${sizeKb.toString()} KB',
+            '${downloadCount.toString()} downloads',
+          ];
+
+          return _Material.fromMap({
+            'noteId': note['id'],
+            'fileId': primary['id'],
             'title': note['title'],
             'subject': note['subject'],
+            'chapterTitle': chapterTitle,
             'teacherName': 'Teacher',
-            'meta': note['file_size_kb'] != null
-                ? '${note['file_size_kb']} KB'
-                : '',
-            'type': (note['type'] ?? note['file_type'] ?? 'pdf').toString().toLowerCase(),
-            'url': note['file_url'],
-          }),
-        )
+            'meta': metaParts.join('  •  '),
+            'type': fileType,
+            'url': primary['file_url'] ?? note['file_url'],
+            'isBookmarked': note['is_bookmarked'] == true,
+            'downloadCount': downloadCount,
+          });
+        })
         .toList();
 
     return noteMaterials;
+  }
+
+  Future<void> _refreshMaterials() async {
+    if (!mounted) return;
+    setState(() {
+      _materialsFuture = _loadMaterials();
+    });
+  }
+
+  Future<void> _toggleBookmark(_Material material) async {
+    if (material.noteId.isEmpty) return;
+    try {
+      if (material.isBookmarked) {
+        await _studentRepo.unbookmarkStudyMaterial(material.noteId);
+      } else {
+        await _studentRepo.bookmarkStudyMaterial(material.noteId);
+      }
+
+      await _refreshMaterials();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(material.isBookmarked ? 'Bookmark removed' : 'Bookmarked'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to update bookmark right now'),
+          duration: Duration(seconds: 2),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openMaterial(_Material material, {String action = 'download'}) async {
+    HapticFeedback.mediumImpact();
+    try {
+      String targetUrl = material.url;
+      if (material.noteId.isNotEmpty && material.fileId.isNotEmpty) {
+        final access = await _studentRepo.getStudyMaterialAccess(
+          noteId: material.noteId,
+          fileId: material.fileId,
+          action: action,
+        );
+        targetUrl = (access['access_url'] ?? '').toString();
+      }
+
+      if (targetUrl.isEmpty) {
+        throw Exception('Missing file url');
+      }
+
+      final uri = Uri.tryParse(targetUrl);
+      if (uri != null && await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+      }
+
+      throw Exception('Unable to open URL');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to open ${material.title}'),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -87,6 +193,20 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
         ),
         actions: [
+          IconButton(
+            tooltip: _bookmarksOnly ? 'Show all materials' : 'Show bookmarked only',
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              setState(() {
+                _bookmarksOnly = !_bookmarksOnly;
+                _materialsFuture = _loadMaterials();
+              });
+            },
+            icon: Icon(
+              _bookmarksOnly ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+              color: Colors.white,
+            ),
+          ),
           PopupMenuButton<String>(
             icon: Row(
               mainAxisSize: MainAxisSize.min,
@@ -315,7 +435,10 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                 'videoId': material.url,
                 'title': material.title,
               });
+              return;
             }
+
+            _openMaterial(material, action: 'view');
           },
           child: Container(
             padding: const EdgeInsets.all(16),
@@ -362,6 +485,17 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                           color: CT.textM(context),
                         ),
                       ),
+                      if (material.chapterTitle.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          material.chapterTitle,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 2),
                       Text(
                         material.meta,
@@ -374,32 +508,32 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () async {
-                    HapticFeedback.mediumImpact();
-                    final url = material.url;
-                    if (url.isNotEmpty) {
-                      final uri = Uri.tryParse(url);
-                      if (uri != null && await canLaunchUrl(uri)) {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
-                        return;
-                      }
-                    }
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('No valid URL for ${material.title}'),
-                        backgroundColor: AppColors.error,
-                        duration: const Duration(seconds: 2),
+                Column(
+                  children: [
+                    IconButton(
+                      onPressed: material.noteId.isEmpty
+                          ? null
+                          : () => _toggleBookmark(material),
+                      icon: Icon(
+                        material.isBookmarked
+                            ? Icons.bookmark_rounded
+                            : Icons.bookmark_border_rounded,
+                        color: material.isBookmarked ? AppColors.primary : CT.textS(context),
+                        size: 24,
                       ),
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.file_download_outlined,
-                    color: AppColors.primary,
-                    size: 26,
-                  ),
-                  style: IconButton.styleFrom(backgroundColor: CT.bg(context)),
+                      style: IconButton.styleFrom(backgroundColor: CT.bg(context)),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      onPressed: () => _openMaterial(material, action: 'download'),
+                      icon: const Icon(
+                        Icons.file_download_outlined,
+                        color: AppColors.primary,
+                        size: 26,
+                      ),
+                      style: IconButton.styleFrom(backgroundColor: CT.bg(context)),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -412,21 +546,31 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
 }
 
 class _Material {
+  final String noteId;
+  final String fileId;
   final String title;
   final String subject;
+  final String chapterTitle;
   final String teacher;
   final String meta;
   final String type;
   final String url;
+  final bool isBookmarked;
+  final int downloadCount;
   final Color color;
 
   const _Material({
+    required this.noteId,
+    required this.fileId,
     required this.title,
     required this.subject,
+    required this.chapterTitle,
     required this.teacher,
     required this.meta,
     required this.type,
     required this.url,
+    required this.isBookmarked,
+    required this.downloadCount,
     required this.color,
   });
 
@@ -447,13 +591,23 @@ class _Material {
         color = AppColors.accent;
     }
 
+    final rawDownload = map['downloadCount'];
+    final downloadCount = rawDownload is num
+        ? rawDownload.toInt()
+        : int.tryParse(rawDownload?.toString() ?? '0') ?? 0;
+
     return _Material(
+      noteId: (map['noteId'] ?? '').toString(),
+      fileId: (map['fileId'] ?? '').toString(),
       title: (map['title'] ?? 'Untitled Material').toString(),
       subject: subject,
+      chapterTitle: (map['chapterTitle'] ?? '').toString(),
       teacher: (map['teacherName'] ?? 'Teacher').toString(),
       meta: (map['meta'] ?? map['size'] ?? '').toString(),
       type: (map['type'] ?? 'pdf').toString().toLowerCase(),
       url: (map['url'] ?? '').toString(),
+      isBookmarked: map['isBookmarked'] == true,
+      downloadCount: downloadCount,
       color: color,
     );
   }

@@ -13,8 +13,52 @@ export class ContentService {
       return this.repo.createNote(instituteId, teacherId, data);
   }
 
-  async listNotes(instituteId: string, batchId?: string, subject?: string) {
-      return this.repo.listNotes(instituteId, { batchId, subject });
+  async listNotes(instituteId: string, filter: { batchId?: string, subject?: string, chapterTitle?: string, includeDeleted?: boolean }) {
+      return this.repo.listNotes(instituteId, filter);
+  }
+
+  async getNoteById(instituteId: string, noteId: string) {
+      return this.repo.getNoteById(instituteId, noteId);
+  }
+
+  async getNoteFile(instituteId: string, noteId: string, fileId: string) {
+      return this.repo.getNoteFile(instituteId, noteId, fileId);
+  }
+
+  async bookmarkNote(instituteId: string, noteId: string, studentId: string) {
+      return this.repo.bookmarkNote(instituteId, noteId, studentId);
+  }
+
+  async unbookmarkNote(instituteId: string, noteId: string, studentId: string) {
+      return this.repo.unbookmarkNote(instituteId, noteId, studentId);
+  }
+
+  async listBookmarkedNotes(instituteId: string, studentId: string, filter: { batchId?: string, subject?: string }) {
+      return this.repo.listBookmarkedNotes(instituteId, studentId, filter);
+  }
+
+  async listStudentBookmarksMap(instituteId: string, studentId: string, noteIds: string[]) {
+      return this.repo.listStudentBookmarksMap(instituteId, studentId, noteIds);
+  }
+
+  async logNoteAccess(params: {
+      instituteId: string;
+      noteId: string;
+      noteFileId?: string | null;
+      studentId?: string | null;
+      action: 'view' | 'download';
+      ipAddress?: string | null;
+      userAgent?: string | null;
+  }) {
+      return this.repo.logNoteAccess(params);
+  }
+
+    async getNotesAnalytics(instituteId: string, filter: { batchId?: string, subject?: string, chapterTitle?: string, teacherId?: string }) {
+      return this.repo.getNotesAnalytics(instituteId, filter);
+  }
+
+  async softDeleteNote(instituteId: string, noteId: string) {
+      return this.repo.softDeleteNote(instituteId, noteId);
   }
 
   // ASSIGNMENTS

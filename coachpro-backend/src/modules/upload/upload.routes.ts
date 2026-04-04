@@ -6,7 +6,7 @@ import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
 const router = Router();
 const controller = new UploadController();
 
-// Publicly readable file proxy (since bucket is private)
+// Publicly readable file proxy (private bucket behind backend stream)
 router.get('/file/:key(*)', (req, res, next) => controller.downloadFile(req, res).catch(next));
 
 // Protect actual uploads
