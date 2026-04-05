@@ -46,7 +46,14 @@ export class QuizController {
                   {
                     OR: [
                       { user_id: req.user!.userId },
-                      ...(phones.size > 0 ? [{ phone: { in: Array.from(phones) } }] : []),
+                      ...(phones.size > 0
+                        ? [{
+                            AND: [
+                              { phone: { in: Array.from(phones) } },
+                              { OR: [{ user_id: null }, { user_id: req.user!.userId }] },
+                            ],
+                          }]
+                        : []),
                     ],
                   },
                 ],
@@ -63,17 +70,17 @@ export class QuizController {
           });
 
           const ranked = [...candidates].sort((a, b) => {
-            const aBatchCount = a.student_batches?.length || 0;
-            const bBatchCount = b.student_batches?.length || 0;
-            if (bBatchCount != aBatchCount) return bBatchCount - aBatchCount;
-
             const aLinked = a.user_id === req.user!.userId ? 1 : 0;
             const bLinked = b.user_id === req.user!.userId ? 1 : 0;
             if (bLinked != aLinked) return bLinked - aLinked;
 
-            const aHasUser = a.user_id ? 1 : 0;
-            const bHasUser = b.user_id ? 1 : 0;
-            if (bHasUser != aHasUser) return bHasUser - aHasUser;
+            const aBatchCount = a.student_batches?.length || 0;
+            const bBatchCount = b.student_batches?.length || 0;
+            if (bBatchCount != aBatchCount) return bBatchCount - aBatchCount;
+
+            const aUnlinked = !a.user_id ? 1 : 0;
+            const bUnlinked = !b.user_id ? 1 : 0;
+            if (bUnlinked != aUnlinked) return bUnlinked - aUnlinked;
 
             const aCreated = new Date(a.created_at as any).getTime() || 0;
             const bCreated = new Date(b.created_at as any).getTime() || 0;

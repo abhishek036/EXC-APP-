@@ -567,7 +567,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                               onTap: () {
                                 _markRead(index, read: true);
                                 final meta = notif['meta'] as Map<String, dynamic>?;
-                                final route = meta?['route']?.toString() ?? notif['route']?.toString();
+                                final rawRoute = meta?['route']?.toString() ?? notif['route']?.toString();
+                                final route = rawRoute == '/student/quizzes'
+                                    ? '/student/quiz'
+                                    : rawRoute == '/teacher/quizzes'
+                                        ? '/teacher/batches'
+                                        : rawRoute;
                                 
                                 if (route != null && route.isNotEmpty) {
                                   context.push(route);
@@ -580,7 +585,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                   } else if (type == 'class') {
                                     context.push('$prefix/timetable');
                                   } else if (type == 'exam' || type == 'quiz') {
-                                    context.push('$prefix/quizzes');
+                                    if (prefix == '/student') {
+                                      context.push('/student/quiz');
+                                    } else if (prefix == '/teacher') {
+                                      context.push('/teacher/batches');
+                                    } else {
+                                      context.push(prefix);
+                                    }
                                   } else if (type == 'material' || type == 'content') {
                                     context.push('$prefix/materials');
                                   } else if (type == 'attendance') {

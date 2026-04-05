@@ -22,6 +22,49 @@ export class QuizService {
     return teacher.id;
   }
 
+  private static phoneVariants(phone: string | null | undefined): string[] {
+    const raw = String(phone ?? '').replace(/[\s\-()]/g, '');
+    if (!raw) return [];
+
+    const variants = new Set<string>([raw]);
+    if (raw.startsWith('+91') && raw.length >= 13) variants.add(raw.substring(3));
+    if (raw.startsWith('91') && raw.length === 12) {
+      const tenDigits = raw.substring(2);
+      variants.add(tenDigits);
+      variants.add(`+91${tenDigits}`);
+    }
+    if (/^\d{10}$/.test(raw)) {
+      variants.add(`+91${raw}`);
+      variants.add(`91${raw}`);
+    }
+
+    return Array.from(variants);
+  }
+
+  private static async resolveStudentUserIdFromPhone(
+    instituteId: string,
+    phone: string | null | undefined,
+  ): Promise<string | null> {
+    const variants = QuizService.phoneVariants(phone);
+    if (variants.length === 0) return null;
+
+    const user = await prisma.user.findFirst({
+      where: {
+        institute_id: instituteId,
+        role: 'student',
+        is_active: true,
+        phone: { in: variants },
+      },
+      orderBy: [
+        { last_login_at: 'desc' },
+        { created_at: 'desc' },
+      ],
+      select: { id: true },
+    });
+
+    return user?.id ?? null;
+  }
+
   private static async resolveStudentProfileId(userId: string, instituteId: string): Promise<string> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -34,19 +77,14 @@ export class QuizService {
 
     const orFilters: Array<Record<string, any>> = [{ user_id: userId }];
 
-    const raw = String(user.phone ?? '').replace(/[\s\-()]/g, '');
-    if (raw) {
-      const variants = new Set<string>([raw]);
-      if (raw.startsWith('+91') && raw.length >= 13) variants.add(raw.substring(3));
-      if (raw.startsWith('91') && raw.length === 12) {
-        variants.add(raw.substring(2));
-        variants.add(`+91${raw.substring(2)}`);
-      }
-      if (/^\d{10}$/.test(raw)) {
-        variants.add(`+91${raw}`);
-        variants.add(`91${raw}`);
-      }
-      orFilters.push({ phone: { in: Array.from(variants) } });
+    const variants = QuizService.phoneVariants(user.phone);
+    if (variants.length > 0) {
+      orFilters.push({
+        AND: [
+          { phone: { in: variants } },
+          { OR: [{ user_id: null }, { user_id: userId }] },
+        ],
+      });
     }
 
     const candidates = await prisma.student.findMany({
@@ -69,17 +107,17 @@ export class QuizService {
     });
 
     const ranked = [...candidates].sort((a, b) => {
-      const aBatchCount = a.student_batches?.length || 0;
-      const bBatchCount = b.student_batches?.length || 0;
-      if (bBatchCount != aBatchCount) return bBatchCount - aBatchCount;
-
       const aLinked = a.user_id === userId ? 1 : 0;
       const bLinked = b.user_id === userId ? 1 : 0;
       if (bLinked != aLinked) return bLinked - aLinked;
 
-      const aHasUser = a.user_id ? 1 : 0;
-      const bHasUser = b.user_id ? 1 : 0;
-      if (bHasUser != aHasUser) return bHasUser - aHasUser;
+      const aBatchCount = a.student_batches?.length || 0;
+      const bBatchCount = b.student_batches?.length || 0;
+      if (bBatchCount != aBatchCount) return bBatchCount - aBatchCount;
+
+      const aUnlinked = !a.user_id ? 1 : 0;
+      const bUnlinked = !b.user_id ? 1 : 0;
+      if (bUnlinked != aUnlinked) return bUnlinked - aUnlinked;
 
       const aCreated = new Date(a.created_at as any).getTime() || 0;
       const bCreated = new Date(b.created_at as any).getTime() || 0;
@@ -272,24 +310,55 @@ export class QuizService {
       try {
         const { NotificationService } = await import('../notification/notification.service');
         const students = await prisma.student.findMany({
-          where: { student_batches: { some: { batch_id: quiz.batch_id } }, is_active: true },
-          select: { user_id: true }
+          where: {
+            institute_id: instituteId,
+            OR: [{ is_active: true }, { is_active: null }],
+            student_batches: {
+              some: {
+                batch_id: quiz.batch_id,
+                institute_id: instituteId,
+                OR: [{ is_active: true }, { is_active: null }],
+              },
+            },
+          },
+          select: { id: true, user_id: true, phone: true },
         });
 
         const typeLabel = (quiz.assessment_type || 'Quiz').toLowerCase();
+        const notifiedUserIds = new Set<string>();
+
         for (const student of students) {
-          if (student.user_id) {
-            await NotificationService.sendNotificationToUser(student.user_id, {
-              title: `New ${typeLabel.toUpperCase()}: ${quiz.title}`,
-              body: `A new ${typeLabel} "${quiz.title}" is now available for your batch.`,
-              type: 'exam',
-              institute_id: instituteId,
-              meta: {
-                route: '/student/quizzes',
-                quiz_id: quiz.id
-              }
-            });
+          let targetUserId = student.user_id;
+          if (!targetUserId) {
+            targetUserId = await QuizService.resolveStudentUserIdFromPhone(instituteId, student.phone);
+            if (targetUserId) {
+              await prisma.student.updateMany({
+                where: {
+                  id: student.id,
+                  institute_id: instituteId,
+                  user_id: null,
+                },
+                data: { user_id: targetUserId },
+              });
+            }
           }
+
+          if (!targetUserId || notifiedUserIds.has(targetUserId)) {
+            continue;
+          }
+
+          notifiedUserIds.add(targetUserId);
+          await NotificationService.sendNotificationToUser(targetUserId, {
+            title: `New ${typeLabel.toUpperCase()}: ${quiz.title}`,
+            body: `A new ${typeLabel} "${quiz.title}" is now available for your batch.`,
+            type: 'exam',
+            institute_id: instituteId,
+            meta: {
+              route: '/student/quiz',
+              quiz_id: quiz.id,
+              batch_id: quiz.batch_id,
+            },
+          });
         }
       } catch (err) {
         console.error('Failed to send quiz publication notifications:', err);
@@ -425,7 +494,7 @@ export class QuizService {
             type: 'exam',
             institute_id: instituteId,
             meta: {
-              route: '/student/quizzes',
+              route: '/student/quiz',
               quiz_id: quiz.id
             }
           });
@@ -455,7 +524,7 @@ export class QuizService {
           type: 'exam',
           institute_id: instituteId,
           meta: {
-            route: `/teacher/quiz/${quiz.id}/results`,
+            route: quiz.batch_id ? `/teacher/batches/${quiz.batch_id}?tab=tests` : '/teacher/batches',
             quiz_id: quiz.id,
             student_id: studentProfileId
           }

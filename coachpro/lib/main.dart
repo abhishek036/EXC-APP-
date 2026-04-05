@@ -128,11 +128,24 @@ class _ExcellenceAcademyAppState extends State<ExcellenceAcademyApp> with Widget
     _router = AppRouter.router(_authBloc);
     _startAuthSyncTimer();
     _notificationTapSub = sl<PushNotificationService>().onNotificationTap.listen((payload) {
-      final route = payload['route']?.toString();
+      final route = _normalizeNotificationRoute(payload['route']?.toString());
       if (route != null && route.isNotEmpty) {
         _router.go(route);
       }
     });
+  }
+
+  String? _normalizeNotificationRoute(String? route) {
+    if (route == null || route.isEmpty) return null;
+
+    switch (route) {
+      case '/student/quizzes':
+        return '/student/quiz';
+      case '/teacher/quizzes':
+        return '/teacher/batches';
+      default:
+        return route;
+    }
   }
 
   @override

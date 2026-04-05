@@ -19,13 +19,12 @@ router.use(tenantMiddleware);
 router.get('/health', requireRole('admin'), NotificationController.getHealth);
 router.get('/unread-count', NotificationController.getUnreadCount);
 router.get('/', validate(listNotificationsQuerySchema), NotificationController.listMy);
+router.post('/register-token', validate(registerDeviceTokenSchema), NotificationController.registerToken);
+router.delete('/register-token', validate(unregisterDeviceTokenSchema), NotificationController.unregisterToken);
 router.patch('/read-all', NotificationController.markAllRead);
 router.patch('/:id/read', validate(markNotificationReadSchema), NotificationController.markRead);
 router.delete('/:id', NotificationController.deleteMine);
 router.delete('/:id/global', requireRole('admin', 'teacher'), NotificationController.deleteGlobal);
-
-router.post('/register-token', validate(registerDeviceTokenSchema), NotificationController.registerToken);
-router.delete('/register-token', validate(unregisterDeviceTokenSchema), NotificationController.unregisterToken);
 
 router.post('/send', requireRole('admin', 'teacher'), validate(sendNotificationSchema), NotificationController.sendManual);
 router.post('/trigger/fee-reminders', requireRole('admin'), NotificationController.triggerFeeReminders);
