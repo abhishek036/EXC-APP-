@@ -76,7 +76,7 @@ export class StudentRepository {
     });
   }
 
-  async createStudentWithUserAndParent(instituteId: string, data: CreateStudentInput, passwordHash?: string) {
+  async createStudentWithUserAndParent(instituteId: string, data: CreateStudentInput, _passwordHash?: string) {
      return prisma.$transaction(async (tx: any) => {
          // 1. Create Student record
          const student = await tx.student.create({

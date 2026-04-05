@@ -193,8 +193,15 @@ class AutoNotificationService {
         .toList();
     await saveRules(updated);
 
-    // TODO: Sync with backend
-    // await apiClient.put('/notifications/rules/$ruleId', data: {'enabled': enabled});
+    // Keep local preferences as source-of-truth fallback and best-effort sync to backend.
+    try {
+      await sl<ApiClient>().dio.patch(
+        'notifications/rules/$ruleId',
+        data: {'enabled': enabled},
+      );
+    } catch (error) {
+      debugPrint('Notification rule sync failed for $ruleId: $error');
+    }
 
     return updated;
   }

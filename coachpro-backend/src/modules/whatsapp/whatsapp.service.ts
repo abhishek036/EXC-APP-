@@ -39,7 +39,7 @@ export class WhatsAppService {
     }
   }
 
-  static async sendOTP(phone: string, otp: string): Promise<void> {
+  static async sendOTP(phone: string, _otp: string): Promise<void> {
     // POC: Using hello_world until otp_verification template is approved
     await this.sendMessage(phone, 'hello_world', 'en_US', []);
   }

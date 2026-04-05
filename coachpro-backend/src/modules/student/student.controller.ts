@@ -4,7 +4,6 @@ import { sendResponse } from '../../utils/response';
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
 import { isLegacyColumnError } from '../../utils/prisma-errors';
-import { Prisma } from '@prisma/client';
 
 export class StudentController {
   private studentService: StudentService;
@@ -438,11 +437,6 @@ export class StudentController {
           if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
 
           const batchIds = student.student_batches.map(sb => sb.batch_id);
-          const requestedDay = req.query.day ? parseInt(req.query.day as string) : new Date().getDay();
-          const dayIndex = isNaN(requestedDay) ? new Date().getDay() : requestedDay;
-
-          // Standardize Day: 1=Mon, 7=Sun (Matching script convention)
-          const dayMapping = dayIndex === 0 ? 7 : dayIndex;
 
           // NOTE: USER REQUESTED TO DELETE MOCK SCHEDULES AND MAKE IT REAL TIME.
           // We are removing the recurring batch placeholder logic. Only actual lectures show.

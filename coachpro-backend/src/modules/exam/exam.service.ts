@@ -1,4 +1,3 @@
-import { ApiError } from '../../middleware/error.middleware';
 import { ExamRepository } from './exam.repository';
 import { CreateExamInput, SaveExamResultInput } from './exam.validator';
 import { NotificationService } from '../notification/notification.service';

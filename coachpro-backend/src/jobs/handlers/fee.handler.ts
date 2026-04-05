@@ -1,7 +1,6 @@
 import { prisma } from '../../server';
 import { FeeRepository } from '../../modules/fee/fee.repository';
 import { WhatsAppService } from '../../modules/whatsapp/whatsapp.service';
-import { Prisma } from '@prisma/client';
 
 export class FeeHandler {
   private static repo = new FeeRepository();

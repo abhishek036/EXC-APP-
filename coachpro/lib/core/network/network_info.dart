@@ -1,16 +1,30 @@
 import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 /// Lightweight connectivity checker.
-/// Uses a simple DNS lookup — replace with connectivity_plus when backend is ready.
+/// Uses connectivity_plus to determine whether any transport is available.
 abstract class NetworkInfo {
   Future<bool> get isConnected;
 }
 
 class NetworkInfoImpl implements NetworkInfo {
+  final Connectivity _connectivity;
+
+  NetworkInfoImpl({Connectivity? connectivity})
+      : _connectivity = connectivity ?? Connectivity();
+
   @override
   Future<bool> get isConnected async {
-    // TODO: Replace with connectivity_plus when adding real backend.
-    // For now always returns true so the UI never blocks on connectivity.
-    return true;
+    final dynamic result = await _connectivity.checkConnectivity();
+
+    if (result is List<ConnectivityResult>) {
+      return result.any((item) => item != ConnectivityResult.none);
+    }
+
+    if (result is ConnectivityResult) {
+      return result != ConnectivityResult.none;
+    }
+
+    return false;
   }
 }

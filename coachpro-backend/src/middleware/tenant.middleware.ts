@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiError } from './error.middleware';
-import { prisma } from '../server';
 
 export const tenantMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {

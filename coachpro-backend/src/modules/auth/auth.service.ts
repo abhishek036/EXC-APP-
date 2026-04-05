@@ -273,7 +273,7 @@ export class AuthService {
                          || await tx.teacher.findFirst({ where: { user_id: user.id } })
                          || await tx.parent.findFirst({ where: { user_id: user.id } })
                          || await tx.staff.findFirst({ where: { phone: { in: this._phoneVariants(phone) } } });
-            } catch (e: any) {}
+            } catch (_error: any) {}
 
             return {
                 user: { id: user.id, role: user.role, instituteId: user.institute_id, name: profile?.name },
@@ -291,7 +291,7 @@ export class AuthService {
         return variants;
     }
 
-    async loginWithPassword(phone: string, password: string, joinCode?: string) {
+    async loginWithPassword(phone: string, password: string, _joinCode?: string) {
         const user: any = await this.authRepository.findUserByPhone(phone);
         if (!user) {
             throw new ApiError('Invalid credentials or user not found', 401, 'INVALID_CREDENTIALS');
@@ -334,8 +334,8 @@ export class AuthService {
         let profile: { name?: string } | null = null;
         try {
             profile = await this.getUserProfile(user.id);
-        } catch (e: any) {
-            console.error('[AUTH] Profile fetch failed after password login:', e?.message || e);
+        } catch (_error: any) {
+            console.error('[AUTH] Profile fetch failed after password login:', _error?.message || _error);
         }
 
         return {
@@ -388,7 +388,7 @@ export class AuthService {
                 refreshToken: newRefreshTokenString
             };
 
-        } catch (e) {
+        } catch (_error) {
             throw new ApiError('Invalid or expired refresh token. Please login again.', 401, 'INVALID_TOKEN');
         }
     }

@@ -7,7 +7,6 @@ export function isLegacyColumnError(error: unknown, columnName?: string): boolea
     
     if (columnName) {
         const lowColumnName = columnName.toLowerCase();
-        const code = (error as any)?.code;
         const meta = (error as any)?.meta;
         const message = (error as any)?.message || '';
         

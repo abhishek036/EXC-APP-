@@ -2,7 +2,6 @@ import { prisma } from '../../server';
 import { CreateNoteInput, CreateAssignmentInput, SubmitAssignmentInput, ReviewAssignmentSubmissionInput, CreateDoubtInput, RespondDoubtInput } from './content.validator';
 import { isLegacyColumnError } from '../../utils/prisma-errors';
 import { ApiError } from '../../middleware/error.middleware';
-import { basename } from 'path';
 import { createHash } from 'crypto';
 
 export class ContentRepository {

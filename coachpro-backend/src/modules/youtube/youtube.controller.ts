@@ -24,7 +24,6 @@ export class YoutubeController {
   handleCallback = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const code = req.query.code as string;
-      const state = req.query.state as string; // the institute_id we sent
 
       if (!code) {
         return res.status(400).send('Authorization code missing');

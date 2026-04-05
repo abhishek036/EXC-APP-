@@ -40,10 +40,17 @@ export class WhatsAppController {
 
       if (message) {
         const from = message.from;
+        const messageType = message.type || 'unknown';
         const msgText = message.text?.body;
-        console.log(`[WHATSAPP] Received message from ${from}: "${msgText}"`);
-        
-        // TODO: Handle inbound messages (e.g. Chat bot, Auto-reply, Doubt submission)
+        console.log(`[WHATSAPP] Received ${messageType} message from ${from}: "${msgText || ''}"`);
+
+        // Safe baseline behavior: capture intent keywords for observability.
+        if (typeof msgText === 'string' && msgText.trim().length > 0) {
+          const normalized = msgText.trim().toLowerCase();
+          if (['hi', 'hello', 'help', 'support'].includes(normalized)) {
+            console.log(`[WHATSAPP] Help intent detected from ${from}`);
+          }
+        }
       }
 
       // Always return 200 OK to Meta quickly to avoid retries

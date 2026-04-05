@@ -25,7 +25,7 @@ export class QuizRepository {
       
       // Fallback for missing image columns
       const legacyQuestions = questions.map(q => {
-        const { option_a_image, option_b_image, option_c_image, option_d_image, ...rest } = q as any;
+        const { option_a_image: _option_a_image, option_b_image: _option_b_image, option_c_image: _option_c_image, option_d_image: _option_d_image, ...rest } = q as any;
         return rest;
       });
 

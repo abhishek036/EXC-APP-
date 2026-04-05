@@ -218,7 +218,7 @@ app.use('/api/youtube', youtubeRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // 404 Catcher
-app.all('*', (req: Request, res: Response, next: NextFunction) => {
+app.all('*', (req: Request, res: Response, _next: NextFunction) => {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: `Can't find ${req.originalUrl} on this server` } });
 });
 

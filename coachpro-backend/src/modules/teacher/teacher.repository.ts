@@ -35,7 +35,7 @@ export class TeacherRepository {
     });
   }
 
-  async createTeacherWithUser(instituteId: string, data: CreateTeacherInput, passwordHash?: string) {
+  async createTeacherWithUser(instituteId: string, data: CreateTeacherInput, _passwordHash?: string) {
      if (!data.phone) throw new Error('Phone is required for Teacher creation');
 
      const normalizedSubjects = Array.from(new Set([

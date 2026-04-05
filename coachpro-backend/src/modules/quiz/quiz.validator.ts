@@ -36,7 +36,6 @@ export const createQuizSchema = z.object({
     ).min(1),
   }).superRefine((body, ctx) => {
     const assessmentType = body.assessment_type ?? 'QUIZ';
-    const questionCount = body.questions.length;
 
     if (assessmentType === 'TEST') {
       if (!body.time_limit_min || body.time_limit_min <= 0) {

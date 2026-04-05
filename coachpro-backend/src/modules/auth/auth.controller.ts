@@ -3,7 +3,6 @@ import { AuthService } from './auth.service';
 import { sendResponse } from '../../utils/response';
 import { S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
-import { v4 as uuidv4 } from 'uuid';
 import { extname } from 'path';
 
 const s3 = new S3Client({
@@ -25,7 +24,7 @@ export class AuthController {
   sendOtp = async (req: Request, res: Response, next: NextFunction) => {
     console.log(`[CONTROLLER] Received sendOtp request: ${req.method} ${req.url}`);
     try {
-      const { phone, purpose, joinCode, role } = req.body;
+      const { phone, purpose, joinCode } = req.body;
       const data = await this.authService.sendOtp(phone, purpose, joinCode);
       return sendResponse({ res, data, message: 'OTP sent successfully' });
     } catch (error) {

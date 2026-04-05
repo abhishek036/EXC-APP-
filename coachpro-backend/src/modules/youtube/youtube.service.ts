@@ -1,9 +1,6 @@
-import { google, youtube_v3 } from 'googleapis';
-import { PrismaClient } from '@prisma/client';
+import { google } from 'googleapis';
 import dotenv from 'dotenv';
 dotenv.config();
-
-const prisma = new PrismaClient();
 
 export class YoutubeService {
   private oauth2Client;
@@ -17,7 +14,7 @@ export class YoutubeService {
   }
 
   // Set the stored refresh token from DB for the specific institute
-  async setCredentials(instituteId: string) {
+  async setCredentials(_instituteId: string) {
     // Currently, if there is a global token in .env for now:
     const token = process.env.YOUTUBE_REFRESH_TOKEN;
     if (token) {

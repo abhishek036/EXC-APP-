@@ -1,5 +1,4 @@
 import { prisma } from '../../server';
-import { ApiError } from '../../middleware/error.middleware';
 
 export class ParentRepository {
   async findParentByUserId(userId: string, instituteId: string) {
