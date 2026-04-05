@@ -190,6 +190,11 @@ model Teacher {
   institute     Institute @relation(fields: [institute_id], references: [id])
   name          String    @db.VarChar(200)
   phone         String?   @db.VarChar(15)
+
+  // FIX: Add unique constraint to prevent duplicate profiles per institute+phone
+  @@unique([institute_id, phone])
+  // FIX: Add index for user_id lookups
+  @@index([user_id])
   email         String?   @db.VarChar(200)
   subjects      String[]
   qualification String?   @db.VarChar(200)
@@ -217,6 +222,11 @@ model Student {
   institute       Institute @relation(fields: [institute_id], references: [id])
   name            String    @db.VarChar(200)
   phone           String?   @db.VarChar(15)
+
+  // FIX: Add unique constraint to prevent duplicate profiles per institute+phone
+  @@unique([institute_id, phone])
+  // FIX: Add index for user_id lookups (common query pattern)
+  @@index([user_id])
   dob             DateTime? @db.Date
   gender          String?   @db.VarChar(10)
   address         String?   @db.Text
@@ -254,6 +264,11 @@ model Parent {
   institute    Institute @relation(fields: [institute_id], references: [id])
   name         String    @db.VarChar(200)
   phone        String    @db.VarChar(15)
+
+  // FIX: Add unique constraint to prevent duplicate profiles per institute+phone
+  @@unique([institute_id, phone])
+  // FIX: Add index for user_id lookups
+  @@index([user_id])
   occupation   String?   @db.VarChar(100)
 
   parent_students ParentStudent[]
@@ -890,6 +905,11 @@ model Staff {
   created_at   DateTime? @default(now()) @db.Timestamptz
 
   payroll_records PayrollRecord[]
+
+  // FIX: Add unique constraint to prevent duplicate admin profiles per institute+phone
+  @@unique([institute_id, phone])
+  // FIX: Add index for phone lookups
+  @@index([phone])
 
   @@map("staff")
 }

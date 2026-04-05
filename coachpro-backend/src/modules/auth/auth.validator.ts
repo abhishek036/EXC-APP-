@@ -15,6 +15,7 @@ export const sendOtpSchema = z.object({
   body: z.object({
     phone: z.string().min(10).max(15, 'Invalid phone number format'),
     joinCode: z.string().optional(),
+    role: z.enum(['admin', 'teacher', 'student', 'parent']).optional(),
     purpose: z.enum(['login', 'password_reset']).default('login')
   })
 });
@@ -24,6 +25,7 @@ export const verifyOtpSchema = z.object({
     phone: z.string().min(10).max(15, 'Invalid phone number format'),
     otp: otpSchema,
     joinCode: z.string().optional(),
+    role: z.enum(['admin', 'teacher', 'student', 'parent']).optional(),
     purpose: z.enum(['login', 'password_reset']).default('login')
   })
 });
@@ -48,6 +50,7 @@ export const passwordResetSchema = z.object({
     phone: z.string().min(10).max(15),
     otp: otpSchema,
     newPassword: strongPasswordSchema,
+    joinCode: z.string().optional(),
   })
 });
 

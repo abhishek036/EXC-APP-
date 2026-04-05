@@ -55,33 +55,135 @@ export class AuthService {
         return this._durationToMs(env, 30 * 24 * 60 * 60 * 1000);
     }
 
+    private _normalizeJoinCode(joinCode?: string): string | undefined {
+        const normalized = String(joinCode || '').trim();
+        return normalized.length > 0 ? normalized : undefined;
+    }
+
+    private _normalizeRole(role?: string): string | undefined {
+        const normalized = String(role || '').trim().toLowerCase();
+        if (!normalized) return undefined;
+        if (!['admin', 'teacher', 'student', 'parent'].includes(normalized)) return undefined;
+        return normalized;
+    }
+
+    private async _resolveJoinInstitute(db: any, joinCode?: string): Promise<{ id: string } | null> {
+        const normalizedJoinCode = this._normalizeJoinCode(joinCode);
+        if (!normalizedJoinCode) return null;
+
+        const institute = await db.institute.findUnique({
+            where: { join_code: normalizedJoinCode },
+            select: { id: true },
+        });
+
+        if (!institute) {
+            throw new ApiError('Invalid institute join code.', 400, 'INVALID_JOIN_CODE');
+        }
+
+        return institute;
+    }
+
+    private async _findActiveUsersByPhone(db: any, phonesToSearch: string[]): Promise<any[]> {
+        return db.user.findMany({
+            where: {
+                phone: { in: phonesToSearch },
+                is_active: true,
+            },
+            orderBy: { created_at: 'asc' },
+        });
+    }
+
+    private _selectUserForInstitute(users: any[], instituteId?: string): any | null {
+        if (instituteId) {
+            const matched = users.find((entry) => entry.institute_id === instituteId) || null;
+            if (!matched && users.length > 0) {
+                throw new ApiError(
+                    'This phone number is not registered in the provided institute.',
+                    400,
+                    'INSTITUTE_MISMATCH',
+                );
+            }
+            return matched;
+        }
+
+        if (users.length > 1) {
+            throw new ApiError(
+                'Multiple accounts found for this phone. Please provide institute join code.',
+                409,
+                'AMBIGUOUS_ACCOUNT',
+            );
+        }
+
+        return users[0] || null;
+    }
+
+    private async _collectProfileInstituteIds(db: any, phonesToSearch: string[]): Promise<string[]> {
+        const [staff, teachers, students, parents] = await Promise.all([
+            db.staff.findMany({ where: { phone: { in: phonesToSearch } }, select: { institute_id: true } }),
+            db.teacher.findMany({ where: { phone: { in: phonesToSearch } }, select: { institute_id: true } }),
+            db.student.findMany({ where: { phone: { in: phonesToSearch } }, select: { institute_id: true } }),
+            db.parent.findMany({ where: { phone: { in: phonesToSearch } }, select: { institute_id: true } }),
+        ]);
+
+        const instituteIds = new Set<string>();
+        for (const entry of staff) instituteIds.add(entry.institute_id);
+        for (const entry of teachers) instituteIds.add(entry.institute_id);
+        for (const entry of students) instituteIds.add(entry.institute_id);
+        for (const entry of parents) instituteIds.add(entry.institute_id);
+
+        return Array.from(instituteIds);
+    }
+
+    private async _resolveInstituteId(
+        db: any,
+        phonesToSearch: string[],
+        selectedUser: any | null,
+        joinInstituteId?: string,
+    ): Promise<string> {
+        if (selectedUser?.institute_id) return selectedUser.institute_id;
+        if (joinInstituteId) return joinInstituteId;
+
+        const profileInstituteIds = await this._collectProfileInstituteIds(db, phonesToSearch);
+        if (profileInstituteIds.length === 1) return profileInstituteIds[0];
+
+        if (profileInstituteIds.length > 1) {
+            throw new ApiError(
+                'Multiple institutes found for this phone. Please provide institute join code.',
+                409,
+                'AMBIGUOUS_ACCOUNT',
+            );
+        }
+
+        const instituteCount = await db.institute.count();
+        if (instituteCount === 1) {
+            const onlyInstitute = await db.institute.findFirst({ select: { id: true } });
+            if (onlyInstitute?.id) return onlyInstitute.id;
+        }
+
+        throw new ApiError(
+            'Institute join code is required for this phone number.',
+            400,
+            'JOIN_CODE_REQUIRED',
+        );
+    }
+
     async sendOtp(phone: string, purpose: string, joinCode?: string) {
         console.log(`[AUTH] sendOtp requested for phone: "${phone}", purpose: ${purpose}`);
 
-        const user = await this.authRepository.findUserByPhone(phone);
-
-        let isPreRegistered = false;
-        if (!user) {
-            const phonesToSearch = [phone];
-            if (phone.startsWith('+91')) phonesToSearch.push(phone.substring(3));
-            if (phone.length === 10) phonesToSearch.push(`+91${phone}`);
-
-            const staff = await prisma.staff.findFirst({ where: { phone: { in: phonesToSearch } } });
-            const teacher = await prisma.teacher.findFirst({ where: { phone: { in: phonesToSearch } } });
-            const student = await prisma.student.findFirst({ where: { phone: { in: phonesToSearch } } });
-            const parent = await prisma.parent.findFirst({ where: { phone: { in: phonesToSearch } } });
-            if (staff || teacher || student || parent) isPreRegistered = true;
+        const normalizedPhone = String(phone || '').trim();
+        if (!normalizedPhone) {
+            throw new ApiError('Phone number is required', 400, 'INVALID_PHONE');
         }
 
-        if (!user && !isPreRegistered && !joinCode) {
-            // Fallback to the first available institute for open registration
-            const inst = await prisma.institute.findFirst();
-            if (!inst) throw new ApiError('No institute initialized in the system.', 400, 'NO_INSTITUTE');
-        }
+        const phonesToSearch = this._phoneVariants(normalizedPhone);
+        const joinInstitute = await this._resolveJoinInstitute(prisma, joinCode);
+        const users = await this._findActiveUsersByPhone(prisma, phonesToSearch);
 
-        if (!user && !isPreRegistered && joinCode) {
-            const inst = await prisma.institute.findUnique({ where: { join_code: joinCode } });
-            if (!inst) throw new ApiError('Invalid institute join code.', 400, 'INVALID_JOIN_CODE');
+        // Validate account disambiguation early so OTP is not sent to ambiguous identities.
+        this._selectUserForInstitute(users, joinInstitute?.id);
+
+        if (users.length === 0) {
+            await this._resolveInstituteId(prisma, phonesToSearch, null, joinInstitute?.id);
         }
 
         const otp = generateOTP();
@@ -91,13 +193,13 @@ export class AuthService {
         const expiresInMs = (parseInt(process.env.OTP_EXPIRY_MINUTES || '10') * 60 * 1000);
         const expiresAt = new Date(Date.now() + expiresInMs);
 
-        await this.authRepository.saveOtp(phone, otp, purpose, expiresAt);
+        await this.authRepository.saveOtp(normalizedPhone, otp, purpose, expiresAt);
 
         const testOtpEnabled =
             process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_OTP === 'true';
 
         if (testOtpEnabled) {
-            console.log(`[DEV OTP]: Sent ${otp} to ${phone} for ${purpose}`);
+            console.log(`[DEV OTP]: Sent ${otp} to ${normalizedPhone} for ${purpose}`);
         }
 
         const whatsappOtpEnabled = (process.env.ENABLE_WHATSAPP_OTP ?? 'true').toLowerCase() === 'true';
@@ -107,13 +209,13 @@ export class AuthService {
         if (whatsappOtpEnabled) {
             try {
                 const { RenflairOtpService } = await import('../whatsapp/renflair-otp.service');
-                const sent = await RenflairOtpService.sendOTP(phone, otp);
+                const sent = await RenflairOtpService.sendOTP(normalizedPhone, otp);
                 if (sent) {
-                    console.log(`[AUTH] ✅ WhatsApp OTP sent via Renflair to ${phone}`);
+                    console.log(`[AUTH] ✅ WhatsApp OTP sent via Renflair to ${normalizedPhone}`);
                     delivered = true;
                     deliveryChannel = 'whatsapp';
                 } else {
-                    console.warn(`[AUTH] ⚠️ Renflair send failed for ${phone} — OTP was saved to DB, user can check console in dev`);
+                    console.warn(`[AUTH] ⚠️ Renflair send failed for ${normalizedPhone} — OTP was saved to DB, user can check console in dev`);
                 }
             } catch (e: any) {
                 console.error(`[AUTH] Renflair OTP delivery error:`, e.message);
@@ -156,20 +258,25 @@ export class AuthService {
 
         // --- 2. RUN REGISTRATION/LOGIN LOGIC IN TRANSACTION ---
         return await prisma.$transaction(async (tx: any) => {
-            let user: any = await tx.user.findFirst({
-                where: { phone: { in: this._phoneVariants(phone) }, is_active: true }
-            });
+            const phonesToSearch = this._phoneVariants(phone);
+            const joinInstitute = await this._resolveJoinInstitute(tx, joinCode);
+            const users = await this._findActiveUsersByPhone(tx, phonesToSearch);
+            let user: any = this._selectUserForInstitute(users, joinInstitute?.id);
 
             let isNewUser = false;
-            
-            // --- LOOK UP EXISTING PERMISSIONS/PROFILES ---
-            const phonesToSearch = this._phoneVariants(phone);
+
+            const instituteIdToUse = await this._resolveInstituteId(
+                tx,
+                phonesToSearch,
+                user,
+                joinInstitute?.id,
+            );
 
             const [staff, teacher, studentCandidates, parent] = await Promise.all([
-                tx.staff.findFirst({ where: { phone: { in: phonesToSearch } } }),
-                tx.teacher.findFirst({ where: { phone: { in: phonesToSearch } } }),
+                tx.staff.findFirst({ where: { institute_id: instituteIdToUse, phone: { in: phonesToSearch } } }),
+                tx.teacher.findFirst({ where: { institute_id: instituteIdToUse, phone: { in: phonesToSearch } } }),
                 tx.student.findMany({
-                    where: { phone: { in: phonesToSearch } },
+                    where: { institute_id: instituteIdToUse, phone: { in: phonesToSearch } },
                     include: {
                         student_batches: {
                             where: { is_active: true },
@@ -178,7 +285,7 @@ export class AuthService {
                     },
                     orderBy: { created_at: 'desc' },
                 }),
-                tx.parent.findFirst({ where: { phone: { in: phonesToSearch } } })
+                tx.parent.findFirst({ where: { institute_id: instituteIdToUse, phone: { in: phonesToSearch } } })
             ]);
 
             const student =
@@ -188,29 +295,20 @@ export class AuthService {
                 studentCandidates[0] ||
                 null;
 
-            // --- STABLE INSTITUTE DETERMINATION ---
-            let instituteIdToUse = user?.institute_id || staff?.institute_id || teacher?.institute_id || student?.institute_id || parent?.institute_id;
-            
-            if (!instituteIdToUse && joinCode) {
-                const inst = await tx.institute.findUnique({ where: { join_code: joinCode } });
-                if (inst) instituteIdToUse = inst.id;
-            }
-
-            if (!instituteIdToUse) {
-                const inst = await tx.institute.findFirst();
-                if (inst) instituteIdToUse = inst.id;
-            }
-
-            if (!instituteIdToUse) throw new ApiError('No institute context found.', 400, 'NO_INSTITUTE');
-
             // --- SUPER USER ROLE SWITCHING ---
             const SUPER_USER_PHONES = (process.env.SUPER_USER_PHONES || '9630457025,8427996261').split(',').map(p => p.trim()).filter(Boolean);
             const isSuperUser = SUPER_USER_PHONES.some(p => phone.includes(p));
-            
-            let assignedRole = role || user?.role || (staff ? 'admin' : (teacher ? 'teacher' : (student ? 'student' : (parent ? 'parent' : 'student'))));
 
-            if (isSuperUser && role) {
-                assignedRole = role;
+            const requestedRole = this._normalizeRole(role);
+            const inferredRole = staff ? 'admin' : (teacher ? 'teacher' : (student ? 'student' : (parent ? 'parent' : 'student')));
+            let assignedRole = user?.role || inferredRole;
+
+            if (!user && requestedRole) {
+                assignedRole = requestedRole;
+            }
+
+            if (isSuperUser && requestedRole) {
+                assignedRole = requestedRole;
                 console.log(`[AUTH] Super User Switch: ${phone} -> ${assignedRole}`);
                 
                 if (user && user.role !== assignedRole) {
@@ -289,10 +387,10 @@ export class AuthService {
             try {
                 // profile fetch might look inside tx or outside?
                 // we'll fetch it outside the tx if it's purely read, but better inside if it uses tx client.
-                profile = await tx.student.findFirst({ where: { user_id: user.id } })
-                         || await tx.teacher.findFirst({ where: { user_id: user.id } })
-                         || await tx.parent.findFirst({ where: { user_id: user.id } })
-                         || await tx.staff.findFirst({ where: { phone: { in: this._phoneVariants(phone) } } });
+                profile = await tx.student.findFirst({ where: { user_id: user.id, institute_id: instituteIdToUse } })
+                         || await tx.teacher.findFirst({ where: { user_id: user.id, institute_id: instituteIdToUse } })
+                         || await tx.parent.findFirst({ where: { user_id: user.id, institute_id: instituteIdToUse } })
+                         || await tx.staff.findFirst({ where: { institute_id: instituteIdToUse, phone: { in: this._phoneVariants(phone) } } });
             } catch (_error: any) {}
 
             return {
@@ -305,14 +403,22 @@ export class AuthService {
     }
 
     private _phoneVariants(phone: string) {
-        const variants = [phone];
-        if (phone.startsWith('+91')) variants.push(phone.substring(3));
-        if (phone.length === 10) variants.push(`+91${phone}`);
-        return variants;
+        const base = String(phone || '').trim();
+        const variants = new Set<string>();
+        if (!base) return [];
+
+        variants.add(base);
+        if (base.startsWith('+91')) variants.add(base.substring(3));
+        if (base.length === 10) variants.add(`+91${base}`);
+        return Array.from(variants);
     }
 
-    async loginWithPassword(phone: string, password: string, _joinCode?: string) {
-        const user: any = await this.authRepository.findUserByPhone(phone);
+    async loginWithPassword(phone: string, password: string, joinCode?: string) {
+        const phonesToSearch = this._phoneVariants(phone);
+        const joinInstitute = await this._resolveJoinInstitute(prisma, joinCode);
+        const users = await this._findActiveUsersByPhone(prisma, phonesToSearch);
+        const user: any = this._selectUserForInstitute(users, joinInstitute?.id);
+
         if (!user) {
             throw new ApiError('Invalid credentials or user not found', 401, 'INVALID_CREDENTIALS');
         }
@@ -333,7 +439,6 @@ export class AuthService {
             throw new ApiError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
         }
 
-        const { prisma } = require('../../server');
         const sessionStartedAt = new Date();
         await prisma.user.update({
             where: { id: user.id },
@@ -462,11 +567,11 @@ export class AuthService {
         // Update role profile name + email where applicable
         if (name != null) {
             if (role === 'student') {
-                await prisma.student.updateMany({ where: { user_id: userId }, data: { name } });
+                await prisma.student.updateMany({ where: { user_id: userId, institute_id: user.institute_id }, data: { name } });
             } else if (role === 'teacher') {
-                await prisma.teacher.updateMany({ where: { user_id: userId }, data: { name } });
+                await prisma.teacher.updateMany({ where: { user_id: userId, institute_id: user.institute_id }, data: { name } });
             } else if (role === 'parent') {
-                await prisma.parent.updateMany({ where: { user_id: userId }, data: { name } });
+                await prisma.parent.updateMany({ where: { user_id: userId, institute_id: user.institute_id }, data: { name } });
             } else if (role === 'admin') {
                 const phonesToSearch = user.phone
                     ? [
@@ -500,7 +605,7 @@ export class AuthService {
 
         if (email != null) {
             if (role === 'teacher') {
-                await prisma.teacher.updateMany({ where: { user_id: userId }, data: { email } });
+                await prisma.teacher.updateMany({ where: { user_id: userId, institute_id: user.institute_id }, data: { email } });
             }
             // Student/Parent/Staff models may not have email consistently; keep users.email as source of truth.
         }
@@ -523,12 +628,12 @@ export class AuthService {
 
         if (!user) return null;
 
+        // FIX: CRITICAL - Always scope to institute_id to prevent cross-institute data leaks
+        const instituteId = user.institute_id;
+
+        // FIX: Improved phone normalization - always normalize to consistent format +91 prefix
         const phonesToSearch = user.phone
-            ? [
-                user.phone,
-                ...(user.phone.startsWith('+91') ? [user.phone.substring(3)] : []),
-                ...(user.phone.length === 10 ? [`+91${user.phone}`] : []),
-            ]
+            ? this._normalizePhones(user.phone)
             : [];
 
         let name = 'User';
@@ -536,21 +641,26 @@ export class AuthService {
         if (user.role === 'admin') {
             const staff = await prisma.staff.findFirst({
                 where: {
-                    institute_id: user.institute_id,
+                    institute_id: instituteId,
                     ...(phonesToSearch.length > 0 ? { phone: { in: phonesToSearch } } : {}),
                 },
             });
 
             if (staff?.name) name = staff.name;
         } else if (user.role === 'student') {
-            let student = await prisma.student.findFirst({ where: { user_id: userId } });
+            // FIX: ALWAYS use institute_id filter - this was missing!
+            let student = await prisma.student.findFirst({ 
+                where: { user_id: userId, institute_id: instituteId } 
+            });
             if (!student && phonesToSearch.length > 0) {
+                // Secondary lookup by phone with institute_id filter
                 student = await prisma.student.findFirst({
                     where: {
-                        institute_id: user.institute_id,
+                        institute_id: instituteId,
                         phone: { in: phonesToSearch },
                     },
                 });
+                // FIX: Only link if found and user_id is null (orphan profile)
                 if (student && !student.user_id) {
                     await prisma.student.update({ where: { id: student.id }, data: { user_id: userId } });
                 }
@@ -560,11 +670,14 @@ export class AuthService {
                 photo_url = student.photo_url;
             }
         } else if (user.role === 'teacher') {
-            let teacher = await prisma.teacher.findFirst({ where: { user_id: userId } });
+            // FIX: ALWAYS use institute_id filter
+            let teacher = await prisma.teacher.findFirst({ 
+                where: { user_id: userId, institute_id: instituteId } 
+            });
             if (!teacher && phonesToSearch.length > 0) {
                 teacher = await prisma.teacher.findFirst({
                     where: {
-                        institute_id: user.institute_id,
+                        institute_id: instituteId,
                         phone: { in: phonesToSearch },
                     },
                 });
@@ -577,11 +690,14 @@ export class AuthService {
                 photo_url = teacher.photo_url;
             }
         } else if (user.role === 'parent') {
-            let parent = await prisma.parent.findFirst({ where: { user_id: userId } });
+            // FIX: ALWAYS use institute_id filter
+            let parent = await prisma.parent.findFirst({ 
+                where: { user_id: userId, institute_id: instituteId } 
+            });
             if (!parent && phonesToSearch.length > 0) {
                 parent = await prisma.parent.findFirst({
                     where: {
-                        institute_id: user.institute_id,
+                        institute_id: instituteId,
                         phone: { in: phonesToSearch },
                     },
                 });
@@ -598,8 +714,41 @@ export class AuthService {
         return { ...user, name, avatar_url };
     }
 
+    // FIX: Improved phone normalization to ensure consistent format
+    private _normalizePhones(phone: string): string[] {
+        const base = String(phone || '').trim();
+        const variants = new Set<string>();
+        if (!base) return [];
+
+        // Always store +91 format in DB lookups
+        variants.add(base);
+        // Remove +91 if present
+        if (base.startsWith('+91')) {
+            variants.add(base.substring(3));
+        } else if (base.startsWith('+')) {
+            // Handle other country codes
+            const withoutPlus = base.substring(1);
+            variants.add(withoutPlus);
+            variants.add(`+91${withoutPlus}`);
+        }
+        // If 10 digits, add +91 prefix
+        if (base.length === 10 && /^\d+$/.test(base)) {
+            variants.add(`+91${base}`);
+        }
+
+        return Array.from(variants);
+    }
+
     async updateAvatar(userId: string, role: string, avatarUrl: string) {
         const { prisma } = require('../../server');
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { institute_id: true },
+        });
+        if (!user) {
+            throw new ApiError('User not found', 404, 'NOT_FOUND');
+        }
 
         // 1. Store on User table (unified source of truth)
         await prisma.user.update({
@@ -609,9 +758,9 @@ export class AuthService {
 
         // 2. Also sync to role profile's photo_url if applicable
         if (role === 'student') {
-            await prisma.student.updateMany({ where: { user_id: userId }, data: { photo_url: avatarUrl } });
+            await prisma.student.updateMany({ where: { user_id: userId, institute_id: user.institute_id }, data: { photo_url: avatarUrl } });
         } else if (role === 'teacher') {
-            await prisma.teacher.updateMany({ where: { user_id: userId }, data: { photo_url: avatarUrl } });
+            await prisma.teacher.updateMany({ where: { user_id: userId, institute_id: user.institute_id }, data: { photo_url: avatarUrl } });
         }
 
         return { avatar_url: avatarUrl };
@@ -636,7 +785,7 @@ export class AuthService {
         return true;
     }
 
-    async resetPassword(phone: string, otp: string, newPass: string) {
+    async resetPassword(phone: string, otp: string, newPass: string, joinCode?: string) {
         if (!this._isValidOtpFormat(otp)) {
             throw new ApiError('OTP must be exactly 6 numeric digits', 400, 'INVALID_OTP_FORMAT');
         }
@@ -645,7 +794,11 @@ export class AuthService {
         if (!validOtp) throw new ApiError('Invalid or expired OTP', 400, 'INVALID_OTP');
 
         const { prisma } = require('../../server');
-        const user = await prisma.user.findFirst({ where: { phone } });
+        const phonesToSearch = this._phoneVariants(phone);
+        const joinInstitute = await this._resolveJoinInstitute(prisma, joinCode);
+        const users = await this._findActiveUsersByPhone(prisma, phonesToSearch);
+        const user = this._selectUserForInstitute(users, joinInstitute?.id);
+
         if (!user) throw new ApiError('No account found for this phone number', 404, 'NOT_FOUND');
 
         this._assertStrongPassword(newPass);

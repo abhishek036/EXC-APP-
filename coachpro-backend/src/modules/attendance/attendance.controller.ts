@@ -47,7 +47,7 @@ export class AttendanceController {
 
       // Security: Students can only view their own attendance
       if (role === 'student') {
-        const student = await prisma.student.findFirst({ where: { user_id: userId } });
+        const student = await prisma.student.findFirst({ where: { user_id: userId, institute_id: req.instituteId! } });
         if (!student || student.id !== studentId) {
           throw new ApiError('Unauthorized: You can only view your own attendance records', 403, 'FORBIDDEN');
         }
