@@ -1,24 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
 import { sendResponse } from '../../utils/response';
-import { S3Client } from '@aws-sdk/client-s3';
-import { Upload } from '@aws-sdk/lib-storage';
-import { extname } from 'path';
-
-const s3 = new S3Client({
-  region: process.env.B2_REGION || 'us-east-005',
-  endpoint: process.env.B2_ENDPOINT || 'https://s3.us-east-005.backblazeb2.com',
-  credentials: {
-    accessKeyId: process.env.B2_KEY_ID!,
-    secretAccessKey: process.env.B2_APP_KEY!,
-  },
-});
+import { UploadController } from '../upload/upload.controller';
 
 export class AuthController {
   private authService: AuthService;
+  private uploadController: UploadController;
 
   constructor() {
     this.authService = new AuthService();
+    this.uploadController = new UploadController();
   }
 
   sendOtp = async (req: Request, res: Response, next: NextFunction) => {
@@ -95,8 +86,8 @@ export class AuthController {
 
   resetPassword = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { phone, otp, newPassword } = req.body;
-      await this.authService.resetPassword(phone, otp, newPassword);
+      const { phone, otp, newPassword, joinCode } = req.body;
+      await this.authService.resetPassword(phone, otp, newPassword, joinCode);
       return sendResponse({ res, data: null, message: 'Password reset successfully' });
     } catch (error) {
       next(error);
@@ -147,25 +138,13 @@ export class AuthController {
       const userId = req.user!.userId;
       const role = req.user!.role;
 
-      // Upload to B2
-      const bucketName = process.env.B2_BUCKET_NAME!;
-      const ext = extname(req.file.originalname) || '.jpg';
-      const fileKey = `avatars/${userId}${ext}`;
-
-      const uploader = new Upload({
-        client: s3,
-        params: {
-          Bucket: bucketName,
-          Key: fileKey,
-          Body: req.file.buffer,
-          ContentType: req.file.mimetype,
-        },
+      const uploadResult = await this.uploadController.uploadSingleFile({
+        file: req.file,
+        destination: 'avatars',
+        origin: `${req.protocol}://${req.get('host')}`,
       });
 
-      await uploader.done();
-
-      // Build proxied URL
-      const avatarUrl = `${req.protocol}://${req.get('host')}/api/upload/file/${encodeURIComponent(fileKey)}`;
+      const avatarUrl = uploadResult.fileUrl;
 
       // Persist in DB
       const data = await this.authService.updateAvatar(userId, role, avatarUrl);

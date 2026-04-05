@@ -50,18 +50,25 @@ export class ContentController {
 
     const orFilters: Array<Record<string, any>> = [{ user_id: userId }];
     if (phones.length > 0) {
-      orFilters.push({ phone: { in: phones } });
+      orFilters.push({
+        AND: [
+          { phone: { in: phones } },
+          { OR: [{ user_id: null }, { user_id: userId }] },
+        ],
+      });
     }
 
     const candidates = await prisma.student.findMany({
       where: {
         institute_id: instituteId,
-        is_active: true,
-        OR: orFilters,
+        AND: [
+          { OR: [{ is_active: true }, { is_active: null }] },
+          { OR: orFilters },
+        ],
       },
       include: {
         student_batches: {
-          where: { is_active: true },
+          where: { OR: [{ is_active: true }, { is_active: null }] },
           select: { id: true, batch_id: true },
         },
       },
@@ -69,17 +76,17 @@ export class ContentController {
     });
 
     const ranked = [...candidates].sort((a, b) => {
-      const aBatchCount = a.student_batches?.length || 0;
-      const bBatchCount = b.student_batches?.length || 0;
-      if (bBatchCount != aBatchCount) return bBatchCount - aBatchCount;
-
       const aLinked = a.user_id === userId ? 1 : 0;
       const bLinked = b.user_id === userId ? 1 : 0;
       if (bLinked != aLinked) return bLinked - aLinked;
 
-      const aHasUser = a.user_id ? 1 : 0;
-      const bHasUser = b.user_id ? 1 : 0;
-      if (bHasUser != aHasUser) return bHasUser - aHasUser;
+      const aBatchCount = a.student_batches?.length || 0;
+      const bBatchCount = b.student_batches?.length || 0;
+      if (bBatchCount != aBatchCount) return bBatchCount - aBatchCount;
+
+      const aUnlinked = !a.user_id ? 1 : 0;
+      const bUnlinked = !b.user_id ? 1 : 0;
+      if (bUnlinked != aUnlinked) return bUnlinked - aUnlinked;
 
       const aCreated = new Date(a.created_at as any).getTime() || 0;
       const bCreated = new Date(b.created_at as any).getTime() || 0;
@@ -91,8 +98,8 @@ export class ContentController {
     if (!best) return null;
 
     if (!best.user_id) {
-      await prisma.student.update({
-        where: { id: best.id },
+      await prisma.student.updateMany({
+        where: { id: best.id, institute_id: instituteId, user_id: null },
         data: { user_id: userId },
       });
     }

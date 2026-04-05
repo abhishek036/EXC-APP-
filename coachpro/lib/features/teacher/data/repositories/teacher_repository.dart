@@ -6,6 +6,18 @@ import '../../../../core/di/injection_container.dart';
 class TeacherRepository {
   final ApiClient _api = sl<ApiClient>();
 
+  static const Set<String> _allowedNoteFileTypes = {
+    'pdf',
+    'image',
+    'video',
+    'zip',
+    'doc',
+    'docx',
+    'ppt',
+    'pptx',
+    'other',
+  };
+
   String _dateKey(DateTime value) {
     final local = value.toLocal();
     final year = local.year.toString().padLeft(4, '0');
@@ -47,6 +59,43 @@ class TeacherRepository {
       }
     }
     return <String, dynamic>{};
+  }
+
+  String _inferNoteFileTypeFromUrl(String? fileUrl) {
+    final raw = (fileUrl ?? '').trim().toLowerCase();
+    if (raw.isEmpty) return 'other';
+
+    final withoutQuery = raw.split('?').first;
+    final ext = withoutQuery.contains('.') ? withoutQuery.split('.').last : '';
+
+    if (ext == 'pdf') return 'pdf';
+    if (ext == 'doc') return 'doc';
+    if (ext == 'docx') return 'docx';
+    if (ext == 'ppt') return 'ppt';
+    if (ext == 'pptx') return 'pptx';
+    if (ext == 'zip' || ext == 'rar' || ext == '7z') return 'zip';
+    if (ext == 'jpg' || ext == 'jpeg' || ext == 'png' || ext == 'gif' || ext == 'webp') {
+      return 'image';
+    }
+    if (ext == 'mp4' || ext == 'mov' || ext == 'avi' || ext == 'mkv' || ext == 'webm') {
+      return 'video';
+    }
+
+    return 'other';
+  }
+
+  String _normalizeNoteFileType(String type, {String? fileUrl}) {
+    final normalized = type.trim().toLowerCase();
+
+    if (_allowedNoteFileTypes.contains(normalized)) {
+      return normalized;
+    }
+
+    if (normalized == 'video') {
+      return 'video';
+    }
+
+    return _inferNoteFileTypeFromUrl(fileUrl);
   }
 
   // ── Profile ──────────────────────────────────────────────
@@ -304,6 +353,10 @@ class TeacherRepository {
   }) async {
     final trimmedSubject = subject.trim();
     final trimmedFileUrl = fileUrl?.trim();
+    final normalizedNoteType = _normalizeNoteFileType(
+      type,
+      fileUrl: trimmedFileUrl,
+    );
 
     final response = type == 'assignment'
         ? await _api.dio.post(
@@ -323,11 +376,13 @@ class TeacherRepository {
             'content/notes',
             data: {
               'title': title,
-              'subject': trimmedSubject,
-              'file_type': type,
+              if (trimmedSubject.isNotEmpty) 'subject': trimmedSubject,
+              'file_type': normalizedNoteType,
               'batch_id': batchId,
-              'file_url': trimmedFileUrl,
-              'description': description,
+              if (trimmedFileUrl != null && trimmedFileUrl.isNotEmpty)
+                'file_url': trimmedFileUrl,
+              if (description != null && description.trim().isNotEmpty)
+                'description': description.trim(),
             },
           );
     if (response.statusCode == 200 || response.statusCode == 201) {

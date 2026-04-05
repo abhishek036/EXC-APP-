@@ -260,6 +260,38 @@ export class UploadController {
     return this.uploadToB2(file, destination);
   }
 
+  async uploadSingleFile(params: {
+    file: Express.Multer.File;
+    destination?: string;
+    origin: string;
+  }): Promise<{
+    fileUrl: string;
+    storageProvider: StorageProvider;
+    storageKey: string;
+    storageBucket: string | null;
+    fileName: string;
+    fileMimeType: string;
+    fileSizeKb: number;
+  }> {
+    this.assertUploadSafety(params.file);
+    params.file.originalname = this.sanitizeFileName(params.file.originalname);
+
+    const destination = this.normalizeDestination(params.destination);
+    const stored = await this.resolveStorageRef(params.file, destination);
+    const fileKey = this.encodeRef(stored);
+    const fileUrl = `${params.origin}/api/upload/file/${encodeURIComponent(fileKey)}`;
+
+    return {
+      fileUrl,
+      storageProvider: stored.provider,
+      storageKey: stored.key,
+      storageBucket: stored.bucket ?? null,
+      fileName: stored.fileName ?? params.file.originalname,
+      fileMimeType: stored.mimeType ?? params.file.mimetype,
+      fileSizeKb: stored.sizeKb ?? Math.ceil(params.file.size / 1024),
+    };
+  }
+
   private async streamFromRef(ref: StorageRef): Promise<{ stream: NodeJS.ReadableStream; contentType?: string; contentLength?: number; fileName?: string }> {
     if (ref.provider === 'b2') {
       const command = new GetObjectCommand({
@@ -327,26 +359,15 @@ export class UploadController {
   // POST /api/upload
   async uploadFile(req: Request, res: Response) {
     if (!req.file) throw new ApiError('No file provided', 400);
-
-    this.assertUploadSafety(req.file);
-    req.file.originalname = this.sanitizeFileName(req.file.originalname);
-
-    const destination = this.normalizeDestination(req.body?.destination);
-    const stored = await this.resolveStorageRef(req.file, destination);
-    const fileKey = this.encodeRef(stored);
-    const fileUrl = `${req.protocol}://${req.get('host')}/api/upload/file/${encodeURIComponent(fileKey)}`;
+    const payload = await this.uploadSingleFile({
+      file: req.file,
+      destination: req.body?.destination,
+      origin: `${req.protocol}://${req.get('host')}`,
+    });
 
     return sendResponse({
       res,
-      data: {
-        fileUrl,
-        storageProvider: stored.provider,
-        storageKey: stored.key,
-        storageBucket: stored.bucket ?? null,
-        fileName: stored.fileName ?? req.file.originalname,
-        fileMimeType: stored.mimeType ?? req.file.mimetype,
-        fileSizeKb: stored.sizeKb ?? Math.ceil(req.file.size / 1024),
-      },
+      data: payload,
       message: 'Uploaded successfully',
       statusCode: 201,
     });
