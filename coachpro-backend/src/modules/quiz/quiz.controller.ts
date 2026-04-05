@@ -38,11 +38,12 @@ export class QuizController {
             }
           }
 
-          const candidates = await prisma.student.findMany({
+          const loadCandidates = async (includeInactive: boolean) =>
+            prisma.student.findMany({
               where: {
                 institute_id: req.instituteId!,
                 AND: [
-                  { OR: [{ is_active: true }, { is_active: null }] },
+                  ...(includeInactive ? [] : [{ OR: [{ is_active: true }, { is_active: null }] }]),
                   {
                     OR: [
                       { user_id: req.user!.userId },
@@ -67,7 +68,12 @@ export class QuizController {
                 },
               },
               orderBy: { created_at: 'desc' },
-          });
+            });
+
+          let candidates = await loadCandidates(false);
+          if (candidates.length === 0) {
+            candidates = await loadCandidates(true);
+          }
 
           const ranked = [...candidates].sort((a, b) => {
             const aLinked = a.user_id === req.user!.userId ? 1 : 0;
@@ -87,7 +93,13 @@ export class QuizController {
             return bCreated - aCreated;
           });
 
-          const student = ranked[0] || null;
+          let student = ranked[0] || null;
+          if (student && (student.student_batches?.length || 0) === 0) {
+            const withBatches = ranked.find((item) => (item.student_batches?.length || 0) > 0);
+            if (withBatches) {
+              student = withBatches;
+            }
+          }
           
           if (!student) {
               return sendResponse({ res, data: [] });

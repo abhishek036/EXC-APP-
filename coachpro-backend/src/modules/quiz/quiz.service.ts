@@ -87,24 +87,30 @@ export class QuizService {
       });
     }
 
-    const candidates = await prisma.student.findMany({
-      where: {
-        institute_id: instituteId,
-        AND: [
-          { OR: [{ is_active: true }, { is_active: null }] },
-          { OR: orFilters },
-        ],
-      },
-      include: {
-        student_batches: {
-          where: {
-            OR: [{ is_active: true }, { is_active: null }],
-          },
-          select: { id: true },
+    const loadCandidates = async (includeInactive: boolean) =>
+      prisma.student.findMany({
+        where: {
+          institute_id: instituteId,
+          AND: [
+            ...(includeInactive ? [] : [{ OR: [{ is_active: true }, { is_active: null }] }]),
+            { OR: orFilters },
+          ],
         },
-      },
-      orderBy: { created_at: 'desc' },
-    });
+        include: {
+          student_batches: {
+            where: {
+              OR: [{ is_active: true }, { is_active: null }],
+            },
+            select: { id: true },
+          },
+        },
+        orderBy: { created_at: 'desc' },
+      });
+
+    let candidates = await loadCandidates(false);
+    if (candidates.length === 0) {
+      candidates = await loadCandidates(true);
+    }
 
     const ranked = [...candidates].sort((a, b) => {
       const aLinked = a.user_id === userId ? 1 : 0;
@@ -124,7 +130,13 @@ export class QuizService {
       return bCreated - aCreated;
     });
 
-    const selected = ranked[0] || null;
+    let selected = ranked[0] || null;
+    if (selected && (selected.student_batches?.length || 0) === 0) {
+      const withBatches = ranked.find((item) => (item.student_batches?.length || 0) > 0);
+      if (withBatches) {
+        selected = withBatches;
+      }
+    }
 
     if (!selected) {
       throw new ApiError('Student profile not found for this account', 404, 'NOT_FOUND');
