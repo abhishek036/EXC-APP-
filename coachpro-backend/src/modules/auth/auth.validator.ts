@@ -1,5 +1,16 @@
 import { z } from 'zod';
 
+const strongPasswordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(72, 'Password must be at most 72 characters')
+  .regex(/[A-Z]/, 'Password must include at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must include at least one lowercase letter')
+  .regex(/\d/, 'Password must include at least one number')
+  .regex(/[^A-Za-z\d]/, 'Password must include at least one special character');
+
+const otpSchema = z.string().regex(/^\d{6}$/, 'OTP must be exactly 6 numeric digits');
+
 export const sendOtpSchema = z.object({
   body: z.object({
     phone: z.string().min(10).max(15, 'Invalid phone number format'),
@@ -11,7 +22,7 @@ export const sendOtpSchema = z.object({
 export const verifyOtpSchema = z.object({
   body: z.object({
     phone: z.string().min(10).max(15, 'Invalid phone number format'),
-    otp: z.string().length(6, 'OTP must be exactly 6 digits'),
+    otp: otpSchema,
     joinCode: z.string().optional(),
     purpose: z.enum(['login', 'password_reset']).default('login')
   })
@@ -28,15 +39,15 @@ export const loginSchema = z.object({
 export const passwordChangeSchema = z.object({
   body: z.object({
     oldPassword: z.string(),
-    newPassword: z.string().min(6, 'New password must be at least 6 characters')
+    newPassword: strongPasswordSchema,
   })
 });
 
 export const passwordResetSchema = z.object({
   body: z.object({
     phone: z.string().min(10).max(15),
-    otp: z.string().length(6),
-    newPassword: z.string().min(6)
+    otp: otpSchema,
+    newPassword: strongPasswordSchema,
   })
 });
 

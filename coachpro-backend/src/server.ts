@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 export { prisma };
 
 function validateCriticalEnv() {
-    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.trim().length < 16) {
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.trim().length < 32) {
         throw new Error('JWT_SECRET is missing or too short. Set a stable JWT_SECRET in Azure App Settings before starting the server.');
     }
 }

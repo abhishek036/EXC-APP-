@@ -13,6 +13,22 @@ export class AuthService {
         this.authRepository = new AuthRepository();
     }
 
+    private _isValidOtpFormat(otp: string): boolean {
+        return /^\d{6}$/.test(String(otp || '').trim());
+    }
+
+    private _assertStrongPassword(password: string): void {
+        const value = String(password || '');
+        const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,72}$/;
+        if (!strongPasswordRegex.test(value)) {
+            throw new ApiError(
+                'Password must be 8-72 chars and include uppercase, lowercase, number, and special character',
+                400,
+                'WEAK_PASSWORD',
+            );
+        }
+    }
+
     private _durationToMs(input: string, defaultMs: number): number {
         const raw = (input || '').trim();
         if (!raw) return defaultMs;
@@ -120,6 +136,10 @@ export class AuthService {
     }
 
     async verifyOtp(phone: string, otp: string, purpose: string, joinCode?: string, role?: string) {
+        if (!this._isValidOtpFormat(otp)) {
+            throw new ApiError('OTP must be exactly 6 numeric digits', 400, 'INVALID_OTP_FORMAT');
+        }
+
         // --- 1. OTP CHECK (Outside main transaction to avoid locking OTP table long-term) ---
         const isDevBypass = (process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_OTP === 'true') && 
                             otp === (process.env.TEST_OTP || '123456');
@@ -352,7 +372,14 @@ export class AuthService {
 
         try {
             // Verify signature
-            const decoded = jwt.verify(refreshTokenString, process.env.JWT_SECRET as string) as { userId: string };
+            const decoded = jwt.verify(refreshTokenString, process.env.JWT_SECRET as string, {
+                algorithms: ['HS256'],
+                clockTolerance: 300,
+            }) as { userId: string };
+
+            if (!decoded || typeof decoded.userId !== 'string') {
+                throw new ApiError('Invalid refresh token payload', 401, 'INVALID_TOKEN');
+            }
 
             const hash = crypto.createHash('sha256').update(refreshTokenString).digest('hex');
             const tokenRecord = await this.authRepository.findRefreshToken(hash);
@@ -602,18 +629,26 @@ export class AuthService {
         const isMatch = await bcrypt.compare(oldPass, user.password_hash);
         if (!isMatch) throw new ApiError('Old password is incorrect', 401, 'INVALID_CREDENTIALS');
 
+        this._assertStrongPassword(newPass);
+
         const newHash = await bcrypt.hash(newPass, 12);
         await prisma.user.update({ where: { id: userId }, data: { password_hash: newHash } });
         return true;
     }
 
     async resetPassword(phone: string, otp: string, newPass: string) {
+        if (!this._isValidOtpFormat(otp)) {
+            throw new ApiError('OTP must be exactly 6 numeric digits', 400, 'INVALID_OTP_FORMAT');
+        }
+
         const validOtp = await this.authRepository.verifyOtp(phone, otp, 'password_reset');
         if (!validOtp) throw new ApiError('Invalid or expired OTP', 400, 'INVALID_OTP');
 
         const { prisma } = require('../../server');
         const user = await prisma.user.findFirst({ where: { phone } });
         if (!user) throw new ApiError('No account found for this phone number', 404, 'NOT_FOUND');
+
+        this._assertStrongPassword(newPass);
 
         const newHash = await bcrypt.hash(newPass, 12);
         await prisma.user.update({ where: { id: user.id }, data: { password_hash: newHash } });

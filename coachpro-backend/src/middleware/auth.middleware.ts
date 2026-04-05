@@ -11,6 +11,9 @@ interface JwtPayload {
   iat?: number;
 }
 
+const JWT_VERIFY_ALGORITHMS: jwt.Algorithm[] = ['HS256'];
+const JWT_CLOCK_TOLERANCE_SECONDS = Number.parseInt(process.env.JWT_CLOCK_TOLERANCE_SECONDS || '300', 10);
+
 declare global {
   namespace Express {
     interface Request {
@@ -24,7 +27,7 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
   const authHeader = req.headers.authorization;
 
   const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret || jwtSecret.trim().length < 16) {
+  if (!jwtSecret || jwtSecret.trim().length < 32) {
     return next(new ApiError('Server auth configuration missing', 500, 'AUTH_CONFIG_MISSING'));
   }
 
@@ -35,7 +38,14 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
+    const decoded = jwt.verify(token, jwtSecret, {
+      algorithms: JWT_VERIFY_ALGORITHMS,
+      clockTolerance: Number.isFinite(JWT_CLOCK_TOLERANCE_SECONDS) ? JWT_CLOCK_TOLERANCE_SECONDS : 300,
+    }) as JwtPayload;
+
+    if (!decoded || typeof decoded.userId !== 'string' || typeof decoded.role !== 'string') {
+      return next(new ApiError('Invalid token payload', 401, 'INVALID_TOKEN'));
+    }
     
     // Check if user still exists and is active (Optional but recommended)
     const activeUser = await prisma.user.findFirst({

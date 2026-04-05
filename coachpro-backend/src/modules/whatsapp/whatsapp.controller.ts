@@ -1,6 +1,30 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 dotenv.config();
+
+const timingSafeEquals = (a: string, b: string): boolean => {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  if (left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
+};
+
+const hasValidMetaSignature = (req: Request): boolean => {
+  const appSecret = process.env.WHATSAPP_APP_SECRET;
+  if (!appSecret) {
+    return process.env.NODE_ENV !== 'production';
+  }
+
+  const signature = String(req.headers['x-hub-signature-256'] || '').trim();
+  if (!signature.startsWith('sha256=')) return false;
+
+  const rawBody = String((req as any).rawBody || '');
+  if (!rawBody) return false;
+
+  const expected = `sha256=${crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex')}`;
+  return timingSafeEquals(signature, expected);
+};
 
 export class WhatsAppController {
   
@@ -33,6 +57,10 @@ export class WhatsAppController {
    */
   async receiveMessage(req: Request, res: Response) {
     try {
+      if (!hasValidMetaSignature(req)) {
+        return res.status(401).send('INVALID_SIGNATURE');
+      }
+
       const entry = req.body.entry?.[0];
       const changes = entry?.changes?.[0];
       const value = changes?.value;

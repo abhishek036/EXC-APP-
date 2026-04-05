@@ -35,53 +35,182 @@ import { emitBatchSync, emitInstituteDashboardSync } from './config/socket';
 import { AuditAction, Logger } from './utils/logger';
 
 const app: Express = express();
-app.set('trust proxy', true); // Trust proxy chain (Azure/App Gateway/CDN)
+const trustProxyHops = Number.parseInt(process.env.TRUST_PROXY_HOPS || '1', 10);
+app.set('trust proxy', Number.isFinite(trustProxyHops) ? trustProxyHops : 1);
+app.disable('x-powered-by');
+
+const isProduction = process.env.NODE_ENV === 'production';
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean);
+const allowAllOriginsInDev = allowedOrigins.length === 0 && !isProduction;
+const hasWildcardOrigin = allowedOrigins.includes('*');
+const supportsCredentialedCors = !allowAllOriginsInDev && !hasWildcardOrigin;
+const mutatingMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+if (allowAllOriginsInDev) {
+  console.warn('[SECURITY] ALLOWED_ORIGINS is empty. CORS will allow browser origins in development only.');
+}
+
+const normalizeAddress = (ipRaw: string): string => {
+  const value = String(ipRaw || '').replace(/^::ffff:/, '').trim();
+  if (!value) return 'unknown';
+
+  // Strip ports from values like "10.224.173.29:65509".
+  if (value.includes('.') && value.includes(':')) {
+    return value.substring(0, value.lastIndexOf(':'));
+  }
+
+  return value;
+};
+
+const shouldTrustForwardedFor = (process.env.TRUST_FORWARDED_FOR || '').toLowerCase() === 'true';
+const extractClientIp = (req: Request): string => {
+  const socketIp = normalizeAddress(req.socket.remoteAddress || '');
+  if (!shouldTrustForwardedFor) return socketIp;
+
+  const forwarded = String(req.headers['x-forwarded-for'] || '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)[0];
+
+  return normalizeAddress(forwarded || socketIp);
+};
+
+const defaultRateLimitHandler = (_req: Request, res: Response) => {
+  res.status(429).json({
+    success: false,
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Too many requests. Please try again later.',
+    },
+  });
+};
+
+const globalApiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number.parseInt(process.env.GLOBAL_API_RATE_LIMIT || '100', 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+  keyGenerator: extractClientIp,
+  handler: defaultRateLimitHandler,
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number.parseInt(process.env.LOGIN_RATE_LIMIT || '5', 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+  skipSuccessfulRequests: true,
+  keyGenerator: extractClientIp,
+  handler: defaultRateLimitHandler,
+});
+
+const otpSendLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: Number.parseInt(process.env.OTP_SEND_RATE_LIMIT || '5', 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+  keyGenerator: (req: Request) => {
+    const phone = String(req.body?.phone || '').replace(/\D/g, '').slice(-15) || 'unknown-phone';
+    return `${extractClientIp(req)}:${phone}`;
+  },
+  handler: defaultRateLimitHandler,
+});
+
+const otpVerifyLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: Number.parseInt(process.env.OTP_VERIFY_RATE_LIMIT || '10', 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+  keyGenerator: (req: Request) => {
+    const phone = String(req.body?.phone || '').replace(/\D/g, '').slice(-15) || 'unknown-phone';
+    return `${extractClientIp(req)}:${phone}`;
+  },
+  handler: defaultRateLimitHandler,
+});
 
 // Security Middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
-  // Enable a conservative CSP in production; disable in development
-  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+  contentSecurityPolicy: isProduction
+    ? {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'", 'https:', 'wss:'],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+        },
+      }
+    : false,
+  frameguard: { action: 'deny' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  hsts: isProduction
+    ? {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      }
+    : false,
+  xssFilter: true,
 }));
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
+
+// Parsing & Logging Middleware
+app.use(express.json({
+  limit: process.env.MAX_JSON_BODY_SIZE || '1mb',
+  strict: true,
+  verify: (req, _res, buf) => {
+    (req as any).rawBody = buf.toString('utf8');
+  },
+}));
+app.use(express.urlencoded({
+  extended: true,
+  limit: process.env.MAX_JSON_BODY_SIZE || '1mb',
+}));
+app.use(morgan('dev'));
+
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  if (!mutatingMethods.has(req.method.toUpperCase())) return next();
+  if (req.path.startsWith('/api/upload')) return next();
+
+  const contentType = String(req.headers['content-type'] || '').toLowerCase();
+  const isAllowedType =
+    contentType.includes('application/json') ||
+    contentType.includes('application/x-www-form-urlencoded') ||
+    contentType.includes('multipart/form-data');
+
+  if (!isAllowedType) {
+    return next(new ApiError('Unsupported content type for this endpoint', 415, 'UNSUPPORTED_MEDIA_TYPE'));
+  }
+
+  return next();
+});
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow mobile apps (no origin) or whitelisted domains
-    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+    // Allow mobile apps (no origin) plus explicitly configured browser origins.
+    if (!origin || allowAllOriginsInDev || hasWildcardOrigin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new ApiError(`Origin ${origin} not allowed by CORS`, 403, 'FORBIDDEN'));
     }
   },
-  credentials: true,
+  credentials: supportsCredentialedCors,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
 }));
 
-// Rate limiter for sensitive endpoints (OTP / login) — 10 requests per minute per IP
-const authLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: false,
-  keyGenerator: (req) => {
-    const raw = String(req.ip || req.socket.remoteAddress || 'unknown').replace(/^::ffff:/, '');
-    // Some proxies can pass IPv4 with port (e.g. 10.224.173.29:65509)
-    if (raw.includes('.') && raw.includes(':')) {
-      return raw.substring(0, raw.lastIndexOf(':'));
-    }
-    return raw;
-  },
-});
-
-// Parsing & Logging Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan('dev'));
-
-const mutatingMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+app.use('/api', globalApiLimiter);
+app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth/otp/send', otpSendLimiter);
+app.use('/api/auth/otp/verify', otpVerifyLimiter);
 
 const inferAuditAction = (method: string): AuditAction => {
   switch (method) {
@@ -188,7 +317,7 @@ import youtubeRoutes from './modules/youtube/youtube.routes';
 
 import uploadRoutes from './modules/upload/upload.routes';
 
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/batches', batchRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/teachers', teacherRoutes);

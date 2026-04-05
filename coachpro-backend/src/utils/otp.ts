@@ -1,7 +1,12 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
-const ACCESS_TOKEN_FALLBACK = '8h';
+const ACCESS_TOKEN_FALLBACK = '30m';
+const REFRESH_TOKEN_FALLBACK = '14d';
+const ACCESS_MIN_MS = 15 * 60 * 1000;
+const ACCESS_MAX_MS = 60 * 60 * 1000;
+const REFRESH_MIN_MS = 7 * 24 * 60 * 60 * 1000;
+const REFRESH_MAX_MS = 30 * 24 * 60 * 60 * 1000;
 
 const parseDurationToMs = (value: string): number | null => {
     const input = (value || '').trim();
@@ -27,14 +32,20 @@ const normalizeAccessExpiry = (rawValue?: string): string => {
     if (!configured) return ACCESS_TOKEN_FALLBACK;
 
     const configuredMs = parseDurationToMs(configured);
-    const fallbackMs = parseDurationToMs(ACCESS_TOKEN_FALLBACK) ?? 8 * 60 * 60 * 1000;
-
-    if (configuredMs == null || configuredMs < 60 * 60 * 1000) {
+    if (configuredMs == null || configuredMs < ACCESS_MIN_MS || configuredMs > ACCESS_MAX_MS) {
         return ACCESS_TOKEN_FALLBACK;
     }
 
-    if (configuredMs < fallbackMs) {
-        return ACCESS_TOKEN_FALLBACK;
+    return configured;
+};
+
+const normalizeRefreshExpiry = (rawValue?: string): string => {
+    const configured = (rawValue || '').trim();
+    if (!configured) return REFRESH_TOKEN_FALLBACK;
+
+    const configuredMs = parseDurationToMs(configured);
+    if (configuredMs == null || configuredMs < REFRESH_MIN_MS || configuredMs > REFRESH_MAX_MS) {
+        return REFRESH_TOKEN_FALLBACK;
     }
 
     return configured;
@@ -47,19 +58,30 @@ export const generateOTP = (): string => {
 };
 
 export const generateTokens = (payload: { userId: string, role: string, instituteId: string, phone: string }) => {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret || jwtSecret.trim().length < 32) {
+        throw new Error('JWT secret is missing or too short. Configure JWT_SECRET with at least 32 characters.');
+    }
+
     const accessExpiresIn = normalizeAccessExpiry(process.env.JWT_EXPIRES_IN) as jwt.SignOptions['expiresIn'];
-    const refreshExpiresIn = (process.env.JWT_REFRESH_EXPIRES_IN || '30d') as jwt.SignOptions['expiresIn'];
+    const refreshExpiresIn = normalizeRefreshExpiry(process.env.JWT_REFRESH_EXPIRES_IN) as jwt.SignOptions['expiresIn'];
 
     const accessToken = jwt.sign(
         payload,
-        process.env.JWT_SECRET as string,
-        { expiresIn: accessExpiresIn }
+        jwtSecret,
+        {
+            algorithm: 'HS256',
+            expiresIn: accessExpiresIn,
+        }
     );
 
     const refreshToken = jwt.sign(
         { userId: payload.userId, version: 1 }, // version could track manual revocations
-        process.env.JWT_SECRET as string,
-        { expiresIn: refreshExpiresIn }
+        jwtSecret,
+        {
+            algorithm: 'HS256',
+            expiresIn: refreshExpiresIn,
+        }
     );
 
     return { accessToken, refreshToken };

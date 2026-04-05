@@ -51,6 +51,47 @@ const supabaseClient: SupabaseClient | null = hasSupabase
   : null;
 
 export class UploadController {
+  private sanitizeFileName(fileNameRaw: string): string {
+    const normalized = basename(String(fileNameRaw || '').trim()) || 'upload';
+    return normalized
+      .replace(/[^A-Za-z0-9._()\- ]/g, '_')
+      .replace(/\s+/g, ' ')
+      .slice(0, 180);
+  }
+
+  private assertMagicBytes(file: Express.Multer.File): void {
+    const buffer = file.buffer;
+    const extension = extname(file.originalname).toLowerCase();
+
+    const startsWith = (hexPrefix: string): boolean => buffer.toString('hex', 0, Math.ceil(hexPrefix.length / 2)).startsWith(hexPrefix);
+
+    const checks: Record<string, () => boolean> = {
+      '.png': () => startsWith('89504e470d0a1a0a'),
+      '.jpg': () => startsWith('ffd8ff'),
+      '.jpeg': () => startsWith('ffd8ff'),
+      '.gif': () => startsWith('47494638'),
+      '.pdf': () => startsWith('25504446'),
+      '.zip': () => startsWith('504b0304') || startsWith('504b0506') || startsWith('504b0708'),
+      '.docx': () => startsWith('504b0304') || startsWith('504b0506') || startsWith('504b0708'),
+      '.xlsx': () => startsWith('504b0304') || startsWith('504b0506') || startsWith('504b0708'),
+      '.pptx': () => startsWith('504b0304') || startsWith('504b0506') || startsWith('504b0708'),
+      '.mp4': () => buffer.length > 12 && buffer.toString('ascii', 4, 8) === 'ftyp',
+    };
+
+    const check = checks[extension];
+    if (check && !check()) {
+      throw new ApiError('Uploaded file content does not match file extension', 400, 'INVALID_FILE_SIGNATURE');
+    }
+  }
+
+  private assertUploadSafety(file: Express.Multer.File): void {
+    if (!file || !file.buffer || file.buffer.length === 0) {
+      throw new ApiError('Uploaded file is empty', 400, 'EMPTY_FILE');
+    }
+
+    this.assertMagicBytes(file);
+  }
+
   private normalizeDestination(destinationRaw: unknown): string {
     const value = String(destinationRaw ?? 'uploads').trim();
     const cleaned = value
@@ -286,6 +327,9 @@ export class UploadController {
   // POST /api/upload
   async uploadFile(req: Request, res: Response) {
     if (!req.file) throw new ApiError('No file provided', 400);
+
+    this.assertUploadSafety(req.file);
+    req.file.originalname = this.sanitizeFileName(req.file.originalname);
 
     const destination = this.normalizeDestination(req.body?.destination);
     const stored = await this.resolveStorageRef(req.file, destination);
