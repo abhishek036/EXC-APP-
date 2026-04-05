@@ -147,33 +147,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _fetchProfileAndEmit(Emitter<AuthState> emit) async {
     // Check with backend for valid session
     final userData = await _apiAuth.getProfile();
-    final cached = await _readCachedUser();
+    final serverName = userData['name']?.toString().trim();
+    final effectiveName = (serverName == null || serverName.isEmpty || _isPlaceholderName(serverName))
+        ? 'User'
+        : serverName;
 
-    final serverName = userData['name']?.toString();
-    final effectiveName = _isPlaceholderName(serverName)
-      ? (cached?.name ?? 'User')
-      : serverName!.trim();
+    final serverPhone = userData['phone']?.toString().trim();
+    final effectivePhone = serverPhone ?? '';
 
-    final serverPhone = userData['phone']?.toString();
-    final effectivePhone = (serverPhone == null || serverPhone.trim().isEmpty)
-      ? (cached?.phone ?? '')
-      : serverPhone.trim();
+    final serverEmail = userData['email']?.toString().trim();
+    final effectiveEmail = (serverEmail == null || serverEmail.isEmpty) ? null : serverEmail;
 
-    final serverEmail = userData['email']?.toString();
-    final effectiveEmail = (serverEmail == null || serverEmail.trim().isEmpty)
-      ? cached?.email
-      : serverEmail.trim();
+    final serverRole = userData['role']?.toString().trim().toLowerCase();
+    final effectiveRole = (serverRole == null || serverRole.isEmpty) ? 'student' : serverRole;
 
-    final serverRole = userData['role']?.toString();
-    final effectiveRole = (serverRole == null || serverRole.isEmpty)
-      ? (cached?.role.name ?? 'student')
-      : serverRole;
-
-    // Avatar: prefer server's avatar_url, fall back to cached
-    final serverAvatar = userData['avatar_url']?.toString();
-    final effectiveAvatar = (serverAvatar == null || serverAvatar.trim().isEmpty)
-      ? cached?.avatarUrl
-      : serverAvatar.trim();
+    final serverAvatar = userData['avatar_url']?.toString().trim();
+    final effectiveAvatar = (serverAvatar == null || serverAvatar.isEmpty) ? null : serverAvatar;
 
     final user = UserModel.fromJson({
       'id': userData['id'],

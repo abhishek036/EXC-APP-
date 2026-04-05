@@ -17,11 +17,14 @@ class ApiClient {
   Completer<String?>? _refreshCompleter;
 
   ApiClient() {
-    final baseUrl = const String.fromEnvironment(
-      'API_URL',
-      defaultValue:
-          'https://abc-appxyz-hvfchqhagycbfcbp.centralindia-01.azurewebsites.net/api/',
-    );
+    const configuredApiUrl = String.fromEnvironment('API_URL', defaultValue: '');
+    final baseUrl = configuredApiUrl.trim().isNotEmpty
+        ? configuredApiUrl.trim()
+        : 'https://abc-appxyz-hvfchqhagycbfcbp.centralindia-01.azurewebsites.net/api/';
+
+    if (kDebugMode) {
+      debugPrint('[ApiClient] Active API base URL: $baseUrl');
+    }
 
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
