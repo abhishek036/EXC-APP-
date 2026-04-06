@@ -222,6 +222,24 @@ class StudentRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch doubts');
   }
 
+  Future<Map<String, dynamic>> submitDoubtFollowUp({
+    required String doubtId,
+    required String message,
+    String? imageUrl,
+  }) async {
+    final response = await _api.dio.post(
+      'doubts/$doubtId/followup',
+      data: {
+        'message_text': message,
+        if (imageUrl != null && imageUrl.isNotEmpty) 'message_img': imageUrl,
+      },
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to submit doubt follow-up');
+  }
+
   // ── Quizzes ──────────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getAvailableQuizzes({String? subject}) async {
     final response = await _api.dio.get('quizzes/available', queryParameters: {

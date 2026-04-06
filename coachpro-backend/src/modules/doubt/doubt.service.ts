@@ -4,6 +4,24 @@ import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
 
 export class DoubtService {
+  private static buildThreadEntry(label: string, text: string, imageUrl?: string | null): string {
+    const nowIso = new Date().toISOString();
+    const lines = [
+      `[${label} | ${nowIso}]`,
+      text.trim(),
+    ];
+    if (imageUrl && imageUrl.trim().length > 0) {
+      lines.push(`Image: ${imageUrl.trim()}`);
+    }
+    return lines.join('\n');
+  }
+
+  private static appendThreadEntry(existingText: string | null | undefined, entry: string): string {
+    const existing = (existingText ?? '').trim();
+    if (!existing) return entry;
+    return `${existing}\n\n${entry}`;
+  }
+
   static async askDoubt(instituteId: string, userId: string, data: any) {
     const student = await prisma.student.findFirst({
       where: { user_id: userId, institute_id: instituteId },
@@ -68,8 +86,14 @@ export class DoubtService {
       }
     }
 
+    const nextAnswerText = DoubtService.appendThreadEntry(
+      doubt.answer_text,
+      DoubtService.buildThreadEntry('Teacher Reply', String(data.answer_text ?? ''), data.answer_img),
+    );
+
     const updateData: Prisma.DoubtUncheckedUpdateInput = {
       ...data,
+      answer_text: nextAnswerText,
       assigned_to_id: teacher.id,
       status: 'resolved',
       resolved_at: new Date(),
@@ -95,7 +119,7 @@ export class DoubtService {
             role_target: 'student',
             institute_id: instituteId,
             meta: {
-              route: '/student/doubts/history',
+              route: '/student/doubts',
               doubt_id: id
             }
           });
@@ -106,6 +130,37 @@ export class DoubtService {
     }
 
     return result;
+  }
+
+  static async studentFollowUp(id: string, instituteId: string, userId: string, data: any) {
+    const student = await prisma.student.findFirst({
+      where: { user_id: userId, institute_id: instituteId },
+      select: { id: true },
+    });
+    if (!student) throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+
+    const doubt = await DoubtRepository.findById(id, instituteId);
+    if (!doubt) throw new ApiError('Doubt not found', 404, 'NOT_FOUND');
+    if (String(doubt.student_id) !== student.id) {
+      throw new ApiError('You can only follow up on your own doubt', 403, 'FORBIDDEN');
+    }
+
+    const followUpEntry = DoubtService.buildThreadEntry(
+      'Student Follow-up',
+      String(data.message_text ?? ''),
+      data.message_img,
+    );
+    const nextQuestionText = DoubtService.appendThreadEntry(doubt.question_text, followUpEntry);
+
+    await DoubtRepository.update(id, instituteId, {
+      question_text: nextQuestionText,
+      ...(data.message_img ? { question_img: String(data.message_img) } : {}),
+      status: 'pending',
+      resolved_at: null,
+    });
+
+    const updated = await DoubtRepository.findById(id, instituteId);
+    return updated;
   }
 
   static async resolveDoubt(id: string, instituteId: string) {
@@ -135,7 +190,7 @@ export class DoubtService {
              role_target: 'student',
              institute_id: instituteId,
              meta: {
-               route: '/student/doubts/history',
+               route: '/student/doubts',
                doubt_id: id
              }
            });

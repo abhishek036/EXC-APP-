@@ -14,3 +14,10 @@ export const answerDoubtSchema = z.object({
     answer_img: z.string().url().nullable().optional(),
   }),
 });
+
+export const followUpDoubtSchema = z.object({
+  body: z.object({
+    message_text: z.string().min(1).max(2000),
+    message_img: z.string().url().nullable().optional(),
+  }),
+});

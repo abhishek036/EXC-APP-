@@ -1887,6 +1887,7 @@ class _DoubtsTab extends StatefulWidget {
 class _DoubtsTabState extends State<_DoubtsTab> {
   final _repo = sl<StudentRepository>();
   late Future<List<Map<String, dynamic>>> _future;
+  bool _isSendingFollowUp = false;
 
   @override
   void initState() {
@@ -1898,6 +1899,133 @@ class _DoubtsTabState extends State<_DoubtsTab> {
     _future = _repo.getMyDoubts(
       batchId: widget.batchId,
       subject: widget.selectedSubject,
+    );
+  }
+
+  Future<void> _openFollowUpDialog(Map<String, dynamic> doubt) async {
+    final doubtId = (doubt['id'] ?? '').toString();
+    if (doubtId.isEmpty) return;
+
+    final ctrl = TextEditingController();
+    String? localError;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 16,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Send Follow-up',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        color: _StudentBatchPanelPageState.primaryBlue,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: ctrl,
+                      maxLines: 4,
+                      minLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Write your follow-up message...',
+                        errorText: localError,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSendingFollowUp
+                            ? null
+                            : () async {
+                                final text = ctrl.text.trim();
+                                if (text.isEmpty) {
+                                  setModalState(() => localError = 'Please enter a message');
+                                  return;
+                                }
+                                if (text.length < 3) {
+                                  setModalState(() => localError = 'Message is too short');
+                                  return;
+                                }
+
+                                final parentMessenger = ScaffoldMessenger.of(this.context);
+                                setState(() => _isSendingFollowUp = true);
+                                try {
+                                  await _repo.submitDoubtFollowUp(
+                                    doubtId: doubtId,
+                                    message: text,
+                                  );
+                                  if (!mounted || !sheetContext.mounted) return;
+                                  setState(() {
+                                    _future = _repo.getMyDoubts(
+                                      batchId: widget.batchId,
+                                      subject: widget.selectedSubject,
+                                    );
+                                  });
+                                  Navigator.of(sheetContext).pop();
+                                  parentMessenger.showSnackBar(
+                                    const SnackBar(content: Text('Follow-up sent successfully')),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  parentMessenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        e.toString().replaceFirst('Exception: ', ''),
+                                      ),
+                                    ),
+                                  );
+                                } finally {
+                                  if (mounted) setState(() => _isSendingFollowUp = false);
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _StudentBatchPanelPageState.accentYellow,
+                          foregroundColor: Colors.black,
+                        ),
+                        child: _isSendingFollowUp
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(
+                                'Submit Follow-up',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -2108,6 +2236,22 @@ class _DoubtsTabState extends State<_DoubtsTab> {
                               ),
                             ),
                           ],
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () => _openFollowUpDialog(doubt),
+                              icon: const Icon(Icons.reply_all_rounded, size: 16),
+                              label: Text(
+                                'FOLLOW-UP',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 11,
+                                  color: _StudentBatchPanelPageState.primaryBlue,
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     );

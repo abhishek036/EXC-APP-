@@ -297,19 +297,28 @@ export class DoubtRepository {
       if (!this.isLegacyDoubtSubjectColumnError(error)) throw error;
 
       const normalizedData = data as any;
+      const clearResolvedAt = Object.prototype.hasOwnProperty.call(normalizedData, 'resolved_at') && normalizedData.resolved_at === null;
       const result = await prisma.$executeRawUnsafe(
         `UPDATE doubts
          SET assigned_to = COALESCE($1::uuid, assigned_to),
              answer_text = COALESCE($2, answer_text),
              answer_img = COALESCE($3, answer_img),
-             status = COALESCE($4, status),
-             resolved_at = COALESCE($5::timestamptz, resolved_at)
-         WHERE id::text = $6::text
-           AND institute_id::text = $7::text`,
+             question_text = COALESCE($4, question_text),
+             question_img = COALESCE($5, question_img),
+             status = COALESCE($6, status),
+             resolved_at = CASE
+               WHEN $7::boolean THEN NULL
+               ELSE COALESCE($8::timestamptz, resolved_at)
+             END
+         WHERE id::text = $9::text
+           AND institute_id::text = $10::text`,
         normalizedData.assigned_to_id ?? null,
         normalizedData.answer_text ?? null,
         normalizedData.answer_img ?? null,
+        normalizedData.question_text ?? null,
+        normalizedData.question_img ?? null,
         normalizedData.status ?? null,
+        clearResolvedAt,
         normalizedData.resolved_at ?? null,
         id,
         instituteId,

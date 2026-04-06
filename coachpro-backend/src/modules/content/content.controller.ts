@@ -24,6 +24,11 @@ export class ContentController {
     return teacher?.id ?? null;
   }
 
+  private isPrismaSchemaDriftError(error: any): boolean {
+    const code = String(error?.code || '').trim();
+    return code === 'P2021' || code === 'P2022';
+  }
+
   private phoneVariants(phone: string | null | undefined): string[] {
     const clean = String(phone ?? '').replace(/[\s\-()]/g, '');
     if (!clean) return [];
@@ -61,10 +66,9 @@ export class ContentController {
     const candidates = await prisma.student.findMany({
       where: {
         institute_id: instituteId,
-        AND: [
-          { OR: [{ is_active: true }, { is_active: null }] },
-          { OR: orFilters },
-        ],
+        // Do not hard-filter by is_active here; some legacy student rows are incorrectly false
+        // but still represent the authenticated user profile.
+        OR: orFilters,
       },
       include: {
         student_batches: {
@@ -407,7 +411,18 @@ export class ContentController {
       if (req.user?.role === 'student') {
         const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
         if (!student) {
-          throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+          const safeBatchId = String(filter.batchId || '').trim();
+          const visible = (notes as any[]).filter((note: any) => {
+            if (!safeBatchId) return false;
+            return String(note?.batch_id || '') === safeBatchId;
+          });
+
+          const enriched = visible.map((note: any) => ({
+            ...this.sanitizeNoteForStudent(note),
+            is_bookmarked: false,
+          }));
+
+          return sendResponse({ res, data: enriched, message: 'Notes fetched successfully' });
         }
 
         const visible = (notes as any[]).filter((note: any) => {
@@ -689,7 +704,21 @@ export class ContentController {
       if (req.user?.role === 'student' && Array.isArray(baseAssignments)) {
         const student = await this.resolveStudentProfile(req.instituteId!, req.user!.userId);
         if (!student) {
-          throw new ApiError('Student profile not found', 404, 'NOT_FOUND');
+          const safeBatchId = String(filter.batchId || '').trim();
+          const visible = baseAssignments.filter((assignment: any) => {
+            if (!safeBatchId) return false;
+            return String(assignment?.batch_id || '') === safeBatchId;
+          });
+
+          const enriched = visible.map((assignment: any) => ({
+            ...assignment,
+            my_submission: null,
+            my_feedback: null,
+            progress_status: 'not_started',
+            progress_label: this.progressLabel('not_started'),
+          }));
+
+          return sendResponse({ res, data: enriched, message: 'Assignments fetched successfully' });
         }
 
         const studentAssignments = baseAssignments.filter((assignment: any) => {
@@ -703,31 +732,39 @@ export class ContentController {
           return sendResponse({ res, data: [], message: 'Assignments fetched successfully' });
         }
 
-        const submissions = await prisma.assignmentSubmission.findMany({
-          where: {
-            institute_id: req.instituteId!,
-            student_id: student.id,
-            assignment_id: { in: assignmentIds },
-            is_latest: true,
-          },
-          select: {
-            id: true,
-            assignment_id: true,
-            file_url: true,
-            file_name: true,
-            file_mime_type: true,
-            file_size_kb: true,
-            submission_text: true,
-            status: true,
-            is_draft: true,
-            is_late: true,
-            attempt_no: true,
-            submitted_at: true,
-            reviewed_at: true,
-            marks_obtained: true,
-            remarks: true,
-          },
-        });
+        let submissions: any[] = [];
+        try {
+          submissions = await prisma.assignmentSubmission.findMany({
+            where: {
+              institute_id: req.instituteId!,
+              student_id: student.id,
+              assignment_id: { in: assignmentIds },
+              is_latest: true,
+            },
+            select: {
+              id: true,
+              assignment_id: true,
+              file_url: true,
+              file_name: true,
+              file_mime_type: true,
+              file_size_kb: true,
+              submission_text: true,
+              status: true,
+              is_draft: true,
+              is_late: true,
+              attempt_no: true,
+              submitted_at: true,
+              reviewed_at: true,
+              marks_obtained: true,
+              remarks: true,
+            },
+          });
+        } catch (error) {
+          if (!this.isPrismaSchemaDriftError(error)) {
+            throw error;
+          }
+          submissions = [];
+        }
 
         const submissionIds = submissions.map((item) => item.id);
         const feedbacks = submissionIds.length > 0
@@ -1067,7 +1104,7 @@ export class ContentController {
           type: 'doubt',
           institute_id: req.instituteId!,
           meta: {
-            route: '/student/doubts/history',
+            route: '/student/doubts',
             doubt_id: req.params.doubtId
           }
         });

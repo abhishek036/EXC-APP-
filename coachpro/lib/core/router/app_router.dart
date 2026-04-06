@@ -1155,6 +1155,11 @@ class AppRouter {
                 pageBuilder: (c, s) => _page(s, const MyDoubtsHistoryPage()),
                 routes: [
                   GoRoute(
+                    path: 'history',
+                    name: 'doubts-history-alias',
+                    pageBuilder: (c, s) => _page(s, const MyDoubtsHistoryPage()),
+                  ),
+                  GoRoute(
                     path: 'ask',
                     name: 'ask-doubt',
                     pageBuilder: (c, s) => _page(

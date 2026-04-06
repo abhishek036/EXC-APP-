@@ -24,6 +24,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _doubts = [];
   String _error = '';
+  bool _isSendingFollowUp = false;
 
   @override
   void initState() {
@@ -51,6 +52,131 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
         _error = 'Failed to load doubts network Error';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _openFollowUpDialog(Map<String, dynamic> doubt) async {
+    final doubtId = (doubt['id'] ?? '').toString();
+    if (doubtId.isEmpty) return;
+
+    final ctrl = TextEditingController();
+    String? localError;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final isDark = CT.isDark(sheetContext);
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 16,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.deepNavy : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Send Follow-up',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : AppColors.deepNavy,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: ctrl,
+                      maxLines: 4,
+                      minLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Write your follow-up message...',
+                        errorText: localError,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSendingFollowUp
+                            ? null
+                            : () async {
+                                final text = ctrl.text.trim();
+                                if (text.isEmpty) {
+                                  setModalState(() => localError = 'Please enter a message');
+                                  return;
+                                }
+                                if (text.length < 3) {
+                                  setModalState(() => localError = 'Message is too short');
+                                  return;
+                                }
+                                setModalState(() => localError = null);
+                                final ok = await _submitFollowUp(doubtId, text);
+                                if (ok && sheetContext.mounted) {
+                                  Navigator.of(sheetContext).pop();
+                                }
+                              },
+                        child: _isSendingFollowUp
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(
+                                'Submit Follow-up',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<bool> _submitFollowUp(String doubtId, String message) async {
+    setState(() => _isSendingFollowUp = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await _studentRepo.submitDoubtFollowUp(doubtId: doubtId, message: message);
+      if (!mounted) return false;
+      await _loadDoubts();
+      if (!mounted) return false;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Follow-up sent successfully')),
+      );
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+      return false;
+    } finally {
+      if (mounted) setState(() => _isSendingFollowUp = false);
     }
   }
 
@@ -337,6 +463,20 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
                         ),
                       ),
                     ],
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () => _openFollowUpDialog(doubt),
+                        icon: const Icon(Icons.reply_all_rounded, size: 16),
+                        label: Text(
+                          'Send Follow-up',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               )

@@ -35,6 +35,20 @@ export class DoubtController {
     }
   }
 
+  static async followUpDoubt(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await DoubtService.studentFollowUp(
+        req.params.id,
+        req.instituteId!,
+        req.user!.userId,
+        req.body,
+      );
+      return sendResponse({ res, data, message: 'Doubt follow-up submitted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async resolveDoubt(req: Request, res: Response, next: NextFunction) {
     try {
       await DoubtService.resolveDoubt(req.params.id, req.instituteId!);
