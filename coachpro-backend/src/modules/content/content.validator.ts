@@ -4,12 +4,23 @@ const assignmentFileTypes = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'] as cons
 const noteFileTypes = ['pdf', 'image', 'video', 'zip', 'doc', 'docx', 'ppt', 'pptx', 'other'] as const;
 
 const extractExtension = (value?: string | null): string | null => {
-  const raw = (value ?? '').trim().toLowerCase();
+  const raw = (value ?? '').trim();
   if (!raw) return null;
-  const byQuery = raw.split('?')[0];
-  const parts = byQuery.split('.');
-  if (parts.length < 2) return null;
-  return parts[parts.length - 1] || null;
+
+  let pathCandidate = raw;
+  try {
+    pathCandidate = new URL(raw).pathname;
+  } catch {
+    pathCandidate = raw;
+  }
+
+  const withoutQuery = pathCandidate.split(/[?#]/)[0] ?? '';
+  const fileName = withoutQuery.split('/').filter(Boolean).pop() ?? '';
+  if (!fileName || !fileName.includes('.')) return null;
+
+  const ext = fileName.split('.').pop()?.trim().toLowerCase() ?? '';
+  if (!ext || !/^[a-z0-9]+$/.test(ext)) return null;
+  return ext;
 };
 
 export const createNoteSchema = z.object({

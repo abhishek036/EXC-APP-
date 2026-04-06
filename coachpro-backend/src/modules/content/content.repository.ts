@@ -5,6 +5,11 @@ import { ApiError } from '../../middleware/error.middleware';
 import { createHash } from 'crypto';
 
 export class ContentRepository {
+        private isPrismaSchemaDriftError(error: any): boolean {
+            const code = String(error?.code || '').trim();
+            return code === 'P2021' || code === 'P2022';
+        }
+
     private isLegacyError(error: unknown, columnName?: string): boolean {
         return isLegacyColumnError(error, columnName);
     }
@@ -135,12 +140,23 @@ export class ContentRepository {
     }
 
   private extractExtension(value?: string | null): string | null {
-      const raw = String(value ?? '').trim().toLowerCase();
+      const raw = String(value ?? '').trim();
       if (!raw) return null;
-      const withoutQuery = raw.split('?')[0];
-      const parts = withoutQuery.split('.');
-      if (parts.length < 2) return null;
-      return parts[parts.length - 1] || null;
+
+      let pathCandidate = raw;
+      try {
+          pathCandidate = new URL(raw).pathname;
+      } catch {
+          pathCandidate = raw;
+      }
+
+      const withoutQuery = pathCandidate.split(/[?#]/)[0] ?? '';
+      const fileName = withoutQuery.split('/').filter(Boolean).pop() ?? '';
+      if (!fileName || !fileName.includes('.')) return null;
+
+      const ext = fileName.split('.').pop()?.trim().toLowerCase() ?? '';
+      if (!ext || !/^[a-z0-9]+$/.test(ext)) return null;
+      return ext;
   }
 
   private normalizeFileTypes(value: unknown): string[] {
@@ -477,29 +493,37 @@ export class ContentRepository {
     }
 
     async listBookmarkedNotes(instituteId: string, studentId: string, filter: { batchId?: string, subject?: string }) {
-            const rows = await prisma.noteBookmark.findMany({
-                where: {
-                    institute_id: instituteId,
-                    student_id: studentId,
-                    note: {
-                        is_deleted: false,
-                        ...(filter.batchId && { batch_id: filter.batchId }),
-                        ...(filter.subject && { subject: filter.subject }),
-                    },
-                },
-                include: {
-                    note: {
-                        include: {
-                            note_files: {
-                                where: { is_deleted: false, is_latest: true },
-                                orderBy: [{ version_no: 'desc' }, { created_at: 'desc' }],
-                            },
-                            _count: { select: { download_logs: true, bookmarks: true } },
+            let rows: any[] = [];
+            try {
+                rows = await prisma.noteBookmark.findMany({
+                    where: {
+                        institute_id: instituteId,
+                        student_id: studentId,
+                        note: {
+                            is_deleted: false,
+                            ...(filter.batchId && { batch_id: filter.batchId }),
+                            ...(filter.subject && { subject: filter.subject }),
                         },
                     },
-                },
-                orderBy: { created_at: 'desc' },
-            });
+                    include: {
+                        note: {
+                            include: {
+                                note_files: {
+                                    where: { is_deleted: false, is_latest: true },
+                                    orderBy: [{ version_no: 'desc' }, { created_at: 'desc' }],
+                                },
+                                _count: { select: { download_logs: true, bookmarks: true } },
+                            },
+                        },
+                    },
+                    orderBy: { created_at: 'desc' },
+                });
+            } catch (error) {
+                if (!this.isPrismaSchemaDriftError(error)) {
+                    throw error;
+                }
+                rows = [];
+            }
 
             return rows.map((row: any) => ({
                 ...row.note,
@@ -512,14 +536,22 @@ export class ContentRepository {
 
     async listStudentBookmarksMap(instituteId: string, studentId: string, noteIds: string[]) {
             if (!noteIds.length) return new Set<string>();
-            const rows = await prisma.noteBookmark.findMany({
-                where: {
-                    institute_id: instituteId,
-                    student_id: studentId,
-                    note_id: { in: noteIds },
-                },
-                select: { note_id: true },
-            });
+            let rows: Array<{ note_id: string }> = [];
+            try {
+                rows = await prisma.noteBookmark.findMany({
+                    where: {
+                        institute_id: instituteId,
+                        student_id: studentId,
+                        note_id: { in: noteIds },
+                    },
+                    select: { note_id: true },
+                });
+            } catch (error) {
+                if (!this.isPrismaSchemaDriftError(error)) {
+                    throw error;
+                }
+                rows = [];
+            }
             return new Set(rows.map((item) => String(item.note_id)));
     }
 
