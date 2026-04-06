@@ -38,44 +38,36 @@ export class QuizController {
             }
           }
 
-          const loadCandidates = async (includeInactive: boolean) =>
-            prisma.student.findMany({
-              where: {
-                institute_id: req.instituteId!,
-                AND: [
-                  ...(includeInactive ? [] : [{ OR: [{ is_active: true }, { is_active: null }] }]),
-                  {
-                    OR: [
-                      { user_id: req.user!.userId },
-                      ...(phones.size > 0
-                        ? [{
-                            AND: [
-                              { phone: { in: Array.from(phones) } },
-                              { OR: [{ user_id: null }, { user_id: req.user!.userId }] },
-                            ],
-                          }]
-                        : []),
-                    ],
-                  },
-                ],
-              },
-              include: {
-                student_batches: {
-                  where: {
-                    OR: [{ is_active: true }, { is_active: null }],
-                  },
-                  select: { batch_id: true },
-                },
-              },
-              orderBy: { created_at: 'desc' },
+          const profileFilters: Array<Record<string, any>> = [{ user_id: req.user!.userId }];
+          if (phones.size > 0) {
+            profileFilters.push({
+              AND: [
+                { phone: { in: Array.from(phones) } },
+                { OR: [{ user_id: null }, { user_id: req.user!.userId }] },
+              ],
             });
-
-          let candidates = await loadCandidates(false);
-          if (candidates.length === 0) {
-            candidates = await loadCandidates(true);
           }
 
-          const ranked = [...candidates].sort((a, b) => {
+          const loadCandidates = async (includeInactiveStudents: boolean) => prisma.student.findMany({
+            where: {
+              institute_id: req.instituteId!,
+              AND: [
+                ...(includeInactiveStudents ? [] : [{ OR: [{ is_active: true }, { is_active: null }] }]),
+                { OR: profileFilters },
+              ],
+            },
+            include: {
+              student_batches: {
+                where: {
+                  OR: [{ is_active: true }, { is_active: null }],
+                },
+                select: { batch_id: true },
+              },
+            },
+            orderBy: { created_at: 'desc' },
+          });
+
+          const rankCandidates = (candidates: any[]) => [...candidates].sort((a, b) => {
             const aLinked = a.user_id === req.user!.userId ? 1 : 0;
             const bLinked = b.user_id === req.user!.userId ? 1 : 0;
             if (bLinked != aLinked) return bLinked - aLinked;
@@ -93,13 +85,24 @@ export class QuizController {
             return bCreated - aCreated;
           });
 
-          let student = ranked[0] || null;
-          if (student && (student.student_batches?.length || 0) === 0) {
-            const withBatches = ranked.find((item) => (item.student_batches?.length || 0) > 0);
-            if (withBatches) {
-              student = withBatches;
+          const pickCandidate = (candidates: any[]) => {
+            const ranked = rankCandidates(candidates);
+            if (ranked.length === 0) return null;
+
+            const top = ranked[0];
+            if ((top.student_batches?.length || 0) > 0) {
+              return top;
             }
+
+            return ranked.find((candidate) => (candidate.student_batches?.length || 0) > 0) || top;
+          };
+
+          let candidates = await loadCandidates(false);
+          if (candidates.length === 0) {
+            candidates = await loadCandidates(true);
           }
+
+          const student = pickCandidate(candidates);
           
           if (!student) {
               return sendResponse({ res, data: [] });
@@ -112,7 +115,7 @@ export class QuizController {
               });
           }
 
-          const batchIds = student.student_batches.map(sb => sb.batch_id);
+          const batchIds = student.student_batches.map((sb: { batch_id: string }) => sb.batch_id);
           if (batchIds.length === 0) {
             return sendResponse({ res, data: [] });
           }
@@ -155,7 +158,7 @@ export class QuizController {
                           FROM quizzes q 
                           LEFT JOIN batches b ON q.batch_id = b.id 
                           WHERE q.institute_id::text = $1::text 
-                            AND q.batch_id::text IN (${batchIds.map((_, i) => `$${i + 2}`).join(',')})
+                            AND q.batch_id::text IN (${batchIds.map((_batchId: string, i: number) => `$${i + 2}`).join(',')})
                             AND COALESCE(q.is_published, false) = true
                             AND (q.scheduled_at IS NULL OR q.scheduled_at <= NOW())`;
              const params = [req.instituteId, ...batchIds];

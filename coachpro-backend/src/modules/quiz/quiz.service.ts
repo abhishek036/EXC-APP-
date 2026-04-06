@@ -4,6 +4,39 @@ import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
 
 export class QuizService {
+  private static rankStudentCandidates(candidates: any[], userId: string): any[] {
+    return [...candidates].sort((a, b) => {
+      const aLinked = a.user_id === userId ? 1 : 0;
+      const bLinked = b.user_id === userId ? 1 : 0;
+      if (bLinked != aLinked) return bLinked - aLinked;
+
+      const aBatchCount = a.student_batches?.length || 0;
+      const bBatchCount = b.student_batches?.length || 0;
+      if (bBatchCount != aBatchCount) return bBatchCount - aBatchCount;
+
+      const aUnlinked = !a.user_id ? 1 : 0;
+      const bUnlinked = !b.user_id ? 1 : 0;
+      if (bUnlinked != aUnlinked) return bUnlinked - aUnlinked;
+
+      const aCreated = new Date(a.created_at as any).getTime() || 0;
+      const bCreated = new Date(b.created_at as any).getTime() || 0;
+      return bCreated - aCreated;
+    });
+  }
+
+  private static pickPreferredStudentCandidate(candidates: any[], userId: string): any | null {
+    const ranked = QuizService.rankStudentCandidates(candidates, userId);
+    if (ranked.length === 0) return null;
+
+    const top = ranked[0];
+    if ((top.student_batches?.length || 0) > 0) {
+      return top;
+    }
+
+    // Prefer a candidate with active batch membership when available.
+    return ranked.find((candidate) => (candidate.student_batches?.length || 0) > 0) || top;
+  }
+
   private static async ensureTeacherOwnsQuiz(userId: string, instituteId: string, quizTeacherId: string | null | undefined) {
     const teacherId = await QuizService.resolveTeacherProfileId(userId, instituteId);
     if (!quizTeacherId || quizTeacherId !== teacherId) {
@@ -87,56 +120,31 @@ export class QuizService {
       });
     }
 
-    const loadCandidates = async (includeInactive: boolean) =>
-      prisma.student.findMany({
-        where: {
-          institute_id: instituteId,
-          AND: [
-            ...(includeInactive ? [] : [{ OR: [{ is_active: true }, { is_active: null }] }]),
-            { OR: orFilters },
-          ],
-        },
-        include: {
-          student_batches: {
-            where: {
-              OR: [{ is_active: true }, { is_active: null }],
-            },
-            select: { id: true },
+    const loadCandidates = async (includeInactiveStudents: boolean) => prisma.student.findMany({
+      where: {
+        institute_id: instituteId,
+        AND: [
+          ...(includeInactiveStudents ? [] : [{ OR: [{ is_active: true }, { is_active: null }] }]),
+          { OR: orFilters },
+        ],
+      },
+      include: {
+        student_batches: {
+          where: {
+            OR: [{ is_active: true }, { is_active: null }],
           },
+          select: { id: true },
         },
-        orderBy: { created_at: 'desc' },
-      });
+      },
+      orderBy: { created_at: 'desc' },
+    });
 
     let candidates = await loadCandidates(false);
     if (candidates.length === 0) {
       candidates = await loadCandidates(true);
     }
 
-    const ranked = [...candidates].sort((a, b) => {
-      const aLinked = a.user_id === userId ? 1 : 0;
-      const bLinked = b.user_id === userId ? 1 : 0;
-      if (bLinked != aLinked) return bLinked - aLinked;
-
-      const aBatchCount = a.student_batches?.length || 0;
-      const bBatchCount = b.student_batches?.length || 0;
-      if (bBatchCount != aBatchCount) return bBatchCount - aBatchCount;
-
-      const aUnlinked = !a.user_id ? 1 : 0;
-      const bUnlinked = !b.user_id ? 1 : 0;
-      if (bUnlinked != aUnlinked) return bUnlinked - aUnlinked;
-
-      const aCreated = new Date(a.created_at as any).getTime() || 0;
-      const bCreated = new Date(b.created_at as any).getTime() || 0;
-      return bCreated - aCreated;
-    });
-
-    let selected = ranked[0] || null;
-    if (selected && (selected.student_batches?.length || 0) === 0) {
-      const withBatches = ranked.find((item) => (item.student_batches?.length || 0) > 0);
-      if (withBatches) {
-        selected = withBatches;
-      }
-    }
+    const selected = QuizService.pickPreferredStudentCandidate(candidates, userId);
 
     if (!selected) {
       throw new ApiError('Student profile not found for this account', 404, 'NOT_FOUND');
