@@ -34,6 +34,11 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   String? _error;
   int _unreadCount = 0;
 
+  int _safeUnreadCount(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -55,7 +60,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         _checkNotifications();
       }
       if (type == 'unread_count_update') {
-        final count = (event['unread_count'] as num?)?.toInt() ?? 0;
+        final count = _safeUnreadCount(event['unread_count']);
         if (mounted) setState(() => _unreadCount = count);
       }
       // Refresh dashboard on schedule/data changes

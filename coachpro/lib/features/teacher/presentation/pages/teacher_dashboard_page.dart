@@ -39,6 +39,11 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   String? _error;
   int _unreadCount = 0;
 
+  int _safeUnreadCount(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -64,7 +69,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       final reason = (event['reason'] ?? '').toString().toLowerCase();
 
       if (type == 'unread_count_update') {
-        final count = (event['unread_count'] as num?)?.toInt() ?? 0;
+        final count = _safeUnreadCount(event['unread_count']);
         if (mounted) setState(() => _unreadCount = count);
         return;
       }
@@ -306,9 +311,12 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           context.go('/teacher/batches');
         }),
         const SizedBox(width: 8),
-        _appBarAction(Icons.notifications_none_rounded, () {
+        _appBarAction(Icons.notifications_none_rounded, () async {
           HapticFeedback.mediumImpact();
-          context.push('/teacher/notifications');
+          await context.push('/teacher/notifications');
+          if (mounted) {
+            _loadDashboard(silent: true);
+          }
         }, badge: _unreadCount > 0),
       ],
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);

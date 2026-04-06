@@ -101,6 +101,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
         readStatus: 'all',
       );
 
+      if (reset) {
+        try {
+          final unreadCount = await _repo.getUnreadCount();
+          _realtime.updateUnreadCount(unreadCount);
+        } catch (_) {}
+      }
+
       setState(() {
         if (reset) {
           _notifications
@@ -130,6 +137,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
+  bool _isTruthy(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value == null) return false;
+
+    final normalized = value.toString().trim().toLowerCase();
+    return normalized == 'true' ||
+        normalized == '1' ||
+        normalized == 'yes' ||
+        normalized == 'y';
+  }
+
   Map<String, dynamic> _normalizeNotification(Map<String, dynamic> input) {
     final rawDate = input['created_at'] ?? input['date'];
     DateTime? dt;
@@ -138,7 +157,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
     return {
       ...input,
-      'isRead': input['read_status'] == true || input['isRead'] == true,
+      'isRead': _isTruthy(input['read_status']) ||
+          _isTruthy(input['isRead']) ||
+          _isTruthy(input['readStatus']) ||
+          _isTruthy(input['is_read']),
       'title': input['title'] ?? 'Notification',
       'body': input['body'] ?? input['message'] ?? '',
       'type': (input['type'] ?? 'system').toString(),

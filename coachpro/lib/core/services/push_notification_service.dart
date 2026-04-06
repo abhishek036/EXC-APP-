@@ -207,6 +207,9 @@ class PushNotificationService {
     final globalPushEnabled = prefs.getBool(_globalPushEnabledKey) ?? true;
     if (!globalPushEnabled) {
       _initialized = true;
+      _lastRegisterSucceeded = false;
+      _lastRegisterAt = DateTime.now();
+      _lastRegisterMessage = 'Push disabled in app settings';
       debugPrint(
         'PushNotificationService initialized with push disabled by user preference',
       );
@@ -258,12 +261,21 @@ class PushNotificationService {
 
   Future<void> _registerCurrentToken() async {
     await _ensureFcmToken();
-    if (_fcmToken == null || _fcmToken!.isEmpty) return;
+    if (_fcmToken == null || _fcmToken!.isEmpty) {
+      _lastRegisterSucceeded = false;
+      _lastRegisterAt = DateTime.now();
+      _lastRegisterMessage = 'FCM token unavailable on this device';
+      return;
+    }
 
     final storage = sl<SecureStorageService>();
     final token = await storage.getToken();
 
     if (token == null || token.isEmpty) {
+      _lastRegisterSucceeded = false;
+      _lastRegisterAt = DateTime.now();
+      _lastRegisterMessage =
+          'Session missing or expired. Login again to register push token';
       return;
     }
 

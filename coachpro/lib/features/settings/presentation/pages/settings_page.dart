@@ -9,6 +9,7 @@ import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../main.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/utils/role_prefix.dart';
+import '../../../../core/services/push_notification_service.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -58,6 +59,25 @@ class _SettingsPageState extends State<SettingsPage> {
     try { (await SharedPreferences.getInstance()).setString(key, value); } catch (_) {}
   }
 
+  Future<void> _togglePushNotifications(bool value) async {
+    final previous = _notificationsEnabled;
+    setState(() => _notificationsEnabled = value);
+    await _saveBool('notificationsEnabled', value);
+
+    try {
+      await PushNotificationService.instance.setPushEnabled(value);
+      if (!mounted) return;
+      _showSnack(
+        value ? 'Push notifications enabled' : 'Push notifications disabled',
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _notificationsEnabled = previous);
+      await _saveBool('notificationsEnabled', previous);
+      _showSnack('Could not update push notifications. Please try again.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
@@ -93,7 +113,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: AppDimensions.lg),
 
               _sectionTitle('Notifications'),
-              _settingsToggle(Icons.notifications_outlined, 'Push Notifications', _notificationsEnabled, (v) { setState(() => _notificationsEnabled = v); _saveBool('notificationsEnabled', v); }, isDark: isDark),
+              _settingsToggle(Icons.notifications_outlined, 'Push Notifications', _notificationsEnabled, (v) { _togglePushNotifications(v); }, isDark: isDark),
               _settingsToggle(Icons.volume_up_outlined, 'Sound Effects', _soundEffects, (v) { setState(() => _soundEffects = v); _saveBool('soundEffects', v); }, isDark: isDark),
               _settingsToggle(Icons.vibration_outlined, 'Haptic Feedback', _hapticFeedback, (v) { setState(() => _hapticFeedback = v); _saveBool('hapticFeedback', v); }, isDark: isDark),
               const SizedBox(height: AppDimensions.lg),
