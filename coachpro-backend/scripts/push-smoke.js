@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const axios = require('axios');
 const { PrismaClient } = require('@prisma/client');
 
@@ -11,6 +10,8 @@ const platform = process.env.SMOKE_PLATFORM || 'android';
 
 const firebaseEnvPresent = Boolean(
   process.env.FIREBASE_SERVICE_ACCOUNT_JSON ||
+    process.env.FIREBASE_SERVICE_ACCOUNT_FILE ||
+    process.env.GOOGLE_APPLICATION_CREDENTIALS ||
     (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY)
 );
 

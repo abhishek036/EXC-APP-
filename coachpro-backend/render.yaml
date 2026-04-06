@@ -16,6 +16,12 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
+      - key: FIREBASE_ADMIN_DISABLED
+        value: false
+      - key: FIREBASE_PROJECT_ID
+        value: excellence-academy-9154a
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
       - key: APP_MIN_VERSION_ANDROID
         value: 1.0.0
       - key: APP_LATEST_VERSION_ANDROID

@@ -11,6 +11,9 @@ dist-tsc/
 .env.development.local
 .env.test.local
 .env.production.local
+firebase-admin-service-account.json
+firebase-service-account.json
+service-account.json
 
 # Logs
 npm-debug.log*

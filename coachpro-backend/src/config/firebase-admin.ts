@@ -1,5 +1,6 @@
 import admin from 'firebase-admin';
 import fs from 'fs';
+import path from 'path';
 
 let initialized = false;
 
@@ -19,6 +20,17 @@ const FILE_ENV_CANDIDATES = [
   'GOOGLE_APPLICATION_CREDENTIALS',
   'FIREBASE_SERVICE_ACCOUNT_FILE',
 ] as const;
+
+const DEFAULT_SERVICE_ACCOUNT_FILE_CANDIDATES = [
+  'firebase-admin-service-account.json',
+  'firebase-service-account.json',
+  'service-account.json',
+] as const;
+
+function isFirebaseAdminDisabled(): boolean {
+  const raw = (process.env.FIREBASE_ADMIN_DISABLED || '').trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'yes';
+}
 
 function normalizePrivateKey(key?: string): string | undefined {
   if (!key) return undefined;
@@ -95,6 +107,20 @@ function getServiceAccount(): admin.ServiceAccount | null {
     }
   }
 
+  for (const candidate of DEFAULT_SERVICE_ACCOUNT_FILE_CANDIDATES) {
+    const filePath = path.resolve(process.cwd(), candidate);
+    if (!fs.existsSync(filePath)) continue;
+
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const parsed = tryParseServiceAccount(content);
+      if (parsed) return parsed;
+      console.error(`❌ Invalid Firebase service-account file at default location: ${filePath}`);
+    } catch (error) {
+      console.error(`❌ Failed to read Firebase service-account file at default location: ${filePath}`, error);
+    }
+  }
+
   const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL || process.env.GCP_CLIENT_EMAIL;
   const privateKey =
@@ -122,6 +148,14 @@ function getServiceAccount(): admin.ServiceAccount | null {
 }
 
 export const initializeFirebaseAdmin = () => {
+  if (isFirebaseAdminDisabled()) {
+    if (!initialized) {
+      initialized = true;
+      console.log('ℹ️ Firebase Admin initialization skipped (FIREBASE_ADMIN_DISABLED=true)');
+    }
+    return;
+  }
+
   if (initialized || admin.apps.length > 0) {
     initialized = true;
     return;
@@ -130,6 +164,9 @@ export const initializeFirebaseAdmin = () => {
   const serviceAccount = getServiceAccount();
   if (!serviceAccount) {
     console.warn('⚠️ Firebase Admin not initialized: missing/invalid service account configuration');
+    console.warn(
+      'ℹ️ Set one of FIREBASE_SERVICE_ACCOUNT_JSON / FIREBASE_SERVICE_ACCOUNT_FILE / GOOGLE_APPLICATION_CREDENTIALS, or place firebase-admin-service-account.json in coachpro-backend/',
+    );
     return;
   }
 
