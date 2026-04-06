@@ -12,6 +12,22 @@ import '../../../../core/widgets/cp_shimmer.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../data/repositories/student_repository.dart';
 
+class _DoubtThreadMessage {
+  final String label;
+  final String text;
+  final String? imageUrl;
+  final DateTime? timestamp;
+  final bool isStudent;
+
+  const _DoubtThreadMessage({
+    required this.label,
+    required this.text,
+    required this.timestamp,
+    required this.isStudent,
+    this.imageUrl,
+  });
+}
+
 class MyDoubtsHistoryPage extends StatefulWidget {
   const MyDoubtsHistoryPage({super.key});
 
@@ -180,6 +196,199 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
     }
   }
 
+  bool _labelRepresentsStudent(String label, bool defaultIsStudent) {
+    final l = label.toLowerCase();
+    if (l.contains('teacher') || l.contains('instructor')) return false;
+    if (l.contains('student')) return true;
+    return defaultIsStudent;
+  }
+
+  List<_DoubtThreadMessage> _parseThreadText({
+    required String rawText,
+    required bool defaultIsStudent,
+    required String fallbackLabel,
+    DateTime? fallbackTimestamp,
+  }) {
+    final trimmed = rawText.trim();
+    if (trimmed.isEmpty) return const [];
+
+    final blocks = trimmed.split(RegExp(r'\n\s*\n+'));
+    final headerPattern = RegExp(r'^\[(.+?)\s*\|\s*(.+?)\]$');
+    final messages = <_DoubtThreadMessage>[];
+
+    for (final block in blocks) {
+      final rawLines = block
+          .split('\n')
+          .map((line) => line.trimRight())
+          .where((line) => line.trim().isNotEmpty)
+          .toList();
+      if (rawLines.isEmpty) continue;
+
+      var label = fallbackLabel;
+      var ts = fallbackTimestamp;
+      var contentStart = 0;
+
+      final headerMatch = headerPattern.firstMatch(rawLines.first.trim());
+      if (headerMatch != null) {
+        label = headerMatch.group(1)?.trim() ?? fallbackLabel;
+        ts = DateTime.tryParse((headerMatch.group(2) ?? '').trim()) ?? ts;
+        contentStart = 1;
+      }
+
+      String? imageUrl;
+      final textLines = <String>[];
+      for (var i = contentStart; i < rawLines.length; i++) {
+        final line = rawLines[i].trim();
+        if (line.toLowerCase().startsWith('image:')) {
+          final maybeUrl = line.substring(6).trim();
+          if (maybeUrl.isNotEmpty) imageUrl = maybeUrl;
+          continue;
+        }
+        textLines.add(rawLines[i]);
+      }
+
+      final text = textLines.join('\n').trim();
+      if (text.isEmpty && (imageUrl == null || imageUrl.isEmpty)) continue;
+
+      messages.add(
+        _DoubtThreadMessage(
+          label: label,
+          text: text,
+          imageUrl: imageUrl,
+          timestamp: ts,
+          isStudent: _labelRepresentsStudent(label, defaultIsStudent),
+        ),
+      );
+    }
+
+    return messages;
+  }
+
+  List<_DoubtThreadMessage> _extractThreadMessages(Map<String, dynamic> doubt) {
+    final createdAt = DateTime.tryParse(
+      (doubt['createdAt'] ?? doubt['created_at'] ?? '').toString(),
+    );
+    final resolvedAt = DateTime.tryParse(
+      (doubt['resolvedAt'] ?? doubt['resolved_at'] ?? '').toString(),
+    );
+
+    final questionText =
+        (doubt['questionText'] ?? doubt['question_text'] ?? '').toString();
+    final answerText =
+        (doubt['answerText'] ?? doubt['answer_text'] ?? '').toString();
+
+    final fromStudent = _parseThreadText(
+      rawText: questionText,
+      defaultIsStudent: true,
+      fallbackLabel: 'Student Question',
+      fallbackTimestamp: createdAt,
+    );
+    final fromTeacher = _parseThreadText(
+      rawText: answerText,
+      defaultIsStudent: false,
+      fallbackLabel: 'Teacher Reply',
+      fallbackTimestamp: resolvedAt ?? createdAt,
+    );
+
+    final all = <_DoubtThreadMessage>[
+      ...fromStudent,
+      ...fromTeacher,
+    ];
+
+    all.sort((a, b) {
+      if (a.timestamp == null && b.timestamp == null) return 0;
+      if (a.timestamp == null) return -1;
+      if (b.timestamp == null) return 1;
+      return a.timestamp!.compareTo(b.timestamp!);
+    });
+
+    return all;
+  }
+
+  Widget _buildThreadBubble(_DoubtThreadMessage msg, bool isDark) {
+    final bubbleColor = msg.isStudent
+        ? AppColors.electricBlue.withValues(alpha: isDark ? 0.25 : 0.10)
+        : (isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.04));
+    final textColor = isDark ? Colors.white : AppColors.deepNavy;
+    final metaColor = isDark ? Colors.white70 : Colors.black54;
+    final ts = msg.timestamp == null
+        ? ''
+        : DateFormat('MMM d, h:mm a').format(msg.timestamp!.toLocal());
+
+    return Align(
+      alignment: msg.isStudent ? Alignment.centerRight : Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: bubbleColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: msg.isStudent
+                  ? AppColors.electricBlue.withValues(alpha: 0.35)
+                  : (isDark
+                        ? Colors.white.withValues(alpha: 0.10)
+                        : Colors.black.withValues(alpha: 0.08)),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: msg.isStudent
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: [
+              Text(
+                msg.label.toUpperCase(),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: metaColor,
+                  letterSpacing: 0.4,
+                ),
+              ),
+              if (ts.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  ts,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: metaColor,
+                  ),
+                ),
+              ],
+              if (msg.text.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  msg.text,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+              if (msg.imageUrl != null && msg.imageUrl!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Attachment: ${msg.imageUrl}',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.electricBlue,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
@@ -346,9 +555,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
         separatorBuilder: (context, index) => const SizedBox(height: 16),
         itemBuilder: (context, i) {
           final doubt = _doubts[i];
-          final question =
-              (doubt['questionText'] ?? doubt['question_text'] ?? '')
-                  .toString();
+          final threadMessages = _extractThreadMessages(doubt);
           final status = (doubt['status'] ?? 'pending')
               .toString()
               .toLowerCase();
@@ -361,7 +568,6 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
 
           final isResolved = status == 'resolved';
           final sColor = isResolved ? AppColors.success : AppColors.warning;
-          final answer = doubt['answer_text'] ?? doubt['answerText'];
 
           return CPGlassCard(
                 isDark: isDark,
@@ -408,61 +614,25 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      question,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : AppColors.deepNavy,
-                        height: 1.4,
-                      ),
-                    ),
-                    if (isResolved && answer != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: (isDark ? Colors.white : Colors.black)
-                              .withValues(alpha: 0.03),
-                          borderRadius: BorderRadius.circular(16),
+                    if (threadMessages.isEmpty)
+                      Text(
+                        'No conversation text available',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white60 : Colors.black54,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.reply_rounded,
-                                  size: 14,
-                                  color: AppColors.success,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Instructor Reply',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.success,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              answer.toString(),
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.white70 : Colors.black87,
-                                height: 1.4,
-                              ),
-                            ),
+                      )
+                    else
+                      Column(
+                        children: [
+                          for (var idx = 0; idx < threadMessages.length; idx++) ...[
+                            _buildThreadBubble(threadMessages[idx], isDark),
+                            if (idx != threadMessages.length - 1)
+                              const SizedBox(height: 10),
                           ],
-                        ),
+                        ],
                       ),
-                    ],
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerRight,

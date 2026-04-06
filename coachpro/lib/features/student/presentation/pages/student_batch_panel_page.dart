@@ -3,12 +3,29 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../data/repositories/student_repository.dart';
+
+class _DoubtThreadMessage {
+  final String label;
+  final String text;
+  final String? imageUrl;
+  final DateTime? timestamp;
+  final bool isStudent;
+
+  const _DoubtThreadMessage({
+    required this.label,
+    required this.text,
+    required this.timestamp,
+    required this.isStudent,
+    this.imageUrl,
+  });
+}
 
 class StudentBatchPanelPage extends StatefulWidget {
   final String batchId;
@@ -2029,6 +2046,194 @@ class _DoubtsTabState extends State<_DoubtsTab> {
     );
   }
 
+  bool _labelRepresentsStudent(String label, bool defaultIsStudent) {
+    final l = label.toLowerCase();
+    if (l.contains('teacher') || l.contains('instructor')) return false;
+    if (l.contains('student')) return true;
+    return defaultIsStudent;
+  }
+
+  List<_DoubtThreadMessage> _parseThreadText({
+    required String rawText,
+    required bool defaultIsStudent,
+    required String fallbackLabel,
+    DateTime? fallbackTimestamp,
+  }) {
+    final trimmed = rawText.trim();
+    if (trimmed.isEmpty) return const [];
+
+    final blocks = trimmed.split(RegExp(r'\n\s*\n+'));
+    final headerPattern = RegExp(r'^\[(.+?)\s*\|\s*(.+?)\]$');
+    final messages = <_DoubtThreadMessage>[];
+
+    for (final block in blocks) {
+      final rawLines = block
+          .split('\n')
+          .map((line) => line.trimRight())
+          .where((line) => line.trim().isNotEmpty)
+          .toList();
+      if (rawLines.isEmpty) continue;
+
+      var label = fallbackLabel;
+      var ts = fallbackTimestamp;
+      var contentStart = 0;
+
+      final headerMatch = headerPattern.firstMatch(rawLines.first.trim());
+      if (headerMatch != null) {
+        label = headerMatch.group(1)?.trim() ?? fallbackLabel;
+        ts = DateTime.tryParse((headerMatch.group(2) ?? '').trim()) ?? ts;
+        contentStart = 1;
+      }
+
+      String? imageUrl;
+      final textLines = <String>[];
+      for (var i = contentStart; i < rawLines.length; i++) {
+        final line = rawLines[i].trim();
+        if (line.toLowerCase().startsWith('image:')) {
+          final maybeUrl = line.substring(6).trim();
+          if (maybeUrl.isNotEmpty) imageUrl = maybeUrl;
+          continue;
+        }
+        textLines.add(rawLines[i]);
+      }
+
+      final text = textLines.join('\n').trim();
+      if (text.isEmpty && (imageUrl == null || imageUrl.isEmpty)) continue;
+
+      messages.add(
+        _DoubtThreadMessage(
+          label: label,
+          text: text,
+          imageUrl: imageUrl,
+          timestamp: ts,
+          isStudent: _labelRepresentsStudent(label, defaultIsStudent),
+        ),
+      );
+    }
+
+    return messages;
+  }
+
+  List<_DoubtThreadMessage> _extractThreadMessages(Map<String, dynamic> doubt) {
+    final createdAt = DateTime.tryParse(
+      (doubt['createdAt'] ?? doubt['created_at'] ?? '').toString(),
+    );
+    final resolvedAt = DateTime.tryParse(
+      (doubt['resolvedAt'] ?? doubt['resolved_at'] ?? '').toString(),
+    );
+
+    final questionText = (doubt['questionText'] ?? doubt['question_text'] ?? '')
+        .toString();
+    final answerText =
+        (doubt['answerText'] ?? doubt['answer_text'] ?? '').toString();
+
+    final fromStudent = _parseThreadText(
+      rawText: questionText,
+      defaultIsStudent: true,
+      fallbackLabel: 'Student Question',
+      fallbackTimestamp: createdAt,
+    );
+    final fromTeacher = _parseThreadText(
+      rawText: answerText,
+      defaultIsStudent: false,
+      fallbackLabel: 'Teacher Reply',
+      fallbackTimestamp: resolvedAt ?? createdAt,
+    );
+
+    final all = <_DoubtThreadMessage>[
+      ...fromStudent,
+      ...fromTeacher,
+    ];
+
+    all.sort((a, b) {
+      if (a.timestamp == null && b.timestamp == null) return 0;
+      if (a.timestamp == null) return -1;
+      if (b.timestamp == null) return 1;
+      return a.timestamp!.compareTo(b.timestamp!);
+    });
+
+    return all;
+  }
+
+  Widget _buildThreadBubble(_DoubtThreadMessage msg) {
+    final bubbleColor = msg.isStudent
+        ? _StudentBatchPanelPageState.accentYellow.withValues(alpha: 0.20)
+        : _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.05);
+    final borderColor = msg.isStudent
+        ? _StudentBatchPanelPageState.accentYellow.withValues(alpha: 0.5)
+        : _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.20);
+    final ts = msg.timestamp == null
+        ? ''
+        : DateFormat('MMM d, h:mm a').format(msg.timestamp!.toLocal());
+
+    return Align(
+      alignment: msg.isStudent ? Alignment.centerRight : Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: bubbleColor,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: borderColor),
+          ),
+          child: Column(
+            crossAxisAlignment: msg.isStudent
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: [
+              Text(
+                msg.label.toUpperCase(),
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                  color: _StudentBatchPanelPageState.primaryBlue,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              if (ts.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  ts,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                    color: _StudentBatchPanelPageState.primaryBlue.withValues(
+                      alpha: 0.6,
+                    ),
+                  ),
+                ),
+              ],
+              if (msg.text.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  msg.text,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: _StudentBatchPanelPageState.primaryBlue,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+              if (msg.imageUrl != null && msg.imageUrl!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Attachment: ${msg.imageUrl}',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                    color: _StudentBatchPanelPageState.primaryBlue,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void didUpdateWidget(_DoubtsTab oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -2133,6 +2338,7 @@ class _DoubtsTabState extends State<_DoubtsTab> {
                   separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (context, i) {
                     final doubt = doubts[i];
+                    final threadMessages = _extractThreadMessages(doubt);
                     return _PremiumCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2184,58 +2390,25 @@ class _DoubtsTabState extends State<_DoubtsTab> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          Text(
-                            (doubt['question_text'] ?? 'Question').toString(),
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              color: _StudentBatchPanelPageState.primaryBlue,
-                            ),
-                          ),
-                          if (doubt['answer_text'] != null &&
-                              doubt['answer_text'].toString().isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: _StudentBatchPanelPageState.primaryBlue
-                                    .withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: _StudentBatchPanelPageState.primaryBlue
-                                      .withValues(alpha: 0.2),
-                                  width: 1,
-                                ),
+                          if (threadMessages.isEmpty)
+                            Text(
+                              (doubt['question_text'] ?? 'Question').toString(),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: _StudentBatchPanelPageState.primaryBlue,
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'RESPONSE',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 10,
-                                      color: _StudentBatchPanelPageState
-                                          .primaryBlue,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    doubt['answer_text'],
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                      color: _StudentBatchPanelPageState
-                                          .primaryBlue
-                                          .withValues(alpha: 0.9),
-                                    ),
-                                  ),
+                            )
+                          else
+                            Column(
+                              children: [
+                                for (var idx = 0; idx < threadMessages.length; idx++) ...[
+                                  _buildThreadBubble(threadMessages[idx]),
+                                  if (idx != threadMessages.length - 1)
+                                    const SizedBox(height: 8),
                                 ],
-                              ),
+                              ],
                             ),
-                          ],
                           const SizedBox(height: 8),
                           Align(
                             alignment: Alignment.centerRight,
