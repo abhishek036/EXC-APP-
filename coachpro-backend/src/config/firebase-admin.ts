@@ -163,10 +163,14 @@ export const initializeFirebaseAdmin = () => {
 
   const serviceAccount = getServiceAccount();
   if (!serviceAccount) {
-    console.warn('⚠️ Firebase Admin not initialized: missing/invalid service account configuration');
-    console.warn(
-      'ℹ️ Set one of FIREBASE_SERVICE_ACCOUNT_JSON / FIREBASE_SERVICE_ACCOUNT_FILE / GOOGLE_APPLICATION_CREDENTIALS, or place firebase-admin-service-account.json in coachpro-backend/',
-    );
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('⚠️ Firebase Admin not initialized: missing/invalid service account configuration');
+      console.warn(
+        'ℹ️ Set one of FIREBASE_SERVICE_ACCOUNT_JSON / FIREBASE_SERVICE_ACCOUNT_FILE / GOOGLE_APPLICATION_CREDENTIALS, or place firebase-admin-service-account.json in coachpro-backend/',
+      );
+    } else {
+      console.log('ℹ️ Firebase Admin not initialized in development: push notifications are disabled.');
+    }
     return;
   }
 

@@ -2,6 +2,7 @@ import { Server } from 'socket.io';
 import http from 'http';
 import * as jwt from 'jsonwebtoken';
 import { prisma } from './prisma';
+import { buildCorsPolicy, isOriginAllowed } from '../utils/cors';
 
 let io: Server;
 
@@ -160,21 +161,19 @@ const roomInstitute = (instituteId: string) => `institute_${instituteId}`;
 const roomRole = (instituteId: string, role: string) => `role_${role}_${instituteId}`;
 
 export const initSocket = (server: http.Server) => {
-    const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
-    const allowAllOriginsInDev = allowedOrigins.length === 0 && process.env.NODE_ENV !== 'production';
-    const hasWildcardOrigin = allowedOrigins.includes('*');
+    const corsPolicy = buildCorsPolicy(process.env.NODE_ENV, process.env.ALLOWED_ORIGINS || '');
 
     io = new Server(server, {
         cors: {
             origin: function(origin: any, callback: any) {
-                if (!origin || allowAllOriginsInDev || hasWildcardOrigin || allowedOrigins.includes(origin)) {
+                if (isOriginAllowed(origin, corsPolicy)) {
                     callback(null, true);
                 } else {
                     callback(new Error(`Origin ${origin} not allowed by Socket.io CORS`));
                 }
             },
             methods: ['GET', 'POST'],
-            credentials: !allowAllOriginsInDev && !hasWildcardOrigin,
+            credentials: corsPolicy.supportsCredentials,
         },
         maxHttpBufferSize: Number.isFinite(SOCKET_MAX_MESSAGE_BYTES) ? SOCKET_MAX_MESSAGE_BYTES : 1024 * 1024,
     });

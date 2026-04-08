@@ -33,6 +33,7 @@ import appUpdateRoutes from './modules/app-update/app-update.routes';
 import notificationRoutes from './modules/notification/notification.routes';
 import { emitBatchSync, emitInstituteDashboardSync } from './config/socket';
 import { AuditAction, Logger } from './utils/logger';
+import { buildCorsPolicy, isOriginAllowed } from './utils/cors';
 
 const app: Express = express();
 const trustProxyHops = Number.parseInt(process.env.TRUST_PROXY_HOPS || '1', 10);
@@ -40,14 +41,15 @@ app.set('trust proxy', Number.isFinite(trustProxyHops) ? trustProxyHops : 1);
 app.disable('x-powered-by');
 
 const isProduction = process.env.NODE_ENV === 'production';
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean);
-const allowAllOriginsInDev = allowedOrigins.length === 0 && !isProduction;
-const hasWildcardOrigin = allowedOrigins.includes('*');
-const supportsCredentialedCors = !allowAllOriginsInDev && !hasWildcardOrigin;
+const corsPolicy = buildCorsPolicy(process.env.NODE_ENV, process.env.ALLOWED_ORIGINS || '');
 const mutatingMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-if (allowAllOriginsInDev) {
-  console.warn('[SECURITY] ALLOWED_ORIGINS is empty. CORS will allow browser origins in development only.');
+if (corsPolicy.allowTrustedDevOrigins) {
+  console.info(
+    '[SECURITY] ALLOWED_ORIGINS is empty. CORS will allow localhost/private-network browser origins in development only.',
+  );
+} else if (isProduction && corsPolicy.allowedOrigins.length === 0 && !corsPolicy.hasWildcardOrigin) {
+  console.warn('[SECURITY] ALLOWED_ORIGINS is empty in production. Browser origins are blocked by CORS.');
 }
 
 const normalizeAddress = (ipRaw: string): string => {
@@ -87,11 +89,15 @@ const defaultRateLimitHandler = (_req: Request, res: Response) => {
 
 const globalApiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: Number.parseInt(process.env.GLOBAL_API_RATE_LIMIT || '100', 10),
+  max: Number.parseInt(process.env.GLOBAL_API_RATE_LIMIT || (isProduction ? '100' : '1000'), 10),
   standardHeaders: true,
   legacyHeaders: false,
   validate: false,
   keyGenerator: extractClientIp,
+  skip: (req: Request) => {
+    const path = String(req.path || '').trim();
+    return path === '/notifications/register-token';
+  },
   handler: defaultRateLimitHandler,
 });
 
@@ -195,14 +201,14 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow mobile apps (no origin) plus explicitly configured browser origins.
-    if (!origin || allowAllOriginsInDev || hasWildcardOrigin || allowedOrigins.includes(origin)) {
+    // Allow mobile apps (no origin) plus allowed browser origins from policy.
+    if (isOriginAllowed(origin, corsPolicy)) {
       callback(null, true);
     } else {
       callback(new ApiError(`Origin ${origin} not allowed by CORS`, 403, 'FORBIDDEN'));
     }
   },
-  credentials: supportsCredentialedCors,
+  credentials: corsPolicy.supportsCredentials,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
 }));

@@ -256,7 +256,7 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
                     child: Image.network(
                       imageUrl,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) {
+                      errorBuilder: (_, error, stackTrace) {
                         return const Center(
                           child: Text('Failed to load image'),
                         );

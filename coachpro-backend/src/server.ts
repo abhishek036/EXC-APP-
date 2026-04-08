@@ -32,6 +32,17 @@ if (require.main === module) {
             const server = http.createServer(app);
             initSocket(server);
 
+            server.on('error', (error: NodeJS.ErrnoException) => {
+                if (error.code === 'EADDRINUSE') {
+                    console.error(`❌ Port ${PORT} is already in use. Stop the existing process or change PORT.`);
+                } else if (error.code === 'EACCES') {
+                    console.error(`❌ Permission denied while binding to port ${PORT}.`);
+                } else {
+                    console.error('❌ Server failed to start', error);
+                }
+                process.exit(1);
+            });
+
             server.listen(PORT, () => {
                  console.log(`🚀 Server running on port ${PORT}`);
                  console.log(`⏱ Environment: ${process.env.NODE_ENV}`);
