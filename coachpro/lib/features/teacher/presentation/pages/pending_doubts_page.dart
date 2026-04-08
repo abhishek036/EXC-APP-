@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../features/teacher/data/repositories/teacher_repository.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/secure_storage_service.dart';
@@ -17,7 +18,6 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
   final _teacherRepo = sl<TeacherRepository>();
   List<Map<String, dynamic>> _doubts = [];
   bool _isLoading = true;
-  bool _isReplying = false;
   String? _error;
 
   @override
@@ -166,15 +166,13 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
     Color surface,
     Color yellow,
   ) {
-    final subject = d['subject']?.toString().toUpperCase() ?? 'GENERAL';
     final studentName =
         (d['student'] as Map?)?['name']?.toString().toUpperCase() ?? 'STUDENT';
     final studentInitial = studentName.isNotEmpty ? studentName[0] : 'S';
     final batchName =
         (d['batch'] as Map?)?['name']?.toString().toUpperCase() ?? 'BATCH';
-    final question = d['question_text']?.toString() ?? '';
+    final preview = _buildPreviewText(d);
 
-    // Calculate time ago from created_at
     String timeAgo = 'JUST NOW';
     final createdAt = d['created_at']?.toString();
     if (createdAt != null && createdAt.isNotEmpty) {
@@ -195,121 +193,132 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
       }
     }
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: surface,
-        border: Border.all(color: blue, width: 3),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: blue,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  subject,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                  ),
-                ),
+    return InkWell(
+      onTap: () => _openDoubtChat(d),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: surface,
+          border: Border.all(color: blue, width: 3),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: yellow,
+                border: Border.all(color: blue, width: 2),
+                shape: BoxShape.circle,
               ),
-              Text(
-                timeAgo,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 10,
+              alignment: Alignment.center,
+              child: Text(
+                studentInitial,
+                style: TextStyle(
                   fontWeight: FontWeight.w900,
-                  color: blue.withValues(alpha: 0.5),
+                  fontSize: 14,
+                  color: blue,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            question,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              height: 1.3,
-              color: blue,
             ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: yellow,
-                  border: Border.all(color: blue, width: 2),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  studentInitial,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                    color: blue,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          studentName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: blue,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        timeAgo,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: blue.withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  '$studentName • $batchName',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: blue.withValues(alpha: 0.7),
+                  const SizedBox(height: 4),
+                  Text(
+                    batchName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: blue.withValues(alpha: 0.65),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  Text(
+                    preview,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: blue,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _btn(
-                  'REPLY',
-                  () => _openReplySheet(d),
-                  yellow,
-                  blue,
-                  true,
-                  blue,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _btn(
-                  'VIEW IMAGE',
-                  () => _openImagePreview(d),
-                  surface,
-                  blue,
-                  false,
-                  blue,
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chat_rounded, color: blue, size: 22),
+          ],
+        ),
       ),
     ).animate().fadeIn().slideX(begin: 0.05);
+  }
+
+  String _buildPreviewText(Map<String, dynamic> doubt) {
+    final question =
+        (doubt['question_text'] ?? doubt['questionText'] ?? '').toString().trim();
+    if (question.isEmpty) return 'Open chat';
+
+    final lines = question
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+
+    for (var i = lines.length - 1; i >= 0; i--) {
+      final line = lines[i];
+      if (line.startsWith('[') && line.endsWith(']')) continue;
+      if (line.toLowerCase().startsWith('image:')) continue;
+      final normalized = line.replaceAll(RegExp(r'\s+'), ' ').trim();
+      if (normalized.isNotEmpty) return normalized;
+    }
+
+    return 'Open chat';
+  }
+
+  Future<void> _openDoubtChat(Map<String, dynamic> doubt) async {
+    final result = await context.pushNamed('doubt-response', extra: doubt);
+    if (!mounted) return;
+    if (result == true) {
+      await _loadDoubts();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Doubt resolved')));
+    }
   }
 
   Widget _btn(
@@ -340,183 +349,6 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
               fontWeight: FontWeight.w900,
               color: fg,
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openReplySheet(Map<String, dynamic> doubt) async {
-    const blue = Color(0xFF0D1282);
-    const surface = Color(0xFFEEEDED);
-    final replyCtrl = TextEditingController();
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: EdgeInsets.fromLTRB(
-          24,
-          24,
-          24,
-          24 + MediaQuery.of(ctx).viewInsets.bottom,
-        ),
-        decoration: BoxDecoration(
-          color: surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border.all(color: blue, width: 4),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'REPLY TO STUDENT',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: blue,
-                letterSpacing: 1,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              doubt['question_text'] ?? '',
-              maxLines: 2,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                color: blue.withValues(alpha: 0.5),
-              ),
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: replyCtrl,
-              minLines: 4,
-              maxLines: 6,
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w800,
-                color: blue,
-              ),
-              decoration: InputDecoration(
-                hintText: 'TYPE YOUR ANSWER...',
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.all(16),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: blue, width: 2.5),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: blue, width: 3),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: blue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: _isReplying
-                    ? null
-                    : () async {
-                        await _submitReply(doubt, replyCtrl.text.trim());
-                        if (ctx.mounted) Navigator.pop(ctx);
-                      },
-                child: _isReplying
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                        'SEND SOLUTION',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _submitReply(Map<String, dynamic> doubt, String answer) async {
-    final doubtId = doubt['id']?.toString() ?? '';
-    if (doubtId.isEmpty || answer.isEmpty) return;
-
-    setState(() => _isReplying = true);
-    try {
-      await _teacherRepo.answerDoubt(doubtId: doubtId, answer: answer);
-      if (!mounted) return;
-      setState(
-        () => _doubts.removeWhere((d) => d['id']?.toString() == doubtId),
-      );
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Doubt Answered!')));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed: $e')));
-    } finally {
-      if (mounted) setState(() => _isReplying = false);
-    }
-  }
-
-  Future<void> _openImagePreview(Map<String, dynamic> doubt) async {
-    final imageCandidates = [
-      doubt['question_img'],
-      doubt['answer_img'],
-      doubt['image_url'],
-      doubt['attachment_url'],
-    ].map((value) => (value ?? '').toString().trim()).toList();
-    final imageUrl = imageCandidates.firstWhere(
-      (value) => value.isNotEmpty,
-      orElse: () => '',
-    );
-    if (imageUrl.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No image attached')));
-      return;
-    }
-
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => Dialog(
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          constraints: const BoxConstraints(maxHeight: 560),
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ),
-              Expanded(
-                child: InteractiveViewer(
-                  minScale: 0.8,
-                  maxScale: 4,
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, error, stackTrace) =>
-                        const Center(child: Text('Failed to load image')),
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       ),

@@ -10,6 +10,7 @@ import '../../data/repositories/teacher_repository.dart';
 import 'assignment_review_page.dart';
 import 'attendance_marking_page.dart';
 import 'create_quiz_page.dart';
+import 'doubt_response_page.dart';
 import 'quiz_results_page.dart';
 import 'upload_material_page.dart';
 import 'youtube_broadcast_page.dart';
@@ -46,7 +47,6 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   String _studentFilter = 'all';
   String? _selectedSubject;
   List<String> _subjects = [];
-  bool _isReplying = false;
   bool _isDeletingQuiz = false;
   DateTime _selectedAttendanceDate = DateTime.now();
   DateTime _selectedQuizMonth = DateTime.now();
@@ -78,6 +78,72 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   void dispose() {
     _syncSub?.cancel();
     super.dispose();
+  }
+
+  void _openAssignmentReview({
+    String? assignmentId,
+    String? assignmentTitle,
+  }) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AssignmentReviewPage(
+          batchId: widget.batchId,
+          initialAssignmentId: assignmentId,
+          initialAssignmentTitle: assignmentTitle,
+        ),
+      ),
+    ).then((_) => _load());
+  }
+
+  Future<void> _openPendingAssignmentReview(int pendingCount) async {
+    if (_assignments.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No assignments available to review.')),
+      );
+      return;
+    }
+
+    if (pendingCount <= 0) {
+      final first = _assignments.first;
+      _openAssignmentReview(
+        assignmentId: (first['id'] ?? '').toString(),
+        assignmentTitle: (first['title'] ?? '').toString(),
+      );
+      return;
+    }
+
+    for (final assignment in _assignments) {
+      final assignmentId = (assignment['id'] ?? '').toString();
+      if (assignmentId.isEmpty) continue;
+
+      try {
+        final submissions = await _teacherRepo.getAssignmentSubmissions(assignmentId);
+        final hasPending = submissions.any((submission) {
+          final status = (submission['status'] ?? '').toString().toLowerCase();
+          return status == 'submitted' || status == 'late_submission';
+        });
+
+        if (hasPending) {
+          if (!mounted) return;
+          _openAssignmentReview(
+            assignmentId: assignmentId,
+            assignmentTitle: (assignment['title'] ?? '').toString(),
+          );
+          return;
+        }
+      } catch (_) {
+        // Keep trying other assignments; fallback to first assignment below.
+      }
+    }
+
+    final fallback = _assignments.first;
+    if (!mounted) return;
+    _openAssignmentReview(
+      assignmentId: (fallback['id'] ?? '').toString(),
+      assignmentTitle: (fallback['title'] ?? '').toString(),
+    );
   }
 
   Future<void> _load() async {
@@ -888,9 +954,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               ),
               const SizedBox(height: 16),
               GestureDetector(
-                onTap: () {
-                   // Navigate to a more detailed overview or the first assignment review
-                },
+                onTap: () => _openPendingAssignmentReview(pending),
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -971,6 +1035,10 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: ListTile(
+                      onTap: () => _openAssignmentReview(
+                        assignmentId: (item['id'] ?? '').toString(),
+                        assignmentTitle: (item['title'] ?? '').toString(),
+                      ),
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.assignment_ind_rounded, color: blue, size: 30),
                       title: Text(
@@ -989,15 +1057,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                       ),
                       trailing: IconButton(
                         icon: Icon(Icons.rate_review_rounded, color: blue),
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AssignmentReviewPage(
-                              batchId: widget.batchId,
-                              initialAssignmentId: (item['id'] ?? '').toString(),
-                              initialAssignmentTitle: (item['title'] ?? '').toString(),
-                            ),
-                          ),
+                        onPressed: () => _openAssignmentReview(
+                          assignmentId: (item['id'] ?? '').toString(),
+                          assignmentTitle: (item['title'] ?? '').toString(),
                         ),
                       ),
                     ),
@@ -2154,72 +2216,152 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
           )
         else
           ..._doubts.map((d) {
-            final student = ((d['student'] as Map?)?['name'] ?? 'Student')
-                .toString();
-            final question = (d['question_text'] ?? '').toString();
+            final student =
+                ((d['student'] as Map?)?['name'] ?? 'Student').toString();
+            final batch = ((d['batch'] as Map?)?['name'] ?? 'Batch').toString();
+            final preview = _buildDoubtPreviewText(d);
+            final studentInitial =
+                student.trim().isEmpty ? 'S' : student.trim().substring(0, 1).toUpperCase();
+
+            String timeAgo = 'JUST NOW';
+            final createdAt = (d['created_at'] ?? '').toString();
+            if (createdAt.isNotEmpty) {
+              final dt = DateTime.tryParse(createdAt);
+              if (dt != null) {
+                final diff = DateTime.now().difference(dt);
+                if (diff.inMinutes < 1) {
+                  timeAgo = 'JUST NOW';
+                } else if (diff.inHours < 1) {
+                  timeAgo = '${diff.inMinutes}M AGO';
+                } else if (diff.inDays < 1) {
+                  timeAgo = '${diff.inHours}H AGO';
+                } else {
+                  timeAgo = '${diff.inDays}D AGO';
+                }
+              }
+            }
+
             return _PremiumCard(
               margin: const EdgeInsets.only(bottom: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
+              child: InkWell(
+                onTap: () => _openDoubtChat(d),
+                borderRadius: BorderRadius.circular(12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: yellow,
+                        border: Border.all(color: blue, width: 2),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        studentInitial,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w900,
                           color: blue,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: Text(
-                          'PENDING',
-                          style: GoogleFonts.plusJakartaSans(
-                            color: Colors.white,
-                            fontSize: 8,
-                            fontWeight: FontWeight.w900,
-                          ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          student.toUpperCase(),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 12,
-                            color: blue,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    question,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: blue,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  _ActionBtn(
-                    label: 'RESPOND',
-                    icon: Icons.reply,
-                    blue: blue,
-                    yellow: yellow,
-                    onPressed: () => _openReplySheet(d, blue, yellow),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  student.toUpperCase(),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 13,
+                                    color: blue,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                timeAgo,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 10,
+                                  color: blue.withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            batch.toUpperCase(),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 11,
+                              color: blue.withValues(alpha: 0.7),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            preview,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                              color: blue,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.chat_rounded, color: blue),
+                  ],
+                ),
               ),
             );
           }),
       ],
     );
+  }
+
+  String _buildDoubtPreviewText(Map<String, dynamic> doubt) {
+    final question =
+        (doubt['question_text'] ?? doubt['questionText'] ?? '').toString().trim();
+    if (question.isEmpty) return 'Open chat';
+
+    final lines = question
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+
+    for (var i = lines.length - 1; i >= 0; i--) {
+      final line = lines[i];
+      if (line.startsWith('[') && line.endsWith(']')) continue;
+      if (line.toLowerCase().startsWith('image:')) continue;
+      final normalized = line.replaceAll(RegExp(r'\s+'), ' ').trim();
+      if (normalized.isNotEmpty) return normalized;
+    }
+
+    return 'Open chat';
+  }
+
+  Future<void> _openDoubtChat(Map<String, dynamic> doubt) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => DoubtResponsePage(doubt: doubt)),
+    );
+    if (!mounted) return;
+    if (result == true) {
+      await _load();
+    }
   }
 
   num _toNum(dynamic value) {
@@ -2249,102 +2391,6 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         ),
       ),
     );
-  }
-
-  Future<void> _openReplySheet(
-    Map<String, dynamic> doubt,
-    Color blue,
-    Color yellow,
-  ) async {
-    final ctrl = TextEditingController();
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            20,
-            20,
-            20 + MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEEEDED),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(color: blue, width: 2),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'RESPOND TO DOUBT',
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.w900,
-                  color: blue,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: ctrl,
-                minLines: 3,
-                maxLines: 5,
-                decoration: const InputDecoration(
-                  hintText: 'Type answer...',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isReplying
-                      ? null
-                      : () async {
-                          await _submitDoubtReply(doubt, ctrl.text.trim());
-                          if (ctx.mounted) Navigator.pop(ctx);
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: yellow,
-                    foregroundColor: blue,
-                  ),
-                  child: Text(_isReplying ? 'SAVING...' : 'SEND'),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _submitDoubtReply(
-    Map<String, dynamic> doubt,
-    String answer,
-  ) async {
-    final doubtId = (doubt['id'] ?? '').toString();
-    if (doubtId.isEmpty || answer.isEmpty) return;
-    setState(() => _isReplying = true);
-    try {
-      await _teacherRepo.answerDoubt(doubtId: doubtId, answer: answer);
-      if (!mounted) return;
-      setState(
-        () => _doubts.removeWhere(
-          (item) => (item['id'] ?? '').toString() == doubtId,
-        ),
-      );
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Doubt resolved')));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed: $e')));
-    } finally {
-      if (mounted) setState(() => _isReplying = false);
-    }
   }
 
   Widget _buildSubjectSelector(Color yellow, Color blue, Color bg) {
