@@ -349,6 +349,7 @@ class TeacherRepository {
     String? batchId,
     String? fileUrl,
     String? description,
+    String? youtubeVisibility,
     DateTime? dueDate,
   }) async {
     final trimmedSubject = subject.trim();
@@ -383,6 +384,8 @@ class TeacherRepository {
                 'file_url': trimmedFileUrl,
               if (description != null && description.trim().isNotEmpty)
                 'description': description.trim(),
+              if (youtubeVisibility != null && youtubeVisibility.trim().isNotEmpty)
+                'youtube_visibility': youtubeVisibility.trim().toLowerCase(),
             },
           );
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -399,6 +402,7 @@ class TeacherRepository {
     String? batchId,
     String? fileUrl,
     String? description,
+    String? youtubeVisibility,
     DateTime? dueDate,
   }) async {
     final trimmedSubject = subject.trim();
@@ -433,6 +437,8 @@ class TeacherRepository {
                 'file_url': trimmedFileUrl,
               if (description != null && description.trim().isNotEmpty)
                 'description': description.trim(),
+              if (youtubeVisibility != null && youtubeVisibility.trim().isNotEmpty)
+                'youtube_visibility': youtubeVisibility.trim().toLowerCase(),
             },
           );
 

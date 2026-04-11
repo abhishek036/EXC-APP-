@@ -65,6 +65,10 @@ export class ContentRepository {
                 version_no: row.version_no ?? 1,
             };
 
+            const youtubeVisibility = this.youtubeVisibilityFromStorageProvider(
+                primaryFile.storage_provider,
+            );
+
             return {
                 id: row.id,
                 batch_id: row.batch_id,
@@ -81,10 +85,60 @@ export class ContentRepository {
                 created_at: row.created_at ?? null,
                 updated_at: row.updated_at ?? null,
                 downloads_count: row.downloads_count ?? 0,
+                youtube_visibility: youtubeVisibility,
                 primary_file: primaryFile,
                 note_files: [primaryFile],
             };
         }
+
+            private isYoutubeUrl(value?: string | null): boolean {
+                const raw = String(value ?? '').trim();
+                if (!raw) return false;
+                try {
+                const host = new URL(raw).host.toLowerCase();
+                return host.includes('youtube.com')
+                    || host.includes('youtu.be')
+                    || host.includes('youtube-nocookie.com');
+                } catch {
+                return false;
+                }
+            }
+
+            private normalizeYoutubeVisibility(value: unknown): 'public' | 'unlisted' | null {
+                const normalized = String(value ?? '').trim().toLowerCase();
+                if (normalized == 'public') return 'public';
+                if (normalized == 'unlisted') return 'unlisted';
+                return null;
+            }
+
+            private youtubeVisibilityFromStorageProvider(provider?: string | null): 'public' | 'unlisted' | null {
+                const normalized = String(provider ?? '').trim().toLowerCase();
+                if (normalized == 'youtube_public') return 'public';
+                if (normalized == 'youtube_unlisted') return 'unlisted';
+                return null;
+            }
+
+            private resolveStorageProvider(params: {
+                explicitProvider?: string | null;
+                fileType?: string | null;
+                fileUrl?: string | null;
+                youtubeVisibility?: 'public' | 'unlisted' | null;
+            }): string | null {
+                const explicitProvider = this.trimOrNull(params.explicitProvider);
+                const fileType = String(params.fileType ?? '').trim().toLowerCase();
+                const fileUrl = this.trimOrNull(params.fileUrl);
+
+                if (
+                fileType == 'video'
+                && fileUrl
+                && this.isYoutubeUrl(fileUrl)
+                ) {
+                const visibility = params.youtubeVisibility ?? 'unlisted';
+                return `youtube_${visibility}`;
+                }
+
+                return explicitProvider;
+            }
 
     private normalizeNoteFileType(type?: string | null, fileUrl?: string | null, mimeType?: string | null): string {
             const normalized = String(type ?? '').trim().toLowerCase();
@@ -261,6 +315,9 @@ export class ContentRepository {
         async createNote(instituteId: string, teacherId: string | null, data: CreateNoteInput) {
             const chapterTitle = this.trimOrNull((data as any).chapter_title) ?? 'General';
             const chapterOrder = Number((data as any).chapter_order ?? 0);
+            const requestedYoutubeVisibility = this.normalizeYoutubeVisibility(
+                (data as any).youtube_visibility,
+            );
 
             const payloadFiles: any[] = Array.isArray((data as any).note_files)
                 ? (data as any).note_files
@@ -289,6 +346,9 @@ export class ContentRepository {
                     const fileType = this.normalizeNoteFileType(file.file_type, fileUrl, file.mime_type ?? storageMeta?.mimeType);
                     const fileHash = this.trimOrNull(file.file_hash)
                         ?? this.hashText(`${fileUrl}|${fileName}`);
+                    const baseStorageProvider = this.trimOrNull(file.storage_provider)
+                        ?? this.trimOrNull(storageMeta?.provider)
+                        ?? (fileUrl.includes('/api/upload/file/') ? 'b2' : 'external');
 
                     return {
                         file_url: fileUrl,
@@ -296,9 +356,14 @@ export class ContentRepository {
                         file_type: fileType,
                         mime_type: this.trimOrNull(file.mime_type) ?? this.trimOrNull(storageMeta?.mimeType),
                         file_size_kb: this.toNumberOrNull(file.file_size_kb) ?? this.toNumberOrNull(storageMeta?.sizeKb),
-                        storage_provider: this.trimOrNull(file.storage_provider)
-                            ?? this.trimOrNull(storageMeta?.provider)
-                            ?? (fileUrl.includes('/api/upload/file/') ? 'b2' : 'external'),
+                        storage_provider: this.resolveStorageProvider(
+                            {
+                                explicitProvider: baseStorageProvider,
+                                fileType,
+                                fileUrl,
+                                youtubeVisibility: requestedYoutubeVisibility,
+                            },
+                        ),
                         storage_path: this.trimOrNull(file.storage_path)
                             ?? this.trimOrNull(storageMeta?.key)
                             ?? fileUrl,
@@ -366,6 +431,9 @@ export class ContentRepository {
                     downloads_count: created?._count?.download_logs ?? 0,
                     bookmarks_count: created?._count?.bookmarks ?? 0,
                     primary_file: created?.note_files?.[0] ?? null,
+                    youtube_visibility: this.youtubeVisibilityFromStorageProvider(
+                        created?.note_files?.[0]?.storage_provider,
+                    ),
                 };
             });
     }
@@ -399,6 +467,11 @@ export class ContentRepository {
                         downloads_count: row?._count?.download_logs ?? 0,
                         bookmarks_count: row?._count?.bookmarks ?? 0,
                         primary_file: Array.isArray(row.note_files) && row.note_files.length > 0 ? row.note_files[0] : null,
+                        youtube_visibility: this.youtubeVisibilityFromStorageProvider(
+                            Array.isArray(row.note_files) && row.note_files.length > 0
+                                ? row.note_files[0]?.storage_provider
+                                : null,
+                        ),
                     }));
             } catch (error) {
                     if (!this.isLegacyError(error)) throw error;
@@ -483,6 +556,9 @@ export class ContentRepository {
             const incomingFileUrlRaw = (data as any).file_url;
             const incomingFileUrl = this.trimOrNull(incomingFileUrlRaw);
             const hasFileUpdate = incomingFileUrlRaw !== undefined && !!incomingFileUrl;
+            const requestedYoutubeVisibility = this.normalizeYoutubeVisibility(
+                (data as any).youtube_visibility,
+            );
 
             if (hasFileUpdate) {
                 const fileType = this.normalizeNoteFileType((data as any).file_type, incomingFileUrl);
@@ -539,6 +615,9 @@ export class ContentRepository {
                             storageMeta?.mimeType,
                         );
                         const nextVersionNo = Number(version._max.version_no ?? 0) + 1;
+                        const baseStorageProvider =
+                            this.trimOrNull(storageMeta?.provider)
+                            ?? (incomingFileUrl.includes('/api/upload/file/') ? 'b2' : 'external');
 
                         await tx.noteFile.create({
                             data: {
@@ -551,9 +630,12 @@ export class ContentRepository {
                                 file_size_kb:
                                     this.toNumberOrNull((data as any).file_size_kb) ??
                                     this.toNumberOrNull(storageMeta?.sizeKb),
-                                storage_provider:
-                                    this.trimOrNull(storageMeta?.provider) ??
-                                    (incomingFileUrl.includes('/api/upload/file/') ? 'b2' : 'external'),
+                                storage_provider: this.resolveStorageProvider({
+                                    explicitProvider: baseStorageProvider,
+                                    fileType,
+                                    fileUrl: incomingFileUrl,
+                                    youtubeVisibility: requestedYoutubeVisibility,
+                                }),
                                 storage_path:
                                     this.trimOrNull(storageMeta?.key) ?? incomingFileUrl,
                                 file_hash: this.hashText(
@@ -563,6 +645,40 @@ export class ContentRepository {
                                 is_latest: true,
                             },
                         });
+                    } else if (requestedYoutubeVisibility != null) {
+                        const latestFiles = await tx.noteFile.findMany({
+                            where: {
+                                note_id: noteId,
+                                institute_id: instituteId,
+                                is_deleted: false,
+                                is_latest: true,
+                            },
+                            select: {
+                                id: true,
+                                file_url: true,
+                                file_type: true,
+                                storage_provider: true,
+                            },
+                        });
+
+                        for (const file of latestFiles) {
+                            const fileType = this.normalizeNoteFileType(file.file_type, file.file_url);
+                            if (fileType != 'video' || !this.isYoutubeUrl(file.file_url)) {
+                                continue;
+                            }
+
+                            await tx.noteFile.update({
+                                where: { id: file.id },
+                                data: {
+                                    storage_provider: this.resolveStorageProvider({
+                                        explicitProvider: file.storage_provider,
+                                        fileType,
+                                        fileUrl: file.file_url,
+                                        youtubeVisibility: requestedYoutubeVisibility,
+                                    }),
+                                },
+                            });
+                        }
                     }
 
                     const updated = await tx.note.findFirst({
@@ -587,6 +703,11 @@ export class ContentRepository {
                             Array.isArray(updated?.note_files) && updated.note_files.length > 0
                                 ? updated.note_files[0]
                                 : null,
+                        youtube_visibility: this.youtubeVisibilityFromStorageProvider(
+                            Array.isArray(updated?.note_files) && updated.note_files.length > 0
+                                ? updated.note_files[0]?.storage_provider
+                                : null,
+                        ),
                     };
                 });
             } catch (error) {

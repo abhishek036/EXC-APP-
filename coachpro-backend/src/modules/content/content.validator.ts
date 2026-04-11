@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const assignmentFileTypes = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'] as const;
 const noteFileTypes = ['pdf', 'image', 'video', 'zip', 'doc', 'docx', 'ppt', 'pptx', 'other'] as const;
+const youtubeVisibilityTypes = ['unlisted', 'public'] as const;
 
 const extractExtension = (value?: string | null): string | null => {
   const raw = (value ?? '').trim();
@@ -33,6 +34,7 @@ export const createNoteSchema = z.object({
     chapter_order: z.number().int().min(0).max(999).optional(),
     file_url: z.string().url().optional(),
     file_type: z.enum(noteFileTypes).optional(),
+    youtube_visibility: z.enum(youtubeVisibilityTypes).optional(),
     file_size_kb: z.number().int().min(1).max(512 * 1024).optional(),
     note_files: z.array(z.object({
       file_url: z.string().url(),
@@ -71,6 +73,7 @@ export const updateNoteSchema = z.object({
     chapter_order: z.number().int().min(0).max(999).optional(),
     file_url: z.string().url().optional(),
     file_type: z.enum(noteFileTypes).optional(),
+    youtube_visibility: z.enum(youtubeVisibilityTypes).optional(),
     file_size_kb: z.number().int().min(1).max(512 * 1024).optional(),
   }),
 });

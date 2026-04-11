@@ -354,6 +354,12 @@ export class ContentController {
     };
 
     const hasId = (value: any) => value != null && String(value).trim().length > 0;
+    const parseYoutubeVisibility = (storageProvider: any): 'public' | 'unlisted' | null => {
+      const raw = String(storageProvider ?? '').trim().toLowerCase();
+      if (raw == 'youtube_public') return 'public';
+      if (raw == 'youtube_unlisted') return 'unlisted';
+      return null;
+    };
     const noteFiles = Array.isArray(note?.note_files)
       ? note.note_files.map((file: any) => ({
         ...file,
@@ -374,12 +380,18 @@ export class ContentController {
 
     const secureFileAvailable = hasId(primary?.id) || noteFiles.some((item: any) => hasId(item?.id));
     const exposeTopLevelDirectVideo = isDirectVideo(note);
+    const youtubeVisibility =
+      parseYoutubeVisibility(primary?.storage_provider)
+      ?? parseYoutubeVisibility(note?.primary_file?.storage_provider)
+      ?? parseYoutubeVisibility(note?.storage_provider)
+      ?? null;
 
     return {
       ...note,
       file_url: exposeTopLevelDirectVideo
         ? (note?.file_url ?? null)
         : (secureFileAvailable ? null : (note?.file_url ?? null)),
+      youtube_visibility: youtubeVisibility,
       note_files: noteFiles,
       primary_file: primary,
     };

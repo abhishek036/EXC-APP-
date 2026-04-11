@@ -631,6 +631,17 @@ export class AuthService {
         // FIX: CRITICAL - Always scope to institute_id to prevent cross-institute data leaks
         const instituteId = user.institute_id;
 
+        const institute = await prisma.institute.findUnique({
+            where: { id: instituteId },
+            select: { settings: true },
+        });
+
+        const settings = (institute?.settings ?? {}) as Record<string, any>;
+        const rawVideoPolicy = (settings['video_policy'] ?? {}) as Record<string, any>;
+        const rawDefaultVisibility = String(rawVideoPolicy['default_visibility'] ?? 'unlisted').toLowerCase();
+        const defaultVisibility = rawDefaultVisibility === 'public' ? 'public' : 'unlisted';
+        const allowPublicUploads = rawVideoPolicy['allow_public_uploads'] === true;
+
         // FIX: Improved phone normalization - always normalize to consistent format +91 prefix
         const phonesToSearch = user.phone
             ? this._normalizePhones(user.phone)
@@ -711,7 +722,15 @@ export class AuthService {
         // Use user-level avatar_url as primary, fall back to role-profile photo_url
         const avatar_url = user.avatar_url || photo_url || null;
 
-        return { ...user, name, avatar_url };
+        return {
+            ...user,
+            name,
+            avatar_url,
+            video_policy: {
+                default_visibility: defaultVisibility,
+                allow_public_uploads: allowPublicUploads,
+            },
+        };
     }
 
     // FIX: Improved phone normalization to ensure consistent format

@@ -38,6 +38,9 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
   bool _notifyOnAbsent = true;
   bool _notifyOnFeeDue = true;
   bool _notifyOnExam = true;
+  bool _allowPublicYoutubeUploads = false;
+  String _defaultYoutubeVisibility = 'unlisted';
+  Map<String, dynamic> _loadedSettings = <String, dynamic>{};
 
   @override
   void initState() {
@@ -64,6 +67,24 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
       _notifyOnAbsent = doc['notify_absent'] ?? doc['notifyAbsent'] ?? true;
       _notifyOnFeeDue = doc['notify_fee_due'] ?? doc['notifyFeeDue'] ?? true;
       _notifyOnExam = doc['notify_exam'] ?? doc['notifyExam'] ?? true;
+
+        final rawSettings = doc['settings'];
+        _loadedSettings = rawSettings is Map
+          ? Map<String, dynamic>.from(rawSettings)
+          : <String, dynamic>{};
+        final videoPolicyRaw = _loadedSettings['video_policy'];
+        final videoPolicy = videoPolicyRaw is Map
+          ? Map<String, dynamic>.from(videoPolicyRaw)
+          : <String, dynamic>{};
+
+        _allowPublicYoutubeUploads =
+          videoPolicy['allow_public_uploads'] == true;
+        final configuredVisibility =
+          (videoPolicy['default_visibility'] ?? 'unlisted')
+            .toString()
+            .toLowerCase();
+        _defaultYoutubeVisibility =
+          configuredVisibility == 'public' ? 'public' : 'unlisted';
     } catch (_) {
       // Ignored, fallback defaults
     } finally {
@@ -79,6 +100,15 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
 
     setState(() => _isSaving = true);
     try {
+      final nextSettings = Map<String, dynamic>.from(_loadedSettings);
+      nextSettings['video_policy'] = {
+        'allow_public_uploads': _allowPublicYoutubeUploads,
+        'default_visibility': _allowPublicYoutubeUploads
+            ? _defaultYoutubeVisibility
+            : 'unlisted',
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
       await _adminRepo.updateInstituteConfig({
         'name': _nameCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
@@ -90,6 +120,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
         'notify_absent': _notifyOnAbsent,
         'notify_fee_due': _notifyOnFeeDue,
         'notify_exam': _notifyOnExam,
+        'settings': nextSettings,
         'updatedAt': DateTime.now().toIso8601String(),
       });
       if (mounted) CPToast.success(context, 'Settings saved successfully');
@@ -298,6 +329,36 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                                 isDark,
                               ),
 
+                              const SizedBox(height: 48),
+
+                              _sectionTitle(
+                                'YOUTUBE VIDEO POLICY',
+                                Icons.ondemand_video_rounded,
+                                isDark,
+                              ),
+                              const SizedBox(height: 16),
+                              _settingsToggle(
+                                Icons.public_rounded,
+                                'Allow Public YouTube Videos',
+                                'When off, teachers can only tag uploads as Unlisted.',
+                                _allowPublicYoutubeUploads,
+                                (val) {
+                                  setState(() {
+                                    _allowPublicYoutubeUploads = val;
+                                    if (!val) {
+                                      _defaultYoutubeVisibility = 'unlisted';
+                                    }
+                                  });
+                                },
+                                AppColors.info,
+                                isDark,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildYoutubeDefaultVisibilityDropdown(
+                                isDark,
+                                const Color(0xFF0D1282),
+                              ),
+
                               const SizedBox(
                                 height: 120,
                               ), // Padding for bottom nav
@@ -481,6 +542,75 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
             inactiveTrackColor: isDark
                 ? Colors.white12
                 : Colors.black.withValues(alpha: 0.12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildYoutubeDefaultVisibilityDropdown(bool isDark, Color primary) {
+    final cardColor = isDark
+        ? Colors.white.withValues(alpha: 0.04)
+        : Colors.white;
+    final options = _allowPublicYoutubeUploads
+        ? const <String>['unlisted', 'public']
+        : const <String>['unlisted'];
+
+    return CPGlassCard(
+      isDark: isDark,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      borderRadius: 16,
+      border: Border.all(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.1)
+            : Colors.black.withValues(alpha: 0.08),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.video_settings_rounded, color: primary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Default Lecture Visibility',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: primary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: primary, width: 1.5),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: options.contains(_defaultYoutubeVisibility)
+                    ? _defaultYoutubeVisibility
+                    : 'unlisted',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: primary,
+                ),
+                onChanged: (val) {
+                  if (val == null) return;
+                  setState(() => _defaultYoutubeVisibility = val);
+                },
+                items: options
+                    .map(
+                      (option) => DropdownMenuItem<String>(
+                        value: option,
+                        child: Text(option.toUpperCase()),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
           ),
         ],
       ),

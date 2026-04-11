@@ -50,6 +50,8 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
   PlatformFile? _selectedFile;
   DateTime? _assignmentDueDate;
+  String _youtubeVisibility = 'unlisted';
+  bool _allowPublicYoutube = false;
 
   bool _isUploading = false;
 
@@ -100,6 +102,10 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       _titleCtrl.text = (initial['title'] ?? '').toString();
       _descCtrl.text =
           (initial['description'] ?? initial['instructions'] ?? '').toString();
+      final initialVisibility = _extractYoutubeVisibility(initial);
+      if (initialVisibility != null) {
+        _youtubeVisibility = initialVisibility;
+      }
       final existingUrl = (initial['file_url'] ?? '').toString();
       if (existingUrl.isNotEmpty) {
         _linkCtrl.text = existingUrl;
@@ -111,6 +117,60 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     }
 
     _loadBatches();
+    _loadVideoPolicy();
+  }
+
+  Future<void> _loadVideoPolicy() async {
+    try {
+      final profile = await _repo.getProfile();
+      final policy = profile['video_policy'];
+      if (policy is! Map) return;
+
+      final allowPublic = policy['allow_public_uploads'] == true;
+      final defaultVisibility =
+          (policy['default_visibility'] ?? 'unlisted').toString().toLowerCase();
+
+      if (!mounted) return;
+      setState(() {
+        final itemVisibility = _extractYoutubeVisibility(
+          widget.initialItem ?? const <String, dynamic>{},
+        );
+        _allowPublicYoutube = allowPublic;
+        if (itemVisibility == null) {
+          _youtubeVisibility = allowPublic && defaultVisibility == 'public'
+              ? 'public'
+              : 'unlisted';
+        }
+        if (!_allowPublicYoutube && _youtubeVisibility == 'public') {
+          _youtubeVisibility = 'unlisted';
+        }
+      });
+    } catch (_) {
+      // Keep safe defaults when policy fetch fails.
+    }
+  }
+
+  String? _extractYoutubeVisibility(Map<String, dynamic> item) {
+    final top = (item['youtube_visibility'] ?? '').toString().trim().toLowerCase();
+    if (top == 'public' || top == 'unlisted') return top;
+
+    final primary = item['primary_file'];
+    final provider = primary is Map
+        ? (primary['storage_provider'] ?? '').toString().trim().toLowerCase()
+        : '';
+
+    if (provider == 'youtube_public') return 'public';
+    if (provider == 'youtube_unlisted') return 'unlisted';
+    return null;
+  }
+
+  bool _isYoutubeUrl(String value) {
+    final uri = Uri.tryParse(value);
+    if (uri == null) return false;
+    final host = uri.host.toLowerCase();
+    return host.contains('youtube.com') ||
+        host.contains('youtu.be') ||
+        host.contains('youtube-nocookie.com');
   }
 
   Future<void> _loadBatches() async {
@@ -166,6 +226,23 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         ).showSnackBar(const SnackBar(content: Text('Invalid link.')));
         return;
       }
+      if (!_isYoutubeUrl(normalized)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Only YouTube links are allowed for video content.'),
+          ),
+        );
+        return;
+      }
+      if (!_allowPublicYoutube && _youtubeVisibility == 'public') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Public YouTube videos are disabled by admin policy.'),
+          ),
+        );
+        setState(() => _youtubeVisibility = 'unlisted');
+        return;
+      }
       formattedLink = normalized;
     } else {
       // For Notes/Assignments, file or link is optional
@@ -216,6 +293,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           description: _descCtrl.text.trim(),
           type: _selectedType,
           fileUrl: formattedLink,
+          youtubeVisibility: _selectedType == 'video' ? _youtubeVisibility : null,
           dueDate: _selectedType == 'assignment' ? _assignmentDueDate : null,
         );
       } else {
@@ -226,6 +304,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           description: _descCtrl.text.trim(),
           type: _selectedType,
           fileUrl: formattedLink,
+          youtubeVisibility: _selectedType == 'video' ? _youtubeVisibility : null,
           dueDate: _selectedType == 'assignment' ? _assignmentDueDate : null,
         );
       }
@@ -454,9 +533,25 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           ],
           const SizedBox(height: 24),
           _selectedType == 'video'
-              ? _inputLabel('VIDEO LINK (Youtube/Drive)', primary)
+              ? _inputLabel('YOUTUBE VIDEO LINK', primary)
               : _inputLabel('ATTACHMENT LINK', primary),
           _textField(_linkCtrl, 'https://...', primary),
+          if (_selectedType == 'video') ...[
+            const SizedBox(height: 24),
+            _inputLabel('YOUTUBE VISIBILITY', primary),
+            _buildYoutubeVisibilitySelector(primary),
+            const SizedBox(height: 10),
+            Text(
+              _allowPublicYoutube
+                  ? 'Unlisted is recommended for batch-only lectures. Public can be used for channel content.'
+                  : 'Admin policy: batch lecture videos must stay Unlisted.',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: primary.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
           if (_selectedType != 'video') ...[
             const SizedBox(height: 24),
             _buildFileDropzone(primary, accent),
@@ -597,6 +692,52 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                   value: s,
                   child: Text(
                     s.toUpperCase(),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildYoutubeVisibilitySelector(Color primary) {
+    final elevated = CT.elevated(context);
+    final options = _allowPublicYoutube
+        ? const <String>['unlisted', 'public']
+        : const <String>['unlisted'];
+    final selected = options.contains(_youtubeVisibility)
+        ? _youtubeVisibility
+        : 'unlisted';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: elevated,
+        border: Border.all(color: primary, width: 2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selected,
+          isExpanded: true,
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w800,
+            color: primary,
+          ),
+          onChanged: (val) {
+            if (val == null) return;
+            setState(() => _youtubeVisibility = val);
+          },
+          items: options
+              .map(
+                (option) => DropdownMenuItem<String>(
+                  value: option,
+                  child: Text(
+                    option == 'public'
+                        ? 'PUBLIC (CHANNEL VISIBLE)'
+                        : 'UNLISTED (BATCH RESTRICTED)',
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
