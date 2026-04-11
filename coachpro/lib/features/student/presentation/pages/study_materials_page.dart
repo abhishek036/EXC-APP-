@@ -434,9 +434,15 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
     return CPPressable(
           onTap: () {
             if (material.type == 'video' || material.type == 'link') {
+              final summary = material.chapterTitle.toLowerCase() == 'general'
+                  ? ''
+                  : material.chapterTitle;
               context.push('/student/youtube-player', extra: {
                 'videoId': material.url,
                 'title': material.title,
+                'summary': summary,
+                'teacherName': material.teacher,
+                'subject': material.subject,
               });
               return;
             }

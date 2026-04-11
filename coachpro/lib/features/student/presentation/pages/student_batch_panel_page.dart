@@ -616,6 +616,9 @@ class _LecturesPaneState extends State<_LecturesPane> {
               final lec = lectures[i];
               final title = (lec['title'] ?? 'Lecture ${i + 1}').toString();
               final teacher = (lec['teacher_name'] ?? 'Teacher').toString();
+              final subject = (lec['subject'] ?? '').toString();
+              final summary =
+                  (lec['description'] ?? lec['summary'] ?? '').toString();
               final date = (lec['date'] ?? 'Upcoming')
                   .toString()
                   .split('T')
@@ -672,6 +675,9 @@ class _LecturesPaneState extends State<_LecturesPane> {
                       extra: {
                         'videoId': url,
                         'title': title,
+                        'summary': summary,
+                        'teacherName': teacher,
+                        'subject': subject,
                       },
                     );
                   } else {

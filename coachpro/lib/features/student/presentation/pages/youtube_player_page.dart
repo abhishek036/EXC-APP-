@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -10,11 +9,17 @@ import '../../../../core/utils/webview_platform_initializer.dart';
 class YoutubePlayerPage extends StatefulWidget {
   final String videoId;
   final String title;
+  final String summary;
+  final String teacherName;
+  final String subject;
 
   const YoutubePlayerPage({
     super.key,
     required this.videoId,
     required this.title,
+    this.summary = '',
+    this.teacherName = '',
+    this.subject = '',
   });
 
   @override
@@ -26,7 +31,6 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
   bool _isInitializing = true;
   bool _hasInitError = false;
   late final String? _resolvedVideoId;
-  late final bool _isLiveStream;
 
   String? _resolveVideoId(String input, {int depth = 0}) {
     if (depth > 3) return null;
@@ -91,68 +95,12 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
     return null;
   }
 
-  bool _detectLive(String input) {
-    final lower = input.toLowerCase();
-    return lower.contains('/live/') || lower.contains('live=1');
-  }
-
-  Uri _buildPublicYoutubeUrl() {
-    final source = widget.videoId.trim();
-    final parsed = Uri.tryParse(source);
-    if (parsed != null && parsed.hasScheme) {
-      return parsed;
-    }
-    if (_resolvedVideoId != null) {
-      return Uri.parse('https://www.youtube.com/watch?v=$_resolvedVideoId');
-    }
-    return Uri.parse('https://www.youtube.com');
-  }
-
-  Future<void> _openInYoutube() async {
-    final webUri = _buildPublicYoutubeUrl();
-    final id = _resolvedVideoId;
-    final appUri =
-        id == null ? null : Uri.parse('youtube://www.youtube.com/watch?v=$id');
-
-    if (appUri != null && await canLaunchUrl(appUri)) {
-      await launchUrl(appUri, mode: LaunchMode.externalApplication);
-      return;
-    }
-
-    if (await canLaunchUrl(webUri)) {
-      await launchUrl(webUri, mode: LaunchMode.externalApplication);
-      return;
-    }
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Unable to open this video link.')),
-    );
-  }
-
-  Future<void> _copyVideoLink() async {
-    await Clipboard.setData(
-      ClipboardData(text: _buildPublicYoutubeUrl().toString()),
-    );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Video link copied.')),
-    );
-  }
-
   Widget _buildUnavailablePlayer() {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          widget.title,
-          style: GoogleFonts.plusJakartaSans(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -166,7 +114,7 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Could not load this YouTube link in-app.',
+              'Could not load this lecture right now.',
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 color: Colors.white,
@@ -176,25 +124,11 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Open it in YouTube for private/unlisted playback and advanced controls.',
+              'Please try again in a moment.',
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 color: Colors.white70,
                 fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _openInYoutube,
-                icon: const Icon(Icons.open_in_new_rounded),
-                label: const Text('Open in YouTube'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.moltenAmber,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
               ),
             ),
           ],
@@ -207,7 +141,6 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
   void initState() {
     super.initState();
     _resolvedVideoId = _resolveVideoId(widget.videoId);
-    _isLiveStream = _detectLive(widget.videoId);
 
     _initializePlayer();
   }
@@ -230,10 +163,11 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
       final controller = YoutubePlayerController(
         params: const YoutubePlayerParams(
           mute: false,
-          showControls: true,
-          showFullscreenButton: true,
+          showControls: false,
+          showFullscreenButton: false,
           strictRelatedVideos: true,
-          enableCaption: true,
+          enableCaption: false,
+          showVideoAnnotations: false,
           loop: false,
         ),
       );
@@ -278,6 +212,25 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
     );
   }
 
+  String get _lectureTitle {
+    final raw = widget.title.trim();
+    return raw.isEmpty ? 'Lecture' : raw;
+  }
+
+  String get _summary {
+    return widget.summary.trim();
+  }
+
+  String get _teacherName {
+    final raw = widget.teacherName.trim();
+    return raw.isEmpty ? 'Teacher' : raw;
+  }
+
+  String get _subject {
+    final raw = widget.subject.trim();
+    return raw.isEmpty ? 'General' : raw;
+  }
+
   @override
   void deactivate() {
     _controller?.pauseVideo();
@@ -305,13 +258,6 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          widget.title,
-          style: GoogleFonts.plusJakartaSans(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
       ),
       body: YoutubePlayerScaffold(
         controller: _controller!,
@@ -326,88 +272,70 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.title,
+                      _lectureTitle,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.moltenAmber,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'YOUTUBE',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
+                    if (_summary.isNotEmpty) ...[
+                      const SizedBox(height: 18),
+                      Text(
+                        'Summary',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.moltenAmber,
                         ),
-                        if (_isLiveStream)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.coralRed,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'LIVE',
-                              style: GoogleFonts.plusJakartaSans(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Tip: Use the settings gear in player controls for quality options.',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white70,
-                        fontSize: 13,
                       ),
-                    ),
-                    const SizedBox(height: 14),
+                      const SizedBox(height: 6),
+                      Text(
+                        _summary,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 18),
                     Row(
                       children: [
+                        const Icon(
+                          Icons.person_rounded,
+                          color: Colors.white60,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
                         Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _openInYoutube,
-                            icon: const Icon(Icons.open_in_new_rounded),
-                            label: const Text('Open in YouTube'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white38),
+                          child: Text(
+                            _teacherName,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.menu_book_rounded,
+                          color: Colors.white60,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
                         Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _copyVideoLink,
-                            icon: const Icon(Icons.link_rounded),
-                            label: const Text('Copy link'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white38),
+                          child: Text(
+                            _subject,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
                             ),
                           ),
                         ),

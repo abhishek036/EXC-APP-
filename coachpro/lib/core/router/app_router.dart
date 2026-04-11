@@ -1068,6 +1068,9 @@ class AppRouter {
                         YoutubePlayerPage(
                           videoId: args['videoId'] ?? '',
                           title: args['title'] ?? 'Video',
+                          summary: args['summary']?.toString() ?? '',
+                          teacherName: args['teacherName']?.toString() ?? '',
+                          subject: args['subject']?.toString() ?? '',
                         ),
                       );
                     },
