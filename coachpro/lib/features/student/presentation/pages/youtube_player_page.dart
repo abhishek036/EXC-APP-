@@ -32,18 +32,15 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
   YoutubePlayerController? _controller;
   StreamSubscription<YoutubePlayerValue>? _valueSub;
   StreamSubscription<YoutubeVideoState>? _videoStateSub;
-  Timer? _controlsHideTimer;
 
   bool _isInitializing = true;
   bool _hasInitError = false;
   bool _isMuted = true;
   bool _isPlaying = false;
-  bool _showVideoControls = true;
   bool _isDraggingSeek = false;
 
   double _positionSeconds = 0;
   double _durationSeconds = 0;
-  double _bufferedFraction = 0;
   double _playbackRate = 1.0;
 
   String _selectedQuality = 'auto';
@@ -176,7 +173,6 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
         _isInitializing = false;
         _hasInitError = false;
       });
-      _showControlsTemporarily();
 
       // Do not block initialization waiting for WebView commands. The player
       // widget must mount first so controller init can complete.
@@ -230,22 +226,12 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
         if (playbackQuality.isNotEmpty) {
           _selectedQuality = playbackQuality;
         }
-        if (!isPlayingNow) {
-          _showVideoControls = true;
-        }
       });
-
-      if (isPlayingNow) {
-        _startControlsAutoHideTimer();
-      } else {
-        _controlsHideTimer?.cancel();
-      }
     });
 
     _videoStateSub = controller.videoStateStream.listen((videoState) {
       if (!mounted) return;
       setState(() {
-        _bufferedFraction = videoState.loadedFraction.clamp(0.0, 1.0);
         if (!_isDraggingSeek) {
           _positionSeconds = videoState.position.inMilliseconds / 1000;
         }
@@ -268,32 +254,6 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
     setState(() => _selectedQuality = quality);
   }
 
-  void _startControlsAutoHideTimer() {
-    _controlsHideTimer?.cancel();
-    _controlsHideTimer = Timer(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      setState(() => _showVideoControls = false);
-    });
-  }
-
-  void _showControlsTemporarily() {
-    if (!mounted) return;
-    setState(() => _showVideoControls = true);
-    if (_isPlaying) {
-      _startControlsAutoHideTimer();
-    }
-  }
-
-  void _toggleControlsVisibility() {
-    if (!mounted) return;
-    if (_showVideoControls) {
-      _controlsHideTimer?.cancel();
-      setState(() => _showVideoControls = false);
-    } else {
-      _showControlsTemporarily();
-    }
-  }
-
   Future<void> _togglePlayPause() async {
     final controller = _controller;
     if (controller == null) return;
@@ -303,7 +263,6 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
     } else {
       await controller.playVideo();
     }
-    _showControlsTemporarily();
   }
 
   Future<void> _toggleMute() async {
@@ -317,7 +276,6 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
       await controller.mute();
     }
     await _syncMuteState(controller);
-    _showControlsTemporarily();
   }
 
   Future<void> _skipBy(double seconds) async {
@@ -327,7 +285,6 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
     final target =
       (_positionSeconds + seconds).clamp(0.0, _durationSeconds).toDouble();
     await controller.seekTo(seconds: target, allowSeekAhead: true);
-    _showControlsTemporarily();
   }
 
   Future<void> _seekTo(double seconds) async {
@@ -345,13 +302,10 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
     await controller.setPlaybackRate(speed);
     if (!mounted) return;
     setState(() => _playbackRate = speed);
-    _showControlsTemporarily();
   }
 
   void _openSettingsSheet() {
     if (_controller == null) return;
-
-    _showControlsTemporarily();
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: const Color(0xFF111111),
@@ -545,166 +499,107 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
   }
 
   Widget _buildVideoOverlay(Widget player) {
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: player,
+    );
+  }
+
+  Widget _buildPlaybackControlsPanel() {
     final sliderMax = _durationSeconds > 0 ? _durationSeconds : 1.0;
     final sliderValue = _positionSeconds.clamp(0.0, sliderMax).toDouble();
 
-    return AspectRatio(
-      aspectRatio: 16 / 9,
-      child: GestureDetector(
-        onTap: _toggleControlsVisibility,
-        behavior: HitTestBehavior.opaque,
-        child: Stack(
-          children: [
-            Positioned.fill(child: player),
-            Positioned.fill(
-              child: IgnorePointer(
-                ignoring: !_showVideoControls,
-                child: AnimatedOpacity(
-                  opacity: _showVideoControls ? 1 : 0,
-                  duration: const Duration(milliseconds: 180),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0x77000000),
-                          Colors.transparent,
-                          Color(0xAA000000),
-                        ],
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            IconButton(
-                              onPressed: _toggleMute,
-                              icon: Icon(
-                                _isMuted
-                                    ? Icons.volume_off_rounded
-                                    : Icons.volume_up_rounded,
-                                color: Colors.white,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: _openSettingsSheet,
-                              icon: const Icon(
-                                Icons.settings_rounded,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                IconButton(
-                                  iconSize: 34,
-                                  onPressed: () => _skipBy(-10),
-                                  icon: const Icon(
-                                    Icons.replay_10_rounded,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                GestureDetector(
-                                  onTap: _togglePlayPause,
-                                  child: Container(
-                                    width: 64,
-                                    height: 64,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Color(0xB3000000),
-                                    ),
-                                    child: Icon(
-                                      _isPlaying
-                                          ? Icons.pause_rounded
-                                          : Icons.play_arrow_rounded,
-                                      color: Colors.white,
-                                      size: 38,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                IconButton(
-                                  iconSize: 34,
-                                  onPressed: () => _skipBy(10),
-                                  icon: const Icon(
-                                    Icons.forward_10_rounded,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-                          child: Column(
-                            children: [
-                              LinearProgressIndicator(
-                                minHeight: 2,
-                                value: _bufferedFraction,
-                                backgroundColor: Colors.white24,
-                                valueColor: const AlwaysStoppedAnimation<Color>(
-                                  Colors.white54,
-                                ),
-                              ),
-                              Slider(
-                                value: sliderValue,
-                                min: 0,
-                                max: sliderMax,
-                                activeColor: AppColors.moltenAmber,
-                                inactiveColor: Colors.white30,
-                                onChangeStart: (_) {
-                                  _isDraggingSeek = true;
-                                  _controlsHideTimer?.cancel();
-                                },
-                                onChanged: (value) {
-                                  setState(() => _positionSeconds = value);
-                                },
-                                onChangeEnd: (value) async {
-                                  _isDraggingSeek = false;
-                                  await _seekTo(value);
-                                  _showControlsTemporarily();
-                                },
-                              ),
-                              Row(
-                                children: [
-                                  Text(
-                                    _formatTime(_positionSeconds),
-                                    style: GoogleFonts.plusJakartaSans(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    _formatTime(_durationSeconds),
-                                    style: GoogleFonts.plusJakartaSans(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                iconSize: 30,
+                onPressed: () => _skipBy(-10),
+                icon: const Icon(
+                  Icons.replay_10_rounded,
+                  color: Colors.white,
                 ),
               ),
+              IconButton(
+                iconSize: 32,
+                onPressed: _togglePlayPause,
+                icon: Icon(
+                  _isPlaying
+                      ? Icons.pause_circle_filled_rounded
+                      : Icons.play_circle_fill_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              IconButton(
+                iconSize: 30,
+                onPressed: () => _skipBy(10),
+                icon: const Icon(
+                  Icons.forward_10_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: _toggleMute,
+                icon: Icon(
+                  _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              IconButton(
+                onPressed: _openSettingsSheet,
+                icon: const Icon(
+                  Icons.settings_rounded,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          Slider(
+            value: sliderValue,
+            min: 0,
+            max: sliderMax,
+            activeColor: AppColors.moltenAmber,
+            inactiveColor: Colors.white24,
+            onChangeStart: (_) {
+              _isDraggingSeek = true;
+            },
+            onChanged: (value) {
+              setState(() => _positionSeconds = value);
+            },
+            onChangeEnd: (value) async {
+              _isDraggingSeek = false;
+              await _seekTo(value);
+            },
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              children: [
+                Text(
+                  _formatTime(_positionSeconds),
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  _formatTime(_durationSeconds),
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -717,7 +612,6 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
 
   @override
   void dispose() {
-    _controlsHideTimer?.cancel();
     _valueSub?.cancel();
     _videoStateSub?.cancel();
     _controller?.close();
@@ -747,6 +641,7 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
           return ListView(
             children: [
               _buildVideoOverlay(player),
+              _buildPlaybackControlsPanel(),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
