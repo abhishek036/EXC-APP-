@@ -413,6 +413,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                             child: Column(
                               children: [
                                 Container(
+                                  width: double.infinity,
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: CT.isDark(context)
@@ -422,23 +423,39 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                         : primary.withValues(alpha: 0.03),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Icon(
-                                    Icons.qr_code_2_rounded,
-                                    size: 120,
-                                    color: CT.textH(context),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.asset(
+                                      'assets/images/qr.jpeg',
+                                      height: 190,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (_, error, stackTrace) => Icon(
+                                        Icons.qr_code_2_rounded,
+                                        size: 120,
+                                        color: CT.textH(context),
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 20),
                                 Text(
-                                  'SCAN OR ENTER ID',
+                                  'SCAN THIS QR TO PAY',
                                   style: GoogleFonts.sora(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w800,
                                     color: CT.textS(context),
                                   ),
                                 ),
-                                const SizedBox(height: 16),
-                                const CustomTextField(hint: 'id_handle@bank'),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'Student or parent can pay from any UPI app and submit proof below.',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: CT.textM(context),
+                                  ),
+                                ),
                               ],
                             ),
                           ).animate().fadeIn().scaleXY(begin: 0.98)
@@ -487,9 +504,10 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                     return;
                   }
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Parent proof submission will be enabled in next phase.')),
-                  );
+                  if (rolePrefix == '/parent') {
+                    _showProofSubmissionSheet();
+                    return;
+                  }
                 },
                 child: Container(
                   height: 60,
@@ -993,13 +1011,24 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
 
                                   try {
                                     setSheet(() => submitting = true);
-                                    await _studentRepo.submitFeePaymentProof(
-                                      feeRecordId: _selectedFeeRecordId!,
-                                      amount: amount,
-                                      screenshotUrl: screenshotUrl!,
-                                      note: noteCtrl.text,
-                                      whatsappNotified: whatsappNotified,
-                                    );
+                                    final rolePrefix = context.rolePrefix;
+                                    if (rolePrefix == '/parent') {
+                                      await _parentRepo.submitFeePaymentProof(
+                                        feeRecordId: _selectedFeeRecordId!,
+                                        amount: amount,
+                                        screenshotUrl: screenshotUrl!,
+                                        note: noteCtrl.text,
+                                        whatsappNotified: whatsappNotified,
+                                      );
+                                    } else {
+                                      await _studentRepo.submitFeePaymentProof(
+                                        feeRecordId: _selectedFeeRecordId!,
+                                        amount: amount,
+                                        screenshotUrl: screenshotUrl!,
+                                        note: noteCtrl.text,
+                                        whatsappNotified: whatsappNotified,
+                                      );
+                                    }
                                     if (!ctx.mounted) return;
                                     Navigator.of(ctx).pop();
                                     if (!mounted) return;

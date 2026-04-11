@@ -59,12 +59,17 @@ export class FeeService {
     return this.repo.recordPayment(instituteId, userId, data);
   }
 
-  async submitPaymentProof(instituteId: string, userId: string, data: SubmitFeeProofInput) {
-    return this.repo.submitPaymentProof(instituteId, userId, data);
+  async submitPaymentProof(
+    instituteId: string,
+    userId: string,
+    data: SubmitFeeProofInput,
+    role?: string,
+  ) {
+    return this.repo.submitPaymentProof(instituteId, userId, data, role);
   }
 
-  async getStudentPaymentHistory(instituteId: string, userId: string) {
-    return this.repo.listStudentPayments(instituteId, userId);
+  async getStudentPaymentHistory(instituteId: string, userId: string, role?: string) {
+    return this.repo.listStudentPayments(instituteId, userId, role);
   }
 
   async getPaymentsForReview(

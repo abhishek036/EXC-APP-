@@ -28,8 +28,8 @@ router.get('/records', requireRole('admin', 'sub_admin'), controller.getRecords)
 router.post('/pay', requireRole('admin'), validate(recordFeePaymentSchema), controller.recordPayment);
 
 // Student manual QR flow
-router.post('/payments/proof', requireRole('student'), validate(submitFeeProofSchema), controller.submitPaymentProof);
-router.get('/payments/my', requireRole('student'), controller.getMyPaymentProofs);
+router.post('/payments/proof', requireRole('student', 'parent'), validate(submitFeeProofSchema), controller.submitPaymentProof);
+router.get('/payments/my', requireRole('student', 'parent'), controller.getMyPaymentProofs);
 
 // Admin review flow
 router.get('/payments/review', requireRole('admin', 'sub_admin'), controller.getPaymentsForReview);

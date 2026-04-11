@@ -47,14 +47,23 @@ export class FeeController {
 
   submitPaymentProof = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.service.submitPaymentProof(req.instituteId!, req.user!.userId, req.body);
+      const data = await this.service.submitPaymentProof(
+        req.instituteId!,
+        req.user!.userId,
+        req.body,
+        req.user?.role,
+      );
       return sendResponse({ res, data, statusCode: 201, message: 'Payment proof submitted for verification' });
     } catch (e) { next(e); }
   }
 
   getMyPaymentProofs = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.service.getStudentPaymentHistory(req.instituteId!, req.user!.userId);
+      const data = await this.service.getStudentPaymentHistory(
+        req.instituteId!,
+        req.user!.userId,
+        req.user?.role,
+      );
       return sendResponse({ res, data, message: 'Payment proof history fetched' });
     } catch (e) { next(e); }
   }

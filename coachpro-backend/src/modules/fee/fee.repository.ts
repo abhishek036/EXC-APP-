@@ -343,22 +343,44 @@ export class FeeRepository {
      });
   }
 
-    async submitPaymentProof(instituteId: string, userId: string, data: SubmitFeeProofInput) {
+    async submitPaymentProof(instituteId: string, userId: string, data: SubmitFeeProofInput, role?: string) {
         return prisma.$transaction(async (tx) => {
-            const student = await tx.student.findFirst({
-                where: { user_id: userId, institute_id: instituteId },
-                select: { id: true },
-            });
-            if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
-
             const record = await tx.feeRecord.findFirst({
                 where: {
                     id: data.fee_record_id,
                     institute_id: instituteId,
-                    student_id: student.id,
                 },
             });
             if (!record) throw new ApiError('Fee record not found', 404, 'NOT_FOUND');
+
+            const normalizedRole = (role ?? '').toString().trim().toLowerCase();
+            if (normalizedRole === 'parent') {
+                const parent = await tx.parent.findFirst({
+                    where: { user_id: userId, institute_id: instituteId },
+                    select: { id: true },
+                });
+                if (!parent) throw new ApiError('Parent profile not found', 404, 'NOT_FOUND');
+
+                const link = await tx.parentStudent.findFirst({
+                    where: {
+                        parent_id: parent.id,
+                        student_id: record.student_id,
+                    },
+                    select: { id: true },
+                });
+                if (!link) {
+                    throw new ApiError('Fee record not accessible for this parent', 403, 'FORBIDDEN');
+                }
+            } else {
+                const student = await tx.student.findFirst({
+                    where: { user_id: userId, institute_id: instituteId },
+                    select: { id: true },
+                });
+                if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
+                if (student.id !== record.student_id) {
+                    throw new ApiError('Fee record not accessible for this student', 403, 'FORBIDDEN');
+                }
+            }
 
             const paidAmount = Number(record.paid_amount ?? 0);
             const finalAmount = Number(record.final_amount);
@@ -421,19 +443,39 @@ export class FeeRepository {
         });
     }
 
-    async listStudentPayments(instituteId: string, userId: string) {
-        const student = await prisma.student.findFirst({
-            where: { user_id: userId, institute_id: instituteId },
-            select: { id: true },
-        });
-        if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
+    async listStudentPayments(instituteId: string, userId: string, role?: string) {
+        const normalizedRole = (role ?? '').toString().trim().toLowerCase();
+        let studentIds: string[] = [];
+
+        if (normalizedRole === 'parent') {
+            const parent = await prisma.parent.findFirst({
+                where: { user_id: userId, institute_id: instituteId },
+                select: { id: true },
+            });
+            if (!parent) throw new ApiError('Parent profile not found', 404, 'NOT_FOUND');
+
+            const links = await prisma.parentStudent.findMany({
+                where: { parent_id: parent.id },
+                select: { student_id: true },
+            });
+            studentIds = [...new Set(links.map((link) => link.student_id))];
+            if (!studentIds.length) return [];
+        } else {
+            const student = await prisma.student.findFirst({
+                where: { user_id: userId, institute_id: instituteId },
+                select: { id: true },
+            });
+            if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
+            studentIds = [student.id];
+        }
 
         return prisma.feePayment.findMany({
             where: {
                 institute_id: instituteId,
-                student_id: student.id,
+                student_id: { in: studentIds },
             },
             include: {
+                student: { select: { id: true, name: true, phone: true } },
                 batch: { select: { id: true, name: true } },
                 fee_record: {
                     select: {
