@@ -212,7 +212,12 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
     _valueSub = controller.listen((value) {
       if (!mounted) return;
 
-      final isPlayingNow = value.playerState == PlayerState.playing;
+      final playerState = value.playerState;
+      final isPlayingNow = playerState == PlayerState.playing;
+      final shouldForceControlsVisible =
+          playerState == PlayerState.paused ||
+          playerState == PlayerState.ended ||
+          playerState == PlayerState.cued;
       final durationFromMeta = value.metaData.duration.inMilliseconds / 1000;   
       final playbackRate = value.playbackRate;
       final playbackQuality = (value.playbackQuality ?? '').trim();
@@ -228,7 +233,7 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
         if (playbackQuality.isNotEmpty) {
           _selectedQuality = playbackQuality;
         }
-        if (!isPlayingNow) {
+        if (shouldForceControlsVisible) {
           _showVideoControls = true;
         }
       });
@@ -536,171 +541,169 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
 
     return AspectRatio(
       aspectRatio: 16 / 9,
-      child: Listener(
-          behavior: HitTestBehavior.opaque,
-          onPointerDown: (_) {
-            if (!_showVideoControls) {
-              _showControlsTemporarily();
-            } else if (_isPlaying) {
-              _startControlsAutoHideTimer();
-            }
-          },
-          child: Stack(
-            children: [
-              Positioned.fill(child: player),
-              Positioned.fill(
-                child: IgnorePointer(
-                  ignoring: _showVideoControls,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _showControlsTemporarily,
-                    child: const SizedBox.expand(),
-                  ),
-                ),
+      child: Stack(
+        children: [
+          Positioned.fill(child: player),
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: _showVideoControls,
+              child: Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: (_) => _showControlsTemporarily(),
+                child: const SizedBox.expand(),
               ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  ignoring: !_showVideoControls,
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 180),
-                    opacity: _showVideoControls ? 1 : 0,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0x88000000),
-                            Colors.transparent,
-                            Color(0xAA000000),
-                          ],
-                        ),
+            ),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: !_showVideoControls,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 180),
+                opacity: _showVideoControls ? 1 : 0,
+                child: Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (_) {
+                    if (_isPlaying) {
+                      _startControlsAutoHideTimer();
+                    }
+                  },
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x88000000),
+                          Colors.transparent,
+                          Color(0xAA000000),
+                        ],
                       ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              IconButton(
-                                onPressed: _toggleMute,
-                                icon: Icon(
-                                  _isMuted
-                                      ? Icons.volume_off_rounded
-                                      : Icons.volume_up_rounded,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: _openSettingsSheet,
-                                icon: const Icon(
-                                  Icons.settings_rounded,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Expanded(
-                            child: Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  IconButton(
-                                    iconSize: 34,
-                                    onPressed: () => _skipBy(-10),
-                                    icon: const Icon(
-                                      Icons.replay_10_rounded,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: _togglePlayPause,
-                                    child: Container(
-                                      width: 64,
-                                      height: 64,
-                                      decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Color(0xB3000000),
-                                      ),
-                                      child: Icon(
-                                        _isPlaying
-                                            ? Icons.pause_rounded
-                                            : Icons.play_arrow_rounded,
-                                        color: Colors.white,
-                                        size: 38,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    iconSize: 34,
-                                    onPressed: () => _skipBy(10),
-                                    icon: const Icon(
-                                      Icons.forward_10_rounded,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              onPressed: _toggleMute,
+                              icon: Icon(
+                                _isMuted
+                                    ? Icons.volume_off_rounded
+                                    : Icons.volume_up_rounded,
+                                color: Colors.white,
                               ),
                             ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-                            child: Column(
+                            IconButton(
+                              onPressed: _openSettingsSheet,
+                              icon: const Icon(
+                                Icons.settings_rounded,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Slider(
-                                  value: sliderValue,
-                                  min: 0,
-                                  max: sliderMax,
-                                  activeColor: AppColors.moltenAmber,
-                                  inactiveColor: Colors.white24,
-                                  onChangeStart: (_) {
-                                    _isDraggingSeek = true;
-                                    _controlsHideTimer?.cancel();
-                                  },
-                                  onChanged: (value) {
-                                    setState(() => _positionSeconds = value);
-                                  },
-                                  onChangeEnd: (value) async {
-                                    _isDraggingSeek = false;
-                                    await _seekTo(value);
-                                  },
+                                IconButton(
+                                  iconSize: 34,
+                                  onPressed: () => _skipBy(-10),
+                                  icon: const Icon(
+                                    Icons.replay_10_rounded,
+                                    color: Colors.white,
+                                  ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        _formatTime(_positionSeconds),
-                                        style: GoogleFonts.plusJakartaSans(
-                                          color: Colors.white,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      Text(
-                                        _formatTime(_durationSeconds),
-                                        style: GoogleFonts.plusJakartaSans(
-                                          color: Colors.white,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: _togglePlayPause,
+                                  child: Container(
+                                    width: 64,
+                                    height: 64,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Color(0xB3000000),
+                                    ),
+                                    child: Icon(
+                                      _isPlaying
+                                          ? Icons.pause_rounded
+                                          : Icons.play_arrow_rounded,
+                                      color: Colors.white,
+                                      size: 38,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  iconSize: 34,
+                                  onPressed: () => _skipBy(10),
+                                  icon: const Icon(
+                                    Icons.forward_10_rounded,
+                                    color: Colors.white,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+                          child: Column(
+                            children: [
+                              Slider(
+                                value: sliderValue,
+                                min: 0,
+                                max: sliderMax,
+                                activeColor: AppColors.moltenAmber,
+                                inactiveColor: Colors.white24,
+                                onChangeStart: (_) {
+                                  _isDraggingSeek = true;
+                                  _controlsHideTimer?.cancel();
+                                },
+                                onChanged: (value) {
+                                  setState(() => _positionSeconds = value);
+                                },
+                                onChangeEnd: (value) async {
+                                  _isDraggingSeek = false;
+                                  await _seekTo(value);
+                                },
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      _formatTime(_positionSeconds),
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      _formatTime(_durationSeconds),
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
-            ],
+            ),
           ),
+        ],
       ),
     );
   }
