@@ -660,7 +660,11 @@ class _LecturesPaneState extends State<_LecturesPane> {
 
                   if (!context.mounted) return;
 
-                  final isYoutube = url.contains('youtube.com') || url.contains('youtu.be');
+                  final lowerUrl = url.toLowerCase();
+                  final isYoutube =
+                      lowerUrl.contains('youtube.com') ||
+                      lowerUrl.contains('youtu.be') ||
+                      lowerUrl.contains('youtube-nocookie.com');
                   
                   if (isYoutube) {
                     context.push(
