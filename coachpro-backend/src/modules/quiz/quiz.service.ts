@@ -37,6 +37,59 @@ export class QuizService {
     };
   }
 
+  private static normalizeString(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    return String(value).trim();
+  }
+
+  private static normalizeOptionalNumber(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private static normalizeDateIso(value: unknown): string | null {
+    if (value === null || value === undefined || value === '') return null;
+    const date = value instanceof Date ? value : new Date(String(value));
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toISOString();
+  }
+
+  private static normalizeQuestionForCompare(question: any, fallbackOrderIndex: number) {
+    return {
+      question_text: QuizService.normalizeString(question?.question_text),
+      image_url: QuizService.normalizeString(question?.image_url),
+      option_a: QuizService.normalizeString(question?.option_a),
+      option_a_image: QuizService.normalizeString(question?.option_a_image),
+      option_b: QuizService.normalizeString(question?.option_b),
+      option_b_image: QuizService.normalizeString(question?.option_b_image),
+      option_c: QuizService.normalizeString(question?.option_c),
+      option_c_image: QuizService.normalizeString(question?.option_c_image),
+      option_d: QuizService.normalizeString(question?.option_d),
+      option_d_image: QuizService.normalizeString(question?.option_d_image),
+      correct_option: QuizService.normalizeString(question?.correct_option).toUpperCase(),
+      marks: QuizService.normalizeOptionalNumber(question?.marks) ?? 1,
+      order_index: QuizService.normalizeOptionalNumber(question?.order_index) ?? fallbackOrderIndex,
+    };
+  }
+
+  private static questionsAreEquivalent(existingQuestions: any[] = [], incomingQuestions: any[] = []): boolean {
+    if (existingQuestions.length !== incomingQuestions.length) return false;
+
+    const normalizeAndSort = (questions: any[]) =>
+      questions
+        .map((q, index) => QuizService.normalizeQuestionForCompare(q, index))
+        .sort((a, b) => {
+          if (a.order_index !== b.order_index) return a.order_index - b.order_index;
+          return a.question_text.localeCompare(b.question_text);
+        });
+
+    const existingNormalized = normalizeAndSort(existingQuestions);
+    const incomingNormalized = normalizeAndSort(incomingQuestions);
+
+    return JSON.stringify(existingNormalized) === JSON.stringify(incomingNormalized);
+  }
+
   private static rankStudentCandidates(candidates: any[], userId: string): any[] {
     return [...candidates].sort((a, b) => {
       const aLinked = a.user_id === userId ? 1 : 0;
@@ -310,9 +363,76 @@ export class QuizService {
   static async updateQuiz(id: string, instituteId: string, data: any, requesterRole: string, requesterUserId: string) {
     const quiz = await QuizRepository.findQuizById(id, instituteId);
     if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
-    if (quiz.is_published) throw new ApiError('Cannot edit a published quiz', 400, 'BAD_REQUEST');
     if ((requesterRole || '').toLowerCase() === 'teacher') {
       await QuizService.ensureTeacherOwnsQuiz(requesterUserId, instituteId, quiz.teacher_id);
+    }
+
+    if (quiz.is_published) {
+      const blockedChanges: string[] = [];
+
+      if (data.batch_id !== undefined && QuizService.normalizeString(data.batch_id) !== QuizService.normalizeString(quiz.batch_id)) {
+        blockedChanges.push('batch_id');
+      }
+
+      if (
+        data.assessment_type !== undefined
+        && QuizService.normalizeString(data.assessment_type).toUpperCase() !== QuizService.normalizeString(quiz.assessment_type).toUpperCase()
+      ) {
+        blockedChanges.push('assessment_type');
+      }
+
+      if (data.title !== undefined && QuizService.normalizeString(data.title) !== QuizService.normalizeString(quiz.title)) {
+        blockedChanges.push('title');
+      }
+
+      if (data.subject !== undefined && QuizService.normalizeString(data.subject) !== QuizService.normalizeString(quiz.subject)) {
+        blockedChanges.push('subject');
+      }
+
+      if (
+        data.time_limit_min !== undefined
+        && QuizService.normalizeOptionalNumber(data.time_limit_min) !== QuizService.normalizeOptionalNumber(quiz.time_limit_min)
+      ) {
+        blockedChanges.push('time_limit_min');
+      }
+
+      if (
+        data.scheduled_at !== undefined
+        && QuizService.normalizeDateIso(data.scheduled_at) !== QuizService.normalizeDateIso(quiz.scheduled_at)
+      ) {
+        blockedChanges.push('scheduled_at');
+      }
+
+      if (
+        data.negative_marking !== undefined
+        && QuizService.normalizeOptionalNumber(data.negative_marking) !== QuizService.normalizeOptionalNumber(quiz.negative_marking)
+      ) {
+        blockedChanges.push('negative_marking');
+      }
+
+      if (Array.isArray(data.questions) && !QuizService.questionsAreEquivalent(quiz.questions ?? [], data.questions)) {
+        blockedChanges.push('questions');
+      }
+
+      if (blockedChanges.length > 0) {
+        throw new ApiError(
+          `Published quiz allows only result visibility settings. Remove changes to: ${blockedChanges.join(', ')}`,
+          400,
+          'BAD_REQUEST',
+        );
+      }
+
+      const releaseSettingsUpdate: Prisma.QuizUncheckedUpdateInput = {
+        ...(data.allow_retry !== undefined ? { allow_retry: data.allow_retry } : {}),
+        ...(data.show_instant_result !== undefined ? { show_instant_result: data.show_instant_result } : {}),
+      };
+
+      if (Object.keys(releaseSettingsUpdate).length === 0) {
+        return quiz;
+      }
+
+      await QuizRepository.updateQuiz(id, instituteId, releaseSettingsUpdate);
+      return QuizRepository.findQuizById(id, instituteId);
     }
 
     const normalizedData: Prisma.QuizUncheckedUpdateInput = {
