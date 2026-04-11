@@ -38,7 +38,7 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
   bool _hasInitError = false;
   bool _isMuted = true;
   bool _isPlaying = false;
-  bool _showVideoControls = false;
+  bool _showVideoControls = true;
   bool _isDraggingSeek = false;
 
   double _positionSeconds = 0;
@@ -233,9 +233,7 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
         }
       });
 
-      if (isPlayingNow && _showVideoControls) {
-        _startControlsAutoHideTimer();
-      } else if (!isPlayingNow) {
+      if (!isPlayingNow) {
         _controlsHideTimer?.cancel();
       }
     });
@@ -536,177 +534,178 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
 
     return AspectRatio(
       aspectRatio: 16 / 9,
-      child: Stack(
-        children: [
-          Positioned.fill(child: player),
-          Positioned.fill(
-            child: IgnorePointer(
-              ignoring: _showVideoControls,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _showControlsTemporarily,
-                child: const SizedBox.expand(),
-              ),
-            ),
-          ),
-            // Mask native YouTube top title/chip area.
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 56,
-            child: Container(color: Colors.black.withValues(alpha: 0.86)),
-          ),
-            // Mask native YouTube bottom bar/logo area.
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 52,
-            child: Container(color: Colors.black.withValues(alpha: 0.9)),
-          ),
-          Positioned.fill(
-            child: IgnorePointer(
-              ignoring: !_showVideoControls,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 180),
-                opacity: _showVideoControls ? 1 : 0,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0x88000000),
-                        Colors.transparent,
-                        Color(0xAA000000),
-                      ],
-                    ),
+      child: MouseRegion(
+        onHover: (_) {
+          if (!_showVideoControls) {
+            _showControlsTemporarily();
+          }
+        },
+        child: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (_) {
+            if (!_showVideoControls) {
+              _showControlsTemporarily();
+            } else if (_isPlaying) {
+              _startControlsAutoHideTimer();
+            }
+          },
+          child: Stack(
+            children: [
+              Positioned.fill(child: player),
+              Positioned.fill(
+                child: IgnorePointer(
+                  ignoring: _showVideoControls,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _showControlsTemporarily,
+                    child: const SizedBox.expand(),
                   ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          IconButton(
-                            onPressed: _toggleMute,
-                            icon: Icon(
-                              _isMuted
-                                  ? Icons.volume_off_rounded
-                                  : Icons.volume_up_rounded,
-                              color: Colors.white,
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: _openSettingsSheet,
-                            icon: const Icon(
-                              Icons.settings_rounded,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
+                ),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  ignoring: !_showVideoControls,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 180),
+                    opacity: _showVideoControls ? 1 : 0,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0x88000000),
+                            Colors.transparent,
+                            Color(0xAA000000),
+                          ],
+                        ),
                       ),
-                      Expanded(
-                        child: Center(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               IconButton(
-                                iconSize: 34,
-                                onPressed: () => _skipBy(-10),
-                                icon: const Icon(
-                                  Icons.replay_10_rounded,
+                                onPressed: _toggleMute,
+                                icon: Icon(
+                                  _isMuted
+                                      ? Icons.volume_off_rounded
+                                      : Icons.volume_up_rounded,
                                   color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: _togglePlayPause,
-                                child: Container(
-                                  width: 64,
-                                  height: 64,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Color(0xB3000000),
-                                  ),
-                                  child: Icon(
-                                    _isPlaying
-                                        ? Icons.pause_rounded
-                                        : Icons.play_arrow_rounded,
-                                    color: Colors.white,
-                                    size: 38,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
                               IconButton(
-                                iconSize: 34,
-                                onPressed: () => _skipBy(10),
+                                onPressed: _openSettingsSheet,
                                 icon: const Icon(
-                                  Icons.forward_10_rounded,
+                                  Icons.settings_rounded,
                                   color: Colors.white,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-                        child: Column(
-                          children: [
-                            Slider(
-                              value: sliderValue,
-                              min: 0,
-                              max: sliderMax,
-                              activeColor: AppColors.moltenAmber,
-                              inactiveColor: Colors.white24,
-                              onChangeStart: (_) {
-                                _isDraggingSeek = true;
-                                _controlsHideTimer?.cancel();
-                              },
-                              onChanged: (value) {
-                                setState(() => _positionSeconds = value);
-                              },
-                              onChangeEnd: (value) async {
-                                _isDraggingSeek = false;
-                                await _seekTo(value);
-                              },
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                          Expanded(
+                            child: Center(
                               child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    _formatTime(_positionSeconds),
-                                    style: GoogleFonts.plusJakartaSans(
+                                  IconButton(
+                                    iconSize: 34,
+                                    onPressed: () => _skipBy(-10),
+                                    icon: const Icon(
+                                      Icons.replay_10_rounded,
                                       color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                  const Spacer(),
-                                  Text(
-                                    _formatTime(_durationSeconds),
-                                    style: GoogleFonts.plusJakartaSans(
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: _togglePlayPause,
+                                    child: Container(
+                                      width: 64,
+                                      height: 64,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Color(0xB3000000),
+                                      ),
+                                      child: Icon(
+                                        _isPlaying
+                                            ? Icons.pause_rounded
+                                            : Icons.play_arrow_rounded,
+                                        color: Colors.white,
+                                        size: 38,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    iconSize: 34,
+                                    onPressed: () => _skipBy(10),
+                                    icon: const Icon(
+                                      Icons.forward_10_rounded,
                                       color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+                            child: Column(
+                              children: [
+                                Slider(
+                                  value: sliderValue,
+                                  min: 0,
+                                  max: sliderMax,
+                                  activeColor: AppColors.moltenAmber,
+                                  inactiveColor: Colors.white24,
+                                  onChangeStart: (_) {
+                                    _isDraggingSeek = true;
+                                    _controlsHideTimer?.cancel();
+                                  },
+                                  onChanged: (value) {
+                                    setState(() => _positionSeconds = value);
+                                  },
+                                  onChangeEnd: (value) async {
+                                    _isDraggingSeek = false;
+                                    await _seekTo(value);
+                                  },
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        _formatTime(_positionSeconds),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Text(
+                                        _formatTime(_durationSeconds),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
