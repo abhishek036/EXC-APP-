@@ -13,6 +13,7 @@ import 'core/di/injection_container.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/webview_platform_initializer.dart';
 import 'core/l10n/app_localizations.dart';
 import 'core/l10n/app_locales.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
@@ -22,6 +23,8 @@ final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await ensureWebViewPlatformInitialized();
 
   try {
     await Firebase.initializeApp(

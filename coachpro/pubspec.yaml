@@ -82,6 +82,8 @@ dependencies:
   apivideo_live_stream: ^1.2.0
   firebase_storage: ^13.2.0
   path: ^1.9.1
+  webview_flutter_platform_interface: ^2.15.1
+  webview_flutter_web: ^0.2.3+4
 
 dev_dependencies:
   flutter_test:
