@@ -622,9 +622,44 @@ class _LecturesPaneState extends State<_LecturesPane> {
                   .first;
 
               return GestureDetector(
-                onTap: () {
+                onTap: () async {
                   HapticFeedback.lightImpact();
-                  final url = (lec['link'] ?? lec['video_url'] ?? lec['url'] ?? lec['file_url'] ?? '').toString();
+                  var url =
+                      (lec['link'] ??
+                              lec['video_url'] ??
+                              lec['url'] ??
+                              lec['file_url'] ??
+                              '')
+                          .toString();
+
+                  if (url.trim().isEmpty) {
+                    try {
+                      final noteId = (lec['id'] ?? '').toString();
+                      final primaryFile = lec['primary_file'] as Map?;
+                      final fileId = (primaryFile?['id'] ?? '').toString();
+                      if (noteId.isNotEmpty && fileId.isNotEmpty) {
+                        final access = await _repo.getStudyMaterialAccess(
+                          noteId: noteId,
+                          fileId: fileId,
+                          action: 'view',
+                        );
+                        url = (access['access_url'] ?? '').toString();
+                      }
+                    } catch (_) {
+                      // Keep graceful fallback below.
+                    }
+                  }
+
+                  if (url.trim().isEmpty) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Video link not available.')),
+                    );
+                    return;
+                  }
+
+                  if (!context.mounted) return;
+
                   final isYoutube = url.contains('youtube.com') || url.contains('youtu.be');
                   
                   if (isYoutube) {

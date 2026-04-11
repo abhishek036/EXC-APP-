@@ -340,26 +340,46 @@ export class ContentController {
   }
 
   private sanitizeNoteForStudent(note: any) {
+    const isDirectVideo = (file: any): boolean => {
+      const fileType = String(file?.file_type ?? '').toLowerCase();
+      if (fileType != 'video') return false;
+
+      const rawUrl = String(file?.file_url ?? '').trim();
+      if (!rawUrl) return false;
+
+      const storageProvider = String(file?.storage_provider ?? '').toLowerCase();
+      if (storageProvider == 'external') return true;
+
+      return rawUrl.startsWith('http://') || rawUrl.startsWith('https://');
+    };
+
     const hasId = (value: any) => value != null && String(value).trim().length > 0;
     const noteFiles = Array.isArray(note?.note_files)
       ? note.note_files.map((file: any) => ({
         ...file,
-        file_url: hasId(file?.id) ? null : (file?.file_url ?? null),
+        file_url: isDirectVideo(file)
+          ? (file?.file_url ?? null)
+          : (hasId(file?.id) ? null : (file?.file_url ?? null)),
       }))
       : [];
 
     const primary = note?.primary_file
       ? {
         ...note.primary_file,
-        file_url: hasId(note?.primary_file?.id) ? null : (note?.primary_file?.file_url ?? null),
+        file_url: isDirectVideo(note?.primary_file)
+          ? (note?.primary_file?.file_url ?? null)
+          : (hasId(note?.primary_file?.id) ? null : (note?.primary_file?.file_url ?? null)),
       }
       : (noteFiles.isNotEmpty ? noteFiles[0] : null);
 
     const secureFileAvailable = hasId(primary?.id) || noteFiles.some((item: any) => hasId(item?.id));
+    const exposeTopLevelDirectVideo = isDirectVideo(note);
 
     return {
       ...note,
-      file_url: secureFileAvailable ? null : (note?.file_url ?? null),
+      file_url: exposeTopLevelDirectVideo
+        ? (note?.file_url ?? null)
+        : (secureFileAvailable ? null : (note?.file_url ?? null)),
       note_files: noteFiles,
       primary_file: primary,
     };
