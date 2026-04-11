@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/webview_platform_initializer.dart';
 
 class YoutubePlayerPage extends StatefulWidget {
   final String videoId;
@@ -22,6 +23,8 @@ class YoutubePlayerPage extends StatefulWidget {
 
 class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
   YoutubePlayerController? _controller;
+  bool _isInitializing = true;
+  bool _hasInitError = false;
   late final String? _resolvedVideoId;
   late final bool _isLiveStream;
 
@@ -206,8 +209,25 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
     _resolvedVideoId = _resolveVideoId(widget.videoId);
     _isLiveStream = _detectLive(widget.videoId);
 
-    if (_resolvedVideoId != null) {
-      _controller = YoutubePlayerController(
+    _initializePlayer();
+  }
+
+  Future<void> _initializePlayer() async {
+    final resolvedVideoId = _resolvedVideoId;
+
+    if (resolvedVideoId == null) {
+      if (!mounted) return;
+      setState(() {
+        _isInitializing = false;
+        _hasInitError = true;
+      });
+      return;
+    }
+
+    try {
+      await ensureWebViewPlatformInitialized();
+
+      final controller = YoutubePlayerController(
         params: const YoutubePlayerParams(
           mute: false,
           showControls: true,
@@ -217,13 +237,45 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
           loop: false,
         ),
       );
-      _controller!.setFullScreenListener((isFullScreen) {
+
+      controller.setFullScreenListener((isFullScreen) {
         if (!isFullScreen) {
           SystemChrome.setPreferredOrientations(DeviceOrientation.values);
         }
       });
-      _controller!.loadVideoById(videoId: _resolvedVideoId);
+      controller.loadVideoById(videoId: resolvedVideoId);
+
+      if (!mounted) {
+        controller.close();
+        return;
+      }
+
+      setState(() {
+        _controller = controller;
+        _isInitializing = false;
+        _hasInitError = false;
+      });
+    } catch (e, st) {
+      debugPrint('YouTube player initialization failed: $e');
+      debugPrint('$st');
+      if (!mounted) return;
+      setState(() {
+        _controller = null;
+        _isInitializing = false;
+        _hasInitError = true;
+      });
     }
+  }
+
+  Widget _buildLoadingPlayer() {
+    return const Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: CircularProgressIndicator(
+          color: AppColors.moltenAmber,
+        ),
+      ),
+    );
   }
 
   @override
@@ -240,7 +292,11 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null) {
+    if (_isInitializing) {
+      return _buildLoadingPlayer();
+    }
+
+    if (_controller == null || _hasInitError) {
       return _buildUnavailablePlayer();
     }
 
