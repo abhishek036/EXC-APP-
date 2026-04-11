@@ -68,6 +68,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Future<void> _initRealtime() async {
     await _realtime.connect();
+    if (!mounted) return;
     _syncSub?.cancel();
     _syncSub = _realtime.updates.listen((event) {
       if (!mounted) return;
@@ -203,7 +204,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Data out of sync';
+          _error = 'Could not refresh dashboard data';
           _loading = false;
         });
       }
@@ -328,15 +329,33 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     if (_error.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
-                        child: Center(
-                          child: Text(
-                            _error,
-                            style: GoogleFonts.plusJakartaSans(
-                              color: AppColors.error,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _error,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: AppColors.error,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: _loadDashboard,
+                              child: Text(
+                                'Retry',
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: AppColors.elitePrimary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     const SizedBox(height: 32),

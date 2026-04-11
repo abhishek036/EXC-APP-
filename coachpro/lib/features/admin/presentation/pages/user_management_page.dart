@@ -434,7 +434,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'IAM PROTOCOL',
+                  'Identity & Access',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
                     fontWeight: FontWeight.w900,

@@ -36,6 +36,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
 
   bool _loading = true;
   bool _isSubmitting = false;
+  String _loadError = '';
   List<Map<String, dynamic>> _items = [];
 
   List<Map<String, dynamic>> _dedupeById(List<Map<String, dynamic>> items) {
@@ -58,7 +59,10 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
 
   Future<void> _loadAnnouncements() async {
     if (!mounted) return;
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _loadError = '';
+    });
     try {
       final filterValue = _filters[_selectedFilter];
       final data = await _adminRepo.getAnnouncements(
@@ -73,6 +77,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
       if (!mounted) return;
       setState(() {
         _items = [];
+        _loadError = 'Unable to load announcements';
         _loading = false;
       });
     }
@@ -264,17 +269,23 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Icon(
-                                            Icons.campaign_outlined,
+                                            _loadError.isNotEmpty
+                                                ? Icons.cloud_off_rounded
+                                                : Icons.campaign_outlined,
                                             size: 64,
-                                            color: isDark
-                                                ? Colors.white10
-                                                : Colors.black.withValues(
-                                                    alpha: 0.12,
-                                                  ),
+                                            color: _loadError.isNotEmpty
+                                                ? AppColors.error
+                                                : (isDark
+                                                      ? Colors.white10
+                                                      : Colors.black.withValues(
+                                                          alpha: 0.12,
+                                                        )),
                                           ),
                                           const SizedBox(height: 16),
                                           Text(
-                                            'No Active Broadcasts',
+                                            _loadError.isNotEmpty
+                                                ? _loadError
+                                                : 'No Active Broadcasts',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 20,
                                               fontWeight: FontWeight.w900,
@@ -284,6 +295,39 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                               letterSpacing: -0.5,
                                             ),
                                           ),
+                                          if (_loadError.isNotEmpty) ...[
+                                            const SizedBox(height: 14),
+                                            CPPressable(
+                                              onTap: _loadAnnouncements,
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 10,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFF0D1282,
+                                                  ),
+                                                  border: Border.all(
+                                                    color: const Color(
+                                                      0xFF0D1282,
+                                                    ),
+                                                    width: 2,
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  'Retry',
+                                                  style:
+                                                      GoogleFonts.plusJakartaSans(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                      ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ],
                                       ),
                                     ),
@@ -770,10 +814,10 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
     if (conf == true) {
       try {
         await _adminRepo.deleteAnnouncement(id);
-        if (mounted) CPToast.success(context, 'Broadcast retracted safely.');
+        if (mounted) CPToast.success(context, 'Announcement removed');
         _loadAnnouncements();
       } catch (_) {
-        if (mounted) CPToast.error(context, 'Core error retracting broadcast.');
+        if (mounted) CPToast.error(context, 'Failed to remove announcement');
       }
     }
   }
@@ -852,7 +896,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                               ),
                             ),
                             Text(
-                              'Draft a message to sync globally',
+                              'Draft a message for students and teachers',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -866,7 +910,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                   ),
                   const SizedBox(height: 32),
                   Text(
-                    'BROADCAST PROTOCOL',
+                    'CREATE ANNOUNCEMENT',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -939,7 +983,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                         color: const Color(0xFF0D1282),
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Detailed transmission content...',
+                        hintText: 'Write announcement details...',
                         hintStyle: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -1050,7 +1094,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                           bodyCtrl.text.trim().isEmpty) {
                         CPToast.warning(
                           ctx,
-                          'Complete transmission data before executing.',
+                          'Please add both title and message',
                         );
                         return;
                       }
@@ -1065,15 +1109,12 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                         );
                         if (ctx.mounted) {
                           Navigator.pop(ctx);
-                          CPToast.success(
-                            context,
-                            'Broadcast globally synced.',
-                          );
+                          CPToast.success(context, 'Announcement published');
                         }
                         _loadAnnouncements();
                       } catch (_) {
                         if (ctx.mounted) {
-                          CPToast.error(ctx, 'System malfunction during sync.');
+                          CPToast.error(ctx, 'Failed to publish announcement');
                         }
                       } finally {
                         if (mounted) setState(() => _isSubmitting = false);
@@ -1097,7 +1138,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        'EXECUTE SYNC',
+                        'PUBLISH NOW',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,

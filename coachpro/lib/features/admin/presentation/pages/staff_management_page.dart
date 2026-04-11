@@ -1060,13 +1060,13 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                                   Navigator.pop(ctx);
                                   CPToast.success(
                                     ctx,
-                                    'Assets successfully dished out',
+                                    'Payroll entry saved',
                                   );
                                   _loadData();
                                 }
                               } catch (_) {
                                 if (ctx.mounted) {
-                                  CPToast.error(ctx, 'Protocol failure');
+                                  CPToast.error(ctx, 'Failed to save payroll entry');
                                 }
                               } finally {
                                 if (ctx.mounted) {

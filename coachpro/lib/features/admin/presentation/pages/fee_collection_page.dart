@@ -48,6 +48,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
 
   Future<void> _initRealtime() async {
     await _realtime.connect();
+    if (!mounted) return;
     _syncSub?.cancel();
     _syncSub = _realtime.updates.listen((event) {
       if (!mounted) return;
@@ -88,7 +89,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = !silent ? 'Failed to sync data' : '';
+          _error = !silent ? 'Unable to load fee records' : '';
           _loading = false;
         });
       }
@@ -214,12 +215,28 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                           )
                         : _error.isNotEmpty
                         ? Center(
-                            child: Text(
-                              _error,
-                              style: GoogleFonts.plusJakartaSans(
-                                color: AppColors.error,
-                                fontWeight: FontWeight.w800,
-                              ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _error,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: AppColors.error,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                TextButton(
+                                  onPressed: () => _loadFeeRecords(silent: false),
+                                  child: Text(
+                                    'Retry',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: AppColors.elitePrimary,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           )
                         : RefreshIndicator(
@@ -1151,12 +1168,18 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         );
                         if (ctx.mounted) {
                           Navigator.pop(ctx);
-                          CPToast.success(context, 'Transaction Confirmed');
+                          CPToast.success(
+                            context,
+                            'Payment recorded successfully',
+                          );
                           _loadFeeRecords(silent: true);
                         }
                       } catch (_) {
                         if (ctx.mounted) {
-                          CPToast.error(ctx, 'Transaction Error');
+                          CPToast.error(
+                            ctx,
+                            'Payment failed. Please try again.',
+                          );
                           _loadFeeRecords(silent: true);
                         }
                       }
@@ -1224,7 +1247,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
               ),
               const SizedBox(height: 32),
               Text(
-                'Batch Propagation',
+                'Generate Monthly Fees',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
@@ -1416,12 +1439,12 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
               ),
               const SizedBox(height: 48),
               CustomButton(
-                text: 'Deploy Contracts',
+                text: 'Generate Fee Records',
                 isLoading: loading,
                 icon: Icons.rocket_launch_rounded,
                 onPressed: () async {
                   if (bid == null) {
-                    CPToast.warning(ctx, 'Identify a batch target');
+                    CPToast.warning(ctx, 'Select a batch first');
                     return;
                   }
                   setS(() => loading = true);
@@ -1433,12 +1456,15 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                     );
                     if (ctx.mounted) {
                       Navigator.pop(ctx);
-                      CPToast.success(context, 'Propagation successful. 🌐');
+                      CPToast.success(
+                        context,
+                        'Fee records generated successfully',
+                      );
                       _loadFeeRecords(silent: false);
                     }
                   } catch (_) {
                     if (ctx.mounted) {
-                      CPToast.error(ctx, 'Propagation protocol failed.');
+                      CPToast.error(ctx, 'Failed to generate fee records');
                       setS(() => loading = false);
                     }
                   }
@@ -1636,14 +1662,11 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                           });
                           if (ctx.mounted) {
                             Navigator.pop(ctx);
-                            CPToast.success(
-                              context,
-                              'Regulations Enforced! ⚖️',
-                            );
+                            CPToast.success(context, 'Fee structure saved');
                           }
                         } catch (_) {
                           if (ctx.mounted) {
-                            CPToast.error(ctx, 'Enforcement failure');
+                            CPToast.error(ctx, 'Failed to save fee structure');
                             setSS(() => saving = false);
                           }
                         }

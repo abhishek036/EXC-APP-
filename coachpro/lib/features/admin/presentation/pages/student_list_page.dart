@@ -90,6 +90,7 @@ class _StudentListPageState extends State<StudentListPage> {
 
   Future<void> _initRealtime() async {
     await _realtime.connect();
+    if (!mounted) return;
     _syncSub?.cancel();
     _syncSub = _realtime.updates.listen((event) {
       if (!mounted) return;

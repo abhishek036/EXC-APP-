@@ -23,12 +23,13 @@ class _AdminReportsPageState extends State<AdminReportsPage>
   final _adminRepo = sl<AdminRepository>();
 
   bool _isLoading = true;
+  String _loadError = '';
   int _studentCount = 0;
   int _teacherCount = 0;
   int _batchCount = 0;
   int _examCount = 0;
   List<Map<String, dynamic>> _feeRecords = [];
-  final List<Map<String, dynamic>> _upcomingExams = [];
+  List<Map<String, dynamic>> _upcomingExams = [];
 
   double _totalCollected = 0;
   double _totalPending = 0;
@@ -41,11 +42,50 @@ class _AdminReportsPageState extends State<AdminReportsPage>
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _loadError = '';
+    });
+
+    var hasPartialFailure = false;
+    List<Map<String, dynamic>> students = [];
+    List<Map<String, dynamic>> teachers = [];
+    List<Map<String, dynamic>> batches = [];
+    List<Map<String, dynamic>> fees = [];
+    List<Map<String, dynamic>> exams = [];
+
     try {
-      final students = await _adminRepo.getStudents();
-      final teachers = await _adminRepo.getTeachers();
-      final batches = await _adminRepo.getBatches();
-      final fees = await _adminRepo.getFeeRecords();
+      students = await _adminRepo.getStudents();
+    } catch (_) {
+      hasPartialFailure = true;
+    }
+
+    try {
+      teachers = await _adminRepo.getTeachers();
+    } catch (_) {
+      hasPartialFailure = true;
+    }
+
+    try {
+      batches = await _adminRepo.getBatches();
+    } catch (_) {
+      hasPartialFailure = true;
+    }
+
+    try {
+      fees = await _adminRepo.getFeeRecords();
+    } catch (_) {
+      hasPartialFailure = true;
+    }
+
+    try {
+      exams = await _adminRepo.getExams();
+    } catch (_) {
+      hasPartialFailure = true;
+    }
+
+    try {
       double collected = 0;
       double pending = 0;
 
@@ -58,20 +98,49 @@ class _AdminReportsPageState extends State<AdminReportsPage>
         pending += (total - paid).clamp(0, double.infinity);
       }
 
+      final upcomingExams = exams
+          .where((exam) {
+            final status = (exam['status'] ?? '').toString().toLowerCase();
+            return status != 'completed' && status != 'cancelled';
+          })
+          .map((exam) {
+            final batch = exam['batch'] is Map<String, dynamic>
+                ? exam['batch'] as Map<String, dynamic>
+                : <String, dynamic>{};
+            return {
+              'name': (exam['name'] ?? 'Assessment Event').toString(),
+              'date':
+                  (exam['date'] ?? exam['scheduled_at'] ?? 'TBD').toString(),
+              'batchName':
+                  (exam['batchName'] ?? batch['name'] ?? 'General').toString(),
+            };
+          })
+          .take(8)
+          .toList();
+
       if (mounted) {
         setState(() {
           _studentCount = students.length;
           _teacherCount = teachers.length;
           _batchCount = batches.length;
-          _examCount = _upcomingExams.length;
+          _upcomingExams = upcomingExams;
+          _examCount = upcomingExams.length;
           _feeRecords = fees;
           _totalCollected = collected;
           _totalPending = pending;
+          _loadError = hasPartialFailure
+              ? 'Some report data may be stale. Pull to refresh.'
+              : '';
           _isLoading = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _loadError = 'Unable to load reports';
+        });
+      }
     }
   }
 
@@ -220,10 +289,52 @@ class _AdminReportsPageState extends State<AdminReportsPage>
               ),
             ),
           ),
+          if (_loadError.isNotEmpty)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: _buildLoadWarning(isDark),
+            ),
         ],
       ),
     );
   }
+
+  Widget _buildLoadWarning(bool isDark) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    decoration: BoxDecoration(
+      color: isDark ? Colors.black.withValues(alpha: 0.86) : Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: AppColors.error.withValues(alpha: 0.45)),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.info_outline_rounded, color: AppColors.error, size: 18),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            _loadError,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white70 : AppColors.deepNavy,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: _loadData,
+          child: Text(
+            'Retry',
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w800,
+              color: AppColors.elitePrimary,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
   // ── OVERVIEW TAB ──
   Widget _buildOverviewTab(bool isDark) => SingleChildScrollView(
@@ -734,13 +845,13 @@ class _AdminReportsPageState extends State<AdminReportsPage>
     },
     {
       'icon': Icons.quiz_rounded,
-      'text': 'Assessment protocol deployed',
+      'text': 'Assessment schedule updated',
       'time': 'Live',
       'color': AppColors.physics,
     },
     {
       'icon': Icons.notifications_rounded,
-      'text': 'Broadcasting engine operational',
+      'text': 'Announcements delivered successfully',
       'time': 'Live',
       'color': AppColors.moltenAmber,
     },

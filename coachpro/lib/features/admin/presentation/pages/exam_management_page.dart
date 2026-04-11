@@ -476,7 +476,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
             ),
             const SizedBox(height: 32),
             Text(
-              'Protocol Options',
+              'Exam Options',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
@@ -503,7 +503,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
             ),
             const SizedBox(height: 12),
             CustomButton(
-              text: 'Terminate Record',
+              text: 'Delete Exam',
               icon: Icons.delete_forever_rounded,
               backgroundColor: AppColors.error,
               onPressed: () {
@@ -740,7 +740,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
         HapticFeedback.heavyImpact();
       }
     } catch (_) {
-      if (mounted) CPToast.error(context, 'Failed to update protocol');
+      if (mounted) CPToast.error(context, 'Failed to update exam status');
     }
   }
 
@@ -757,7 +757,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
           side: BorderSide(color: Color(0xFF0D1282), width: 3),
         ),
         title: Text(
-          'Terminate Record?',
+          'Delete Exam?',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w900,
             color: isDark ? Colors.white : AppColors.deepNavy,
@@ -798,7 +798,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
               side: const BorderSide(color: Color(0xFF0D1282), width: 2),
             ),
             child: Text(
-              'TERMINATE',
+              'DELETE',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
@@ -813,11 +813,11 @@ class _ExamManagementPageState extends State<ExamManagementPage>
       try {
         await _adminRepo.deleteExam((exam['id'] ?? '').toString());
         if (mounted) {
-          CPToast.success(context, 'Record terminated');
+          CPToast.success(context, 'Exam deleted');
           _loadData();
         }
       } catch (_) {
-        if (mounted) CPToast.error(context, 'Termination failed');
+        if (mounted) CPToast.error(context, 'Failed to delete exam');
       }
     }
   }
@@ -896,7 +896,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
             ),
             const SizedBox(height: 12),
             CustomButton(
-              text: 'Access Results Engine',
+              text: 'View Result Analytics',
               icon: Icons.leaderboard_rounded,
               backgroundColor: isDark ? Colors.white12 : Colors.black12,
               foregroundColor: isDark ? Colors.white : AppColors.deepNavy,
@@ -978,7 +978,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                   ),
                   const SizedBox(height: 32),
                   Text(
-                    'Deployment Protocol',
+                    'Create Exam',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,

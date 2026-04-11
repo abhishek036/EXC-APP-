@@ -20,6 +20,7 @@ class TeacherListPage extends StatefulWidget {
 class _TeacherListPageState extends State<TeacherListPage> {
   final AdminRepository _adminRepo = sl<AdminRepository>();
   bool _isLoading = true;
+  String _loadError = '';
   List<Map<String, dynamic>> _teachers = [];
   String _searchQuery = '';
 
@@ -43,7 +44,10 @@ class _TeacherListPageState extends State<TeacherListPage> {
 
   Future<void> _loadTeachers() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _loadError = '';
+    });
     try {
       final users = await _adminRepo.getTeachers();
       if (mounted) {
@@ -53,7 +57,12 @@ class _TeacherListPageState extends State<TeacherListPage> {
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _loadError = 'Unable to load faculty list';
+        });
+      }
     }
   }
 
@@ -109,6 +118,8 @@ class _TeacherListPageState extends State<TeacherListPage> {
                             color: AppColors.elitePrimary,
                           ),
                         )
+                      : _loadError.isNotEmpty
+                      ? _buildLoadFailedState(isDark)
                       : filtered.isEmpty
                       ? _buildEmptyState(isDark)
                       : RefreshIndicator(
@@ -265,6 +276,45 @@ class _TeacherListPageState extends State<TeacherListPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLoadFailedState(bool isDark) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 58,
+              color: AppColors.error.withValues(alpha: 0.8),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _loadError,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white70 : AppColors.deepNavy,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 14),
+            TextButton(
+              onPressed: _loadTeachers,
+              child: Text(
+                'Retry',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.elitePrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

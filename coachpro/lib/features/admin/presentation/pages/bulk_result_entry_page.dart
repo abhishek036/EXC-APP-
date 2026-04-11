@@ -238,7 +238,7 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
                     padding: const EdgeInsets.all(20),
                     child: CustomButton(
                       text: _isSaving
-                          ? 'Processing Protocol...'
+                        ? 'Saving results...'
                           : 'Deploy Bulk Results',
                       icon: _isSaving
                           ? Icons.hourglass_empty_rounded
