@@ -858,11 +858,14 @@ export class QuizService {
     requesterRole: string,
     requesterUserId: string,
   ) {
+    const normalizedRole = (requesterRole || '').toLowerCase();
+    const hideStudentPhone = normalizedRole === 'teacher';
+
     const attempts = await QuizRepository.getAttemptsByQuiz(quizId, instituteId);
     const quiz = await QuizRepository.findQuizById(quizId, instituteId);
     if (!quiz) throw new ApiError('Quiz not found', 404, 'NOT_FOUND');
 
-    if ((requesterRole || '').toLowerCase() === 'teacher') {
+    if (hideStudentPhone) {
       await QuizService.ensureTeacherOwnsQuiz(requesterUserId, instituteId, quiz.teacher_id);
     }
 
@@ -877,12 +880,31 @@ export class QuizService {
           select: {
             id: true,
             name: true,
-            phone: true,
             photo_url: true,
+            ...(hideStudentPhone ? {} : { phone: true }),
           },
         },
       },
     });
+
+    const safeAttempts = hideStudentPhone
+      ? attempts.map((attempt) => {
+          const student = attempt.student as
+            | { name?: string; photo_url?: string | null; phone?: string }
+            | null
+            | undefined;
+
+          return {
+            ...attempt,
+            student: student
+              ? {
+                  name: student.name,
+                  photo_url: student.photo_url ?? null,
+                }
+              : student,
+          };
+        })
+      : attempts;
 
     const attemptByStudent = new Map<string, any>();
     for (const attempt of attempts) {
@@ -895,7 +917,7 @@ export class QuizService {
         return {
           student_id: sb.student_id,
           student_name: sb.student?.name ?? 'Student',
-          student_phone: sb.student?.phone ?? '',
+          student_phone: hideStudentPhone ? '' : (sb.student as any)?.phone ?? '',
           student_photo_url: sb.student?.photo_url ?? null,
           submitted_at: att?.submitted_at ?? null,
           obtained_marks: att?.obtained_marks ?? null,
@@ -913,7 +935,7 @@ export class QuizService {
     
     return {
        quiz,
-       attempts,
+       attempts: safeAttempts,
        class_results,
     };
   }

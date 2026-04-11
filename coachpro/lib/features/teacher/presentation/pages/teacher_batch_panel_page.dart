@@ -1742,7 +1742,6 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     Color yellow,
   ) {
     final name = (student['name'] ?? 'Student').toString();
-    final phone = (student['phone'] ?? 'N/A').toString();
     final id = (student['id'] ?? '-').toString();
     final status = (student['is_active'] == false) ? 'INACTIVE' : 'ACTIVE';
 
@@ -1767,14 +1766,6 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                 fontWeight: FontWeight.w900,
                 fontSize: 18,
                 color: blue,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'PHONE: $phone',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w700,
-                color: blue.withValues(alpha: 0.8),
               ),
             ),
             const SizedBox(height: 6),

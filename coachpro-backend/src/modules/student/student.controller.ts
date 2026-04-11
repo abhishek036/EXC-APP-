@@ -12,6 +12,54 @@ export class StudentController {
     this.studentService = new StudentService();
   }
 
+  private isTeacherRequest(req: Request): boolean {
+    return (req.user?.role ?? '').trim().toLowerCase() === 'teacher';
+  }
+
+  private sanitizeStudentForTeacher(student: Record<string, unknown>): Record<string, unknown> {
+    const sanitized: Record<string, unknown> = { ...student };
+    delete sanitized.phone;
+    delete sanitized.parent_phone;
+
+    const parentStudents = sanitized.parent_students;
+    if (Array.isArray(parentStudents)) {
+      sanitized.parent_students = parentStudents.map((link) => {
+        if (!link || typeof link !== 'object') return link;
+        const linkObj: Record<string, unknown> = {
+          ...(link as Record<string, unknown>),
+        };
+        const parent = linkObj.parent;
+        if (parent && typeof parent === 'object') {
+          const parentObj: Record<string, unknown> = {
+            ...(parent as Record<string, unknown>),
+          };
+          delete parentObj.phone;
+          linkObj.parent = parentObj;
+        }
+        return linkObj;
+      });
+    }
+
+    return sanitized;
+  }
+
+  private sanitizeStudentsPayloadForTeacher(payload: unknown): unknown {
+    if (Array.isArray(payload)) {
+      return payload.map((item) => {
+        if (item && typeof item === 'object') {
+          return this.sanitizeStudentForTeacher(item as Record<string, unknown>);
+        }
+        return item;
+      });
+    }
+
+    if (payload && typeof payload === 'object') {
+      return this.sanitizeStudentForTeacher(payload as Record<string, unknown>);
+    }
+
+    return payload;
+  }
+
   list = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { name, phone, batchId, isActive, page, perPage } = req.query;
@@ -23,7 +71,10 @@ export class StudentController {
           page: Number(page),
           perPage: Number(perPage)
       });
-      return sendResponse({ res, data: result.data, meta: result.meta, message: 'Students fetched successfully' });
+      const data = this.isTeacherRequest(req)
+        ? this.sanitizeStudentsPayloadForTeacher(result.data)
+        : result.data;
+      return sendResponse({ res, data, meta: result.meta, message: 'Students fetched successfully' });
     } catch (error) { next(error); }
   };
 
@@ -37,7 +88,10 @@ export class StudentController {
   getById = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.studentService.getStudentDetails(req.params.id, req.instituteId!);
-      return sendResponse({ res, data, message: 'Student details fetched successfully' });
+      const safeData = this.isTeacherRequest(req)
+        ? this.sanitizeStudentsPayloadForTeacher(data)
+        : data;
+      return sendResponse({ res, data: safeData, message: 'Student details fetched successfully' });
     } catch (error) { next(error); }
   };
 
