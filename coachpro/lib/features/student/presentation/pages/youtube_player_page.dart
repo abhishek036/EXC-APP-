@@ -38,7 +38,7 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
   bool _hasInitError = false;
   bool _isMuted = true;
   bool _isPlaying = false;
-  bool _showVideoControls = true;
+  bool _showVideoControls = false;
   bool _isDraggingSeek = false;
 
   double _positionSeconds = 0;
@@ -233,7 +233,9 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
         }
       });
 
-      if (!isPlayingNow) {
+      if (isPlayingNow && _showVideoControls) {
+        _startControlsAutoHideTimer();
+      } else if (!isPlayingNow) {
         _controlsHideTimer?.cancel();
       }
     });
@@ -266,7 +268,7 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
   void _startControlsAutoHideTimer() {
     _controlsHideTimer?.cancel();
     _controlsHideTimer = Timer(const Duration(seconds: 3), () {
-      if (!mounted) return;
+      if (!mounted || !_isPlaying || _isDraggingSeek) return;
       setState(() => _showVideoControls = false);
     });
   }
@@ -534,14 +536,8 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
 
     return AspectRatio(
       aspectRatio: 16 / 9,
-      child: MouseRegion(
-        onHover: (_) {
-          if (!_showVideoControls) {
-            _showControlsTemporarily();
-          }
-        },
-        child: Listener(
-          behavior: HitTestBehavior.translucent,
+      child: Listener(
+          behavior: HitTestBehavior.opaque,
           onPointerDown: (_) {
             if (!_showVideoControls) {
               _showControlsTemporarily();
@@ -705,7 +701,6 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
               ),
             ],
           ),
-        ),
       ),
     );
   }
