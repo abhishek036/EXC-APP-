@@ -1,8 +1,114 @@
 import { prisma } from '../../server';
 import { Prisma } from '@prisma/client';
-import { DefineFeeStructureInput, RecordFeePaymentInput, GenerateMonthlyFeesInput } from './fee.validator';
+import {
+    DefineFeeStructureInput,
+    RecordFeePaymentInput,
+    GenerateMonthlyFeesInput,
+    SubmitFeeProofInput,
+} from './fee.validator';
+import { ApiError } from '../../middleware/error.middleware';
+
+type FeeStatus = 'unpaid' | 'pending_verification' | 'paid' | 'rejected';
+type PaymentStatus = 'pending_verification' | 'approved' | 'rejected' | 'paid';
+
+const APPROVED_PAYMENT_STATUSES: PaymentStatus[] = ['approved', 'paid'];
 
 export class FeeRepository {
+    private canViewAmounts(role?: string): boolean {
+        const normalized = (role ?? '').toString().trim().toLowerCase();
+        return normalized !== 'sub_admin';
+    }
+
+    private async appendEvent(
+        tx: Prisma.TransactionClient,
+        params: {
+            instituteId: string;
+            feeRecordId: string;
+            paymentId?: string | null;
+            actorId?: string | null;
+            action: string;
+            fromStatus?: string | null;
+            toStatus?: string | null;
+            meta?: Prisma.JsonObject;
+        },
+    ) {
+        await tx.feePaymentEvent.create({
+            data: {
+                institute_id: params.instituteId,
+                fee_record_id: params.feeRecordId,
+                payment_id: params.paymentId ?? null,
+                actor_id: params.actorId ?? null,
+                action: params.action,
+                from_status: params.fromStatus ?? null,
+                to_status: params.toStatus ?? null,
+                meta: params.meta,
+            },
+        });
+    }
+
+    private async getApprovedPaidAmount(
+        tx: Prisma.TransactionClient,
+        instituteId: string,
+        feeRecordId: string,
+    ): Promise<number> {
+        const rows = await tx.feePayment.findMany({
+            where: {
+                institute_id: instituteId,
+                fee_record_id: feeRecordId,
+                status: { in: APPROVED_PAYMENT_STATUSES },
+            },
+            select: { amount_paid: true },
+        });
+        return rows.reduce((sum, row) => sum + Number(row.amount_paid), 0);
+    }
+
+    private async getPendingPaymentCount(
+        tx: Prisma.TransactionClient,
+        instituteId: string,
+        feeRecordId: string,
+    ): Promise<number> {
+        return tx.feePayment.count({
+            where: {
+                institute_id: instituteId,
+                fee_record_id: feeRecordId,
+                status: 'pending_verification',
+            },
+        });
+    }
+
+    private resolveFeeStatus(params: {
+        paidAmount: number;
+        finalAmount: number;
+        pendingCount: number;
+        hasRejectedAttempt?: boolean;
+    }): FeeStatus {
+        if (params.paidAmount >= params.finalAmount) return 'paid';
+        if (params.pendingCount > 0) return 'pending_verification';
+        if (params.hasRejectedAttempt) return 'rejected';
+        return 'unpaid';
+    }
+
+    private redactAmounts<T extends Record<string, any>>(records: T[]): T[] {
+        return records.map((record) => {
+            const next = { ...record } as Record<string, any>;
+            delete next.total_amount;
+            delete next.discount_amount;
+            delete next.late_fee;
+            delete next.final_amount;
+            delete next.paid_amount;
+
+            if (Array.isArray(next.payments)) {
+                next.payments = next.payments.map((payment: Record<string, any>) => {
+                    const p = { ...payment };
+                    delete p.amount_paid;
+                    return p;
+                });
+            }
+
+            return next as T;
+        });
+    }
+
   async getFeeStructure(batchId: string, instituteId: string) {
     return prisma.feeStructure.findFirst({
       where: { batch_id: batchId, institute_id: instituteId }
@@ -37,21 +143,63 @@ export class FeeRepository {
   }
 
   async findFeeRecords(instituteId: string, batchId?: string, studentId?: string, month?: number, year?: number) {
-      const where: Prisma.FeeRecordWhereInput = { institute_id: instituteId };
-      if (batchId) where.batch_id = batchId;
-      if (studentId) where.student_id = studentId;
-      if (month) where.month = month;
-      if (year) where.year = year;
+            return this.findFeeRecordsByRole(instituteId, {
+                batchId,
+                studentId,
+                month,
+                year,
+            });
+    }
 
-      return prisma.feeRecord.findMany({
+    async findFeeRecordsByRole(
+            instituteId: string,
+            query: {
+                batchId?: string;
+                studentId?: string;
+                month?: number;
+                year?: number;
+                status?: string;
+            },
+            role?: string,
+    ) {
+      const where: Prisma.FeeRecordWhereInput = { institute_id: instituteId };
+            if (query.batchId) where.batch_id = query.batchId;
+            if (query.studentId) where.student_id = query.studentId;
+            if (query.month) where.month = query.month;
+            if (query.year) where.year = query.year;
+            if (query.status) where.status = query.status;
+
+            const records = await prisma.feeRecord.findMany({
          where,
          include: {
             student: { select: { name: true, phone: true } },
             batch: { select: { name: true } },
-            payments: true
+                        payments: {
+                            select: {
+                                id: true,
+                                amount_paid: true,
+                                payment_mode: true,
+                                payment_channel: true,
+                                status: true,
+                                screenshot_url: true,
+                                submitted_at: true,
+                                approved_at: true,
+                                rejection_reason: true,
+                                note: true,
+                                receipt_number: true,
+                                receipt_url: true,
+                            },
+                            orderBy: { submitted_at: 'desc' },
+                        },
          },
          orderBy: [{ year: 'desc' }, { month: 'desc' }]
       });
+
+            if (!this.canViewAmounts(role)) {
+                return this.redactAmounts(records);
+            }
+
+            return records;
   }
 
   async findFeeRecordById(recordId: string, instituteId: string) {
@@ -109,10 +257,11 @@ export class FeeRepository {
                     month: data.month,
                     year: data.year,
                     total_amount: totalAmount,
+                          paid_amount: new Prisma.Decimal(0),
                     discount_amount: totalDiscount,
                     final_amount: finalAmount,
                     due_date: data.due_date ? new Date(data.due_date) : defaultDueDate,
-                    status: 'pending'
+                          status: 'unpaid'
                  }
               });
               generated++;
@@ -127,43 +276,366 @@ export class FeeRepository {
              where: { id: data.fee_record_id, institute_id: instituteId }
          });
 
-         if (!record) throw new Error("Fee record not found");
+                 if (!record) throw new ApiError('Fee record not found', 404, 'NOT_FOUND');
+                 if (Number(data.amount_paid) <= 0) {
+                        throw new ApiError('Amount must be greater than zero', 400, 'INVALID_AMOUNT');
+                 }
 
          const paymentCode = `REC-${Date.now().toString(36).toUpperCase()}`;
+                 const now = new Date();
+                 const fromStatus = record.status ?? 'unpaid';
 
          const payment = await tx.feePayment.create({
              data: {
                  institute_id: instituteId,
                  fee_record_id: record.id,
+                                 student_id: record.student_id,
+                                 batch_id: record.batch_id,
                  collected_by_id: userId,
+                                 approved_by_id: userId,
+                                 approved_at: now,
                  amount_paid: new Prisma.Decimal(data.amount_paid),
                  payment_mode: data.payment_mode,
+                                 payment_channel: 'manual_qr',
+                                 status: 'approved',
                  transaction_id: data.transaction_id,
                  note: data.note,
-                 receipt_number: paymentCode
+                                 receipt_number: paymentCode,
+                                 submitted_at: now,
+                                 paid_at: now,
              }
          });
 
-         // Calculate new totals and status
-         const allPayments = await tx.feePayment.findMany({
-             where: { fee_record_id: record.id },
-             select: { amount_paid: true }
-         });
-
-         const totalPaidObj = allPayments.reduce((acc, curr) => acc + Number(curr.amount_paid), 0);
-         const totalPaid = Number(totalPaidObj);
-         const finalAmount = Number(record.final_amount);
-         
-         let status = 'pending';
-         if (totalPaid >= finalAmount) status = 'paid';
-         else if (totalPaid > 0) status = 'partial';
+                 const totalPaid = await this.getApprovedPaidAmount(tx, instituteId, record.id);
+                 const pendingCount = await this.getPendingPaymentCount(tx, instituteId, record.id);
+                 const finalAmount = Number(record.final_amount);
+                 const status = this.resolveFeeStatus({
+                        paidAmount: totalPaid,
+                        finalAmount,
+                        pendingCount,
+                 });
 
          await tx.feeRecord.update({
              where: { id: record.id },
-             data: { status }
+                         data: {
+                                paid_amount: new Prisma.Decimal(totalPaid),
+                                status,
+                                approved_by_id: status === 'paid' ? userId : null,
+                                approved_at: status === 'paid' ? now : null,
+                         }
          });
+
+                 await this.appendEvent(tx, {
+                        instituteId,
+                        feeRecordId: record.id,
+                        paymentId: payment.id,
+                        actorId: userId,
+                        action: 'admin_payment_recorded',
+                        fromStatus,
+                        toStatus: status,
+                        meta: {
+                            amount: Number(data.amount_paid),
+                            mode: data.payment_mode,
+                        },
+                 });
 
          return payment;
      });
   }
+
+    async submitPaymentProof(instituteId: string, userId: string, data: SubmitFeeProofInput) {
+        return prisma.$transaction(async (tx) => {
+            const student = await tx.student.findFirst({
+                where: { user_id: userId, institute_id: instituteId },
+                select: { id: true },
+            });
+            if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
+
+            const record = await tx.feeRecord.findFirst({
+                where: {
+                    id: data.fee_record_id,
+                    institute_id: instituteId,
+                    student_id: student.id,
+                },
+            });
+            if (!record) throw new ApiError('Fee record not found', 404, 'NOT_FOUND');
+
+            const paidAmount = Number(record.paid_amount ?? 0);
+            const finalAmount = Number(record.final_amount);
+            const remainingAmount = Math.max(finalAmount - paidAmount, 0);
+            if (remainingAmount <= 0) {
+                throw new ApiError('Fee is already fully paid', 400, 'ALREADY_PAID');
+            }
+            if (data.amount > remainingAmount) {
+                throw new ApiError('Submitted amount exceeds remaining amount', 400, 'AMOUNT_EXCEEDS_DUE');
+            }
+
+            const fromStatus = record.status ?? 'unpaid';
+            const now = new Date();
+
+            const payment = await tx.feePayment.create({
+                data: {
+                    institute_id: instituteId,
+                    fee_record_id: record.id,
+                    student_id: record.student_id,
+                    batch_id: record.batch_id,
+                    amount_paid: new Prisma.Decimal(data.amount),
+                    payment_mode: 'upi_qr_manual',
+                    payment_channel: 'manual_qr',
+                    screenshot_url: data.screenshot_url,
+                    note: data.note,
+                    status: 'pending_verification',
+                    submitted_at: now,
+                },
+            });
+
+            await tx.feeRecord.update({
+                where: { id: record.id },
+                data: { status: 'pending_verification' },
+            });
+
+            await this.appendEvent(tx, {
+                instituteId,
+                feeRecordId: record.id,
+                paymentId: payment.id,
+                actorId: userId,
+                action: 'payment_proof_submitted',
+                fromStatus,
+                toStatus: 'pending_verification',
+                meta: {
+                    amount: Number(data.amount),
+                    whatsapp_notified: data.whatsapp_notified === true,
+                },
+            });
+
+            return {
+                payment,
+                fee_record: {
+                    id: record.id,
+                    status: 'pending_verification',
+                    total_amount: finalAmount,
+                    paid_amount: paidAmount,
+                    remaining_amount: remainingAmount,
+                },
+            };
+        });
+    }
+
+    async listStudentPayments(instituteId: string, userId: string) {
+        const student = await prisma.student.findFirst({
+            where: { user_id: userId, institute_id: instituteId },
+            select: { id: true },
+        });
+        if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
+
+        return prisma.feePayment.findMany({
+            where: {
+                institute_id: instituteId,
+                student_id: student.id,
+            },
+            include: {
+                batch: { select: { id: true, name: true } },
+                fee_record: {
+                    select: {
+                        id: true,
+                        month: true,
+                        year: true,
+                        total_amount: true,
+                        paid_amount: true,
+                        final_amount: true,
+                        status: true,
+                    },
+                },
+            },
+            orderBy: { submitted_at: 'desc' },
+        });
+    }
+
+    async listPaymentsForReview(
+        instituteId: string,
+        query: { status?: string; batchId?: string; studentId?: string },
+        role?: string,
+    ) {
+        const requestedStatus = (query.status ?? '').trim().toLowerCase();
+        const statusFilter: PaymentStatus | undefined =
+            requestedStatus === 'pending' ? 'pending_verification' : (requestedStatus as PaymentStatus);
+
+        const where: Prisma.FeePaymentWhereInput = {
+            institute_id: instituteId,
+            ...(query.batchId ? { batch_id: query.batchId } : {}),
+            ...(query.studentId ? { student_id: query.studentId } : {}),
+            ...(statusFilter ? { status: statusFilter } : {}),
+        };
+
+        const payments = await prisma.feePayment.findMany({
+            where,
+            include: {
+                student: { select: { id: true, name: true, phone: true } },
+                batch: { select: { id: true, name: true } },
+                fee_record: {
+                    select: {
+                        id: true,
+                        month: true,
+                        year: true,
+                        total_amount: true,
+                        paid_amount: true,
+                        final_amount: true,
+                        status: true,
+                        due_date: true,
+                    },
+                },
+                approved_by: { select: { id: true, role: true } },
+            },
+            orderBy: { submitted_at: 'desc' },
+        });
+
+        if (this.canViewAmounts(role)) return payments;
+
+        return payments.map((payment) => ({
+            ...payment,
+            amount_paid: null,
+            fee_record: payment.fee_record
+                ? {
+                        ...payment.fee_record,
+                        total_amount: null,
+                        paid_amount: null,
+                        final_amount: null,
+                    }
+                : null,
+        }));
+    }
+
+    async approvePaymentProof(instituteId: string, paymentId: string, approverId: string, note?: string) {
+        return prisma.$transaction(async (tx) => {
+            const payment = await tx.feePayment.findFirst({
+                where: { id: paymentId, institute_id: instituteId },
+                include: { fee_record: true },
+            });
+            if (!payment) throw new ApiError('Payment proof not found', 404, 'NOT_FOUND');
+            if (payment.status !== 'pending_verification') {
+                throw new ApiError('Only pending proofs can be approved', 400, 'INVALID_STATUS');
+            }
+
+            const now = new Date();
+            const fromStatus = payment.fee_record.status ?? 'unpaid';
+
+            const updatedPayment = await tx.feePayment.update({
+                where: { id: payment.id },
+                data: {
+                    status: 'approved',
+                    approved_by_id: approverId,
+                    approved_at: now,
+                    collected_by_id: approverId,
+                    paid_at: now,
+                    note: [payment.note, note].filter(Boolean).join('\n').trim() || payment.note,
+                },
+            });
+
+            const approvedPaidAmount = await this.getApprovedPaidAmount(tx, instituteId, payment.fee_record_id);
+            const pendingCount = await this.getPendingPaymentCount(tx, instituteId, payment.fee_record_id);
+            const nextStatus = this.resolveFeeStatus({
+                paidAmount: approvedPaidAmount,
+                finalAmount: Number(payment.fee_record.final_amount),
+                pendingCount,
+            });
+
+            await tx.feeRecord.update({
+                where: { id: payment.fee_record_id },
+                data: {
+                    paid_amount: new Prisma.Decimal(approvedPaidAmount),
+                    status: nextStatus,
+                    approved_by_id: approverId,
+                    approved_at: nextStatus === 'paid' ? now : null,
+                },
+            });
+
+            await this.appendEvent(tx, {
+                instituteId,
+                feeRecordId: payment.fee_record_id,
+                paymentId: payment.id,
+                actorId: approverId,
+                action: 'payment_proof_approved',
+                fromStatus,
+                toStatus: nextStatus,
+                meta: {
+                    payment_status: 'approved',
+                    amount: Number(payment.amount_paid),
+                },
+            });
+
+            return {
+                payment: updatedPayment,
+                fee_record_status: nextStatus,
+            };
+        });
+    }
+
+    async rejectPaymentProof(
+        instituteId: string,
+        paymentId: string,
+        reviewerId: string,
+        rejectionReason?: string,
+        note?: string,
+    ) {
+        return prisma.$transaction(async (tx) => {
+            const payment = await tx.feePayment.findFirst({
+                where: { id: paymentId, institute_id: instituteId },
+                include: { fee_record: true },
+            });
+            if (!payment) throw new ApiError('Payment proof not found', 404, 'NOT_FOUND');
+            if (payment.status !== 'pending_verification') {
+                throw new ApiError('Only pending proofs can be rejected', 400, 'INVALID_STATUS');
+            }
+
+            const now = new Date();
+            const fromStatus = payment.fee_record.status ?? 'unpaid';
+
+            const updatedPayment = await tx.feePayment.update({
+                where: { id: payment.id },
+                data: {
+                    status: 'rejected',
+                    rejection_reason: rejectionReason,
+                    rejected_at: now,
+                    note: [payment.note, note].filter(Boolean).join('\n').trim() || payment.note,
+                    approved_by_id: reviewerId,
+                },
+            });
+
+            const approvedPaidAmount = await this.getApprovedPaidAmount(tx, instituteId, payment.fee_record_id);
+            const pendingCount = await this.getPendingPaymentCount(tx, instituteId, payment.fee_record_id);
+            const nextStatus = this.resolveFeeStatus({
+                paidAmount: approvedPaidAmount,
+                finalAmount: Number(payment.fee_record.final_amount),
+                pendingCount,
+                hasRejectedAttempt: true,
+            });
+
+            await tx.feeRecord.update({
+                where: { id: payment.fee_record_id },
+                data: {
+                    paid_amount: new Prisma.Decimal(approvedPaidAmount),
+                    status: nextStatus,
+                },
+            });
+
+            await this.appendEvent(tx, {
+                instituteId,
+                feeRecordId: payment.fee_record_id,
+                paymentId: payment.id,
+                actorId: reviewerId,
+                action: 'payment_proof_rejected',
+                fromStatus,
+                toStatus: nextStatus,
+                meta: {
+                    payment_status: 'rejected',
+                    rejection_reason: rejectionReason ?? null,
+                },
+            });
+
+            return {
+                payment: updatedPayment,
+                fee_record_status: nextStatus,
+            };
+        });
+    }
 }

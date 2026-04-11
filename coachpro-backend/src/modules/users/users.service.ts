@@ -2,7 +2,7 @@ import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
 
 const VALID_STATUSES = ['ACTIVE', 'INACTIVE', 'BLOCKED', 'PENDING'];
-const VALID_ROLES = ['admin', 'teacher', 'student', 'parent'];
+const VALID_ROLES = ['admin', 'super_admin', 'sub_admin', 'teacher', 'student', 'parent'];
 
 // Use any to bypass stale Prisma type definitions after migration
 const USER_SELECT: any = {

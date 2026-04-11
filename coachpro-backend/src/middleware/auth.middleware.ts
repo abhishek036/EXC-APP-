@@ -87,8 +87,9 @@ export const requireRole = (rolesOrFirst: string | string[], ...rest: string[]) 
         }
 
         const userRole = req.user.role.trim().toLowerCase();
-        
-        if (!allowedRoles.includes(userRole)) {
+        const canAccessAsSuperAdmin = userRole === 'super_admin' && allowedRoles.includes('admin');
+
+        if (!allowedRoles.includes(userRole) && !canAccessAsSuperAdmin) {
             return next(new ApiError('You do not have permission to perform this action', 403, 'FORBIDDEN'));
         }
         next();

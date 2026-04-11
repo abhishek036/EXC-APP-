@@ -1208,6 +1208,66 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to generate fees');
   }
 
+  Future<List<Map<String, dynamic>>> getFeeVerificationQueue({
+    String? status,
+    String? batchId,
+    String? studentId,
+  }) async {
+    final queryParams = <String, dynamic>{
+      if (status != null && status.isNotEmpty) 'status': status,
+      if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
+      if (studentId != null && studentId.isNotEmpty) 'studentId': studentId,
+    };
+
+    final response = await _api.dio.get(
+      'fees/payments/review',
+      queryParameters: queryParams,
+    );
+
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch verification queue');
+  }
+
+  Future<Map<String, dynamic>> approveFeePaymentProof({
+    required String paymentId,
+    String? note,
+  }) async {
+    final payload = <String, dynamic>{
+      if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+    };
+
+    final response = await _api.dio.post(
+      'fees/payments/$paymentId/approve',
+      data: payload,
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to approve payment proof');
+  }
+
+  Future<Map<String, dynamic>> rejectFeePaymentProof({
+    required String paymentId,
+    required String rejectionReason,
+    String? note,
+  }) async {
+    final response = await _api.dio.post(
+      'fees/payments/$paymentId/reject',
+      data: {
+        'rejection_reason': rejectionReason,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      },
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to reject payment proof');
+  }
+
   // ── Attendance ─────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getBatchAttendanceMonthly({
     required String batchId,

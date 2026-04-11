@@ -63,8 +63,13 @@ export class AuthService {
     private _normalizeRole(role?: string): string | undefined {
         const normalized = String(role || '').trim().toLowerCase();
         if (!normalized) return undefined;
-        if (!['admin', 'teacher', 'student', 'parent'].includes(normalized)) return undefined;
+        if (!['admin', 'super_admin', 'sub_admin', 'teacher', 'student', 'parent'].includes(normalized)) return undefined;
         return normalized;
+    }
+
+    private _isAdminRole(role?: string): boolean {
+        const normalized = String(role || '').trim().toLowerCase();
+        return normalized === 'admin' || normalized === 'super_admin' || normalized === 'sub_admin';
     }
 
     private async _resolveJoinInstitute(db: any, joinCode?: string): Promise<{ id: string } | null> {
@@ -572,7 +577,7 @@ export class AuthService {
                 await prisma.teacher.updateMany({ where: { user_id: userId, institute_id: user.institute_id }, data: { name } });
             } else if (role === 'parent') {
                 await prisma.parent.updateMany({ where: { user_id: userId, institute_id: user.institute_id }, data: { name } });
-            } else if (role === 'admin') {
+            } else if (this._isAdminRole(role)) {
                 const phonesToSearch = user.phone
                     ? [
                         user.phone,
@@ -649,7 +654,7 @@ export class AuthService {
 
         let name = 'User';
         let photo_url: string | null = null;
-        if (user.role === 'admin') {
+        if (this._isAdminRole(user.role)) {
             const staff = await prisma.staff.findFirst({
                 where: {
                     institute_id: instituteId,

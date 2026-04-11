@@ -1,5 +1,11 @@
 import { FeeRepository } from './fee.repository';
-import { DefineFeeStructureInput, RecordFeePaymentInput, GenerateMonthlyFeesInput } from './fee.validator';
+import {
+  DefineFeeStructureInput,
+  RecordFeePaymentInput,
+  GenerateMonthlyFeesInput,
+  SubmitFeeProofInput,
+  ReviewFeePaymentInput,
+} from './fee.validator';
 import { ApiError } from '../../middleware/error.middleware';
 
 export class FeeService {
@@ -30,13 +36,69 @@ export class FeeService {
     return { generated };
   }
 
-  async getFeeRecords(instituteId: string, reqQuery: any) {
+  async getFeeRecords(instituteId: string, reqQuery: any, role?: string) {
     const month = reqQuery.month ? parseInt(reqQuery.month) : undefined;
     const year = reqQuery.year ? parseInt(reqQuery.year) : undefined;
-    return this.repo.findFeeRecords(instituteId, reqQuery.batchId, reqQuery.studentId, month, year);
+    const statusRaw = (reqQuery.status ?? '').toString().trim().toLowerCase();
+    const status = statusRaw === 'pending' ? 'pending_verification' : statusRaw || undefined;
+
+    return this.repo.findFeeRecordsByRole(
+      instituteId,
+      {
+        batchId: reqQuery.batchId,
+        studentId: reqQuery.studentId,
+        month,
+        year,
+        status,
+      },
+      role,
+    );
   }
 
   async recordPayment(instituteId: string, userId: string, data: RecordFeePaymentInput) {
     return this.repo.recordPayment(instituteId, userId, data);
+  }
+
+  async submitPaymentProof(instituteId: string, userId: string, data: SubmitFeeProofInput) {
+    return this.repo.submitPaymentProof(instituteId, userId, data);
+  }
+
+  async getStudentPaymentHistory(instituteId: string, userId: string) {
+    return this.repo.listStudentPayments(instituteId, userId);
+  }
+
+  async getPaymentsForReview(
+    instituteId: string,
+    query: { status?: string; batchId?: string; studentId?: string },
+    role?: string,
+  ) {
+    return this.repo.listPaymentsForReview(instituteId, query, role);
+  }
+
+  async approvePaymentProof(
+    instituteId: string,
+    paymentId: string,
+    reviewerUserId: string,
+    review: ReviewFeePaymentInput,
+  ) {
+    return this.repo.approvePaymentProof(instituteId, paymentId, reviewerUserId, review.note);
+  }
+
+  async rejectPaymentProof(
+    instituteId: string,
+    paymentId: string,
+    reviewerUserId: string,
+    review: ReviewFeePaymentInput,
+  ) {
+    if (!review.rejection_reason || !review.rejection_reason.trim()) {
+      throw new ApiError('rejection_reason is required', 400, 'MISSING_REJECTION_REASON');
+    }
+    return this.repo.rejectPaymentProof(
+      instituteId,
+      paymentId,
+      reviewerUserId,
+      review.rejection_reason,
+      review.note,
+    );
   }
 }

@@ -178,6 +178,38 @@ class StudentRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch fee history');
   }
 
+  Future<Map<String, dynamic>> submitFeePaymentProof({
+    required String feeRecordId,
+    required num amount,
+    required String screenshotUrl,
+    String? note,
+    bool whatsappNotified = false,
+  }) async {
+    final response = await _api.dio.post(
+      'fees/payments/proof',
+      data: {
+        'fee_record_id': feeRecordId,
+        'amount': amount,
+        'screenshot_url': screenshotUrl,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        'whatsapp_notified': whatsappNotified,
+      },
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to submit payment proof');
+  }
+
+  Future<List<Map<String, dynamic>>> getMyFeePaymentProofs() async {
+    final response = await _api.dio.get('fees/payments/my');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch payment proofs');
+  }
+
   Future<Map<String, dynamic>> getSyllabusTracker() async {
     final response = await _api.dio.get('students/me/syllabus');
     if (response.statusCode == 200) {

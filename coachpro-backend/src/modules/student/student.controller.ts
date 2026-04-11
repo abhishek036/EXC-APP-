@@ -224,7 +224,11 @@ export class StudentController {
         }),
         // Pending fee records
         prisma.feeRecord.findMany({
-          where: { student_id: studentId, institute_id: instituteId, status: 'pending' },
+          where: {
+            student_id: studentId,
+            institute_id: instituteId,
+            status: { in: ['pending', 'partial', 'unpaid', 'pending_verification', 'rejected'] },
+          },
           orderBy: { due_date: 'asc' },
           take: 3
         }),
@@ -292,7 +296,7 @@ export class StudentController {
       }, 0);
 
       const totalPending = records
-        .filter(r => r.status === 'pending')
+        .filter(r => ['pending', 'partial', 'unpaid', 'pending_verification', 'rejected'].includes((r.status ?? '').toString()))
         .reduce((sum, r) => sum + Number(r.final_amount), 0);
 
       return sendResponse({
@@ -658,7 +662,7 @@ export class StudentController {
           if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
 
           const records = await prisma.feeRecord.findMany({
-              where: { student_id: student.id, institute_id: req.instituteId!, status: 'paid' },
+              where: { student_id: student.id, institute_id: req.instituteId! },
               include: {
                   batch: { select: { name: true } },
                   payments: true

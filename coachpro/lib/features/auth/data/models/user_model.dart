@@ -38,7 +38,12 @@ class UserModel extends UserEntity {
       phone: (json['phone'] ?? '') as String,
       email: json['email'] as String?,
       role: AppRole.values.firstWhere(
-        (r) => r.name == json['role'],
+        (r) {
+          final rawRole = (json['role'] ?? '').toString().toLowerCase();
+          final normalizedRole =
+              rawRole == 'super_admin' || rawRole == 'sub_admin' ? 'admin' : rawRole;
+          return r.name == normalizedRole;
+        },
         orElse: () => AppRole.student,
       ),
       avatarUrl: (json['avatarUrl'] ?? json['avatar_url']) as String?,

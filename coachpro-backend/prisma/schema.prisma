@@ -32,6 +32,7 @@ model Institute {
   fee_structures            FeeStructure[]
   fee_records               FeeRecord[]
   fee_payments              FeePayment[]
+  fee_payment_events        FeePaymentEvent[]
   fee_discounts             FeeDiscount[]
   attendance_sessions       AttendanceSession[]
   attendance_records        AttendanceRecord[]
@@ -84,6 +85,9 @@ model User {
   students              Student[]
   parents               Parent[]
   fee_payments          FeePayment[]
+  approved_fee_records  FeeRecord[] @relation("FeeRecordApprover")
+  approved_fee_payments FeePayment[] @relation("FeePaymentApprover")
+  fee_payment_events    FeePaymentEvent[] @relation("FeePaymentEventActor")
   corrected_attendance  AttendanceRecord[]
   exams_created         Exam[]
   chat_messages         ChatMessage[]
@@ -241,6 +245,7 @@ model Student {
   parent_students   ParentStudent[]
   student_batches   StudentBatch[]
   fee_records       FeeRecord[]
+  fee_payments      FeePayment[]
   fee_discounts     FeeDiscount[]
   attendance        AttendanceRecord[]
   exam_results      ExamResult[]
@@ -311,6 +316,7 @@ model Batch {
   student_batches     StudentBatch[]
   fee_structures      FeeStructure[]
   fee_records         FeeRecord[]
+  fee_payments        FeePayment[]
   attendance_sessions AttendanceSession[]
   exams               ExamBatch[]
   quizzes             Quiz[]
@@ -368,14 +374,20 @@ model FeeRecord {
   month           Int
   year            Int
   total_amount    Decimal   @db.Decimal(10, 2)
+  paid_amount     Decimal   @default(0) @db.Decimal(10, 2)
   discount_amount Decimal?  @default(0) @db.Decimal(10, 2)
   late_fee        Decimal?  @default(0) @db.Decimal(10, 2)
   final_amount    Decimal   @db.Decimal(10, 2)
   due_date        DateTime  @db.Date
-  status          String?   @default("pending") @db.VarChar(20)
+  status          String?   @default("unpaid") @db.VarChar(30)
+  approved_by_id  String?   @map("approved_by") @db.Uuid
+  approved_by     User?     @relation("FeeRecordApprover", fields: [approved_by_id], references: [id])
+  approved_at     DateTime? @db.Timestamptz
   created_at      DateTime? @default(now()) @db.Timestamptz
+  updated_at      DateTime? @updatedAt @db.Timestamptz
 
-  payments FeePayment[]
+  payments       FeePayment[]
+  payment_events FeePaymentEvent[]
 
   @@unique([student_id, batch_id, month, year])
   @@map("fee_records")
@@ -387,17 +399,54 @@ model FeePayment {
   fee_record      FeeRecord @relation(fields: [fee_record_id], references: [id])
   institute_id    String    @db.Uuid
   institute       Institute @relation(fields: [institute_id], references: [id])
+  student_id      String?   @db.Uuid
+  student         Student?  @relation(fields: [student_id], references: [id])
+  batch_id        String?   @db.Uuid
+  batch           Batch?    @relation(fields: [batch_id], references: [id])
   amount_paid     Decimal   @db.Decimal(10, 2)
   payment_mode    String?   @db.VarChar(20)
+  payment_channel String?   @default("manual_qr") @db.VarChar(30)
   transaction_id  String?   @db.VarChar(200)
+  screenshot_url  String?   @db.Text
+  status          String?   @default("approved") @db.VarChar(30)
   note            String?   @db.Text
   receipt_number  String?   @unique @db.VarChar(50)
   receipt_url     String?   @db.Text
+  submitted_at    DateTime? @default(now()) @db.Timestamptz
   paid_at         DateTime? @default(now()) @db.Timestamptz
   collected_by_id String?   @map("collected_by") @db.Uuid
   collected_by    User?     @relation(fields: [collected_by_id], references: [id])
+  approved_by_id  String?   @map("approved_by") @db.Uuid
+  approved_by     User?     @relation("FeePaymentApprover", fields: [approved_by_id], references: [id])
+  approved_at     DateTime? @db.Timestamptz
+  rejected_at     DateTime? @db.Timestamptz
+  rejection_reason String?  @db.Text
+
+  events FeePaymentEvent[]
 
   @@map("fee_payments")
+}
+
+model FeePaymentEvent {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  institute_id  String     @db.Uuid
+  institute     Institute  @relation(fields: [institute_id], references: [id], onDelete: Cascade)
+  fee_record_id String     @db.Uuid
+  fee_record    FeeRecord  @relation(fields: [fee_record_id], references: [id], onDelete: Cascade)
+  payment_id    String?    @db.Uuid
+  payment       FeePayment? @relation(fields: [payment_id], references: [id], onDelete: SetNull)
+  actor_id      String?    @db.Uuid
+  actor         User?      @relation("FeePaymentEventActor", fields: [actor_id], references: [id], onDelete: SetNull)
+  action        String     @db.VarChar(40)
+  from_status   String?    @db.VarChar(30)
+  to_status     String?    @db.VarChar(30)
+  meta          Json?
+  created_at    DateTime   @default(now()) @db.Timestamptz
+
+  @@index([institute_id, fee_record_id])
+  @@index([payment_id])
+  @@index([actor_id])
+  @@map("fee_payment_events")
 }
 
 model FeeDiscount {
