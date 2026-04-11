@@ -184,6 +184,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         batchId: widget.batchId,
         subject: _selectedSubject,
       );
+      final pendingDoubtsFuture = _loadBatchPendingDoubts();
 
       final batches = await batchesFuture;
       final selected = batches
@@ -213,13 +214,18 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       final scheduledTests = await scheduledTestsFuture;
       final notes = await notesFuture;
       final assignments = await assignmentsFuture;
+      final apiPendingDoubts = await pendingDoubtsFuture;
 
-      final pendingDoubts =
+      final executionPendingDoubts =
           (((execution['doubts'] as Map?)?['pending_items']) as List? ??
                   const [])
               .whereType<Map>()
               .map((item) => Map<String, dynamic>.from(item))
+              .where(_matchesSelectedSubject)
               .toList();
+
+      final pendingDoubts =
+          apiPendingDoubts.isNotEmpty ? apiPendingDoubts : executionPendingDoubts;
 
       final topics =
           (((execution['syllabus'] as Map?)?['topics']) as List? ?? const [])
@@ -261,6 +267,49 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         _loading = false;
       });
     }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadBatchPendingDoubts() async {
+    try {
+      final pending = await _teacherRepo.getPendingDoubts();
+      return pending
+          .where(_isDoubtInCurrentBatch)
+          .where(_matchesSelectedSubject)
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  bool _isDoubtInCurrentBatch(Map<String, dynamic> doubt) {
+    final directBatchId =
+        (doubt['batch_id'] ?? doubt['batchId'] ?? '').toString();
+    final nestedBatchId = ((doubt['batch'] as Map?)?['id'] ?? '').toString();
+
+    if (directBatchId.isEmpty && nestedBatchId.isEmpty) {
+      // Some APIs omit batch metadata in batch-scoped responses.
+      return true;
+    }
+
+    return directBatchId == widget.batchId || nestedBatchId == widget.batchId;
+  }
+
+  bool _matchesSelectedSubject(Map<String, dynamic> doubt) {
+    final selectedSubject = _selectedSubject?.trim().toLowerCase();
+    if (selectedSubject == null || selectedSubject.isEmpty) return true;
+
+    final doubtSubject =
+        (doubt['subject'] ??
+                doubt['subject_name'] ??
+                ((doubt['batch'] as Map?)?['subject']) ??
+                '')
+            .toString()
+            .trim()
+            .toLowerCase();
+
+    if (doubtSubject.isEmpty) return true;
+    return doubtSubject == selectedSubject;
   }
 
   void _showSubjectPicker(

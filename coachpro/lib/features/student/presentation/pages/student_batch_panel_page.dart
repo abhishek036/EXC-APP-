@@ -351,7 +351,7 @@ class _ContentTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Column(
         children: [
           Container(
@@ -370,7 +370,6 @@ class _ContentTab extends StatelessWidget {
                 Tab(text: 'SYLLABUS'),
                 Tab(text: 'VIDEOS'),
                 Tab(text: 'NOTES'),
-                Tab(text: 'ASSIGNMENTS'),
               ],
             ),
           ),
@@ -388,10 +387,6 @@ class _ContentTab extends StatelessWidget {
                 _NotesPane(
                   batchId: batchId,
                   teacherName: batchInfo['teacher_name'],
-                  selectedSubject: selectedSubject,
-                ),
-                _AssignmentsPane(
-                  batchId: batchId,
                   selectedSubject: selectedSubject,
                 ),
               ],
@@ -2282,6 +2277,167 @@ class _DoubtsTabState extends State<_DoubtsTab> {
     );
   }
 
+  bool _belongsToCurrentBatch(Map<String, dynamic> doubt) {
+    final directBatchId =
+        (doubt['batch_id'] ?? doubt['batchId'] ?? '').toString();
+    final nestedBatchId = ((doubt['batch'] as Map?)?['id'] ?? '').toString();
+
+    if (directBatchId.isEmpty && nestedBatchId.isEmpty) {
+      return false;
+    }
+
+    return directBatchId == widget.batchId || nestedBatchId == widget.batchId;
+  }
+
+  String _buildThreadPreview(
+    List<_DoubtThreadMessage> threadMessages,
+    Map<String, dynamic> doubt,
+  ) {
+    for (var i = threadMessages.length - 1; i >= 0; i--) {
+      final text = threadMessages[i].text.trim();
+      if (text.isNotEmpty) {
+        return text.replaceAll(RegExp(r'\s+'), ' ').trim();
+      }
+    }
+    return (doubt['question_text'] ?? doubt['questionText'] ?? 'Tap to open')
+        .toString()
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  Future<void> _openDoubtThreadSheet({
+    required Map<String, dynamic> doubt,
+    required List<_DoubtThreadMessage> threadMessages,
+  }) async {
+    final status = (doubt['status'] ?? 'pending').toString().toLowerCase();
+    final isResolved = status == 'resolved';
+    final createdAt = DateTime.tryParse(
+      (doubt['created_at'] ?? doubt['createdAt'] ?? '').toString(),
+    );
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return FractionallySizedBox(
+          heightFactor: 0.86,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              border: Border.all(
+                color: _StudentBatchPanelPageState.primaryBlue,
+                width: 2,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isResolved
+                              ? AppColors.mintGreen
+                              : _StudentBatchPanelPageState.accentYellow,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: _StudentBatchPanelPageState.primaryBlue,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Text(
+                          status.toUpperCase(),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 10,
+                            color: _StudentBatchPanelPageState.primaryBlue,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (createdAt != null)
+                        Text(
+                          DateFormat('MMM d, yyyy').format(createdAt.toLocal()),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                            color: _StudentBatchPanelPageState.primaryBlue
+                                .withValues(alpha: 0.65),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: threadMessages.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No messages in this thread yet.',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w700,
+                              color: _StudentBatchPanelPageState.primaryBlue
+                                  .withValues(alpha: 0.7),
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: threadMessages.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 8),
+                          itemBuilder: (context, index) =>
+                              _buildThreadBubble(threadMessages[index]),
+                        ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _isSendingFollowUp
+                          ? null
+                          : () async {
+                              Navigator.of(sheetContext).pop();
+                              await _openFollowUpDialog(doubt);
+                            },
+                      icon: const Icon(Icons.reply_all_rounded),
+                      label: Text(
+                        'FOLLOW-UP',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _StudentBatchPanelPageState.accentYellow,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: const BorderSide(
+                            color: _StudentBatchPanelPageState.primaryBlue,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void didUpdateWidget(_DoubtsTab oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -2369,14 +2525,12 @@ class _DoubtsTabState extends State<_DoubtsTab> {
                 final allDoubts = snapshot.data ?? [];
                 // Filter locally by batchId just in case
                 final doubts = allDoubts
-                    .where(
-                      (e) => (e['batch_id'] ?? '').toString() == widget.batchId,
-                    )
+                    .where(_belongsToCurrentBatch)
                     .toList();
 
                 if (doubts.isEmpty) {
                   return _EmptyState(
-                    message: 'No pending doubts in this batch.',
+                    message: 'No doubts found in this batch.',
                     icon: Icons.question_answer_outlined,
                   );
                 }
@@ -2387,93 +2541,114 @@ class _DoubtsTabState extends State<_DoubtsTab> {
                   itemBuilder: (context, i) {
                     final doubt = doubts[i];
                     final threadMessages = _extractThreadMessages(doubt);
+                    final preview = _buildThreadPreview(threadMessages, doubt);
+                    final status = (doubt['status'] ?? 'pending')
+                        .toString()
+                        .toLowerCase();
+                    final createdAt = (doubt['created_at'] ?? doubt['createdAt'] ?? '')
+                        .toString();
+
                     return _PremiumCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                      padding: EdgeInsets.zero,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => _openDoubtThreadSheet(
+                          doubt: doubt,
+                          threadMessages: threadMessages,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
+                                width: 40,
+                                height: 40,
                                 decoration: BoxDecoration(
-                                  color: (doubt['status'] == 'resolved'
+                                  color: status == 'resolved'
                                       ? AppColors.mintGreen
-                                      : _StudentBatchPanelPageState
-                                            .accentYellow),
-                                  borderRadius: BorderRadius.circular(4),
+                                      : _StudentBatchPanelPageState.accentYellow,
+                                  borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color:
-                                        _StudentBatchPanelPageState.primaryBlue,
+                                    color: _StudentBatchPanelPageState.primaryBlue,
                                     width: 1.5,
                                   ),
                                 ),
-                                child: Text(
-                                  (doubt['status'] ?? 'PENDING')
-                                      .toString()
-                                      .toUpperCase(),
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 10,
-                                    color:
-                                        _StudentBatchPanelPageState.primaryBlue,
-                                  ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  status == 'resolved'
+                                      ? Icons.check_circle_rounded
+                                      : Icons.question_answer_rounded,
+                                  color: _StudentBatchPanelPageState.primaryBlue,
+                                  size: 18,
                                 ),
                               ),
-                              const Spacer(),
-                              Text(
-                                (doubt['created_at'] ?? '')
-                                    .toString()
-                                    .split('T')
-                                    .first,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 11,
-                                  color: _StudentBatchPanelPageState.primaryBlue
-                                      .withValues(alpha: 0.6),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: status == 'resolved'
+                                                ? AppColors.mintGreen.withValues(alpha: 0.35)
+                                                : _StudentBatchPanelPageState.accentYellow
+                                                      .withValues(alpha: 0.35),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(
+                                              color: _StudentBatchPanelPageState.primaryBlue,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            status.toUpperCase(),
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 10,
+                                              color: _StudentBatchPanelPageState.primaryBlue,
+                                            ),
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          createdAt.split('T').first,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 10,
+                                            color: _StudentBatchPanelPageState.primaryBlue
+                                                .withValues(alpha: 0.6),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      preview,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                        color: _StudentBatchPanelPageState.primaryBlue,
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 14,
+                                color: _StudentBatchPanelPageState.primaryBlue,
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          if (threadMessages.isEmpty)
-                            Text(
-                              (doubt['question_text'] ?? 'Question').toString(),
-                              style: GoogleFonts.plusJakartaSans(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                color: _StudentBatchPanelPageState.primaryBlue,
-                              ),
-                            )
-                          else
-                            Column(
-                              children: [
-                                for (var idx = 0; idx < threadMessages.length; idx++) ...[
-                                  _buildThreadBubble(threadMessages[idx]),
-                                  if (idx != threadMessages.length - 1)
-                                    const SizedBox(height: 8),
-                                ],
-                              ],
-                            ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              onPressed: () => _openFollowUpDialog(doubt),
-                              icon: const Icon(Icons.reply_all_rounded, size: 16),
-                              label: Text(
-                                'FOLLOW-UP',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 11,
-                                  color: _StudentBatchPanelPageState.primaryBlue,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     );
                   },
