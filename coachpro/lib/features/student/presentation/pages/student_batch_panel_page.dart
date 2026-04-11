@@ -74,7 +74,6 @@ class _DoubtThreadMessage {
       : quiz['show_instant_result'] == true;
 
     final submittedAt = attempt?['submitted_at'];
-    final startedAt = attempt?['started_at'];
     final hasAttempt = attempt != null;
     final isSubmitted = submittedAt != null;
     final isInProgress = hasAttempt && !isSubmitted;
@@ -1068,7 +1067,6 @@ class _QuizPaneState extends State<_QuizPane> {
   final _repo = sl<StudentRepository>();
   bool _loading = true;
   String? _error;
-  List<Map<String, dynamic>> _quizzes = [];
   List<Map<String, dynamic>> _newQuizzes = [];
   List<Map<String, dynamic>> _resultQuizzes = [];
   List<Map<String, dynamic>> _oldQuizzes = [];
@@ -1123,7 +1121,6 @@ class _QuizPaneState extends State<_QuizPane> {
 
       if (!mounted) return;
       setState(() {
-        _quizzes = filtered;
         _newQuizzes = newQuizzes;
         _resultQuizzes = resultQuizzes;
         _oldQuizzes = oldQuizzes;
@@ -1163,13 +1160,13 @@ class _QuizPaneState extends State<_QuizPane> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline, size: 52, color: _StudentBatchPanelPageState.primaryBlue),
+              Icon(Icons.error_outline, size: 52, color: Colors.white),
               const SizedBox(height: 12),
               Text(
                 'Failed to load quizzes',
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w800,
-                  color: _StudentBatchPanelPageState.primaryBlue,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 8),
@@ -1178,7 +1175,7 @@ class _QuizPaneState extends State<_QuizPane> {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
-                  color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.7),
+                  color: Colors.white.withValues(alpha: 0.82),
                 ),
               ),
               const SizedBox(height: 12),
@@ -1248,11 +1245,14 @@ class _QuizPaneState extends State<_QuizPane> {
     );
   }
 
-  _QuizStateView _quizState(Map<String, dynamic> quiz) => _QuizStateView.fromQuiz(quiz);
+  _QuizStateView _quizState(Map<String, dynamic> quiz) =>
+      _QuizStateView.fromQuiz(quiz);
 
   String get _returnTo {
     final current = GoRouterState.of(context).uri.toString();
-    return current.startsWith('/student/batches') ? current : '/student/batches';
+    return current.startsWith('/student/batches')
+        ? current
+        : '/student/batches';
   }
 
   String _quizTakingRoute(String quizId) =>
@@ -1274,14 +1274,18 @@ class _QuizPaneState extends State<_QuizPane> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.quiz_outlined, size: 60, color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.35)),
+              Icon(
+                Icons.quiz_outlined,
+                size: 60,
+                color: Colors.white.withValues(alpha: 0.45),
+              ),
               const SizedBox(height: 12),
               Text(
                 emptyTitle,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w900,
-                  color: _StudentBatchPanelPageState.primaryBlue,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 8),
@@ -1289,7 +1293,7 @@ class _QuizPaneState extends State<_QuizPane> {
                 emptySubtitle,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
-                  color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.65),
+                  color: Colors.white.withValues(alpha: 0.82),
                 ),
               ),
             ],
@@ -1339,13 +1343,13 @@ class _QuizPaneState extends State<_QuizPane> {
         onTap: () => _handleQuizTap(quiz, state),
         child: Padding(
           padding: const EdgeInsets.all(14),
-              Icon(Icons.error_outline, size: 52, color: Colors.white),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 44,
                 height: 44,
-                  color: Colors.white,
+                decoration: BoxDecoration(
                   color: _StudentBatchPanelPageState.accentYellow,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
@@ -1354,7 +1358,7 @@ class _QuizPaneState extends State<_QuizPane> {
                   ),
                 ),
                 child: const Icon(
-                  color: Colors.white.withValues(alpha: 0.82),
+                  Icons.quiz_rounded,
                   color: _StudentBatchPanelPageState.primaryBlue,
                 ),
               ),
@@ -1366,9 +1370,13 @@ class _QuizPaneState extends State<_QuizPane> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.08),
+                            color: _StudentBatchPanelPageState.primaryBlue
+                                .withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -1382,13 +1390,18 @@ class _QuizPaneState extends State<_QuizPane> {
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: state.resultReleased
                                 ? AppColors.mintGreen.withValues(alpha: 0.18)
                                 : state.isSubmitted
-                                    ? AppColors.moltenAmber.withValues(alpha: 0.18)
-                                    : _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.08),
+                                    ? AppColors.moltenAmber
+                                        .withValues(alpha: 0.18)
+                                    : _StudentBatchPanelPageState.primaryBlue
+                                        .withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -1419,7 +1432,8 @@ class _QuizPaneState extends State<_QuizPane> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.65),
+                        color: _StudentBatchPanelPageState.primaryBlue
+                            .withValues(alpha: 0.65),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -1445,7 +1459,8 @@ class _QuizPaneState extends State<_QuizPane> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.65),
+                        color: _StudentBatchPanelPageState.primaryBlue
+                            .withValues(alpha: 0.65),
                         letterSpacing: 1,
                       ),
                     ),
@@ -1463,7 +1478,9 @@ class _QuizPaneState extends State<_QuizPane> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: quizId.isEmpty ? null : () => _handleQuizTap(quiz, state),
+                        onPressed: quizId.isEmpty
+                            ? null
+                            : () => _handleQuizTap(quiz, state),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: state.resultReleased && state.canRetry
                               ? AppColors.moltenAmber
@@ -1490,7 +1507,9 @@ class _QuizPaneState extends State<_QuizPane> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: quizId.isEmpty ? null : () => _confirmRetake(quiz),
+                          onPressed: quizId.isEmpty
+                              ? null
+                              : () => _confirmRetake(quiz),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(
                               color: _StudentBatchPanelPageState.primaryBlue,
@@ -1523,22 +1542,29 @@ class _QuizPaneState extends State<_QuizPane> {
   }
 
   Widget _infoChip(IconData icon, String label) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(icon, size: 14, color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.75)),
-      const SizedBox(width: 4),
-      Text(
-        label,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.75),
-        ),
-      ),
-    ],
-  );
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.75),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.75),
+            ),
+          ),
+        ],
+      );
 
-  Future<void> _handleQuizTap(Map<String, dynamic> quiz, _QuizStateView state) async {
+  Future<void> _handleQuizTap(
+    Map<String, dynamic> quiz,
+    _QuizStateView state,
+  ) async {
     final quizId = (quiz['id'] ?? '').toString();
     if (quizId.isEmpty) return;
 
@@ -1550,14 +1576,14 @@ class _QuizPaneState extends State<_QuizPane> {
     if (state.resultReleased) {
       context.push(_quizResultRoute(quizId));
       return;
-              Icon(Icons.quiz_outlined, size: 60, color: Colors.white.withValues(alpha: 0.45)),
+    }
 
     await _showHeldResultSheet(quiz, state);
   }
 
   Future<void> _confirmStart(Map<String, dynamic> quiz) async {
     final quizId = (quiz['id'] ?? '').toString();
-                  color: Colors.white,
+    if (quizId.isEmpty) return;
 
     showModalBottomSheet(
       context: context,
@@ -1565,7 +1591,7 @@ class _QuizPaneState extends State<_QuizPane> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-                  color: Colors.white.withValues(alpha: 0.82),
+      builder: (ctx) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1694,6 +1720,7 @@ class _QuizPaneState extends State<_QuizPane> {
     _QuizStateView state,
   ) async {
     final quizTitle = (quiz['title'] ?? 'Quiz').toString();
+
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: _StudentBatchPanelPageState.surfaceWhite,
