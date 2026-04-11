@@ -30,6 +30,7 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
   YoutubePlayerController? _controller;
   bool _isInitializing = true;
   bool _hasInitError = false;
+  bool _isMuted = true;
   late final String? _resolvedVideoId;
 
   String? _resolveVideoId(String input, {int depth = 0}) {
@@ -162,9 +163,11 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
 
       final controller = YoutubePlayerController(
         params: const YoutubePlayerParams(
-          mute: false,
+          mute: true,
           showControls: false,
           showFullscreenButton: false,
+          pointerEvents: PointerEvents.none,
+          enableKeyboard: false,
           strictRelatedVideos: true,
           enableCaption: false,
           showVideoAnnotations: false,
@@ -199,6 +202,22 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
         _hasInitError = true;
       });
     }
+  }
+
+  Future<void> _toggleMute() async {
+    final controller = _controller;
+    if (controller == null) return;
+
+    if (_isMuted) {
+      await controller.unMute();
+      await controller.setVolume(85);
+      await controller.playVideo();
+    } else {
+      await controller.mute();
+    }
+
+    if (!mounted) return;
+    setState(() => _isMuted = !_isMuted);
   }
 
   Widget _buildLoadingPlayer() {
@@ -277,6 +296,28 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: _toggleMute,
+                        icon: Icon(
+                          _isMuted
+                              ? Icons.volume_up_rounded
+                              : Icons.volume_off_rounded,
+                          size: 16,
+                        ),
+                        label: Text(_isMuted ? 'Enable Sound' : 'Mute Sound'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white30),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                        ),
                       ),
                     ),
                     if (_summary.isNotEmpty) ...[
