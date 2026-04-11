@@ -414,10 +414,11 @@ class _OtpPageState extends State<OtpPage> {
                                         return SizedBox(
                                           width: 44,
                                           height: 56,
-                                          child: KeyboardListener(
-                                            focusNode: _focusNodes[i],
-                                            onKeyEvent: (event) =>
-                                                _handleKeyPress(event, i),
+                                          child: Focus(
+                                            onKeyEvent: (node, event) {
+                                              _handleKeyPress(event, i);
+                                              return KeyEventResult.ignored;
+                                            },
                                             child: TextField(
                                               controller: _controllers[i],
                                               focusNode: _focusNodes[i],
