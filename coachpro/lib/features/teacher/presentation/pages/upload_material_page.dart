@@ -12,12 +12,14 @@ class UploadMaterialPage extends StatefulWidget {
   final String? initialBatchId;
   final String? initialType;
   final String? initialSubject;
+  final Map<String, dynamic>? initialItem;
 
   const UploadMaterialPage({
     super.key,
     this.initialBatchId,
     this.initialType,
     this.initialSubject,
+    this.initialItem,
   });
 
   const UploadMaterialPage.withInitials({
@@ -25,6 +27,7 @@ class UploadMaterialPage extends StatefulWidget {
     this.initialBatchId,
     this.initialType,
     this.initialSubject,
+    this.initialItem,
   });
 
   @override
@@ -49,6 +52,13 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   DateTime? _assignmentDueDate;
 
   bool _isUploading = false;
+
+  bool get _isEditMode {
+    final id = (widget.initialItem?['id'] ?? '').toString();
+    return id.isNotEmpty;
+  }
+
+  String get _editingItemId => (widget.initialItem?['id'] ?? '').toString();
 
   String? get _safeSelectedBatchId {
     if (_selectedBatchId == null || _selectedBatchId!.isEmpty) return null;
@@ -84,6 +94,22 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         widget.initialSubject!.trim().isNotEmpty) {
       _selectedSubject = widget.initialSubject!.trim();
     }
+
+    final initial = widget.initialItem;
+    if (initial != null) {
+      _titleCtrl.text = (initial['title'] ?? '').toString();
+      _descCtrl.text =
+          (initial['description'] ?? initial['instructions'] ?? '').toString();
+      final existingUrl = (initial['file_url'] ?? '').toString();
+      if (existingUrl.isNotEmpty) {
+        _linkCtrl.text = existingUrl;
+      }
+      final dueDateRaw = initial['due_date'];
+      if (dueDateRaw != null) {
+        _assignmentDueDate = DateTime.tryParse(dueDateRaw.toString())?.toLocal();
+      }
+    }
+
     _loadBatches();
   }
 
@@ -181,18 +207,37 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         }
       }
 
-      await _repo.uploadMaterial(
-        batchId: _selectedBatchId,
-        subject: _selectedSubject ?? 'General',
-        title: _titleCtrl.text.trim(),
-        description: _descCtrl.text.trim(),
-        type: _selectedType,
-        fileUrl: formattedLink,
-        dueDate: _selectedType == 'assignment' ? _assignmentDueDate : null,
-      );
+      if (_isEditMode) {
+        await _repo.updateMaterial(
+          itemId: _editingItemId,
+          batchId: _selectedBatchId,
+          subject: _selectedSubject ?? 'General',
+          title: _titleCtrl.text.trim(),
+          description: _descCtrl.text.trim(),
+          type: _selectedType,
+          fileUrl: formattedLink,
+          dueDate: _selectedType == 'assignment' ? _assignmentDueDate : null,
+        );
+      } else {
+        await _repo.uploadMaterial(
+          batchId: _selectedBatchId,
+          subject: _selectedSubject ?? 'General',
+          title: _titleCtrl.text.trim(),
+          description: _descCtrl.text.trim(),
+          type: _selectedType,
+          fileUrl: formattedLink,
+          dueDate: _selectedType == 'assignment' ? _assignmentDueDate : null,
+        );
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Material Uploaded Successfully!')),
+        SnackBar(
+          content: Text(
+            _isEditMode
+                ? 'Content updated successfully!'
+                : 'Material uploaded successfully!',
+          ),
+        ),
       );
       Navigator.pop(context);
     } catch (e) {
@@ -261,7 +306,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'UPLOAD CONTENT',
+          _isEditMode ? 'EDIT CONTENT' : 'UPLOAD CONTENT',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w900,
             fontSize: 18,
@@ -337,7 +382,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _selectedType = type),
+        onTap: _isEditMode ? null : () => setState(() => _selectedType = type),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
@@ -656,7 +701,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                 child: CircularProgressIndicator(color: blue, strokeWidth: 3),
               )
             : Text(
-                'UPLOAD CONTENT',
+                _isEditMode ? 'UPDATE CONTENT' : 'UPLOAD CONTENT',
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w900,
                   fontSize: 16,

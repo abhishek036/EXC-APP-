@@ -1,7 +1,19 @@
 import { Router } from 'express';
 import { ContentController } from './content.controller';
 import { validate } from '../../middleware/validate.middleware';
-import { createNoteSchema, noteBookmarkSchema, noteFileAccessSchema, createAssignmentSchema, submitAssignmentSchema, reviewAssignmentSubmissionSchema, createDoubtSchema, respondDoubtSchema } from './content.validator';
+import {
+	createNoteSchema,
+	updateNoteSchema,
+	noteBookmarkSchema,
+	noteFileAccessSchema,
+	createAssignmentSchema,
+	updateAssignmentSchema,
+	assignmentIdParamSchema,
+	submitAssignmentSchema,
+	reviewAssignmentSubmissionSchema,
+	createDoubtSchema,
+	respondDoubtSchema,
+} from './content.validator';
 import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
 import { tenantMiddleware } from '../../middleware/tenant.middleware';
 
@@ -15,6 +27,7 @@ router.use(authenticateJWT, tenantMiddleware);
 
 // Notes / Assignments (Staff creation, Student viewing)
 router.post('/notes', requireRole('admin', 'teacher'), validate(createNoteSchema), controller.createNote);
+router.put('/notes/:noteId', requireRole('admin', 'teacher'), validate(updateNoteSchema), controller.updateNote);
 router.get('/notes', requireRole('admin', 'teacher', 'student'), controller.listNotes);
 router.get('/notes/analytics', requireRole('admin', 'teacher'), controller.noteAnalytics);
 router.get('/notes/bookmarks', requireRole('student'), controller.listBookmarkedNotes);
@@ -24,6 +37,8 @@ router.get('/notes/:noteId/files/:fileId/access', requireRole('admin', 'teacher'
 router.delete('/notes/:noteId', requireRole('admin', 'teacher'), validate(noteBookmarkSchema), controller.deleteNote);
 
 router.post('/assignments', requireRole('admin', 'teacher'), validate(createAssignmentSchema), controller.createAssignment);
+router.put('/assignments/:assignmentId', requireRole('admin', 'teacher'), validate(updateAssignmentSchema), controller.updateAssignment);
+router.delete('/assignments/:assignmentId', requireRole('admin', 'teacher'), validate(assignmentIdParamSchema), controller.deleteAssignment);
 router.get('/assignments', requireRole('admin', 'teacher', 'student'), controller.listAssignments);
 router.get('/assignments/analytics', requireRole('admin', 'teacher'), controller.assignmentAnalytics);
 router.post('/assignments/:assignmentId/draft', requireRole('student'), validate(submitAssignmentSchema), controller.saveAssignmentDraft);

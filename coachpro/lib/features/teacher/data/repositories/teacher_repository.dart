@@ -391,6 +391,71 @@ class TeacherRepository {
     throw Exception(response.data['message'] ?? 'Failed to upload material');
   }
 
+  Future<Map<String, dynamic>> updateMaterial({
+    required String itemId,
+    required String title,
+    required String subject,
+    required String type,
+    String? batchId,
+    String? fileUrl,
+    String? description,
+    DateTime? dueDate,
+  }) async {
+    final trimmedSubject = subject.trim();
+    final trimmedFileUrl = fileUrl?.trim();
+    final normalizedNoteType = _normalizeNoteFileType(
+      type,
+      fileUrl: trimmedFileUrl,
+    );
+
+    final response = type == 'assignment'
+        ? await _api.dio.put(
+            'content/assignments/$itemId',
+            data: {
+              'title': title,
+              if (trimmedSubject.isNotEmpty) 'subject': trimmedSubject,
+              if (batchId != null && batchId.isNotEmpty) 'batch_id': batchId,
+              if (description != null && description.trim().isNotEmpty)
+                'description': description.trim(),
+              if (trimmedFileUrl != null && trimmedFileUrl.isNotEmpty)
+                'file_url': trimmedFileUrl,
+              if (dueDate != null) 'due_date': dueDate.toUtc().toIso8601String(),
+            },
+          )
+        : await _api.dio.put(
+            'content/notes/$itemId',
+            data: {
+              'title': title,
+              if (trimmedSubject.isNotEmpty) 'subject': trimmedSubject,
+              if (batchId != null && batchId.isNotEmpty) 'batch_id': batchId,
+              'file_type': normalizedNoteType,
+              if (trimmedFileUrl != null && trimmedFileUrl.isNotEmpty)
+                'file_url': trimmedFileUrl,
+              if (description != null && description.trim().isNotEmpty)
+                'description': description.trim(),
+            },
+          );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update material');
+  }
+
+  Future<void> deleteMaterial({
+    required String itemId,
+    required String type,
+  }) async {
+    final response = type == 'assignment'
+        ? await _api.dio.delete('content/assignments/$itemId')
+        : await _api.dio.delete('content/notes/$itemId');
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+    throw Exception(response.data['message'] ?? 'Failed to delete material');
+  }
+
   Future<List<Map<String, dynamic>>> getBatchNotes(String batchId, {String? subject}) async {
     final normalizedSubject = subject?.trim();
     final response = await _api.dio.get(

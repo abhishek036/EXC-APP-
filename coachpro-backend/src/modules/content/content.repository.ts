@@ -1,5 +1,14 @@
 import { prisma } from '../../server';
-import { CreateNoteInput, CreateAssignmentInput, SubmitAssignmentInput, ReviewAssignmentSubmissionInput, CreateDoubtInput, RespondDoubtInput } from './content.validator';
+import {
+    CreateNoteInput,
+    UpdateNoteInput,
+    CreateAssignmentInput,
+    UpdateAssignmentInput,
+    SubmitAssignmentInput,
+    ReviewAssignmentSubmissionInput,
+    CreateDoubtInput,
+    RespondDoubtInput,
+} from './content.validator';
 import { isLegacyColumnError } from '../../utils/prisma-errors';
 import { ApiError } from '../../middleware/error.middleware';
 import { createHash } from 'crypto';
@@ -441,6 +450,184 @@ export class ContentRepository {
             });
     }
 
+    async updateNote(instituteId: string, noteId: string, data: UpdateNoteInput) {
+            const existing = await prisma.note.findFirst({
+                where: {
+                    id: noteId,
+                    institute_id: instituteId,
+                    is_deleted: false,
+                },
+            });
+
+            if (!existing) {
+                throw new ApiError('Note not found', 404, 'NOT_FOUND');
+            }
+
+            const updateData: any = {};
+            if ((data as any).title !== undefined) updateData.title = data.title;
+            if ((data as any).batch_id !== undefined) updateData.batch_id = (data as any).batch_id;
+            if ((data as any).subject !== undefined) {
+                updateData.subject = this.trimOrNull((data as any).subject) ?? 'General';
+            }
+            if ((data as any).description !== undefined) {
+                updateData.description = this.trimOrNull((data as any).description);
+            }
+            if ((data as any).chapter_title !== undefined) {
+                updateData.chapter_title = this.trimOrNull((data as any).chapter_title) ?? 'General';
+            }
+            if ((data as any).chapter_order !== undefined) {
+                const chapterOrder = Number((data as any).chapter_order ?? 0);
+                updateData.chapter_order = Number.isFinite(chapterOrder) ? chapterOrder : 0;
+            }
+
+            const incomingFileUrlRaw = (data as any).file_url;
+            const incomingFileUrl = this.trimOrNull(incomingFileUrlRaw);
+            const hasFileUpdate = incomingFileUrlRaw !== undefined && !!incomingFileUrl;
+
+            if (hasFileUpdate) {
+                const fileType = this.normalizeNoteFileType((data as any).file_type, incomingFileUrl);
+                updateData.file_url = incomingFileUrl;
+                updateData.file_type = fileType;
+                updateData.file_size_kb = this.toNumberOrNull((data as any).file_size_kb);
+            } else {
+                if ((data as any).file_type !== undefined) {
+                    updateData.file_type = this.normalizeNoteFileType(
+                        (data as any).file_type,
+                        existing.file_url,
+                    );
+                }
+                if ((data as any).file_size_kb !== undefined) {
+                    updateData.file_size_kb = this.toNumberOrNull((data as any).file_size_kb);
+                }
+            }
+
+            try {
+                return await prisma.$transaction(async (tx) => {
+                    if (Object.keys(updateData).length > 0) {
+                        await tx.note.update({
+                            where: { id: noteId },
+                            data: updateData,
+                        });
+                    }
+
+                    if (hasFileUpdate) {
+                        await tx.noteFile.updateMany({
+                            where: {
+                                note_id: noteId,
+                                institute_id: instituteId,
+                                is_deleted: false,
+                                is_latest: true,
+                            },
+                            data: {
+                                is_latest: false,
+                            },
+                        });
+
+                        const version = await tx.noteFile.aggregate({
+                            where: {
+                                note_id: noteId,
+                                institute_id: instituteId,
+                            },
+                            _max: { version_no: true },
+                        });
+
+                        const storageMeta = this.decodeUploadRef(incomingFileUrl);
+                        const fileName = storageMeta?.fileName ?? this.fileNameFromUrl(incomingFileUrl);
+                        const fileType = this.normalizeNoteFileType(
+                            (data as any).file_type,
+                            incomingFileUrl,
+                            storageMeta?.mimeType,
+                        );
+                        const nextVersionNo = Number(version._max.version_no ?? 0) + 1;
+
+                        await tx.noteFile.create({
+                            data: {
+                                note_id: noteId,
+                                institute_id: instituteId,
+                                file_url: incomingFileUrl,
+                                file_name: fileName,
+                                file_type: fileType,
+                                mime_type: this.trimOrNull(storageMeta?.mimeType),
+                                file_size_kb:
+                                    this.toNumberOrNull((data as any).file_size_kb) ??
+                                    this.toNumberOrNull(storageMeta?.sizeKb),
+                                storage_provider:
+                                    this.trimOrNull(storageMeta?.provider) ??
+                                    (incomingFileUrl.includes('/api/upload/file/') ? 'b2' : 'external'),
+                                storage_path:
+                                    this.trimOrNull(storageMeta?.key) ?? incomingFileUrl,
+                                file_hash: this.hashText(
+                                    `${incomingFileUrl}|${fileName}|${nextVersionNo}`,
+                                ),
+                                version_no: nextVersionNo,
+                                is_latest: true,
+                            },
+                        });
+                    }
+
+                    const updated = await tx.note.findFirst({
+                        where: {
+                            id: noteId,
+                            institute_id: instituteId,
+                        },
+                        include: {
+                            note_files: {
+                                where: { is_deleted: false, is_latest: true },
+                                orderBy: [{ version_no: 'desc' }, { created_at: 'desc' }],
+                            },
+                            _count: { select: { download_logs: true, bookmarks: true } },
+                        },
+                    });
+
+                    return {
+                        ...updated,
+                        downloads_count: updated?._count?.download_logs ?? 0,
+                        bookmarks_count: updated?._count?.bookmarks ?? 0,
+                        primary_file:
+                            Array.isArray(updated?.note_files) && updated.note_files.length > 0
+                                ? updated.note_files[0]
+                                : null,
+                    };
+                });
+            } catch (error) {
+                if (!this.isLegacyError(error)) throw error;
+
+                if (Object.keys(updateData).length > 0) {
+                    await prisma.note.updateMany({
+                        where: { id: noteId, institute_id: instituteId, is_deleted: false },
+                        data: updateData,
+                    });
+                }
+
+                const rows = await prisma.$queryRawUnsafe<any[]>(
+                    `SELECT id::text,
+                                    title,
+                                    COALESCE(description, '') as description,
+                                    COALESCE(subject, 'General') as subject,
+                                    COALESCE(chapter_title, 'General') as chapter_title,
+                                    COALESCE(chapter_order, 0) as chapter_order,
+                                    file_url,
+                                    COALESCE(file_type, 'other') as file_type,
+                                    file_size_kb,
+                                    created_at,
+                                    batch_id::text,
+                                    institute_id::text,
+                                    teacher_id::text
+                     FROM notes
+                     WHERE id::text = $1::text
+                       AND institute_id::text = $2::text`,
+                    noteId,
+                    instituteId,
+                );
+
+                if (!rows.length) {
+                    throw new ApiError('Note not found', 404, 'NOT_FOUND');
+                }
+
+                return this.mapNoteRow(rows[0]);
+            }
+    }
+
     async getNoteFile(instituteId: string, noteId: string, fileId: string) {
             return prisma.noteFile.findFirst({
                 where: {
@@ -732,6 +919,114 @@ export class ContentRepository {
             teacherId: filter.teacherId,
           });
       }
+  }
+
+  async updateAssignment(instituteId: string, assignmentId: string, data: UpdateAssignmentInput) {
+      const updateData: any = {
+          ...(data.title !== undefined ? { title: data.title } : {}),
+          ...(data.description !== undefined ? { description: this.trimOrNull(data.description) } : {}),
+          ...((data as any).instructions !== undefined ? { instructions: this.trimOrNull((data as any).instructions) } : {}),
+          ...(data.batch_id !== undefined ? { batch_id: data.batch_id } : {}),
+          ...(data.subject !== undefined ? { subject: this.trimOrNull(data.subject) } : {}),
+          ...((data as any).question_file_url !== undefined || data.file_url !== undefined
+              ? { file_url: this.trimOrNull((data as any).question_file_url) ?? this.trimOrNull(data.file_url) }
+              : {}),
+          ...((data as any).max_marks !== undefined ? { max_marks: this.toNumberOrNull((data as any).max_marks) } : {}),
+          ...(data.due_date !== undefined ? { due_date: this.toIsoDateOrNull(data.due_date) } : {}),
+          ...((data as any).allow_late_submission !== undefined ? { allow_late_submission: (data as any).allow_late_submission } : {}),
+          ...((data as any).late_grace_minutes !== undefined ? { late_grace_minutes: Number((data as any).late_grace_minutes ?? 0) } : {}),
+          ...((data as any).max_attempts !== undefined ? { max_attempts: Number((data as any).max_attempts ?? 1) } : {}),
+          ...((data as any).allow_text_submission !== undefined ? { allow_text_submission: (data as any).allow_text_submission } : {}),
+          ...((data as any).allow_file_submission !== undefined ? { allow_file_submission: (data as any).allow_file_submission } : {}),
+          ...((data as any).max_file_size_kb !== undefined ? { max_file_size_kb: Number((data as any).max_file_size_kb ?? 20480) } : {}),
+          ...((data as any).allowed_file_types !== undefined ? { allowed_file_types: this.normalizeFileTypes((data as any).allowed_file_types) } : {}),
+          ...((data as any).correct_solution_url !== undefined ? { correct_solution_url: this.trimOrNull((data as any).correct_solution_url) } : {}),
+      };
+
+      if (Object.keys(updateData).length === 0) {
+          const existing = await prisma.assignment.findFirst({
+              where: { id: assignmentId, institute_id: instituteId },
+          });
+          if (!existing) throw new ApiError('Assignment not found', 404, 'NOT_FOUND');
+          return existing;
+      }
+
+      try {
+          const result = await prisma.assignment.updateMany({
+              where: { id: assignmentId, institute_id: instituteId },
+              data: updateData,
+          });
+
+          if (result.count === 0) {
+              throw new ApiError('Assignment not found', 404, 'NOT_FOUND');
+          }
+
+          return prisma.assignment.findFirst({
+              where: { id: assignmentId, institute_id: instituteId },
+          });
+      } catch (error) {
+          if (!this.isLegacyError(error)) throw error;
+          return this.updateAssignmentLegacy(instituteId, assignmentId, data);
+      }
+  }
+
+  private async updateAssignmentLegacy(instituteId: string, assignmentId: string, data: UpdateAssignmentInput) {
+      const currentRows = await prisma.$queryRawUnsafe<any[]>(
+          `SELECT id::text, title, description, due_date, file_url, created_at, batch_id::text
+           FROM assignments
+           WHERE id::text = $1::text AND institute_id::text = $2::text`,
+          assignmentId,
+          instituteId,
+      );
+
+      if (!currentRows.length) {
+          throw new ApiError('Assignment not found', 404, 'NOT_FOUND');
+      }
+
+      const current = currentRows[0];
+      const nextTitle = data.title ?? current.title;
+      const nextDescription = this.trimOrNull(data.description) ?? current.description;
+      const nextDueDate = data.due_date ? new Date(data.due_date).toISOString() : current.due_date;
+      const nextFileUrl = this.trimOrNull((data as any).question_file_url) ?? this.trimOrNull(data.file_url) ?? current.file_url;
+
+      await prisma.$executeRawUnsafe(
+          `UPDATE assignments
+           SET title = $3,
+               description = $4,
+               due_date = $5::timestamp,
+               file_url = $6,
+               updated_at = NOW()
+           WHERE id::text = $1::text
+             AND institute_id::text = $2::text`,
+          assignmentId,
+          instituteId,
+          nextTitle,
+          nextDescription,
+          nextDueDate,
+          nextFileUrl,
+      );
+
+      const rows = await prisma.$queryRawUnsafe<any[]>(
+          `SELECT id::text, title, description, due_date, file_url, created_at, batch_id::text
+           FROM assignments
+           WHERE id::text = $1::text AND institute_id::text = $2::text`,
+          assignmentId,
+          instituteId,
+      );
+
+      return this.mapAssignmentRow(rows[0]);
+  }
+
+  async deleteAssignment(instituteId: string, assignmentId: string) {
+      const result = await prisma.assignment.deleteMany({
+          where: { id: assignmentId, institute_id: instituteId },
+      });
+
+      if (result.count === 0) {
+          throw new ApiError('Assignment not found', 404, 'NOT_FOUND');
+      }
+
+      return { id: assignmentId, deleted: true };
   }
 
   private async createAssignmentLegacy(instituteId: string, teacherId: string | null, data: CreateAssignmentInput) {

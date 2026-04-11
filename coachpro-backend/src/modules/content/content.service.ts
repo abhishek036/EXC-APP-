@@ -1,5 +1,14 @@
 import { ContentRepository } from './content.repository';
-import { CreateNoteInput, CreateAssignmentInput, SubmitAssignmentInput, ReviewAssignmentSubmissionInput, CreateDoubtInput, RespondDoubtInput } from './content.validator';
+import {
+    CreateNoteInput,
+    UpdateNoteInput,
+    CreateAssignmentInput,
+    UpdateAssignmentInput,
+    SubmitAssignmentInput,
+    ReviewAssignmentSubmissionInput,
+    CreateDoubtInput,
+    RespondDoubtInput,
+} from './content.validator';
 
 export class ContentService {
   private repo: ContentRepository;
@@ -19,6 +28,10 @@ export class ContentService {
 
   async getNoteById(instituteId: string, noteId: string) {
       return this.repo.getNoteById(instituteId, noteId);
+  }
+
+  async updateNote(instituteId: string, noteId: string, data: UpdateNoteInput) {
+      return this.repo.updateNote(instituteId, noteId, data);
   }
 
   async getNoteFile(instituteId: string, noteId: string, fileId: string) {
@@ -68,6 +81,14 @@ export class ContentService {
 
   async listAssignments(instituteId: string, filter: { batchId?: string, teacherId?: string, subject?: string }) {
       return this.repo.listAssignments(instituteId, filter);
+  }
+
+  async updateAssignment(instituteId: string, assignmentId: string, data: UpdateAssignmentInput) {
+      return this.repo.updateAssignment(instituteId, assignmentId, data);
+  }
+
+  async deleteAssignment(instituteId: string, assignmentId: string) {
+      return this.repo.deleteAssignment(instituteId, assignmentId);
   }
 
   async saveAssignmentDraft(instituteId: string, assignmentId: string, studentId: string, data: SubmitAssignmentInput) {

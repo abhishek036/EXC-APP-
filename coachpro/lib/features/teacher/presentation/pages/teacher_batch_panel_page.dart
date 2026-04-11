@@ -48,6 +48,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   String? _selectedSubject;
   List<String> _subjects = [];
   bool _isDeletingQuiz = false;
+  final Set<String> _deletingContentIds = {};
   final Set<String> _updatingResultReleaseQuizIds = {};
   DateTime _selectedAttendanceDate = DateTime.now();
   DateTime _selectedQuizMonth = DateTime.now();
@@ -1049,6 +1050,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                 )
               else
                 ...items.map((item) {
+                  final itemId = (item['id'] ?? '').toString();
+                  final isDeleting = _deletingContentIds.contains(itemId);
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(12),
@@ -1095,6 +1099,44 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                             ],
                           ),
                         ),
+                          const SizedBox(width: 8),
+                          isDeleting
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: blue,
+                                  ),
+                                )
+                              : PopupMenuButton<String>(
+                                  icon: Icon(Icons.more_vert_rounded, color: blue),
+                                  onSelected: (value) {
+                                    if (value == 'edit') {
+                                      _openEditContentItem(item, type: contentType);
+                                      return;
+                                    }
+                                    if (value == 'delete') {
+                                      _deleteContentItem(
+                                        item,
+                                        type: contentType,
+                                        label: contentType == 'video'
+                                            ? 'Video'
+                                            : 'Note',
+                                      );
+                                    }
+                                  },
+                                  itemBuilder: (_) => const [
+                                    PopupMenuItem(
+                                      value: 'edit',
+                                      child: Text('Edit'),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Text('Delete'),
+                                    ),
+                                  ],
+                                ),
                       ],
                     ),
                   );
@@ -1227,6 +1269,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                 )
               else
                 ...items.map((item) {
+                  final assignmentId = (item['id'] ?? '').toString();
+                  final isDeleting = _deletingContentIds.contains(assignmentId);
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(12),
@@ -1261,12 +1306,55 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(fontSize: 11),
                       ),
-                      trailing: IconButton(
-                        icon: Icon(Icons.rate_review_rounded, color: blue),
-                        onPressed: () => _openAssignmentReview(
-                          assignmentId: (item['id'] ?? '').toString(),
-                          assignmentTitle: (item['title'] ?? '').toString(),
-                        ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.rate_review_rounded, color: blue),
+                            onPressed: () => _openAssignmentReview(
+                              assignmentId: assignmentId,
+                              assignmentTitle: (item['title'] ?? '').toString(),
+                            ),
+                          ),
+                          isDeleting
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: blue,
+                                  ),
+                                )
+                              : PopupMenuButton<String>(
+                                  icon: Icon(Icons.more_vert_rounded, color: blue),
+                                  onSelected: (value) {
+                                    if (value == 'edit') {
+                                      _openEditContentItem(
+                                        item,
+                                        type: 'assignment',
+                                      );
+                                      return;
+                                    }
+                                    if (value == 'delete') {
+                                      _deleteContentItem(
+                                        item,
+                                        type: 'assignment',
+                                        label: 'Assignment',
+                                      );
+                                    }
+                                  },
+                                  itemBuilder: (_) => const [
+                                    PopupMenuItem(
+                                      value: 'edit',
+                                      child: Text('Edit'),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Text('Delete'),
+                                    ),
+                                  ],
+                                ),
+                        ],
                       ),
                     ),
                   );
@@ -1467,6 +1555,73 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _openEditContentItem(
+    Map<String, dynamic> item, {
+    required String type,
+  }) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => UploadMaterialPage.withInitials(
+          initialBatchId: widget.batchId,
+          initialType: type,
+          initialSubject: (_batch?['subject'] ?? '').toString(),
+          initialItem: item,
+        ),
+      ),
+    );
+    await _load();
+  }
+
+  Future<void> _deleteContentItem(
+    Map<String, dynamic> item, {
+    required String type,
+    required String label,
+  }) async {
+    final itemId = (item['id'] ?? '').toString();
+    if (itemId.isEmpty) return;
+
+    final title = (item['title'] ?? label).toString();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete $label?'),
+        content: Text('"$title" will be permanently deleted from this batch.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _deletingContentIds.add(itemId));
+    try {
+      await _teacherRepo.deleteMaterial(itemId: itemId, type: type);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$label deleted successfully.')),
+      );
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Delete failed: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _deletingContentIds.remove(itemId));
+      }
+    }
   }
 
   void _showStudentProfileDialog(

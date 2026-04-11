@@ -646,6 +646,24 @@ export class ContentController {
     } catch (e) { next(e); }
   }
 
+  updateNote = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (req.user?.role === 'teacher') {
+        await this.ensureTeacherCanAccessNote(req.instituteId!, req.user!.userId, req.params.noteId);
+      }
+
+      const data = await this.service.updateNote(req.instituteId!, req.params.noteId, req.body);
+      const batchId = (data as any)?.batch_id;
+      if (batchId) {
+        emitBatchSync(req.instituteId!, batchId, 'note_updated', {
+          note_id: req.params.noteId,
+        });
+      }
+
+      return sendResponse({ res, data, message: 'Note updated successfully' });
+    } catch (e) { next(e); }
+  }
+
   deleteNote = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (req.user?.role === 'teacher') {
@@ -805,6 +823,61 @@ export class ContentController {
       }
 
       return sendResponse({ res, data: baseAssignments, message: 'Assignments fetched successfully' });
+    } catch (e) { next(e); }
+  }
+
+  updateAssignment = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      let assignmentMeta: { id: string; batch_id: string; title: string; teacher_id: string | null } | null = null;
+      if (req.user?.role === 'teacher') {
+        assignmentMeta = await this.ensureTeacherCanAccessAssignment(
+          req.instituteId!,
+          req.user!.userId,
+          req.params.assignmentId,
+        );
+      }
+
+      const data = await this.service.updateAssignment(
+        req.instituteId!,
+        req.params.assignmentId,
+        req.body,
+      );
+
+      const batchId = (data as any)?.batch_id ?? assignmentMeta?.batch_id;
+      if (batchId) {
+        emitBatchSync(req.instituteId!, batchId, 'assignment_updated', {
+          assignment_id: req.params.assignmentId,
+        });
+      }
+
+      return sendResponse({ res, data, message: 'Assignment updated successfully' });
+    } catch (e) { next(e); }
+  }
+
+  deleteAssignment = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      let assignmentMeta: { id: string; batch_id: string; title: string; teacher_id: string | null } | null = null;
+      if (req.user?.role === 'teacher') {
+        assignmentMeta = await this.ensureTeacherCanAccessAssignment(
+          req.instituteId!,
+          req.user!.userId,
+          req.params.assignmentId,
+        );
+      }
+
+      const data = await this.service.deleteAssignment(
+        req.instituteId!,
+        req.params.assignmentId,
+      );
+
+      const batchId = assignmentMeta?.batch_id;
+      if (batchId) {
+        emitBatchSync(req.instituteId!, batchId, 'assignment_deleted', {
+          assignment_id: req.params.assignmentId,
+        });
+      }
+
+      return sendResponse({ res, data, message: 'Assignment deleted successfully' });
     } catch (e) { next(e); }
   }
 
