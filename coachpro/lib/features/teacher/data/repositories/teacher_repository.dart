@@ -569,6 +569,23 @@ class TeacherRepository {
     throw Exception(response.data['message'] ?? 'Failed to update quiz');
   }
 
+  Future<Map<String, dynamic>> updateQuizResultVisibility({
+    required String quizId,
+    required bool showInstantResult,
+    bool? allowRetry,
+  }) async {
+    final payload = <String, dynamic>{
+      'show_instant_result': showInstantResult,
+      ...?(allowRetry == null ? null : {'allow_retry': allowRetry}),
+    };
+
+    final response = await _api.dio.put('quizzes/$quizId', data: payload);
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(response.data['data'] as Map? ?? {});
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update quiz result visibility');
+  }
+
   Future<void> deleteQuiz(String quizId) async {
     final response = await _api.dio.delete('quizzes/$quizId');
     if (response.statusCode == 200 || response.statusCode == 204) {

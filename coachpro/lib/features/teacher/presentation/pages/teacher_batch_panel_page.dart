@@ -48,6 +48,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   String? _selectedSubject;
   List<String> _subjects = [];
   bool _isDeletingQuiz = false;
+  final Set<String> _updatingResultReleaseQuizIds = {};
   DateTime _selectedAttendanceDate = DateTime.now();
   DateTime _selectedQuizMonth = DateTime.now();
   StreamSubscription? _syncSub;
@@ -310,6 +311,93 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
 
     if (doubtSubject.isEmpty) return true;
     return doubtSubject == selectedSubject;
+  }
+
+  bool _isResultReleased(Map<String, dynamic> quiz) {
+    if (quiz['show_instant_result'] is bool) {
+      return quiz['show_instant_result'] == true;
+    }
+    final assessmentType =
+        (quiz['assessment_type'] ?? 'QUIZ').toString().toUpperCase();
+    return assessmentType == 'QUIZ';
+  }
+
+  Future<void> _toggleResultRelease(
+    Map<String, dynamic> quiz, {
+    required String kindLabel,
+  }) async {
+    final quizId = (quiz['id'] ?? '').toString();
+    if (quizId.isEmpty) return;
+
+    final isPublished = quiz['is_published'] == true;
+    if (!isPublished) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$kindLabel must be published before releasing results.'),
+        ),
+      );
+      return;
+    }
+
+    final title = (quiz['title'] ?? kindLabel).toString();
+    final currentlyReleased = _isResultReleased(quiz);
+    final targetRelease = !currentlyReleased;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(targetRelease ? 'Release results?' : 'Hold results?'),
+        content: Text(
+          targetRelease
+              ? 'Students will be able to see scores and solutions for "$title".'
+              : 'Students will no longer see scores and solutions for "$title".',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(targetRelease ? 'Release' : 'Hold'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _updatingResultReleaseQuizIds.add(quizId));
+    try {
+      await _teacherRepo.updateQuizResultVisibility(
+        quizId: quizId,
+        showInstantResult: targetRelease,
+        allowRetry:
+            quiz['allow_retry'] is bool ? (quiz['allow_retry'] as bool) : null,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            targetRelease
+                ? 'Results released for "$title".'
+                : 'Results hidden for "$title".',
+          ),
+        ),
+      );
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to update result visibility: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingResultReleaseQuizIds.remove(quizId));
+      }
+    }
   }
 
   void _showSubjectPicker(
@@ -1792,6 +1880,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                 _toNum((quiz['_count'] as Map?)?['questions']).toInt());
             final timeLimit = _toNum(quiz['time_limit_min']).toInt();
             final isPublished = quiz['is_published'] == true;
+            final isResultReleased = _isResultReleased(quiz);
+            final isUpdatingRelease =
+              _updatingResultReleaseQuizIds.contains(quizId);
 
             return _PremiumCard(
               margin: const EdgeInsets.only(bottom: 12),
@@ -1986,6 +2077,51 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                       ),
                     ],
                   ),
+                  if (isPublished) ...[
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: (quizId.isEmpty || isUpdatingRelease)
+                            ? null
+                            : () => _toggleResultRelease(
+                                quiz,
+                                kindLabel: 'Quiz',
+                              ),
+                        icon: isUpdatingRelease
+                            ? SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: isResultReleased ? blue : Colors.white,
+                                ),
+                              )
+                            : Icon(
+                                isResultReleased
+                                    ? Icons.visibility_off_rounded
+                                    : Icons.visibility_rounded,
+                                size: 16,
+                              ),
+                        label: Text(
+                          isResultReleased
+                              ? 'HOLD RESULTS'
+                              : 'RELEASE RESULTS',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isResultReleased
+                              ? yellow
+                              : AppColors.mintGreen,
+                          foregroundColor: blue,
+                          side: BorderSide(color: blue, width: 2),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             );
@@ -2057,6 +2193,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                 _toNum((test['_count'] as Map?)?['questions']).toInt());
             final timeLimit = _toNum(test['time_limit_min']).toInt();
             final isPublished = test['is_published'] == true;
+            final isResultReleased = _isResultReleased(test);
+            final isUpdatingRelease =
+              _updatingResultReleaseQuizIds.contains(testId);
 
             return _PremiumCard(
               margin: const EdgeInsets.only(bottom: 12),
@@ -2251,6 +2390,51 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                       ),
                     ],
                   ),
+                  if (isPublished) ...[
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: (testId.isEmpty || isUpdatingRelease)
+                            ? null
+                            : () => _toggleResultRelease(
+                                test,
+                                kindLabel: 'Test',
+                              ),
+                        icon: isUpdatingRelease
+                            ? SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: isResultReleased ? blue : Colors.white,
+                                ),
+                              )
+                            : Icon(
+                                isResultReleased
+                                    ? Icons.visibility_off_rounded
+                                    : Icons.visibility_rounded,
+                                size: 16,
+                              ),
+                        label: Text(
+                          isResultReleased
+                              ? 'HOLD RESULTS'
+                              : 'RELEASE RESULTS',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isResultReleased
+                              ? yellow
+                              : AppColors.mintGreen,
+                          foregroundColor: blue,
+                          side: BorderSide(color: blue, width: 2),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             );
