@@ -281,16 +281,6 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
     }
   }
 
-  void _toggleControlsVisibility() {
-    if (!mounted) return;
-    if (_showVideoControls) {
-      _controlsHideTimer?.cancel();
-      setState(() => _showVideoControls = false);
-    } else {
-      _showControlsTemporarily();
-    }
-  }
-
   Future<void> _togglePlayPause() async {
     final controller = _controller;
     if (controller == null) return;
@@ -546,184 +536,177 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
 
     return AspectRatio(
       aspectRatio: 16 / 9,
-      child: GestureDetector(
-        onTap: _toggleControlsVisibility,
-        behavior: HitTestBehavior.opaque,
-        child: Stack(
-          children: [
-            Positioned.fill(child: player),
-            // Mask native YouTube top title/chip area.
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 56,
-              child: Container(color: Colors.black.withValues(alpha: 0.86)),
-            ),
-            // Mask native YouTube bottom bar/logo area.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 52,
-              child: Container(color: Colors.black.withValues(alpha: 0.9)),
-            ),
-            // Mask center "More videos" bubble area.
-            const Align(
-              alignment: Alignment(0, 0.42),
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Color(0xE6000000),
-                    borderRadius: BorderRadius.all(Radius.circular(18)),
-                  ),
-                  child: SizedBox(width: 168, height: 36),
-                ),
+      child: Stack(
+        children: [
+          Positioned.fill(child: player),
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: _showVideoControls,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _showControlsTemporarily,
+                child: const SizedBox.expand(),
               ),
             ),
-            Positioned.fill(
-              child: IgnorePointer(
-                ignoring: !_showVideoControls,
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 180),
-                  opacity: _showVideoControls ? 1 : 0,
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0x88000000),
-                          Colors.transparent,
-                          Color(0xAA000000),
-                        ],
-                      ),
+          ),
+            // Mask native YouTube top title/chip area.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 56,
+            child: Container(color: Colors.black.withValues(alpha: 0.86)),
+          ),
+            // Mask native YouTube bottom bar/logo area.
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 52,
+            child: Container(color: Colors.black.withValues(alpha: 0.9)),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: !_showVideoControls,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 180),
+                opacity: _showVideoControls ? 1 : 0,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x88000000),
+                        Colors.transparent,
+                        Color(0xAA000000),
+                      ],
                     ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            IconButton(
-                              onPressed: _toggleMute,
-                              icon: Icon(
-                                _isMuted
-                                    ? Icons.volume_off_rounded
-                                    : Icons.volume_up_rounded,
-                                color: Colors.white,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: _openSettingsSheet,
-                              icon: const Icon(
-                                Icons.settings_rounded,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                IconButton(
-                                  iconSize: 34,
-                                  onPressed: () => _skipBy(-10),
-                                  icon: const Icon(
-                                    Icons.replay_10_rounded,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                GestureDetector(
-                                  onTap: _togglePlayPause,
-                                  child: Container(
-                                    width: 64,
-                                    height: 64,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Color(0xB3000000),
-                                    ),
-                                    child: Icon(
-                                      _isPlaying
-                                          ? Icons.pause_rounded
-                                          : Icons.play_arrow_rounded,
-                                      color: Colors.white,
-                                      size: 38,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                IconButton(
-                                  iconSize: 34,
-                                  onPressed: () => _skipBy(10),
-                                  icon: const Icon(
-                                    Icons.forward_10_rounded,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            onPressed: _toggleMute,
+                            icon: Icon(
+                              _isMuted
+                                  ? Icons.volume_off_rounded
+                                  : Icons.volume_up_rounded,
+                              color: Colors.white,
                             ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-                          child: Column(
+                          IconButton(
+                            onPressed: _openSettingsSheet,
+                            icon: const Icon(
+                              Icons.settings_rounded,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Slider(
-                                value: sliderValue,
-                                min: 0,
-                                max: sliderMax,
-                                activeColor: AppColors.moltenAmber,
-                                inactiveColor: Colors.white24,
-                                onChangeStart: (_) {
-                                  _isDraggingSeek = true;
-                                  _controlsHideTimer?.cancel();
-                                },
-                                onChanged: (value) {
-                                  setState(() => _positionSeconds = value);
-                                },
-                                onChangeEnd: (value) async {
-                                  _isDraggingSeek = false;
-                                  await _seekTo(value);
-                                },
+                              IconButton(
+                                iconSize: 34,
+                                onPressed: () => _skipBy(-10),
+                                icon: const Icon(
+                                  Icons.replay_10_rounded,
+                                  color: Colors.white,
+                                ),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      _formatTime(_positionSeconds),
-                                      style: GoogleFonts.plusJakartaSans(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      _formatTime(_durationSeconds),
-                                      style: GoogleFonts.plusJakartaSans(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: _togglePlayPause,
+                                child: Container(
+                                  width: 64,
+                                  height: 64,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xB3000000),
+                                  ),
+                                  child: Icon(
+                                    _isPlaying
+                                        ? Icons.pause_rounded
+                                        : Icons.play_arrow_rounded,
+                                    color: Colors.white,
+                                    size: 38,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                iconSize: 34,
+                                onPressed: () => _skipBy(10),
+                                icon: const Icon(
+                                  Icons.forward_10_rounded,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+                        child: Column(
+                          children: [
+                            Slider(
+                              value: sliderValue,
+                              min: 0,
+                              max: sliderMax,
+                              activeColor: AppColors.moltenAmber,
+                              inactiveColor: Colors.white24,
+                              onChangeStart: (_) {
+                                _isDraggingSeek = true;
+                                _controlsHideTimer?.cancel();
+                              },
+                              onChanged: (value) {
+                                setState(() => _positionSeconds = value);
+                              },
+                              onChangeEnd: (value) async {
+                                _isDraggingSeek = false;
+                                await _seekTo(value);
+                              },
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    _formatTime(_positionSeconds),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    _formatTime(_durationSeconds),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
