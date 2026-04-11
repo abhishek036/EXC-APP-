@@ -38,7 +38,9 @@ export class AnnouncementService {
           announcement_id: created.id,
         },
       });
-    } catch {}
+    } catch (error) {
+      console.error('[AnnouncementService] Failed to send push notification:', error);
+    }
 
     return created;
   }
@@ -59,7 +61,9 @@ export class AnnouncementService {
     await this.repo.remove(id, instituteId);
     try {
       await NotificationService.deleteByAnnouncement({ instituteId, announcementId: id });
-    } catch {}
+    } catch (error) {
+      console.error('[AnnouncementService] Failed to delete notification:', error);
+    }
     return { success: true };
   }
 }

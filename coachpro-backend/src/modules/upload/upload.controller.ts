@@ -7,9 +7,10 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { sendResponse } from '../../utils/response';
 import { ApiError } from '../../middleware/error.middleware';
-import { basename, extname } from 'path';
+import { basename, dirname, extname, isAbsolute, resolve } from 'path';
+import { createReadStream, existsSync, promises as fsp } from 'fs';
 
-type StorageProvider = 'b2' | 'cloudinary' | 'supabase';
+type StorageProvider = 'b2' | 'cloudinary' | 'supabase' | 'local';
 
 type StorageRef = {
   provider: StorageProvider;
@@ -51,6 +52,30 @@ const supabaseClient: SupabaseClient | null = hasSupabase
   : null;
 
 export class UploadController {
+  private useLocalStorage(): boolean {
+    const raw = String(process.env.LOCAL_FILE_STORAGE || '').trim().toLowerCase();
+    if (raw === '1' || raw === 'true' || raw === 'yes') return true;
+    if (raw === '0' || raw === 'false' || raw === 'no') return false;
+    return process.env.NODE_ENV !== 'production';
+  }
+
+  private localStorageRoot(): string {
+    const configured = String(process.env.UPLOAD_DIR || '').trim();
+    if (configured) {
+      return isAbsolute(configured) ? configured : resolve(process.cwd(), configured);
+    }
+    return resolve(process.cwd(), 'tmp', 'uploads');
+  }
+
+  private localAbsolutePathFromKey(key: string): string {
+    const cleaned = String(key || '').replace(/\\/g, '/').replace(/^\/+/, '');
+    const safeParts = cleaned.split('/').filter((part) => part && part !== '.' && part !== '..');
+    if (!safeParts.length) {
+      throw new ApiError('Invalid local storage key', 400, 'INVALID_STORAGE_KEY');
+    }
+    return resolve(this.localStorageRoot(), ...safeParts);
+  }
+
   private sanitizeFileName(fileNameRaw: string): string {
     const normalized = basename(String(fileNameRaw || '').trim()) || 'upload';
     return normalized
@@ -237,6 +262,23 @@ export class UploadController {
     };
   }
 
+  private async uploadToLocal(file: Express.Multer.File, destination: string): Promise<StorageRef> {
+    const ext = extname(file.originalname) || '';
+    const key = `${destination}/${uuidv4()}${ext}`.replace(/\\/g, '/');
+    const absolutePath = this.localAbsolutePathFromKey(key);
+
+    await fsp.mkdir(dirname(absolutePath), { recursive: true });
+    await fsp.writeFile(absolutePath, file.buffer);
+
+    return {
+      provider: 'local',
+      key,
+      mimeType: file.mimetype || this.contentTypeFromExt(file.originalname),
+      fileName: file.originalname,
+      sizeKb: Math.ceil(file.size / 1024),
+    };
+  }
+
   private async resolveStorageRef(file: Express.Multer.File, destination: string): Promise<StorageRef> {
     const isMedia = file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/');
     const isDocument = !isMedia;
@@ -255,6 +297,10 @@ export class UploadController {
 
     if (supabaseClient) {
       return this.uploadToSupabase(file, destination);
+    }
+
+    if (this.useLocalStorage()) {
+      return this.uploadToLocal(file, destination);
     }
 
     return this.uploadToB2(file, destination);
@@ -350,6 +396,21 @@ export class UploadController {
         contentType: String(response.headers['content-type'] || ref.mimeType || ''),
         contentLength: response.headers['content-length'] ? Number(response.headers['content-length']) : undefined,
         fileName: ref.fileName || basename(ref.key),
+      };
+    }
+
+    if (ref.provider === 'local') {
+      const absolutePath = this.localAbsolutePathFromKey(ref.key);
+      if (!existsSync(absolutePath)) {
+        throw new ApiError('Local file not found', 404, 'NOT_FOUND');
+      }
+
+      const stat = await fsp.stat(absolutePath);
+      return {
+        stream: createReadStream(absolutePath),
+        contentType: ref.mimeType || this.contentTypeFromExt(ref.fileName || basename(absolutePath)),
+        contentLength: stat.size,
+        fileName: ref.fileName || basename(absolutePath),
       };
     }
 

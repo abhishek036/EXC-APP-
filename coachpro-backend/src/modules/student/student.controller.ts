@@ -198,25 +198,7 @@ export class StudentController {
         res,
         data: {
           student: { id: student.id, name: student.name, phone: student.phone, photo_url: student.photo_url },
-          today_schedule: todayLectures.map((l: any) => {
-            // If it's already a string (from our recurring logic), use it. 
-            // Otherwise, format from scheduled_at.
-            const start = l.scheduled_at;
-            const duration = l.duration_minutes || 60;
-            const end = start ? new Date(start.getTime() + duration * 60000) : null;
-            
-            const toIstStr = (d: Date | null) => {
-                if (!d) return null;
-                const ist = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
-                return `${ist.getUTCHours().toString().padStart(2, '0')}:${ist.getUTCMinutes().toString().padStart(2, '0')}`;
-            };
-
-            return {
-              ...l,
-              start_time: l.start_time || toIstStr(start) || '00:00',
-              end_time: l.end_time || toIstStr(end) || '00:00'
-            };
-          }),
+          today_schedule: todayLectures,
           stats: {
             attendance_percentage: attendancePercentage,
             total_classes_30d: totalClasses,

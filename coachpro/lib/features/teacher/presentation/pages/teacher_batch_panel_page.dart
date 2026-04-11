@@ -80,10 +80,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     super.dispose();
   }
 
-  void _openAssignmentReview({
-    String? assignmentId,
-    String? assignmentTitle,
-  }) {
+  void _openAssignmentReview({String? assignmentId, String? assignmentTitle}) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -106,6 +103,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     }
 
     if (pendingCount <= 0) {
+      if (_assignments.isEmpty) return;
       final first = _assignments.first;
       _openAssignmentReview(
         assignmentId: (first['id'] ?? '').toString(),
@@ -119,7 +117,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       if (assignmentId.isEmpty) continue;
 
       try {
-        final submissions = await _teacherRepo.getAssignmentSubmissions(assignmentId);
+        final submissions = await _teacherRepo.getAssignmentSubmissions(
+          assignmentId,
+        );
         final hasPending = submissions.any((submission) {
           final status = (submission['status'] ?? '').toString().toLowerCase();
           return status == 'submitted' || status == 'late_submission';
@@ -138,6 +138,14 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       }
     }
 
+    // Final fallback - check again if list is not empty
+    if (_assignments.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No assignments available to review.')),
+      );
+      return;
+    }
     final fallback = _assignments.first;
     if (!mounted) return;
     _openAssignmentReview(
@@ -168,14 +176,22 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         assessmentType: 'TEST',
         subject: _selectedSubject,
       );
-      final notesFuture = _teacherRepo.getBatchNotes(widget.batchId, subject: _selectedSubject);
-      final assignmentsFuture = _teacherRepo.getAssignments(batchId: widget.batchId, subject: _selectedSubject);
+      final notesFuture = _teacherRepo.getBatchNotes(
+        widget.batchId,
+        subject: _selectedSubject,
+      );
+      final assignmentsFuture = _teacherRepo.getAssignments(
+        batchId: widget.batchId,
+        subject: _selectedSubject,
+      );
 
       final batches = await batchesFuture;
       final selected = batches
           .where((b) => (b['id'] ?? '').toString() == widget.batchId)
           .toList();
-      final batchData = selected.isNotEmpty ? selected.first : <String, dynamic>{};
+      final batchData = selected.isNotEmpty
+          ? selected.first
+          : <String, dynamic>{};
 
       // Parse subjects from meta
       final meta = batchData['meta'] ?? {};
@@ -184,9 +200,12 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       if (subs is List) {
         subjects = subs.map((e) => e.toString()).toList();
       } else if (subs is String && subs.isNotEmpty) {
-        subjects = subs.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        subjects = subs
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
       }
-
 
       final execution = await executionFuture;
       final students = await studentsFuture;
@@ -220,6 +239,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         _subjects = subjects;
         if (_selectedSubject == null && subjects.isNotEmpty) {
           _selectedSubject = subjects.first;
+        } else if (_selectedSubject != null && !subjects.contains(_selectedSubject)) {
+          // Subject list changed (admin edit) — reset to first available
+          _selectedSubject = subjects.isNotEmpty ? subjects.first : null;
         }
         _execution = execution;
         _students = students;
@@ -241,7 +263,12 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     }
   }
 
-  void _showSubjectPicker(BuildContext context, Color accentYellow, Color surfaceWhite, Color primaryBlue) {
+  void _showSubjectPicker(
+    BuildContext context,
+    Color accentYellow,
+    Color surfaceWhite,
+    Color primaryBlue,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -251,7 +278,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
           decoration: BoxDecoration(
             color: surfaceWhite,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: const Border(top: BorderSide(color: Colors.black, width: 3)),
+            border: const Border(
+              top: BorderSide(color: Colors.black, width: 3),
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -286,7 +315,14 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                       decoration: BoxDecoration(
                         color: isSel ? accentYellow : Colors.white,
                         border: Border.all(color: Colors.black, width: 2),
-                        boxShadow: isSel ? null : const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
+                        boxShadow: isSel
+                            ? null
+                            : const [
+                                BoxShadow(
+                                  color: Colors.black,
+                                  offset: Offset(4, 4),
+                                ),
+                              ],
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -299,7 +335,11 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                               color: primaryBlue,
                             ),
                           ),
-                          if (isSel) const Icon(Icons.check_circle_rounded, color: Colors.blue),
+                          if (isSel)
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              color: Colors.blue,
+                            ),
                         ],
                       ),
                     ),
@@ -339,10 +379,17 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
             onPressed: () => Navigator.pop(context),
           ),
           title: GestureDetector(
-            onTap: _subjects.length > 1 ? () {
-              // Show subject bottom sheet or menu
-              _showSubjectPicker(context, accentYellow, surfaceWhite, primaryBlue);
-            } : null,
+            onTap: _subjects.length > 1
+                ? () {
+                    // Show subject bottom sheet or menu
+                    _showSubjectPicker(
+                      context,
+                      accentYellow,
+                      surfaceWhite,
+                      primaryBlue,
+                    );
+                  }
+                : null,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -368,7 +415,11 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                         ),
                       ),
                       if (_subjects.length > 1)
-                        const Icon(Icons.arrow_drop_down, color: accentYellow, size: 18),
+                        const Icon(
+                          Icons.arrow_drop_down,
+                          color: accentYellow,
+                          size: 18,
+                        ),
                     ],
                   ),
               ],
@@ -402,19 +453,24 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
-                   if (_subjects.isNotEmpty) _buildSubjectSelector(accentYellow, primaryBlue, surfaceWhite),
-                   Expanded(
-                     child: TabBarView(
-                        children: [
-                          _overviewTab(surfaceWhite, accentYellow, primaryBlue),
-                          _contentTab(surfaceWhite, accentYellow, primaryBlue),
-                          _studentsTab(surfaceWhite, accentYellow, primaryBlue),
-                          _testsTab(surfaceWhite, accentYellow, primaryBlue),
-                          _attendanceTab(surfaceWhite, accentYellow, primaryBlue),
-                          _doubtsTab(surfaceWhite, accentYellow, primaryBlue),
-                        ],
-                      ),
-                   ),
+                  if (_subjects.isNotEmpty)
+                    _buildSubjectSelector(
+                      accentYellow,
+                      primaryBlue,
+                      surfaceWhite,
+                    ),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        _overviewTab(surfaceWhite, accentYellow, primaryBlue),
+                        _contentTab(surfaceWhite, accentYellow, primaryBlue),
+                        _studentsTab(surfaceWhite, accentYellow, primaryBlue),
+                        _testsTab(surfaceWhite, accentYellow, primaryBlue),
+                        _attendanceTab(surfaceWhite, accentYellow, primaryBlue),
+                        _doubtsTab(surfaceWhite, accentYellow, primaryBlue),
+                      ],
+                    ),
+                  ),
                 ],
               ),
       ),
@@ -623,7 +679,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Uploaded yesterday • 84% student reach',
+                lastLecture['created_at'] != null
+                    ? 'Uploaded ${_formatRelativeDate(lastLecture['created_at'])} • ${_students.isNotEmpty ? '${_students.length} students enrolled' : ''}'
+                    : 'No upload date available',
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
@@ -786,7 +844,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
 
   Widget _simpleListPane(String title, Color bg, Color yellow, Color blue) {
     final contentType = title.toLowerCase() == 'videos' ? 'video' : 'note';
-    
+
     // Filter notes based on the current tab type
     final items = _notes.where((n) {
       final type = (n['file_type'] ?? '').toString().toLowerCase();
@@ -865,7 +923,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                     child: Row(
                       children: [
                         Icon(
-                          contentType == 'video' ? Icons.play_circle_fill : Icons.description,
+                          contentType == 'video'
+                              ? Icons.play_circle_fill
+                              : Icons.description,
                           color: blue,
                           size: 32,
                         ),
@@ -882,7 +942,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                   color: blue,
                                 ),
                               ),
-                              if ((item['description'] ?? '').toString().isNotEmpty)
+                              if ((item['description'] ?? '')
+                                  .toString()
+                                  .isNotEmpty)
                                 Text(
                                   item['description'].toString(),
                                   style: GoogleFonts.plusJakartaSans(
@@ -911,7 +973,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     final assignmentsSummary = Map<String, dynamic>.from(
       (_execution['assignments'] as Map?) ?? const {},
     );
-    final pending = _toNum(assignmentsSummary['pending_evaluation_count']).toInt();
+    final pending = _toNum(
+      assignmentsSummary['pending_evaluation_count'],
+    ).toInt();
     final late = _toNum(assignmentsSummary['late_submissions_count']).toInt();
 
     final items = _assignments;
@@ -1040,7 +1104,11 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                         assignmentTitle: (item['title'] ?? '').toString(),
                       ),
                       contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.assignment_ind_rounded, color: blue, size: 30),
+                      leading: Icon(
+                        Icons.assignment_ind_rounded,
+                        color: blue,
+                        size: 30,
+                      ),
                       title: Text(
                         (item['title'] ?? 'Assignment').toString(),
                         style: GoogleFonts.plusJakartaSans(
@@ -1050,7 +1118,8 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                         ),
                       ),
                       subtitle: Text(
-                        (item['description'] ?? 'Tap to review submissions').toString(),
+                        (item['description'] ?? 'Tap to review submissions')
+                            .toString(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(fontSize: 11),
@@ -1350,8 +1419,18 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     );
 
     final monthName = [
-      'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
-      'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
+      'JANUARY',
+      'FEBRUARY',
+      'MARCH',
+      'APRIL',
+      'MAY',
+      'JUNE',
+      'JULY',
+      'AUGUST',
+      'SEPTEMBER',
+      'OCTOBER',
+      'NOVEMBER',
+      'DECEMBER',
     ][_selectedQuizMonth.month - 1];
 
     return ListView(
@@ -1360,71 +1439,120 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         InkWell(
           onTap: () async {
             final List<String> months = [
-              'January', 'February', 'March', 'April', 'May', 'June',
-              'July', 'August', 'September', 'October', 'November', 'December'
+              'January',
+              'February',
+              'March',
+              'April',
+              'May',
+              'June',
+              'July',
+              'August',
+              'September',
+              'October',
+              'November',
+              'December',
             ];
             int tempYear = _selectedQuizMonth.year;
             int tempMonth = _selectedQuizMonth.month;
 
             final result = await showDialog<DateTime>(
               context: context,
-              builder: (ctx) => StatefulBuilder(builder: (ctx, setDialogState) {
-                return AlertDialog(
-                  backgroundColor: bg,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: blue, width: 3),
-                  ),
-                  title: Text(
-                    'FILTER BY MONTH',
-                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: blue),
-                  ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => setDialogState(() => tempYear--)),
-                          Text('$tempYear', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 20, color: blue)),
-                          IconButton(icon: const Icon(Icons.chevron_right), onPressed: () => setDialogState(() => tempYear++)),
-                        ],
+              builder: (ctx) => StatefulBuilder(
+                builder: (ctx, setDialogState) {
+                  return AlertDialog(
+                    backgroundColor: bg,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: blue, width: 3),
+                    ),
+                    title: Text(
+                      'FILTER BY MONTH',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w900,
+                        color: blue,
                       ),
-                      const Divider(),
-                      SizedBox(
-                        height: 200, width: 300,
-                        child: GridView.builder(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 1.5),
-                          itemCount: 12,
-                          itemBuilder: (ctx, i) {
-                            final isSelected = tempMonth == i + 1;
-                            return InkWell(
-                              onTap: () => setDialogState(() => tempMonth = i + 1),
-                              child: Container(
-                                alignment: Alignment.center, margin: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: isSelected ? yellow : Colors.white,
-                                  border: Border.all(color: blue),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(months[i].substring(0, 3).toUpperCase(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 12, color: blue)),
+                    ),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.chevron_left),
+                              onPressed: () => setDialogState(() => tempYear--),
+                            ),
+                            Text(
+                              '$tempYear',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 20,
+                                color: blue,
                               ),
-                            );
-                          },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.chevron_right),
+                              onPressed: () => setDialogState(() => tempYear++),
+                            ),
+                          ],
+                        ),
+                        const Divider(),
+                        SizedBox(
+                          height: 200,
+                          width: 300,
+                          child: GridView.builder(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  childAspectRatio: 1.5,
+                                ),
+                            itemCount: 12,
+                            itemBuilder: (ctx, i) {
+                              final isSelected = tempMonth == i + 1;
+                              return InkWell(
+                                onTap: () =>
+                                    setDialogState(() => tempMonth = i + 1),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  margin: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? yellow : Colors.white,
+                                    border: Border.all(color: blue),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    months[i].substring(0, 3).toUpperCase(),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 12,
+                                      color: blue,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('CANCEL'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () =>
+                            Navigator.pop(ctx, DateTime(tempYear, tempMonth)),
+                        style: ElevatedButton.styleFrom(backgroundColor: blue),
+                        child: const Text(
+                          'FILTER',
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
                     ],
-                  ),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(ctx, DateTime(tempYear, tempMonth)),
-                      style: ElevatedButton.styleFrom(backgroundColor: blue),
-                      child: const Text('FILTER', style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                );
-              }),
+                  );
+                },
+              ),
             );
             if (result != null) {
               setState(() => _selectedQuizMonth = result);
@@ -1443,13 +1571,21 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                     const SizedBox(width: 12),
                     Text(
                       '$monthName ${_selectedQuizMonth.year}',
-                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 13, color: blue),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        color: blue,
+                      ),
                     ),
                   ],
                 ),
                 Text(
                   'CHANGE MONTH',
-                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 10, color: blue.withValues(alpha: 0.6)),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 10,
+                    color: blue.withValues(alpha: 0.6),
+                  ),
                 ),
               ],
             ),
@@ -2104,7 +2240,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                   final picked = await showDatePicker(
                     context: context,
                     initialDate: _selectedAttendanceDate,
-                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    firstDate: DateTime.now().subtract(
+                      const Duration(days: 365),
+                    ),
                     lastDate: DateTime.now(),
                     builder: (context, child) {
                       return Theme(
@@ -2125,7 +2263,10 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                   }
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(color: blue, width: 2),
@@ -2136,7 +2277,11 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.calendar_today_rounded, color: blue, size: 18),
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            color: blue,
+                            size: 18,
+                          ),
                           const SizedBox(width: 12),
                           Text(
                             'DATE: ${_selectedAttendanceDate.day}/${_selectedAttendanceDate.month}/${_selectedAttendanceDate.year}',
@@ -2195,6 +2340,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       ],
     );
   }
+
   Widget _doubtsTab(Color bg, Color yellow, Color blue) {
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -2216,12 +2362,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
           )
         else
           ..._doubts.map((d) {
-            final student =
-                ((d['student'] as Map?)?['name'] ?? 'Student').toString();
+            final student = ((d['student'] as Map?)?['name'] ?? 'Student')
+                .toString();
             final batch = ((d['batch'] as Map?)?['name'] ?? 'Batch').toString();
             final preview = _buildDoubtPreviewText(d);
-            final studentInitial =
-                student.trim().isEmpty ? 'S' : student.trim().substring(0, 1).toUpperCase();
+            final studentInitial = student.trim().isEmpty
+                ? 'S'
+                : student.trim().substring(0, 1).toUpperCase();
 
             String timeAgo = 'JUST NOW';
             final createdAt = (d['created_at'] ?? '').toString();
@@ -2332,8 +2479,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   String _buildDoubtPreviewText(Map<String, dynamic> doubt) {
-    final question =
-        (doubt['question_text'] ?? doubt['questionText'] ?? '').toString().trim();
+    final question = (doubt['question_text'] ?? doubt['questionText'] ?? '')
+        .toString()
+        .trim();
     if (question.isEmpty) return 'Open chat';
 
     final lines = question
@@ -2368,6 +2516,19 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     if (value == null) return 0;
     if (value is num) return value;
     return num.tryParse(value.toString()) ?? 0;
+  }
+
+  String _formatRelativeDate(dynamic dateValue) {
+    if (dateValue == null) return 'recently';
+    final date = DateTime.tryParse(dateValue.toString());
+    if (date == null) return 'recently';
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    if (diff.inDays == 0) return 'today';
+    if (diff.inDays == 1) return 'yesterday';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    if (diff.inDays < 30) return '${(diff.inDays / 7).round()} week(s) ago';
+    return '${(diff.inDays / 30).round()} month(s) ago';
   }
 
   Widget _filterChip(String label, String value, Color blue, Color yellow) {

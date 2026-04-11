@@ -4,11 +4,11 @@ import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
+import '../../../../core/utils/file_opener.dart';
 import '../../data/repositories/student_repository.dart';
 
 class _DoubtThreadMessage {
@@ -699,6 +699,71 @@ class _NotesPaneState extends State<_NotesPane> {
     await _future;
   }
 
+  Map<String, dynamic> _resolvePrimaryFile(Map<String, dynamic> note) {
+    final primaryRaw = note['primary_file'];
+    if (primaryRaw is Map) {
+      return Map<String, dynamic>.from(primaryRaw);
+    }
+
+    final filesRaw = note['note_files'];
+    if (filesRaw is List) {
+      for (final item in filesRaw) {
+        if (item is Map) {
+          return Map<String, dynamic>.from(item);
+        }
+      }
+    }
+
+    return <String, dynamic>{};
+  }
+
+  Future<void> _openNote(Map<String, dynamic> note) async {
+    try {
+      final noteId = (note['id'] ?? '').toString();
+      final primary = _resolvePrimaryFile(note);
+      final fileId = (primary['id'] ?? '').toString();
+
+      String targetUrl = '';
+      String? fileName;
+      String? mimeType;
+
+      if (noteId.isNotEmpty && fileId.isNotEmpty) {
+        final access = await _repo.getStudyMaterialAccess(
+          noteId: noteId,
+          fileId: fileId,
+          action: 'download',
+        );
+        targetUrl = (access['access_url'] ?? '').toString();
+        fileName = (access['file_name'] ?? '').toString();
+        mimeType = (access['mime_type'] ?? '').toString();
+      }
+
+      if (targetUrl.isEmpty) {
+        targetUrl =
+            (primary['file_url'] ?? note['file_url'] ?? '').toString().trim();
+      }
+
+      if (targetUrl.isEmpty) {
+        throw Exception('No secure file URL available');
+      }
+
+      await downloadAndOpenFromUrl(
+        url: targetUrl,
+        fileName: fileName?.trim().isEmpty ?? true
+            ? (primary['file_name'] ?? note['title'] ?? 'note').toString()
+            : fileName,
+        mimeType: mimeType?.trim().isEmpty ?? true ? null : mimeType,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to download/open this note right now.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
@@ -743,33 +808,16 @@ class _NotesPaneState extends State<_NotesPane> {
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, i) {
               final note = notes[i];
+              final primary = _resolvePrimaryFile(note);
+              final sizeKb = primary['file_size_kb'] ?? note['file_size_kb'];
               return _buildItemCard(
                 icon: Icons.picture_as_pdf_rounded,
                 title: (note['title'] ?? 'Note ${i + 1}').toString(),
                 subtitle: 'By ${widget.teacherName ?? "Teacher"}',
-                meta: note['file_size_kb'] != null
-                    ? '${note['file_size_kb']} KB'
+                meta: sizeKb != null
+                    ? '$sizeKb KB'
                     : 'PDF',
-                onTap: () async {
-                  final url = note['file_url']?.toString();
-                  if (url != null && url.isNotEmpty) {
-                    final uri = Uri.tryParse(url);
-                    if (uri != null && await canLaunchUrl(uri)) {
-                      await launchUrl(
-                        uri,
-                        mode: LaunchMode.externalApplication,
-                      );
-                      return;
-                    }
-                  }
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('No valid link available for this note.'),
-                      ),
-                    );
-                  }
-                },
+                onTap: () => _openNote(note),
               );
             },
           ),

@@ -48,6 +48,21 @@ class CpUserAvatar extends StatelessWidget {
   bool get _hasAvatar =>
       avatarUrl != null && avatarUrl!.trim().isNotEmpty;
 
+  Widget _buildInitialsSurface(Color bgColor, Color fgColor) {
+    return Container(
+      color: bgColor,
+      alignment: Alignment.center,
+      child: Text(
+        _initials,
+        style: GoogleFonts.plusJakartaSans(
+          color: fgColor,
+          fontWeight: FontWeight.w800,
+          fontSize: size * 0.36,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bgColor = backgroundColor ?? AppColors.elitePrimary;
@@ -64,25 +79,18 @@ class CpUserAvatar extends StatelessWidget {
         boxShadow: showShadow
             ? [BoxShadow(color: border, offset: const Offset(2, 2))]
             : null,
-        image: _hasAvatar
-            ? DecorationImage(
-                image: NetworkImage(avatarUrl!),
-                fit: BoxFit.cover,
-              )
-            : null,
       ),
-      child: _hasAvatar
-          ? null
-          : Center(
-              child: Text(
-                _initials,
-                style: GoogleFonts.plusJakartaSans(
-                  color: fgColor,
-                  fontWeight: FontWeight.w800,
-                  fontSize: size * 0.36,
-                ),
-              ),
-            ),
+      child: ClipOval(
+        child: _hasAvatar
+            ? Image.network(
+                avatarUrl!,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => _buildInitialsSurface(bgColor, fgColor),
+              )
+            : _buildInitialsSurface(bgColor, fgColor),
+      ),
     );
   }
 }

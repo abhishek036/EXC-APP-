@@ -83,6 +83,13 @@ class _AdminReportsPageState extends State<AdminReportsPage>
 
   // Removed _glow method
 
+  String _getInitial(String? name) {
+    if (name == null || name.isEmpty) return '?';
+    final parts = name.split(' ');
+    final lastWord = parts.isNotEmpty ? parts.last : name;
+    return lastWord.isNotEmpty ? lastWord[0] : '?';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
@@ -1621,7 +1628,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                   ),
                   child: Center(
                     child: Text(
-                      (t['name'] as String).split(' ').last[0],
+                      _getInitial(t['name'] as String?),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,

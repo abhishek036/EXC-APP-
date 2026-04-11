@@ -38,7 +38,22 @@ export const errorHandler = (
   let message = 'An unexpected error occurred';
   let fields;
 
-  if ('statusCode' in err) {
+  // Check specific error types first (most specific → least specific)
+  if (err.name === 'JsonWebTokenError') {
+    code = 'UNAUTHORIZED';
+    statusCode = 401;
+    message = 'Invalid token. Please log in again.';
+  } else if (err.name === 'TokenExpiredError') {
+    code = 'TOKEN_EXPIRED';
+    statusCode = 401;
+    message = 'Your token has expired. Please log in again.';
+  } else if (err.name === 'PrismaClientKnownRequestError') {
+    // Only set to 400 if not already wrapped in an ApiError with a specific status
+    code = 'DATABASE_ERROR';
+    statusCode = ('statusCode' in err) ? err.statusCode : 400;
+    message = err.message;
+  } else if ('statusCode' in err) {
+    // AppError / ApiError
     statusCode = err.statusCode;
     code = err.code;
     message = err.message;
@@ -52,26 +67,6 @@ export const errorHandler = (
     `[ERROR] ${req.method} ${req.originalUrl} -> ${statusCode} ${code}: ${message}`,
     err,
   );
-
-  // Prisma Error Handling (Optional: Add specific Prisma error codes)
-  if (err.name === 'PrismaClientKnownRequestError') {
-     code = 'DATABASE_ERROR';
-     statusCode = 400;
-     message = err.message;
-  }
-
-  // JWT Error
-  if (err.name === 'JsonWebTokenError') {
-    code = 'UNAUTHORIZED';
-    statusCode = 401;
-    message = 'Invalid token. Please log in again.';
-  }
-
-  if (err.name === 'TokenExpiredError') {
-    code = 'TOKEN_EXPIRED';
-    statusCode = 401;
-    message = 'Your token has expired. Please log in again.';
-  }
 
   res.status(statusCode).json({
     success: false,

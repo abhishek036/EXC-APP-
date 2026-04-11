@@ -211,6 +211,7 @@ export class QuizService {
       is_published: false,
     };
 
+    const optionLetters = ['A', 'B', 'C', 'D'];
     const formattedQuestions: Prisma.QuizQuestionUncheckedCreateWithoutQuizInput[] = (questions || []).map((q, index) => ({
       question_text: q.question_text,
       image_url: q.image_url,
@@ -222,7 +223,8 @@ export class QuizService {
       option_c_image: q.option_c_image,
       option_d: q.option_d,
       option_d_image: q.option_d_image,
-      correct_option: q.correct_option,
+      // Support both string ('A'-'D') and index (0-3) for backwards compatibility
+      correct_option: q.correct_option || optionLetters[q.correct_option_index ?? 0],
       marks: q.marks ?? 1,
       order_index: q.order_index ?? index,
     }));
@@ -296,6 +298,7 @@ export class QuizService {
       return QuizRepository.findQuizById(id, instituteId);
     }
 
+    const optionLetters = ['A', 'B', 'C', 'D'];
     const formattedQuestions: Prisma.QuizQuestionUncheckedCreateWithoutQuizInput[] = questions.map((q: any, index: number) => ({
       question_text: q.question_text,
       image_url: q.image_url,
@@ -307,7 +310,8 @@ export class QuizService {
       option_c_image: q.option_c_image,
       option_d: q.option_d,
       option_d_image: q.option_d_image,
-      correct_option: q.correct_option,
+      // Support both string ('A'-'D') and index (0-3) for backwards compatibility
+      correct_option: q.correct_option || optionLetters[q.correct_option_index ?? 0],
       marks: q.marks ?? 1,
       order_index: q.order_index ?? index,
     }));

@@ -52,7 +52,9 @@ class _DataExportPageState extends State<DataExportPage> {
         _batches = batches;
         // Also add an 'All Batches' option
         _batches.insert(0, {'id': 'all', 'name': 'All Batches'});
-        _selectedBatchId = _batches.first['id'] as String;
+        if (_batches.isNotEmpty) {
+          _selectedBatchId = _batches.first['id'] as String;
+        }
         _isLoadingBatches = false;
       });
     } catch (e) {

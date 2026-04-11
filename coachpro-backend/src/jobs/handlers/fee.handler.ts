@@ -60,6 +60,7 @@ export class FeeHandler {
         due_date: { lte: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000) }
       },
       include: {
+        payments: true,
         student: {
           include: { 
             parent_students: { 
@@ -77,7 +78,9 @@ export class FeeHandler {
       const student = record.student;
       const primaryParent = student.parent_students.find(ps => ps.is_primary)?.parent;
       
-      const remainingAmount = Number(record.final_amount); 
+      // Calculate remaining amount properly (final_amount - paid_amount)
+      const paidAmount = record.payments?.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0) || 0;
+      const remainingAmount = Number(record.final_amount) - paidAmount; 
       
       // 🔔 PUSH NOTIFICATION (Parent)
       if (primaryParent?.user_id) {
@@ -95,7 +98,9 @@ export class FeeHandler {
                       dedupe_key: `fee:${record.id}:${primaryParent.user_id}:${today.toISOString().split('T')[0]}`,
                   },
               });
-          } catch {}
+            } catch (error) {
+              console.error(`[FeeHandler] Failed to send parent notification:`, error);
+            }
       }
 
       // 🔔 PUSH NOTIFICATION (Student)
@@ -114,11 +119,15 @@ export class FeeHandler {
                       dedupe_key: `fee:${record.id}:${student.user_id}:${today.toISOString().split('T')[0]}`,
                   },
               });
-          } catch {}
+          } catch (error) {
+            console.error(`[FeeHandler] Failed to send student notification:`, error);
+          }
       }
 
       if (primaryParent && primaryParent.phone) {
-        const remainingAmount = Number(record.final_amount); // Simplified for now, should subtract payments
+        // Calculate remaining amount properly (final_amount - paid_amount)
+        const paidAmount = record.payments?.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0) || 0;
+        const remainingAmount = Number(record.final_amount) - paidAmount;
         
         try {
           await WhatsAppService.sendFeeReminder(

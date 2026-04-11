@@ -175,7 +175,9 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
       if (noSubject.isNotEmpty) return noSubject.first;
     }
 
-    return sameDay.first;
+    // Return first element only if list is not empty
+    if (sameDay.isNotEmpty) return sameDay.first;
+    return <String, dynamic>{};
   }
 
   Future<void> _loadStudents() async {
@@ -194,7 +196,10 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
 
       final selectedDateKey = _dateKey(_selectedDate);
 
-      final sessionForDay = _pickSessionForDate(monthAttendance, selectedDateKey);
+      final sessionForDay = _pickSessionForDate(
+        monthAttendance,
+        selectedDateKey,
+      );
 
       final existingRecords = (sessionForDay['records'] as List?) ?? [];
 
@@ -206,8 +211,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
           for (final rawRecord in existingRecords) {
             if (rawRecord is! Map) continue;
             final record = Map<String, dynamic>.from(rawRecord);
-            final nestedStudent =
-                record['student'] is Map
+            final nestedStudent = record['student'] is Map
                 ? (record['student'] as Map)['id']
                 : null;
             final recordStudentId =
@@ -289,7 +293,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
 
     // Send date-only key to keep backend @db.Date matching stable across timezones.
     final sessionDate = _dateKey(_selectedDate);
-    
+
     const statusMap = {
       'P': 'present',
       'A': 'absent',
@@ -319,7 +323,9 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
       await _loadStudents();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Attendance saved and refreshed successfully')),
+        const SnackBar(
+          content: Text('Attendance saved and refreshed successfully'),
+        ),
       );
     } catch (e) {
       if (!mounted) return;

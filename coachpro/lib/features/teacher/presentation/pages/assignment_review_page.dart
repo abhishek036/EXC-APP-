@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/utils/file_opener.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/teacher_repository.dart';
 
@@ -132,6 +134,41 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
     _remarksCtrl.text = (current['remarks'] ?? '').toString();
   }
 
+  Future<void> _openSubmissionFile() async {
+    final current = _current;
+    if (current == null) return;
+
+    final fileUrl = (current['file_url'] ?? '').toString().trim();
+    if (fileUrl.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No file uploaded for this submission.')),
+      );
+      return;
+    }
+
+    final fileName = (current['file_name'] ?? 'submission.pdf').toString().trim();
+    final mimeType = (current['file_mime_type'] ?? '').toString().trim();
+
+    try {
+      await downloadAndOpenFromUrl(
+        url: fileUrl,
+        fileName: fileName.isEmpty ? null : fileName,
+        mimeType: mimeType.isEmpty ? null : mimeType,
+      );
+    } catch (_) {
+      final uri = Uri.tryParse(fileUrl);
+      if (uri != null && await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open submitted file.')),
+      );
+    }
+  }
+
   Future<void> _saveAndNext() async {
     final current = _current;
     if (current == null) return;
@@ -145,7 +182,7 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
     try {
       await _repo.reviewAssignmentSubmission(
         submissionId: submissionId,
-        status: 'reviewed',
+        status: 'evaluated',
         marksObtained: marks,
         remarks: _remarksCtrl.text.trim(),
       );
@@ -154,7 +191,7 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
       setState(() {
         _submissions[_index] = {
           ..._submissions[_index],
-          'status': 'reviewed',
+          'status': 'evaluated',
           'marks_obtained': marks,
           'remarks': _remarksCtrl.text.trim(),
         };
@@ -350,9 +387,24 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
           ),
           if (fileUrl.isNotEmpty) ...[
             const SizedBox(height: 8),
-            SelectableText(
-              fileUrl,
-              style: GoogleFonts.jetBrainsMono(fontSize: 11, color: blue),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _openSubmissionFile,
+                  icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
+                  label: const Text('Open Submitted PDF'),
+                ),
+                SizedBox(
+                  width: 260,
+                  child: SelectableText(
+                    fileUrl,
+                    maxLines: 2,
+                    style: GoogleFonts.jetBrainsMono(fontSize: 11, color: blue),
+                  ),
+                ),
+              ],
             ),
           ],
         ],

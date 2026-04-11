@@ -2,6 +2,7 @@ import { DoubtRepository } from './doubt.repository';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
+import { NotificationService } from '../notification/notification.service';
 
 export class DoubtService {
   private static buildThreadEntry(label: string, text: string, imageUrl?: string | null): string {
@@ -111,7 +112,7 @@ export class DoubtService {
         });
         
         if (student?.user_id) {
-          const { NotificationService } = require('../notification/notification.service');
+          // Use imported NotificationService instead of dynamic require
           await NotificationService.sendNotificationToUser(student.user_id, {
             title: 'Doubt Answered',
             body: `A teacher has replied to your doubt: "${(doubtWithStudent.question_text || 'doubt').substring(0, 50)}..."`,
@@ -182,7 +183,7 @@ export class DoubtService {
          });
 
          if (student?.user_id) {
-           const { NotificationService } = require('../notification/notification.service');
+           // Use imported NotificationService instead of dynamic require
            await NotificationService.sendNotificationToUser(student.user_id, {
              title: 'Doubt Resolved',
              body: `Your doubt has been marked as resolved.`,

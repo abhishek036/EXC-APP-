@@ -172,9 +172,15 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       decoration: BoxDecoration(
         color: bgColor ?? (isDark ? AppColors.eliteDarkBg : Colors.white),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.elitePrimary, width: 3),
-        boxShadow: const [
-          BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
+        border: Border.all(
+          color: isDark ? Colors.white24 : AppColors.elitePrimary,
+          width: isDark ? 1.5 : 3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black54 : AppColors.elitePrimary,
+            offset: const Offset(4, 4),
+          ),
         ],
       ),
       child: child,
@@ -274,6 +280,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   }
 
   Widget _buildErrorState(BuildContext context) {
+    final isDark = CT.isDark(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -285,14 +292,14 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: AppColors.elitePrimary,
+              color: isDark ? Colors.white : AppColors.elitePrimary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             _error ?? 'Unknown error',
             style: GoogleFonts.plusJakartaSans(
-              color: Colors.black54,
+              color: isDark ? Colors.white54 : Colors.black54,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -491,8 +498,9 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   // APP BAR — time-aware greeting
   // ═══════════════════════════════════════════════════════
   Widget _buildAppBar(BuildContext context, bool isDark) {
-    final name =
-        (_dashboardData?['student']?['name']?.split(' ').first) ?? 'Student';
+    final name = (_dashboardData?['student']?['name']?.isNotEmpty == true
+        ? _dashboardData?['student']?['name']?.split(' ').first
+        : 'Student');
     final authState = context.read<AuthBloc>().state;
     final avatarUrl = authState is AuthAuthenticated
         ? authState.user.avatarUrl
@@ -781,23 +789,24 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           final l = lectures[index];
           final subject = (l['title'] ?? l['subject'] ?? 'No Subject')
               .toString();
-          
+
           String formatT(dynamic t) {
             if (t == null) return '--:--';
             final s = t.toString();
             if (s.contains('T')) {
-               final dt = DateTime.tryParse(s);
-               if (dt != null) {
-                  final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-                  final m = dt.minute.toString().padLeft(2, '0');
-                  final ampm = dt.hour >= 12 ? 'PM' : 'AM';
-                  return '$h:$m $ampm';
-               }
+              final dt = DateTime.tryParse(s);
+              if (dt != null) {
+                final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+                final m = dt.minute.toString().padLeft(2, '0');
+                final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+                return '$h:$m $ampm';
+              }
             }
             return s;
           }
 
-          final time = '${formatT(l['start_time'])} - ${formatT(l['end_time'])}';
+          final time =
+              '${formatT(l['start_time'])} - ${formatT(l['end_time'])}';
           final teacher = l['teacher_name'] ?? 'TBA';
 
           Color c = AppColors.elitePrimary;
@@ -874,17 +883,17 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.deepNavy,
+                    color: isDark ? Colors.white : AppColors.deepNavy,
                     letterSpacing: -0.5,
                   ),
                 ),
               ),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.person_rounded,
                     size: 14,
-                    color: Colors.black54,
+                    color: isDark ? Colors.white54 : Colors.black54,
                   ),
                   const SizedBox(width: 6),
                   Expanded(
@@ -893,7 +902,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black54,
+                        color: isDark ? Colors.white54 : Colors.black54,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -913,9 +922,9 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   // ═══════════════════════════════════════════════════════
   Widget _buildExamCountdown(BuildContext context, bool isDark) {
     final exams = _dashboardData?['upcoming_exams'] as List? ?? [];
-    if (exams.isEmpty) return const SizedBox.shrink();
+    if (exams.isEmpty || exams.first is! Map) return const SizedBox.shrink();
 
-    final exam = exams.first;
+    final exam = exams.first as Map;
     final date =
         DateTime.tryParse(exam['exam_date'] ?? '')?.toLocal() ?? DateTime.now();
 
@@ -1362,14 +1371,18 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           Icon(
             Icons.inventory_2_outlined,
             size: 24,
-            color: AppColors.elitePrimary.withValues(alpha: 0.26),
+            color: isDark
+                ? Colors.white24
+                : AppColors.elitePrimary.withValues(alpha: 0.26),
           ),
           const SizedBox(height: 12),
           Text(
             text,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
-              color: AppColors.deepNavy.withValues(alpha: 0.45),
+              color: isDark
+                  ? Colors.white38
+                  : AppColors.deepNavy.withValues(alpha: 0.45),
               fontWeight: FontWeight.w600,
             ),
           ),

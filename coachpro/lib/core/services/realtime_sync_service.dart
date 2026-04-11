@@ -51,19 +51,27 @@ class RealtimeSyncService {
     });
 
     _socket!.on('dashboard_sync', (dynamic data) {
-      _controller.add(_normalizeEvent('dashboard_sync', data));
+      if (!_controller.isClosed) {
+        _controller.add(_normalizeEvent('dashboard_sync', data));
+      }
     });
 
     _socket!.on('batch_sync', (dynamic data) {
-      _controller.add(_normalizeEvent('batch_sync', data));
+      if (!_controller.isClosed) {
+        _controller.add(_normalizeEvent('batch_sync', data));
+      }
     });
 
     _socket!.on('unread_count_update', (dynamic data) {
-      _controller.add(_normalizeEvent('unread_count_update', data));
+      if (!_controller.isClosed) {
+        _controller.add(_normalizeEvent('unread_count_update', data));
+      }
     });
 
     _socket!.on('new_message', (dynamic data) {
-      _controller.add(_normalizeEvent('new_message', data));
+      if (!_controller.isClosed) {
+        _controller.add(_normalizeEvent('new_message', data));
+      }
     });
 
     _socket!.connect();
@@ -85,7 +93,9 @@ class RealtimeSyncService {
 
   /// Manually inject an unread count update into the stream.
   void updateUnreadCount(int unreadCount) {
-    _controller.add({'type': 'unread_count_update', 'unread_count': unreadCount});
+    if (!_controller.isClosed) {
+      _controller.add({'type': 'unread_count_update', 'unread_count': unreadCount});
+    }
   }
 
   void dispose() {

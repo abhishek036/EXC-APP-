@@ -25,8 +25,8 @@ class AppColors {
   // PREMIUM SAAS PALETTE (Neo-Brutalist)
   // ═══════════════════════════════════════════════════════
   static const Color elitePrimary   = Color(0xFF0D1282); // Deep Blue
-  static const Color elitePurple    = Color(0xFF0D1282); // Deep Blue fallback
-  static const Color eliteDarkBg    = Color(0xFF0D1282); // Deep Blue background
+  static const Color elitePurple    = Color(0xFF5C3ABF); // Distinct purple accent
+  static const Color eliteDarkBg    = Color(0xFF161640); // Dark navy surface (not same as primary)
   static const Color eliteLightBg   = Color(0xFFEEEDED); // Off White
   
   static const Color glassWhiteCard = Color(0xFFEEEDED); // Off White (No glassmorphism)

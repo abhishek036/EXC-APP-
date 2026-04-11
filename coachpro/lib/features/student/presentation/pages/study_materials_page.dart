@@ -3,12 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/theme_aware.dart';
+import '../../../../core/utils/file_opener.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../data/repositories/student_repository.dart';
 
@@ -151,26 +151,29 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
     HapticFeedback.mediumImpact();
     try {
       String targetUrl = material.url;
+      String? resolvedFileName;
+      String? resolvedMimeType;
       if (material.noteId.isNotEmpty && material.fileId.isNotEmpty) {
+        final requestedAction = action.toLowerCase() == 'view' ? 'download' : action;
         final access = await _studentRepo.getStudyMaterialAccess(
           noteId: material.noteId,
           fileId: material.fileId,
-          action: action,
+          action: requestedAction,
         );
         targetUrl = (access['access_url'] ?? '').toString();
+        resolvedFileName = (access['file_name'] ?? '').toString();
+        resolvedMimeType = (access['mime_type'] ?? '').toString();
       }
 
       if (targetUrl.isEmpty) {
         throw Exception('Missing file url');
       }
 
-      final uri = Uri.tryParse(targetUrl);
-      if (uri != null && await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return;
-      }
-
-      throw Exception('Unable to open URL');
+      await downloadAndOpenFromUrl(
+        url: targetUrl,
+        fileName: resolvedFileName?.trim().isEmpty ?? true ? material.title : resolvedFileName,
+        mimeType: resolvedMimeType?.trim().isEmpty ?? true ? null : resolvedMimeType,
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

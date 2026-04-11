@@ -24,16 +24,18 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  late final _repo = _getRepo();
+  late final TeacherRepository _teacherRepo;
+  late final StudentRepository _studentRepo;
   final _realtime = sl<RealtimeSyncService>();
   StreamSubscription? _syncSub;
 
-  dynamic _getRepo() {
+  // Getter to choose repo based on current role prefix - must be called after build
+  dynamic get _repo {
     final prefix = context.rolePrefix;
     if (prefix == '/teacher' || prefix == '/admin') {
-      return sl<TeacherRepository>();
+      return _teacherRepo;
     }
-    return sl<StudentRepository>();
+    return _studentRepo;
   }
 
   final List<Map<String, dynamic>> _notifications = [];
@@ -157,7 +159,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
     return {
       ...input,
-      'isRead': _isTruthy(input['read_status']) ||
+      'isRead':
+          _isTruthy(input['read_status']) ||
           _isTruthy(input['isRead']) ||
           _isTruthy(input['readStatus']) ||
           _isTruthy(input['is_read']),
@@ -166,7 +169,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
       'type': (input['type'] ?? 'system').toString(),
       'time': (input['created_at'] ?? input['date'] ?? '').toString(),
       'dateTime': dt,
-      'batchName': input['batch_name'] ??
+      'batchName':
+          input['batch_name'] ??
           input['batchName'] ??
           (input['meta'] is Map ? input['meta']['batchName'] : null),
     };
@@ -476,7 +480,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final unreadCount = _notifications.where((n) => n['isRead'] == false).length;
+    final unreadCount = _notifications
+        .where((n) => n['isRead'] == false)
+        .length;
     return Scaffold(
       backgroundColor: CT.bg(context),
       appBar: AppBar(
@@ -586,193 +592,219 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         );
 
                         return CPPressable(
-                              onTap: () {
-                                _markRead(index, read: true);
-                                final meta = notif['meta'] as Map<String, dynamic>?;
-                                final rawRoute = meta?['route']?.toString() ?? notif['route']?.toString();
-                                final route = rawRoute == '/student/quizzes'
-                                    ? '/student/quiz'
-                                    : rawRoute == '/teacher/quizzes'
-                                        ? '/teacher/batches'
-                                        : rawRoute;
-                                
-                                if (route != null && route.isNotEmpty) {
-                                  context.push(route);
+                          onTap: () {
+                            _markRead(index, read: true);
+                            final meta = notif['meta'] as Map<String, dynamic>?;
+                            final rawRoute =
+                                meta?['route']?.toString() ??
+                                notif['route']?.toString();
+                            final route = rawRoute == '/student/quizzes'
+                                ? '/student/quiz'
+                                : rawRoute == '/teacher/quizzes'
+                                ? '/teacher/batches'
+                                : rawRoute;
+
+                            if (route != null && route.isNotEmpty) {
+                              context.push(route);
+                            } else {
+                              final type = notif['type']?.toString();
+                              final prefix = context.rolePrefix;
+
+                              if (type == 'doubt') {
+                                context.push('$prefix/doubts/history');
+                              } else if (type == 'class') {
+                                context.push('$prefix/timetable');
+                              } else if (type == 'exam' || type == 'quiz') {
+                                if (prefix == '/student') {
+                                  context.push('/student/quiz');
+                                } else if (prefix == '/teacher') {
+                                  context.push('/teacher/batches');
                                 } else {
-                                  final type = notif['type']?.toString();
-                                  final prefix = context.rolePrefix;
-                                  
-                                  if (type == 'doubt') {
-                                    context.push('$prefix/doubts/history');
-                                  } else if (type == 'class') {
-                                    context.push('$prefix/timetable');
-                                  } else if (type == 'exam' || type == 'quiz') {
-                                    if (prefix == '/student') {
-                                      context.push('/student/quiz');
-                                    } else if (prefix == '/teacher') {
-                                      context.push('/teacher/batches');
-                                    } else {
-                                      context.push(prefix);
-                                    }
-                                  } else if (type == 'material' || type == 'content') {
-                                    context.push('$prefix/materials');
-                                  } else if (type == 'attendance') {
-                                    context.push('$prefix/attendance');
-                                  } else if (type == 'result') {
-                                    context.push('$prefix/results');
-                                  }
+                                  context.push(prefix);
                                 }
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: isRead
-                                      ? CT.card(context)
-                                      : iconColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
+                              } else if (type == 'material' ||
+                                  type == 'content') {
+                                context.push('$prefix/materials');
+                              } else if (type == 'attendance') {
+                                context.push('$prefix/attendance');
+                              } else if (type == 'result') {
+                                context.push('$prefix/results');
+                              }
+                            }
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isRead
+                                  ? CT.card(context)
+                                  : iconColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isRead
+                                    ? CT.border(context)
+                                    : iconColor.withValues(alpha: 0.5),
+                                width: isRead ? 1 : 2,
+                              ),
+                              boxShadow: isRead
+                                  ? null
+                                  : [
+                                      BoxShadow(
+                                        color: iconColor.withValues(alpha: 0.1),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
                                     color: isRead
-                                        ? CT.border(context)
-                                        : iconColor.withValues(alpha: 0.5),
-                                    width: isRead ? 1 : 2,
+                                        ? CT.bg(context)
+                                        : iconColor.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
-                                  boxShadow: isRead
-                                      ? null
-                                      : [
-                                          BoxShadow(
-                                            color: iconColor.withValues(
-                                              alpha: 0.1,
-                                            ),
-                                            blurRadius: 10,
-                                          ),
-                                        ],
-                                ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: isRead
-                                            ? CT.bg(context)
-                                            : iconColor.withValues(alpha: 0.2),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Icon(
-                                        _iconForType(
-                                          notif['type']?.toString() ?? 'system',
-                                        ),
-                                        color: iconColor,
-                                        size: 20,
-                                      ),
+                                  child: Icon(
+                                    _iconForType(
+                                      notif['type']?.toString() ?? 'system',
                                     ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                    color: iconColor,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
                                         children: [
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: Row(
-                                                  children: [
-                                                    if (!isRead)
-                                                      Container(
-                                                        width: 8,
-                                                        height: 8,
-                                                        margin: const EdgeInsets.only(right: 8),
-                                                        decoration: const BoxDecoration(
-                                                          color: AppColors.primary,
-                                                          shape: BoxShape.circle,
+                                          Expanded(
+                                            child: Row(
+                                              children: [
+                                                if (!isRead)
+                                                  Container(
+                                                    width: 8,
+                                                    height: 8,
+                                                    margin:
+                                                        const EdgeInsets.only(
+                                                          right: 8,
+                                                        ),
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                          color:
+                                                              AppColors.primary,
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
+                                                  ),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        notif['title']
+                                                            .toString()
+                                                            .toUpperCase(),
+                                                        style: GoogleFonts.sora(
+                                                          fontSize: 13,
+                                                          fontWeight:
+                                                              FontWeight.w800,
+                                                          color: CT.textH(
+                                                            context,
+                                                          ),
+                                                          letterSpacing: -0.2,
                                                         ),
                                                       ),
-                                                    Expanded(
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(
-                                                            notif['title'].toString().toUpperCase(),
-                                                            style: GoogleFonts.sora(
-                                                              fontSize: 13,
-                                                              fontWeight: FontWeight.w800,
-                                                              color: CT.textH(context),
-                                                              letterSpacing: -0.2,
+                                                      if (notif['batchName'] !=
+                                                          null)
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets.only(
+                                                                top: 2,
+                                                              ),
+                                                          child: Text(
+                                                            'BATCH: ${notif['batchName'].toString().toUpperCase()}',
+                                                            style: GoogleFonts.jetBrainsMono(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w900,
+                                                              fontSize: 9,
+                                                              color: AppColors
+                                                                  .electricBlue,
+                                                              letterSpacing:
+                                                                  0.5,
                                                             ),
                                                           ),
-                                                          if (notif['batchName'] != null)
-                                                            Padding(
-                                                              padding: const EdgeInsets.only(top: 2),
-                                                              child: Text(
-                                                                'BATCH: ${notif['batchName'].toString().toUpperCase()}',
-                                                                style: GoogleFonts.jetBrainsMono(
-                                                                  fontWeight: FontWeight.w900,
-                                                                  fontSize: 9,
-                                                                  color: AppColors.electricBlue,
-                                                                  letterSpacing: 0.5,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              _buildMiniMenu(index),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            notif['body'].toString(),
-                                            style: GoogleFonts.dmSans(
-                                              fontSize: 14,
-                                              color: CT.textM(context),
-                                              height: 1.4,
-                                              fontWeight: isRead
-                                                  ? FontWeight.w400
-                                                  : FontWeight.w500,
-                                            ),
-                                            maxLines: 3,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                notif['dateTime'] != null
-                                                    ? timeago.format(notif['dateTime'])
-                                                    : notif['time'].toString(),
-                                                style: GoogleFonts.jetBrainsMono(
-                                                  fontSize: 9,
-                                                  color: CT.textS(context),
-                                                  fontWeight: FontWeight.w800,
-                                                  letterSpacing: 0.5,
-                                                ),
-                                              ),
-                                              if (notif['dateTime'] != null)
-                                                Text(
-                                                  DateFormat('dd MMM, hh:mm a').format(notif['dateTime']),
-                                                  style: GoogleFonts.jetBrainsMono(
-                                                    fontSize: 8,
-                                                    color: CT.textS(context).withValues(alpha: 0.5),
-                                                    fontWeight: FontWeight.w500,
+                                                        ),
+                                                    ],
                                                   ),
                                                 ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
+                                          _buildMiniMenu(index),
                                         ],
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        notif['body'].toString(),
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 14,
+                                          color: CT.textM(context),
+                                          height: 1.4,
+                                          fontWeight: isRead
+                                              ? FontWeight.w400
+                                              : FontWeight.w500,
+                                        ),
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            notif['dateTime'] != null
+                                                ? timeago.format(
+                                                    notif['dateTime'],
+                                                  )
+                                                : notif['time'].toString(),
+                                            style: GoogleFonts.jetBrainsMono(
+                                              fontSize: 9,
+                                              color: CT.textS(context),
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                          if (notif['dateTime'] != null)
+                                            Text(
+                                              DateFormat(
+                                                'dd MMM, hh:mm a',
+                                              ).format(notif['dateTime']),
+                                              style: GoogleFonts.jetBrainsMono(
+                                                fontSize: 8,
+                                                color: CT
+                                                    .textS(context)
+                                                    .withValues(alpha: 0.5),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            )
-                            .animate()
-                            .fadeIn(duration: 300.ms)
-                            .slideX(begin: 0.02);
+                              ],
+                            ),
+                          ),
+                        ).animate().fadeIn(duration: 300.ms).slideX(begin: 0.02);
                       },
                     ),
                   ),

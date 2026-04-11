@@ -82,7 +82,7 @@ describe('ContentController.resolveStudentProfile', () => {
     });
   });
 
-  it('queries active + null-active records and guarded phone matches', async () => {
+  it('queries linked profile first and guarded phone matches', async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue({ phone: '+919876543210' });
     (prisma.student.findMany as jest.Mock).mockResolvedValue([]);
 
@@ -94,16 +94,14 @@ describe('ContentController.resolveStudentProfile', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           institute_id: 'inst-1',
-          AND: expect.arrayContaining([
-            { OR: [{ is_active: true }, { is_active: null }] },
-            expect.objectContaining({ OR: expect.any(Array) }),
-          ]),
+          OR: expect.any(Array),
         }),
       }),
     );
 
     const args = (prisma.student.findMany as jest.Mock).mock.calls[0][0];
-    const phoneClause = args.where.AND[1].OR.find(
+    expect(args.where.OR).toEqual(expect.arrayContaining([{ user_id: 'user-1' }]));
+    const phoneClause = args.where.OR.find(
       (item: any) => Array.isArray(item?.AND),
     );
     expect(phoneClause).toBeTruthy();

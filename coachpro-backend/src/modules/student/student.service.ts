@@ -1,6 +1,7 @@
 import { StudentRepository } from './student.repository';
 import { CreateStudentInput, UpdateStudentInput } from './student.validator';
 import { ApiError } from '../../middleware/error.middleware';
+import { prisma } from '../../server';
 
 export class StudentService {
   private studentRepository: StudentRepository;
@@ -131,61 +132,92 @@ export class StudentService {
         null;
     }
 
-    // 2. Check batch capacity if batch_ids are provided
-    if (normalizedData.batch_ids && normalizedData.batch_ids.length > 0) {
-      for (const batchId of normalizedData.batch_ids) {
-        await this.ensureBatchCapacity(instituteId, batchId, existingStudent?.id);
-      }
-    }
-
-    if (existingStudent) {
-      const { prisma } = require('../../server');
-
-      // Update basic details and parent relation on the existing record.
-      await this.studentRepository.updateStudent(existingStudent.id, instituteId, {
-        name: normalizedData.name,
-        phone: normalizedData.phone,
-        dob: normalizedData.dob,
-        gender: normalizedData.gender,
-        address: normalizedData.address,
-        blood_group: normalizedData.blood_group,
-        prev_institute: normalizedData.prev_institute,
-        parent_name: normalizedData.parent_name,
-        parent_phone: normalizedData.parent_phone,
-        parent_relation: normalizedData.parent_relation,
-        // Keep existing enrollments intact; create flow should not drop old batches.
-        batch_ids: undefined,
-      });
-
-      // Non-destructive batch linking for create-on-existing flow.
+    // Use transaction to prevent race conditions on batch capacity
+    return await prisma.$transaction(async (tx) => {
+      // 2. Check batch capacity if batch_ids are provided (inside transaction)
       if (normalizedData.batch_ids && normalizedData.batch_ids.length > 0) {
-        const uniqueBatchIds = Array.from(new Set(normalizedData.batch_ids.map((id: string) => id.trim())));
-        for (const batchId of uniqueBatchIds) {
-          await prisma.studentBatch.upsert({
-            where: { student_id_batch_id: { student_id: existingStudent.id, batch_id: batchId } },
-            update: { is_active: true, left_date: null },
-            create: { student_id: existingStudent.id, batch_id: batchId, institute_id: instituteId },
-          });
+        for (const batchId of normalizedData.batch_ids) {
+          await this._ensureBatchCapacityWithTx(tx, instituteId, batchId, existingStudent?.id);
         }
       }
 
-      const updated = await this.studentRepository.findStudentById(existingStudent.id, instituteId);
-      return updated || existingStudent;
-    }
+      if (existingStudent) {
+        // Update basic details and parent relation on the existing record.
+        await this.studentRepository.updateStudent(existingStudent.id, instituteId, {
+          name: normalizedData.name,
+          phone: normalizedData.phone,
+          dob: normalizedData.dob,
+          gender: normalizedData.gender,
+          address: normalizedData.address,
+          blood_group: normalizedData.blood_group,
+          prev_institute: normalizedData.prev_institute,
+          parent_name: normalizedData.parent_name,
+          parent_phone: normalizedData.parent_phone,
+          parent_relation: normalizedData.parent_relation,
+          // Keep existing enrollments intact; create flow should not drop old batches.
+          batch_ids: undefined,
+        });
 
-    // 3. Create student
-    const createdStudent = await this.studentRepository.createStudentWithUserAndParent(instituteId, normalizedData);
+        // Non-destructive batch linking for create-on-existing flow.
+        if (normalizedData.batch_ids && normalizedData.batch_ids.length > 0) {
+          const uniqueBatchIds = Array.from(new Set(normalizedData.batch_ids.map((id: string) => id.trim())));
+          for (const batchId of uniqueBatchIds) {
+            await tx.studentBatch.upsert({
+              where: { student_id_batch_id: { student_id: existingStudent.id, batch_id: batchId } },
+              update: { is_active: true, left_date: null },
+              create: { student_id: existingStudent.id, batch_id: batchId, institute_id: instituteId },
+            });
+          }
+        }
 
-    // 4. Update Lead status if lead_id is provided
-    if (normalizedData.lead_id) {
-        const { prisma } = await import('../../server');
-        await prisma.lead.update({
-        where: { id: normalizedData.lead_id, institute_id: instituteId },
-            data: { status: 'Converted' }
+        const updated = await this.studentRepository.findStudentById(existingStudent.id, instituteId);
+        return updated || existingStudent;
+      }
+
+      // 3. Create student
+      const createdStudent = await this.studentRepository.createStudentWithUserAndParent(instituteId, normalizedData);
+
+      // 4. Update Lead status if lead_id is provided
+      if (normalizedData.lead_id) {
+        await tx.lead.update({
+          where: { id: normalizedData.lead_id, institute_id: instituteId },
+          data: { status: 'Converted' }
         }).catch(err => console.error('Failed to update lead status:', err));
+      }
+
+      return createdStudent;
+    });
+  }
+
+  // Private helper with transaction support for capacity check
+  private async _ensureBatchCapacityWithTx(tx: any, instituteId: string, batchId: string, studentId?: string) {
+    const batch = await tx.batch.findUnique({
+      where: { id: batchId },
+      select: { id: true, name: true, capacity: true, institute_id: true },
+    });
+
+    if (!batch || batch.institute_id !== instituteId) {
+      throw new ApiError('Batch not found', 404, 'NOT_FOUND');
     }
 
-    return createdStudent;
+    if (!batch.capacity) return;
+
+    const existingMembership = studentId
+      ? await tx.studentBatch.findFirst({
+          where: { student_id: studentId, batch_id: batchId, is_active: true },
+          select: { id: true },
+        })
+      : null;
+
+    if (existingMembership) return;
+
+    const activeCount = await tx.studentBatch.count({
+      where: { batch_id: batchId, institute_id: instituteId, is_active: true },
+    });
+
+    if (activeCount >= batch.capacity) {
+      throw new ApiError(`Batch "${batch.name}" is already full (Capacity: ${batch.capacity})`, 400, 'BATCH_FULL');
+    }
   }
 
   async updateStudent(studentId: string, instituteId: string, data: UpdateStudentInput) {
