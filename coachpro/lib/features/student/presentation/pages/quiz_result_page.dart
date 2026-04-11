@@ -35,6 +35,18 @@ class _QuizResultPageState extends State<QuizResultPage> {
         .toList();
   }
 
+  Map<String, dynamic> get _quiz => Map<String, dynamic>.from(
+    _result['quiz'] as Map? ?? const {},
+  );
+
+  bool get _resultReleased => _result['result_released'] == true;
+  bool get _canRetry => _result['can_retry'] == true;
+  String get _returnTo {
+    final value = GoRouterState.of(context).uri.queryParameters['returnTo'];
+    if (value == null || value.trim().isEmpty) return '/student/quiz';
+    return value;
+  }
+
   num _toNum(dynamic value) {
     if (value == null) return 0;
     if (value is num) return value;
@@ -72,14 +84,13 @@ class _QuizResultPageState extends State<QuizResultPage> {
 
   @override
   Widget build(BuildContext context) {
-    final quiz = Map<String, dynamic>.from(_result['quiz'] as Map? ?? const {});
-    final title = (quiz['title'] ?? 'Quiz Result').toString();
+    final title = (_quiz['title'] ?? 'Quiz Result').toString();
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        context.go('/student/quiz');
+        context.go(_returnTo);
       },
       child: Scaffold(
         backgroundColor: CT.bg(context),
@@ -87,7 +98,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
           backgroundColor: CT.bg(context),
           elevation: 0,
           leading: IconButton(
-            onPressed: () => context.go('/student/quiz'),
+            onPressed: () => context.go(_returnTo),
             icon: Icon(Icons.arrow_back_ios_new_rounded, color: CT.textH(context)),
           ),
           title: Text(
@@ -113,30 +124,124 @@ class _QuizResultPageState extends State<QuizResultPage> {
                         24,
                       ),
                       children: [
-                        _summaryCard(context, title),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Question Review',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: CT.textH(context),
+                        if (_resultReleased) ...[
+                          _summaryCard(context, title),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Question Review',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: CT.textH(context),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                        if (_questions.isEmpty)
-                          _emptyQuestions(context)
-                        else
-                          ..._questions.asMap().entries.map(
-                                (entry) => _questionCard(
-                                  context,
-                                  entry.key + 1,
-                                  entry.value,
+                          const SizedBox(height: 10),
+                          if (_questions.isEmpty)
+                            _emptyQuestions(context)
+                          else
+                            ..._questions.asMap().entries.map(
+                                  (entry) => _questionCard(
+                                    context,
+                                    entry.key + 1,
+                                    entry.value,
+                                  ),
                                 ),
-                              ),
+                        ] else
+                          _pendingCard(context, title),
                       ],
                     ),
                   ),
+      ),
+    );
+  }
+
+  Widget _pendingCard(BuildContext context, String title) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D1282),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.moltenAmber.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'RESULT HELD',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'The teacher has not released the score or solution yet.',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.85),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _canRetry ? 'You can retake after release.' : 'Please wait for the release.',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Colors.white.withValues(alpha: 0.8),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => context.go(_returnTo),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white, width: 1.4),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Dashboard'),
+                ),
+              ),
+              if (_canRetry) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _fetch,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white, width: 1.4),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Refresh'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }

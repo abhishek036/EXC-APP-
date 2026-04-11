@@ -4,6 +4,39 @@ import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
 
 export class QuizService {
+  private static getRetryAllowedFlag(quiz: any): boolean {
+    return quiz.allow_retry ?? (quiz.assessment_type ?? 'QUIZ') === 'QUIZ';
+  }
+
+  private static getResultVisibleFlag(quiz: any): boolean {
+    return quiz.show_instant_result ?? (quiz.assessment_type ?? 'QUIZ') === 'QUIZ';
+  }
+
+  private static buildStudentQuizState(quiz: any, attempt: any) {
+    const submittedAt = attempt?.submitted_at ?? null;
+    const startedAt = attempt?.started_at ?? null;
+    const allowRetry = QuizService.getRetryAllowedFlag(quiz);
+    const resultReleased = Boolean(submittedAt) && QuizService.getResultVisibleFlag(quiz);
+
+    return {
+      status: submittedAt
+        ? (resultReleased ? 'finished' : 'held')
+        : attempt
+          ? 'in_progress'
+          : 'new',
+      started_at: startedAt,
+      submitted_at: submittedAt,
+      total_marks: attempt?.total_marks ?? null,
+      obtained_marks: attempt?.obtained_marks ?? null,
+      allow_retry: allowRetry,
+      result_released: resultReleased,
+      can_retry: Boolean(submittedAt) && allowRetry,
+      is_finished: Boolean(submittedAt),
+      is_locked: Boolean(submittedAt) && !allowRetry,
+      show_instant_result: QuizService.getResultVisibleFlag(quiz),
+    };
+  }
+
   private static rankStudentCandidates(candidates: any[], userId: string): any[] {
     return [...candidates].sort((a, b) => {
       const aLinked = a.user_id === userId ? 1 : 0;
@@ -253,6 +286,7 @@ export class QuizService {
     if (normalizedRole === 'student') {
         const studentProfileId = await QuizService.resolveStudentProfileId(requesterUserId, instituteId);
         await QuizService.ensureStudentCanAccessQuizBatch(studentProfileId, quiz.batch_id, instituteId);
+        const attempt = await QuizRepository.findAttempt(id, studentProfileId);
 
         if (!quiz.is_published) {
           throw new ApiError('This quiz is not published yet', 403, 'FORBIDDEN');
@@ -266,6 +300,7 @@ export class QuizService {
         studentQuiz.questions.forEach((q: any) => {
             delete q.correct_option; // Don't expose answers to students
         });
+        studentQuiz.student_state = QuizService.buildStudentQuizState(studentQuiz, attempt);
         return studentQuiz;
     }
 
@@ -417,9 +452,12 @@ export class QuizService {
         return existingAttempt;
       }
 
-      const allowRetry = quiz.allow_retry ?? true;
+      const allowRetry = QuizService.getRetryAllowedFlag(quiz);
       if (existingAttempt.submitted_at && allowRetry) {
         return QuizRepository.resetAttemptForRetry(quizId, studentProfileId);
+      }
+      if (existingAttempt.submitted_at && !allowRetry) {
+        throw new ApiError('Quiz already completed', 409, 'QUIZ_COMPLETED');
       }
       return existingAttempt;
     }
@@ -577,6 +615,32 @@ export class QuizService {
       ? (attempt.answers as Record<string, string>)
       : {};
 
+    const allowRetry = QuizService.getRetryAllowedFlag(quiz);
+    const resultReleased = QuizService.getResultVisibleFlag(quiz);
+
+    if (!resultReleased) {
+      return {
+        quiz: {
+          id: quiz.id,
+          title: quiz.title,
+          subject: quiz.subject,
+          assessment_type: quiz.assessment_type,
+          batch_id: quiz.batch_id,
+          allow_retry: allowRetry,
+          show_instant_result: resultReleased,
+        },
+        attempt: {
+          id: attempt.id,
+          started_at: attempt.started_at,
+          submitted_at: attempt.submitted_at,
+        },
+        result_released: false,
+        can_retry: Boolean(attempt.submitted_at) && allowRetry,
+        summary: null,
+        questions: [],
+      };
+    }
+
     let correctAnswers = 0;
     let wrongAnswers = 0;
     let unansweredQuestions = 0;
@@ -628,12 +692,16 @@ export class QuizService {
         subject: quiz.subject,
         assessment_type: quiz.assessment_type,
         batch_id: quiz.batch_id,
+        allow_retry: allowRetry,
+        show_instant_result: resultReleased,
       },
       attempt: {
         id: attempt.id,
         started_at: attempt.started_at,
         submitted_at: attempt.submitted_at,
       },
+      result_released: true,
+      can_retry: Boolean(attempt.submitted_at) && allowRetry,
       summary: {
         total_questions: totalQuestions,
         answered_questions: answeredQuestions,

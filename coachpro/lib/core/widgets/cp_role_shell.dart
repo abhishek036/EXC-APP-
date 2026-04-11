@@ -71,7 +71,9 @@ class _CPRoleShellState extends State<CPRoleShell> {
     }
     widget.navigationShell.goBranch(
       index,
-      initialLocation: index == widget.navigationShell.currentIndex,
+      // Always land on the root route of a bottom-nav section to avoid
+      // reopening stale deep pages from another flow.
+      initialLocation: true,
     );
   }
 

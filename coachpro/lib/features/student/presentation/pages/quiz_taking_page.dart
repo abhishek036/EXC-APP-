@@ -32,6 +32,22 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
   int _secondsRemaining = 0;
   Timer? _timer;
   final _alpha = ['A', 'B', 'C', 'D'];
+  bool _showCompletionScreen = false;
+
+  Map<String, dynamic> get _studentState => Map<String, dynamic>.from(
+    _quiz?['student_state'] as Map? ?? const {},
+  );
+
+  bool get _resultReleased => _studentState['result_released'] == true;
+  bool get _canRetry => _studentState['can_retry'] == true;
+  String get _returnTo {
+    final value = GoRouterState.of(context).uri.queryParameters['returnTo'];
+    if (value == null || value.trim().isEmpty) return '/student/quiz';
+    return value;
+  }
+
+  String get _resultRoute =>
+      '/student/quiz/${widget.quizId}/result?returnTo=${Uri.encodeComponent(_returnTo)}';
 
   @override
   void initState() {
@@ -39,23 +55,51 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
     _initQuiz();
   }
 
-  Future<void> _initQuiz() async {
+  Future<void> _initQuiz({bool forceRetake = false}) async {
     setState(() {
       _isLoading = true;
       _error = null;
+      _showCompletionScreen = false;
     });
     try {
-      // 1. Start attempt on backend
-      await _studentRepo.startQuizAttempt(widget.quizId);
+      if (forceRetake) {
+        await _studentRepo.startQuizAttempt(widget.quizId);
+      }
 
-      // 2. Fetch full quiz details (questions)
       final quizData = await _studentRepo.getQuizById(widget.quizId);
+      final studentState = Map<String, dynamic>.from(
+        quizData['student_state'] as Map? ?? const {},
+      );
+      final isCompleted = studentState['is_finished'] == true ||
+          studentState['submitted_at'] != null;
+
+      if (isCompleted && !forceRetake) {
+        if (!mounted) return;
+        setState(() {
+          _quiz = quizData;
+          _questions = quizData['questions'] as List? ?? [];
+          _secondsRemaining = 0;
+          _showCompletionScreen = true;
+          _isLoading = false;
+        });
+        _timer?.cancel();
+        return;
+      }
+
+      if (!forceRetake && !isCompleted) {
+        await _studentRepo.startQuizAttempt(widget.quizId);
+      }
+
+      final activeQuizData = forceRetake || !isCompleted
+          ? await _studentRepo.getQuizById(widget.quizId)
+          : quizData;
 
       setState(() {
-        _quiz = quizData;
-        _questions = quizData['questions'] as List? ?? [];
-        _secondsRemaining = (quizData['time_limit_min'] ?? 30) * 60;
+        _quiz = activeQuizData;
+        _questions = activeQuizData['questions'] as List? ?? [];
+        _secondsRemaining = (activeQuizData['time_limit_min'] ?? 30) * 60;
         _isLoading = false;
+        _showCompletionScreen = false;
       });
 
       _startTimer();
@@ -96,7 +140,9 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
   Future<void> _autoSubmit() async {
     // Auto submit when time up
     await _submitQuiz();
-  }  Future<void> _submitQuiz() async {
+  }
+
+  Future<void> _submitQuiz() async {
     _timer?.cancel();
     setState(() => _isLoading = true);
 
@@ -107,8 +153,7 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
       );
 
       if (mounted) {
-        setState(() => _isLoading = false);
-        _showResultDialog();
+        await _initQuiz();
       }
     } catch (e) {
       if (mounted) {
@@ -120,31 +165,205 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
     }
   }
 
-  void _showResultDialog() {
-    showDialog(
+  Future<void> _startRetake() async {
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Quiz Submitted'),
-        content: const Text(
-          'Your answers have been successfully recorded. You can view your results in the Results section.',
+      backgroundColor: CT.card(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Retake quiz?',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: CT.textH(ctx),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'This will reset your submitted attempt and start a fresh run.',
+              style: GoogleFonts.plusJakartaSans(color: CT.textS(ctx)),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: CT.accent(ctx),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Retake Now'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx); // Close dialog
-              context.go('/student/quiz/${widget.quizId}/result');
-            },
-            child: const Text('View Quiz Analysis'),
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    await _initQuiz(forceRetake: true);
+  }
+
+  Widget _buildCompletionScreen() {
+    final quizTitle = (_quiz?['title'] ?? 'Quiz').toString();
+    final scoreText = (_studentState['obtained_marks'] != null &&
+            _studentState['total_marks'] != null)
+        ? '${_studentState['obtained_marks']}/${_studentState['total_marks']}'
+        : 'Submitted';
+
+    return Scaffold(
+      backgroundColor: CT.card(context),
+      appBar: AppBar(
+        backgroundColor: CT.card(context),
+        leading: IconButton(
+          onPressed: () => context.go(_returnTo),
+          icon: const Icon(Icons.arrow_back),
+        ),
+        title: Text(
+          quizTitle,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.go('/student');
-            },
-            child: const Text('Back to Dashboard'),
+        ),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 520),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: CT.bg(context),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.primary, width: 2),
+              boxShadow: const [
+                BoxShadow(color: AppColors.primary, offset: Offset(4, 4)),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _resultReleased
+                        ? AppColors.mintGreen.withValues(alpha: 0.18)
+                        : AppColors.moltenAmber.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _resultReleased ? 'RESULT READY' : 'SUBMITTED',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Quiz Finished',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _resultReleased
+                      ? 'Your score is ready and the solution is visible below.'
+                      : 'Your answers have been recorded. The teacher will release the score and solution later.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: CT.textS(context),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  scoreText,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => context.go(_returnTo),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(color: AppColors.primary, width: 1.4),
+                        ),
+                        child: const Text('Dashboard'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _resultReleased
+                            ? () => context.go(_resultRoute)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: CT.accent(context),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: Text(
+                          _resultReleased ? 'Result' : 'Locked',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_canRetry) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _startRetake,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: AppColors.primary, width: 1.4),
+                      ),
+                      child: const Text('Retake Quiz'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -153,6 +372,10 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
   Widget build(BuildContext context) {
     if (_isLoading && _quiz == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_quiz != null && _showCompletionScreen) {
+      return _buildCompletionScreen();
     }
 
     if (_error != null) {
@@ -715,7 +938,7 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              context.pop();
+              context.go(_returnTo);
             },
             child: Text('Quit', style: TextStyle(color: AppColors.error)),
           ),
