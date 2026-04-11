@@ -1202,8 +1202,8 @@ class _QuizPaneState extends State<_QuizPane> {
               isScrollable: true,
               indicatorColor: _StudentBatchPanelPageState.accentYellow,
               indicatorWeight: 3,
-              labelColor: _StudentBatchPanelPageState.primaryBlue,
-              unselectedLabelColor: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.7),
+              labelColor: _StudentBatchPanelPageState.accentYellow,
+              unselectedLabelColor: Colors.white.withValues(alpha: 0.72),
               labelStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -1339,13 +1339,13 @@ class _QuizPaneState extends State<_QuizPane> {
         onTap: () => _handleQuizTap(quiz, state),
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: Row(
+              Icon(Icons.error_outline, size: 52, color: Colors.white),
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 44,
                 height: 44,
-                decoration: BoxDecoration(
+                  color: Colors.white,
                   color: _StudentBatchPanelPageState.accentYellow,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
@@ -1354,7 +1354,7 @@ class _QuizPaneState extends State<_QuizPane> {
                   ),
                 ),
                 child: const Icon(
-                  Icons.quiz_rounded,
+                  color: Colors.white.withValues(alpha: 0.82),
                   color: _StudentBatchPanelPageState.primaryBlue,
                 ),
               ),
@@ -1550,14 +1550,14 @@ class _QuizPaneState extends State<_QuizPane> {
     if (state.resultReleased) {
       context.push(_quizResultRoute(quizId));
       return;
-    }
+              Icon(Icons.quiz_outlined, size: 60, color: Colors.white.withValues(alpha: 0.45)),
 
     await _showHeldResultSheet(quiz, state);
   }
 
   Future<void> _confirmStart(Map<String, dynamic> quiz) async {
     final quizId = (quiz['id'] ?? '').toString();
-    if (quizId.isEmpty) return;
+                  color: Colors.white,
 
     showModalBottomSheet(
       context: context,
@@ -1565,7 +1565,7 @@ class _QuizPaneState extends State<_QuizPane> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
+                  color: Colors.white.withValues(alpha: 0.82),
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
