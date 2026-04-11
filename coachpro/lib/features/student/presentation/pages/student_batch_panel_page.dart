@@ -1068,7 +1068,6 @@ class _QuizPaneState extends State<_QuizPane> {
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _newQuizzes = [];
-  List<Map<String, dynamic>> _resultQuizzes = [];
   List<Map<String, dynamic>> _oldQuizzes = [];
 
   @override
@@ -1100,7 +1099,6 @@ class _QuizPaneState extends State<_QuizPane> {
       }
 
       final newQuizzes = <Map<String, dynamic>>[];
-      final resultQuizzes = <Map<String, dynamic>>[];
       final oldQuizzes = <Map<String, dynamic>>[];
 
       for (final rawQuiz in filtered.whereType<Map>()) {
@@ -1111,7 +1109,6 @@ class _QuizPaneState extends State<_QuizPane> {
             newQuizzes.add(quiz);
             break;
           case _QuizBucket.resultReady:
-            resultQuizzes.add(quiz);
             break;
           case _QuizBucket.oldQuiz:
             oldQuizzes.add(quiz);
@@ -1122,7 +1119,6 @@ class _QuizPaneState extends State<_QuizPane> {
       if (!mounted) return;
       setState(() {
         _newQuizzes = newQuizzes;
-        _resultQuizzes = resultQuizzes;
         _oldQuizzes = oldQuizzes;
         _loading = false;
       });
@@ -1190,7 +1186,7 @@ class _QuizPaneState extends State<_QuizPane> {
     }
 
     return DefaultTabController(
-      length: 3,
+      length: 2,
       child: Column(
         children: [
           Padding(
@@ -1211,7 +1207,6 @@ class _QuizPaneState extends State<_QuizPane> {
               ),
               tabs: [
                 Tab(text: 'NEW (${_newQuizzes.length})'),
-                Tab(text: 'RESULT (${_resultQuizzes.length})'),
                 Tab(text: 'OLD (${_oldQuizzes.length})'),
               ],
             ),
@@ -1227,15 +1222,9 @@ class _QuizPaneState extends State<_QuizPane> {
                 ),
                 _buildCategoryList(
                   context,
-                  _resultQuizzes,
-                  emptyTitle: 'NO RELEASED RESULTS',
-                  emptySubtitle: 'Finished quizzes will show here.',
-                ),
-                _buildCategoryList(
-                  context,
                   _oldQuizzes,
                   emptyTitle: 'NO OLD QUIZZES',
-                  emptySubtitle: 'Held quizzes will show here.',
+                  emptySubtitle: 'In-progress and held quizzes will show here.',
                 ),
               ],
             ),
@@ -1939,12 +1928,147 @@ class _ResultsTabState extends State<_ResultsTab> {
   }
 
   void _load() {
-    _future = _repo.getMyResults(
-      batchId: widget.batchId,
-      month: _selectedMonth.month,
-      year: _selectedMonth.year,
-      subject: widget.selectedSubject,
-    );
+    _future = (() async {
+      final selected = widget.selectedSubject?.trim();
+      final examResultsFuture = _repo.getMyResults(
+        batchId: widget.batchId,
+        month: _selectedMonth.month,
+        year: _selectedMonth.year,
+        subject: selected,
+      );
+
+      var availableQuizzes = await _repo.getAvailableQuizzes(subject: selected);
+      if ((selected ?? '').isNotEmpty && availableQuizzes.isEmpty) {
+        availableQuizzes = await _repo.getAvailableQuizzes();
+      }
+
+      final releasedQuizResults = <Map<String, dynamic>>[];
+      for (final rawQuiz in availableQuizzes.whereType<Map>()) {
+        final quiz = Map<String, dynamic>.from(rawQuiz);
+        if ((quiz['batch_id'] ?? '').toString() != widget.batchId) continue;
+
+        final state = _QuizStateView.fromQuiz(quiz);
+        if (!state.resultReleased) continue;
+
+        final attempt = state.attempt ?? const <String, dynamic>{};
+        final submittedAt =
+            _tryParseDate(attempt['submitted_at'])?.toLocal();
+        if (submittedAt == null) continue;
+
+        if (submittedAt.month != _selectedMonth.month ||
+            submittedAt.year != _selectedMonth.year) {
+          continue;
+        }
+
+        final obtained = (attempt['obtained_marks'] as num?)?.toDouble() ?? 0;
+        final total = (attempt['total_marks'] as num?)?.toDouble() ?? 0;
+        final assessmentType =
+            (quiz['assessment_type'] ?? 'QUIZ').toString().toUpperCase();
+
+        releasedQuizResults.add({
+          'kind': 'quiz',
+          'quiz_id': (quiz['id'] ?? '').toString(),
+            'title':
+              (quiz['title'] ??
+                  (assessmentType == 'TEST' ? 'Test Result' : 'Quiz Result'))
+                .toString(),
+          'subtitle': 'Score: ${obtained.round()} / ${total.round()}',
+          'meta': assessmentType == 'TEST' ? 'TEST RESULT' : 'QUIZ RESULT',
+          'submitted_at': submittedAt.toIso8601String(),
+        });
+      }
+
+      final examResults = await examResultsFuture;
+      final normalizedExamResults = examResults
+          .map((raw) {
+            final res = Map<String, dynamic>.from(raw);
+            final exam = res['exam'] is Map
+                ? Map<String, dynamic>.from(res['exam'] as Map)
+                : <String, dynamic>{};
+
+            final examBatchId =
+                (exam['batch_id'] ?? res['batch_id'] ?? '').toString();
+            if (examBatchId != widget.batchId) return null;
+
+            final marks =
+                (res['marks_obtained'] as num?)?.toDouble() ??
+                (res['score'] as num?)?.toDouble() ??
+                0;
+            final total =
+                (exam['total_marks'] as num?)?.toDouble() ??
+                (res['total_questions'] as num?)?.toDouble() ??
+                100;
+            final pct = total > 0 ? (marks / total * 100) : 0.0;
+            final grade =
+                res['grade']?.toString() ??
+                (pct >= 90
+                    ? 'A+'
+                    : pct >= 80
+                        ? 'A'
+                        : pct >= 70
+                            ? 'B+'
+                            : pct >= 60
+                                ? 'B'
+                                : pct >= 50
+                                    ? 'C'
+                                    : 'D');
+
+            final linkedQuizId =
+                (res['quiz_id'] ?? exam['quiz_id'] ?? exam['id'] ?? '')
+                    .toString();
+
+            final submittedAt =
+                _tryParseDate(
+                      res['submitted_at'] ??
+                          res['created_at'] ??
+                          exam['scheduled_at'],
+                    )
+                    ?.toLocal() ??
+                DateTime(_selectedMonth.year, _selectedMonth.month, 1);
+
+            return <String, dynamic>{
+              'kind': 'exam',
+              'quiz_id': linkedQuizId,
+              'title':
+                  (res['quiz_title'] ?? exam['title'] ?? 'Test Result')
+                      .toString(),
+              'subtitle': 'Score: ${marks.round()} / ${total.round()}',
+              'meta': 'TEST RESULT • $grade',
+              'submitted_at': submittedAt.toIso8601String(),
+            };
+          })
+          .whereType<Map<String, dynamic>>()
+          .toList();
+
+      final combined = <Map<String, dynamic>>[
+        ...releasedQuizResults,
+        ...normalizedExamResults,
+      ];
+
+      combined.sort((a, b) {
+        final aDate = _tryParseDate(a['submitted_at']) ?? DateTime(1970);
+        final bDate = _tryParseDate(b['submitted_at']) ?? DateTime(1970);
+        return bDate.compareTo(aDate);
+      });
+
+      return combined;
+    })();
+  }
+
+  String get _returnTo {
+    final current = GoRouterState.of(context).uri.toString();
+    return current.startsWith('/student/batches')
+        ? current
+        : '/student/batches';
+  }
+
+  String _quizResultRoute(String quizId) =>
+      '/student/quiz/$quizId/result?returnTo=${Uri.encodeComponent(_returnTo)}';
+
+  DateTime? _tryParseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    return DateTime.tryParse(value.toString());
   }
 
   @override
@@ -2164,14 +2288,10 @@ class _ResultsTabState extends State<_ResultsTab> {
                   ),
                 );
               }
-              final allResults = snapshot.data ?? [];
-              final results = allResults.where((r) {
-                final exam = r['exam'] as Map<String, dynamic>? ?? {};
-                return (exam['batch_id'] ?? '').toString() == widget.batchId;
-              }).toList();
+              final results = snapshot.data ?? [];
               if (results.isEmpty) {
                 return _EmptyState(
-                  message: 'No test results available for this month.',
+                  message: 'No released results available for this month.',
                   icon: Icons.analytics_outlined,
                 );
               }
@@ -2181,35 +2301,19 @@ class _ResultsTabState extends State<_ResultsTab> {
                 separatorBuilder: (context, index) => const SizedBox(height: 12),
                 itemBuilder: (context, i) {
                   final res = results[i];
-                  final exam = res['exam'] as Map<String, dynamic>? ?? {};
-                  final marks = (res['marks_obtained'] ?? res['score'] ?? 0)
-                      .toDouble();
-                  final total =
-                      (exam['total_marks'] ?? res['total_questions'] ?? 100)
-                          .toDouble();
-                  final pct = total > 0 ? (marks / total * 100) : 0.0;
-                  final grade =
-                      res['grade']?.toString() ??
-                      (pct >= 90
-                          ? 'A+'
-                          : pct >= 80
-                          ? 'A'
-                          : pct >= 70
-                          ? 'B+'
-                          : pct >= 60
-                          ? 'B'
-                          : pct >= 50
-                          ? 'C'
-                          : 'D');
-                  final isPassed = pct >= 50;
+                  final kind = (res['kind'] ?? 'result').toString();
+                  final quizId = (res['quiz_id'] ?? '').toString();
                   return _buildItemCard(
-                    icon: Icons.assignment_turned_in_rounded,
-                    title:
-                        (res['quiz_title'] ?? exam['title'] ?? 'Test ${i + 1}')
-                            .toString(),
-                    subtitle: 'Score: ${marks.round()} / ${total.round()}',
-                    meta: isPassed ? grade : 'Needs Improvement',
-                    onTap: () {},
+                    icon: kind == 'quiz'
+                        ? Icons.quiz_rounded
+                        : Icons.assignment_turned_in_rounded,
+                    title: (res['title'] ?? 'Result ${i + 1}').toString(),
+                    subtitle: (res['subtitle'] ?? 'Score unavailable').toString(),
+                    meta: (res['meta'] ?? 'RESULT').toString(),
+                    onTap: () {
+                      if (quizId.isEmpty) return;
+                      context.push(_quizResultRoute(quizId));
+                    },
                   );
                 },
               );

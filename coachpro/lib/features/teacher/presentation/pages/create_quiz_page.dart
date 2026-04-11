@@ -40,6 +40,8 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _durationCtrl = TextEditingController();
   final TextEditingController _negativeMarkingCtrl = TextEditingController();
+  final TextEditingController _defaultQuestionMarksCtrl =
+      TextEditingController(text: '4');
 
   final List<Map<String, dynamic>> _questions = [];
   bool _isPublishing = false;
@@ -64,6 +66,33 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
       if ((batch['id'] ?? '').toString() == id) return batch;
     }
     return null;
+  }
+
+  TextEditingController _ensureMarksController(Map<String, dynamic> question) {
+    final existing = question['marks'];
+    if (existing is TextEditingController) return existing;
+
+    final controller = TextEditingController(
+      text: (existing ?? _defaultQuestionMarksCtrl.text).toString(),
+    );
+    question['marks'] = controller;
+    return controller;
+  }
+
+  void _applyDefaultMarksToAllQuestions() {
+    final value = int.tryParse(_defaultQuestionMarksCtrl.text.trim());
+    if (value == null || value <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Default marks must be a positive number.')),
+      );
+      return;
+    }
+
+    setState(() {
+      for (final question in _questions) {
+        _ensureMarksController(question).text = '$value';
+      }
+    });
   }
 
   @override
@@ -128,6 +157,9 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           opt.dispose();
         }
       }
+      if (item['marks'] is TextEditingController) {
+        (item['marks'] as TextEditingController).dispose();
+      }
     }
     _questions.clear();
   }
@@ -182,12 +214,22 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                   .toString()
                   .toUpperCase()] ??
               0,
-          'marks': (question['marks'] ?? 1).toString(),
+          'marks': TextEditingController(
+            text: (question['marks'] ?? 1).toString(),
+          ),
         });
       }
 
       if (_questions.isEmpty) {
         _addEmptyQuestion();
+      }
+
+      final firstQuestion = _questions.isNotEmpty ? _questions.first : null;
+      if (firstQuestion != null) {
+        final firstMarks = _ensureMarksController(firstQuestion).text.trim();
+        if (firstMarks.isNotEmpty) {
+          _defaultQuestionMarksCtrl.text = firstMarks;
+        }
       }
 
       setState(() {
@@ -229,6 +271,12 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
   }
 
   void _addEmptyQuestion() {
+    final defaultMarks = int.tryParse(_defaultQuestionMarksCtrl.text.trim());
+    final resolvedMarks =
+        (defaultMarks != null && defaultMarks > 0)
+            ? defaultMarks
+            : (_assessmentType == 'TEST' ? 1 : 4);
+
     setState(() {
       _questions.add({
         'question': TextEditingController(),
@@ -241,7 +289,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
           },
         ),
         'correct_index': 0,
-        'marks': '4',
+        'marks': TextEditingController(text: '$resolvedMarks'),
       });
     });
   }
@@ -325,6 +373,20 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
         );
         return;
       }
+
+      final marksText = _ensureMarksController(qMap).text.trim();
+      final parsedMarks = int.tryParse(marksText) ?? 0;
+      if (parsedMarks <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Please set a positive marks weightage for Question ${i + 1}.',
+            ),
+          ),
+        );
+        return;
+      }
+
       parsedQuestions.add({
         'question_text': qText,
         'image_url': imageUrl,
@@ -334,7 +396,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
         'option_c_image': optImages[2],
         'option_d_image': optImages[3],
         'correct_option_index': correctIdx,
-        'marks': int.tryParse(qMap['marks'].toString()) ?? 4,
+        'marks': parsedMarks,
         'type': 'multiple_choice',
       });
     }
@@ -397,6 +459,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
     _titleCtrl.dispose();
     _durationCtrl.dispose();
     _negativeMarkingCtrl.dispose();
+    _defaultQuestionMarksCtrl.dispose();
     _clearQuestions();
     super.dispose();
   }
@@ -535,6 +598,57 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                   children: [
                     _inputLabel('BATCH', blue),
                     _buildBatchDropdown(blue),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _inputLabel('DEFAULT MARKS / QUESTION', blue),
+                    _textField(
+                      _defaultQuestionMarksCtrl,
+                      _assessmentType == 'TEST' ? '1' : '4',
+                      blue,
+                      isNum: true,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _inputLabel('APPLY DEFAULT', blue),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _applyDefaultMarksToAllQuestions,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: yellow,
+                          foregroundColor: blue,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(color: blue, width: 2),
+                          ),
+                        ),
+                        child: Text(
+                          'APPLY TO ALL',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -804,6 +918,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
   ) {
     final qMap = _questions[index];
     final imageUrl = qMap['image_url'] as String?;
+    final marksCtrl = _ensureMarksController(qMap);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -859,12 +974,24 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                       ),
                       onPressed: () {
                         final removed = _questions.removeAt(index);
-                        (removed['question'] as TextEditingController).dispose();
-                        for (final ctrl
-                            in (removed['options']
-                                as List<TextEditingController>)) {
-                          ctrl.dispose();
+                        if (removed['question'] is TextEditingController) {
+                          (removed['question'] as TextEditingController).dispose();
                         }
+
+                        final removedOptions =
+                            (removed['options'] as List?) ?? const [];
+                        for (final opt in removedOptions) {
+                          if (opt is Map && opt['text'] is TextEditingController) {
+                            (opt['text'] as TextEditingController).dispose();
+                          } else if (opt is TextEditingController) {
+                            opt.dispose();
+                          }
+                        }
+
+                        if (removed['marks'] is TextEditingController) {
+                          (removed['marks'] as TextEditingController).dispose();
+                        }
+
                         setState(() {});
                       },
                     ),
@@ -907,6 +1034,20 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
               ),
             ),
           _textField(qMap['question'], 'ENTER QUESTION...', blue, maxLines: 2),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _inputLabel('MARKS WEIGHTAGE', blue),
+                    _textField(marksCtrl, '4', blue, isNum: true),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 20),
           _inputLabel('OPTIONS', blue),
           ...List.generate(4, (i) => _optionRow(index, i, blue, yellow)),
