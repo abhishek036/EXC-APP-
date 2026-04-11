@@ -62,10 +62,70 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
     return defaultIsStudent;
   }
 
+  String _resolveStudentLabel(Map<String, dynamic> doubt) {
+    final fromStudent = ((doubt['student'] as Map?)?['name'] ?? '').toString().trim();
+    if (fromStudent.isNotEmpty) return fromStudent;
+
+    final direct = (doubt['student_name'] ?? '').toString().trim();
+    if (direct.isNotEmpty) return direct;
+
+    return 'Student';
+  }
+
+  String _resolveTeacherLabel(Map<String, dynamic> doubt) {
+    final fromTeacher = ((doubt['teacher'] as Map?)?['name'] ?? '').toString().trim();
+    if (fromTeacher.isNotEmpty) return fromTeacher;
+
+    final fromAnsweredBy =
+        ((doubt['answered_by'] as Map?)?['name'] ?? '').toString().trim();
+    if (fromAnsweredBy.isNotEmpty) return fromAnsweredBy;
+
+    final direct = (doubt['teacher_name'] ?? '').toString().trim();
+    if (direct.isNotEmpty) return direct;
+
+    return 'Teacher';
+  }
+
+  String _normalizeThreadLabel({
+    required String rawLabel,
+    required bool isStudent,
+    required String studentLabel,
+    required String teacherLabel,
+    required bool usedFallbackLabel,
+  }) {
+    final trimmed = rawLabel.trim();
+    if (trimmed.isEmpty || usedFallbackLabel) {
+      return isStudent ? studentLabel : teacherLabel;
+    }
+
+    final lower = trimmed.toLowerCase();
+    if (isStudent &&
+        (lower == 'student' ||
+            lower.contains('student question') ||
+            lower == 'question' ||
+            lower == 'student message')) {
+      return studentLabel;
+    }
+
+    if (!isStudent &&
+        (lower == 'teacher' ||
+            lower.contains('teacher reply') ||
+            lower.contains('teacher response') ||
+            lower.contains('instructor') ||
+            lower == 'answer' ||
+            lower == 'reply')) {
+      return teacherLabel;
+    }
+
+    return trimmed;
+  }
+
   List<_ThreadMessage> _parseThreadText({
     required String rawText,
     required bool defaultIsStudent,
     required String fallbackLabel,
+    required String studentLabel,
+    required String teacherLabel,
     DateTime? fallbackTimestamp,
   }) {
     final trimmed = rawText.trim();
@@ -86,12 +146,14 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
       var label = fallbackLabel;
       var ts = fallbackTimestamp;
       var contentStart = 0;
+      var usedFallbackLabel = true;
 
       final headerMatch = headerPattern.firstMatch(rawLines.first.trim());
       if (headerMatch != null) {
         label = headerMatch.group(1)?.trim() ?? fallbackLabel;
         ts = DateTime.tryParse((headerMatch.group(2) ?? '').trim()) ?? ts;
         contentStart = 1;
+        usedFallbackLabel = false;
       }
 
       String? imageUrl;
@@ -109,13 +171,22 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
       final text = textLines.join('\n').trim();
       if (text.isEmpty && (imageUrl == null || imageUrl.isEmpty)) continue;
 
+      final isStudent = _labelRepresentsStudent(label, defaultIsStudent);
+      final resolvedLabel = _normalizeThreadLabel(
+        rawLabel: label,
+        isStudent: isStudent,
+        studentLabel: studentLabel,
+        teacherLabel: teacherLabel,
+        usedFallbackLabel: usedFallbackLabel,
+      );
+
       messages.add(
         _ThreadMessage(
-          label: label,
+          label: resolvedLabel,
           text: text,
           imageUrl: imageUrl,
           timestamp: ts,
-          isStudent: _labelRepresentsStudent(label, defaultIsStudent),
+          isStudent: isStudent,
         ),
       );
     }
@@ -124,6 +195,9 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
   }
 
   List<_ThreadMessage> _extractThreadMessages(Map<String, dynamic> doubt) {
+    final studentLabel = _resolveStudentLabel(doubt);
+    final teacherLabel = _resolveTeacherLabel(doubt);
+
     final createdAt = DateTime.tryParse(
       (doubt['createdAt'] ?? doubt['created_at'] ?? '').toString(),
     );
@@ -143,21 +217,25 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
     var fromStudent = _parseThreadText(
       rawText: questionText,
       defaultIsStudent: true,
-      fallbackLabel: 'Student Question',
+      fallbackLabel: studentLabel,
+      studentLabel: studentLabel,
+      teacherLabel: teacherLabel,
       fallbackTimestamp: createdAt,
     );
 
     var fromTeacher = _parseThreadText(
       rawText: answerText,
       defaultIsStudent: false,
-      fallbackLabel: 'Teacher Reply',
+      fallbackLabel: teacherLabel,
+      studentLabel: studentLabel,
+      teacherLabel: teacherLabel,
       fallbackTimestamp: resolvedAt ?? createdAt,
     );
 
     if (fromStudent.isEmpty && (questionText.isNotEmpty || questionImg.isNotEmpty)) {
       fromStudent = [
         _ThreadMessage(
-          label: 'Student Question',
+          label: studentLabel,
           text: questionText,
           imageUrl: questionImg.isEmpty ? null : questionImg,
           timestamp: createdAt,
@@ -173,7 +251,7 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
     if (fromTeacher.isEmpty && (answerText.isNotEmpty || answerImg.isNotEmpty)) {
       fromTeacher = [
         _ThreadMessage(
-          label: 'Teacher Reply',
+          label: teacherLabel,
           text: answerText,
           imageUrl: answerImg.isEmpty ? null : answerImg,
           timestamp: resolvedAt ?? createdAt,

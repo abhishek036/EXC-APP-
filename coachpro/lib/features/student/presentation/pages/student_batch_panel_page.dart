@@ -663,33 +663,20 @@ class _LecturesPaneState extends State<_LecturesPane> {
 
                   if (!context.mounted) return;
 
-                  final lowerUrl = url.toLowerCase();
-                  final isYoutube =
-                      lowerUrl.contains('youtube.com') ||
-                      lowerUrl.contains('youtu.be') ||
-                      lowerUrl.contains('youtube-nocookie.com');
-                  
-                  if (isYoutube) {
-                    context.push(
-                      '/student/youtube-player',
-                      extra: {
-                        'videoId': url,
-                        'title': title,
-                        'summary': summary,
-                        'teacherName': teacher,
-                        'subject': subject,
-                      },
-                    );
-                  } else {
-                    context.push(
-                      '/student/video-player',
-                      extra: {
-                        'videoUrl': url,
-                        'title': title,
-                        'lectureId': lec['id']?.toString() ?? '',
-                      },
-                    );
-                  }
+
+                  // Unified video player — handles both YouTube and
+                  // direct links with zero YouTube branding.
+                  context.push(
+                    '/student/video-player',
+                    extra: {
+                      'videoUrl': url,
+                      'title': title,
+                      'lectureId': lec['id']?.toString() ?? '',
+                      'summary': summary,
+                      'teacherName': teacher,
+                      'subject': subject,
+                    },
+                  );
                 },
                 child: _PremiumCard(
                   padding: const EdgeInsets.all(12),
@@ -2983,10 +2970,73 @@ class _DoubtsTabState extends State<_DoubtsTab> {
     return defaultIsStudent;
   }
 
+  String _resolveStudentLabel(Map<String, dynamic> doubt) {
+    final fromStudent = ((doubt['student'] as Map?)?['name'] ?? '').toString().trim();
+    if (fromStudent.isNotEmpty) return fromStudent;
+
+    final direct = (doubt['student_name'] ?? '').toString().trim();
+    if (direct.isNotEmpty) return direct;
+
+    return 'Student';
+  }
+
+  String _resolveTeacherLabel(Map<String, dynamic> doubt) {
+    final fromTeacher = ((doubt['teacher'] as Map?)?['name'] ?? '').toString().trim();
+    if (fromTeacher.isNotEmpty) return fromTeacher;
+
+    final fromAnsweredBy =
+        ((doubt['answered_by'] as Map?)?['name'] ?? '').toString().trim();
+    if (fromAnsweredBy.isNotEmpty) return fromAnsweredBy;
+
+    final direct = (doubt['teacher_name'] ?? '').toString().trim();
+    if (direct.isNotEmpty) return direct;
+
+    final batchTeacher = (widget.batchInfo['teacher_name'] ?? '').toString().trim();
+    if (batchTeacher.isNotEmpty) return batchTeacher;
+
+    return 'Teacher';
+  }
+
+  String _normalizeThreadLabel({
+    required String rawLabel,
+    required bool isStudent,
+    required String studentLabel,
+    required String teacherLabel,
+    required bool usedFallbackLabel,
+  }) {
+    final trimmed = rawLabel.trim();
+    if (trimmed.isEmpty || usedFallbackLabel) {
+      return isStudent ? studentLabel : teacherLabel;
+    }
+
+    final lower = trimmed.toLowerCase();
+    if (isStudent &&
+        (lower == 'student' ||
+            lower.contains('student question') ||
+            lower == 'question' ||
+            lower == 'student message')) {
+      return studentLabel;
+    }
+
+    if (!isStudent &&
+        (lower == 'teacher' ||
+            lower.contains('teacher reply') ||
+            lower.contains('teacher response') ||
+            lower.contains('instructor') ||
+            lower == 'answer' ||
+            lower == 'reply')) {
+      return teacherLabel;
+    }
+
+    return trimmed;
+  }
+
   List<_DoubtThreadMessage> _parseThreadText({
     required String rawText,
     required bool defaultIsStudent,
     required String fallbackLabel,
+    required String studentLabel,
+    required String teacherLabel,
     DateTime? fallbackTimestamp,
   }) {
     final trimmed = rawText.trim();
@@ -3007,12 +3057,14 @@ class _DoubtsTabState extends State<_DoubtsTab> {
       var label = fallbackLabel;
       var ts = fallbackTimestamp;
       var contentStart = 0;
+      var usedFallbackLabel = true;
 
       final headerMatch = headerPattern.firstMatch(rawLines.first.trim());
       if (headerMatch != null) {
         label = headerMatch.group(1)?.trim() ?? fallbackLabel;
         ts = DateTime.tryParse((headerMatch.group(2) ?? '').trim()) ?? ts;
         contentStart = 1;
+        usedFallbackLabel = false;
       }
 
       String? imageUrl;
@@ -3030,13 +3082,22 @@ class _DoubtsTabState extends State<_DoubtsTab> {
       final text = textLines.join('\n').trim();
       if (text.isEmpty && (imageUrl == null || imageUrl.isEmpty)) continue;
 
+      final isStudent = _labelRepresentsStudent(label, defaultIsStudent);
+      final resolvedLabel = _normalizeThreadLabel(
+        rawLabel: label,
+        isStudent: isStudent,
+        studentLabel: studentLabel,
+        teacherLabel: teacherLabel,
+        usedFallbackLabel: usedFallbackLabel,
+      );
+
       messages.add(
         _DoubtThreadMessage(
-          label: label,
+          label: resolvedLabel,
           text: text,
           imageUrl: imageUrl,
           timestamp: ts,
-          isStudent: _labelRepresentsStudent(label, defaultIsStudent),
+          isStudent: isStudent,
         ),
       );
     }
@@ -3045,6 +3106,9 @@ class _DoubtsTabState extends State<_DoubtsTab> {
   }
 
   List<_DoubtThreadMessage> _extractThreadMessages(Map<String, dynamic> doubt) {
+    final studentLabel = _resolveStudentLabel(doubt);
+    final teacherLabel = _resolveTeacherLabel(doubt);
+
     final createdAt = DateTime.tryParse(
       (doubt['createdAt'] ?? doubt['created_at'] ?? '').toString(),
     );
@@ -3060,13 +3124,17 @@ class _DoubtsTabState extends State<_DoubtsTab> {
     final fromStudent = _parseThreadText(
       rawText: questionText,
       defaultIsStudent: true,
-      fallbackLabel: 'Student Question',
+      fallbackLabel: studentLabel,
+      studentLabel: studentLabel,
+      teacherLabel: teacherLabel,
       fallbackTimestamp: createdAt,
     );
     final fromTeacher = _parseThreadText(
       rawText: answerText,
       defaultIsStudent: false,
-      fallbackLabel: 'Teacher Reply',
+      fallbackLabel: teacherLabel,
+      studentLabel: studentLabel,
+      teacherLabel: teacherLabel,
       fallbackTimestamp: resolvedAt ?? createdAt,
     );
 

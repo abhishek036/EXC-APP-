@@ -6,6 +6,7 @@ import 'dart:async';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
+import '../../../../core/utils/file_opener.dart';
 import '../../data/repositories/teacher_repository.dart';
 import 'assignment_review_page.dart';
 import 'attendance_marking_page.dart';
@@ -37,6 +38,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   Map<String, dynamic> _execution = {};
   List<Map<String, dynamic>> _students = [];
   List<Map<String, dynamic>> _doubts = [];
+  List<Map<String, dynamic>> _allBatchDoubts = [];
   List<Map<String, dynamic>> _practiceQuizzes = [];
   List<Map<String, dynamic>> _scheduledTests = [];
   List<Map<String, dynamic>> _notes = [];
@@ -50,6 +52,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   bool _isDeletingQuiz = false;
   final Set<String> _deletingContentIds = {};
   final Set<String> _updatingResultReleaseQuizIds = {};
+  String _doubtsView = 'pending';
   DateTime _selectedAttendanceDate = DateTime.now();
   DateTime _selectedQuizMonth = DateTime.now();
   StreamSubscription? _syncSub;
@@ -187,6 +190,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         subject: _selectedSubject,
       );
       final pendingDoubtsFuture = _loadBatchPendingDoubts();
+      final allDoubtsFuture = _loadBatchDoubts();
 
       final batches = await batchesFuture;
       final selected = batches
@@ -217,6 +221,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
       final notes = await notesFuture;
       final assignments = await assignmentsFuture;
       final apiPendingDoubts = await pendingDoubtsFuture;
+      final apiAllDoubts = await allDoubtsFuture;
 
       final executionPendingDoubts =
           (((execution['doubts'] as Map?)?['pending_items']) as List? ??
@@ -228,6 +233,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
 
       final pendingDoubts =
           apiPendingDoubts.isNotEmpty ? apiPendingDoubts : executionPendingDoubts;
+        final batchDoubts = apiAllDoubts.isNotEmpty
+          ? apiAllDoubts
+          : pendingDoubts;
 
       final topics =
           (((execution['syllabus'] as Map?)?['topics']) as List? ?? const [])
@@ -254,6 +262,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
         _execution = execution;
         _students = students;
         _doubts = pendingDoubts;
+        _allBatchDoubts = batchDoubts;
         _practiceQuizzes = practiceQuizzes;
         _scheduledTests = scheduledTests;
         _notes = notes;
@@ -273,12 +282,40 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
 
   Future<List<Map<String, dynamic>>> _loadBatchPendingDoubts() async {
     try {
-      final pending = await _teacherRepo.getPendingDoubts();
+      final pending = await _loadBatchDoubts(status: 'pending');
       return pending
           .where(_isDoubtInCurrentBatch)
           .where(_matchesSelectedSubject)
           .map((item) => Map<String, dynamic>.from(item))
           .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadBatchDoubts({String? status}) async {
+    try {
+      final doubts = await _teacherRepo.getDoubts(status: status);
+      final filtered = doubts
+          .where(_isDoubtInCurrentBatch)
+          .where(_matchesSelectedSubject)
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+
+      filtered.sort((a, b) {
+        final aDate = DateTime.tryParse(
+          (a['created_at'] ?? a['createdAt'] ?? '').toString(),
+        );
+        final bDate = DateTime.tryParse(
+          (b['created_at'] ?? b['createdAt'] ?? '').toString(),
+        );
+        if (aDate == null && bDate == null) return 0;
+        if (aDate == null) return 1;
+        if (bDate == null) return -1;
+        return bDate.compareTo(aDate);
+      });
+
+      return filtered;
     } catch (_) {
       return const [];
     }
@@ -1052,6 +1089,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                 ...items.map((item) {
                   final itemId = (item['id'] ?? '').toString();
                   final isDeleting = _deletingContentIds.contains(itemId);
+                  final canDownload = contentType != 'video';
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -1112,6 +1150,10 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                               : PopupMenuButton<String>(
                                   icon: Icon(Icons.more_vert_rounded, color: blue),
                                   onSelected: (value) {
+                                    if (value == 'download') {
+                                      _downloadAndOpenNote(item);
+                                      return;
+                                    }
                                     if (value == 'edit') {
                                       _openEditContentItem(item, type: contentType);
                                       return;
@@ -1126,12 +1168,17 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                                       );
                                     }
                                   },
-                                  itemBuilder: (_) => const [
-                                    PopupMenuItem(
+                                  itemBuilder: (_) => [
+                                    if (canDownload)
+                                      const PopupMenuItem(
+                                        value: 'download',
+                                        child: Text('Download & Open'),
+                                      ),
+                                    const PopupMenuItem(
                                       value: 'edit',
                                       child: Text('Edit'),
                                     ),
-                                    PopupMenuItem(
+                                    const PopupMenuItem(
                                       value: 'delete',
                                       child: Text('Delete'),
                                     ),
@@ -1555,6 +1602,71 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Map<String, dynamic> _resolvePrimaryNoteFile(Map<String, dynamic> note) {
+    final primaryRaw = note['primary_file'];
+    if (primaryRaw is Map) {
+      return Map<String, dynamic>.from(primaryRaw);
+    }
+
+    final filesRaw = note['note_files'];
+    if (filesRaw is List) {
+      for (final item in filesRaw) {
+        if (item is Map) {
+          return Map<String, dynamic>.from(item);
+        }
+      }
+    }
+
+    return <String, dynamic>{};
+  }
+
+  Future<void> _downloadAndOpenNote(Map<String, dynamic> note) async {
+    try {
+      final noteId = (note['id'] ?? '').toString();
+      final primary = _resolvePrimaryNoteFile(note);
+      final fileId = (primary['id'] ?? '').toString();
+
+      String targetUrl = '';
+      String? fileName;
+      String? mimeType;
+
+      if (noteId.isNotEmpty && fileId.isNotEmpty) {
+        final access = await _teacherRepo.getStudyMaterialAccess(
+          noteId: noteId,
+          fileId: fileId,
+          action: 'download',
+        );
+        targetUrl = (access['access_url'] ?? '').toString().trim();
+        fileName = (access['file_name'] ?? '').toString().trim();
+        mimeType = (access['mime_type'] ?? '').toString().trim();
+      }
+
+      if (targetUrl.isEmpty) {
+        targetUrl =
+            (primary['file_url'] ?? note['file_url'] ?? '').toString().trim();
+      }
+
+      if (targetUrl.isEmpty) {
+        throw Exception('No file URL available');
+      }
+
+      await downloadAndOpenFromUrl(
+        url: targetUrl,
+        fileName: fileName?.isEmpty ?? true
+            ? (primary['file_name'] ?? note['title'] ?? 'note').toString()
+            : fileName,
+        mimeType: mimeType?.isEmpty ?? true ? null : mimeType,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to download/open this note right now.'),
+        ),
+      );
+    }
   }
 
   Future<void> _openEditContentItem(
@@ -2730,16 +2842,48 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
   }
 
   Widget _doubtsTab(Color bg, Color yellow, Color blue) {
+    final visibleDoubts = _allBatchDoubts.where((doubt) {
+      final status = (doubt['status'] ?? 'pending').toString().toLowerCase();
+      if (_doubtsView == 'pending') return status == 'pending';
+      return status != 'pending';
+    }).toList();
+
+    final emptyLabel = _doubtsView == 'pending'
+        ? 'NO PENDING DOUBTS'
+        : 'NO DOUBT HISTORY FOUND';
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        if (_doubts.isEmpty)
+        Row(
+          children: [
+            Expanded(
+              child: _buildDoubtFilterChip(
+                label: 'PENDING',
+                value: 'pending',
+                blue: blue,
+                yellow: yellow,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildDoubtFilterChip(
+                label: 'HISTORY',
+                value: 'history',
+                blue: blue,
+                yellow: yellow,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (visibleDoubts.isEmpty)
           Center(
             child: Padding(
               padding: const EdgeInsets.only(top: 100),
               child: _PremiumCard(
                 child: Text(
-                  'NO PENDING DOUBTS',
+                  emptyLabel,
                   style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w900,
                     color: blue,
@@ -2749,11 +2893,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
             ),
           )
         else
-          ..._doubts.map((d) {
+          ...visibleDoubts.map((d) {
             final student = ((d['student'] as Map?)?['name'] ?? 'Student')
                 .toString();
             final batch = ((d['batch'] as Map?)?['name'] ?? 'Batch').toString();
             final preview = _buildDoubtPreviewText(d);
+            final status = (d['status'] ?? 'pending').toString().toLowerCase();
+            final statusLabel = status == 'pending' ? 'PENDING' : status.toUpperCase();
             final studentInitial = student.trim().isEmpty
                 ? 'S'
                 : student.trim().substring(0, 1).toUpperCase();
@@ -2842,6 +2988,32 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: status == 'pending'
+                                      ? yellow.withValues(alpha: 0.4)
+                                      : AppColors.mintGreen.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: blue, width: 1),
+                                ),
+                                child: Text(
+                                  statusLabel,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 9,
+                                    color: blue,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
                           Text(
                             preview,
                             style: GoogleFonts.plusJakartaSans(
@@ -2863,6 +3035,39 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
             );
           }),
       ],
+    );
+  }
+
+  Widget _buildDoubtFilterChip({
+    required String label,
+    required String value,
+    required Color blue,
+    required Color yellow,
+  }) {
+    final selected = _doubtsView == value;
+    return InkWell(
+      onTap: () => setState(() => _doubtsView = value),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? yellow : Colors.white,
+          border: Border.all(color: blue, width: 2),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: selected
+              ? [BoxShadow(color: blue, offset: const Offset(2, 2))]
+              : null,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            fontSize: 11,
+            color: blue,
+          ),
+        ),
+      ),
     );
   }
 

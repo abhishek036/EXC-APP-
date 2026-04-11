@@ -19,6 +19,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
   List<Map<String, dynamic>> _doubts = [];
   bool _isLoading = true;
   String? _error;
+  String _view = 'pending';
 
   @override
   void initState() {
@@ -43,7 +44,14 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
       _error = null;
     });
     try {
-      final doubts = await _teacherRepo.getPendingDoubts();
+      final fetched = _view == 'pending'
+          ? await _teacherRepo.getDoubts(status: 'pending')
+          : await _teacherRepo.getDoubts();
+      final doubts = fetched.where((item) {
+        final status = (item['status'] ?? 'pending').toString().toLowerCase();
+        if (_view == 'pending') return status == 'pending';
+        return status != 'pending';
+      }).toList();
       if (!mounted) return;
       setState(() {
         _doubts = doubts;
@@ -81,7 +89,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
       backgroundColor: blue,
       appBar: AppBar(
         title: Text(
-          'PENDING DOUBTS',
+          _view == 'pending' ? 'PENDING DOUBTS' : 'DOUBT HISTORY',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w900,
             fontSize: 18,
@@ -104,6 +112,30 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSummaryBar(blue, surface, yellow),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildViewButton(
+                    label: 'PENDING',
+                    value: 'pending',
+                    blue: blue,
+                    yellow: yellow,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildViewButton(
+                    label: 'HISTORY',
+                    value: 'history',
+                    blue: blue,
+                    yellow: yellow,
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           Expanded(
             child: _isLoading
@@ -129,6 +161,10 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
   }
 
   Widget _buildSummaryBar(Color blue, Color surface, Color yellow) {
+    final summaryLabel = _view == 'pending'
+        ? '${_doubts.length} DOUBTS AWAITING ACTION'
+        : '${_doubts.length} RESOLVED/OLDER THREADS';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -145,7 +181,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
             const Icon(Icons.bolt_rounded, color: Colors.black, size: 24),
             const SizedBox(width: 12),
             Text(
-              '${_doubts.length} DOUBTS AWAITING ACTION',
+              summaryLabel,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w900,
@@ -156,6 +192,43 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
           ],
         ),
       ).animate().fadeIn().slideY(begin: -0.2),
+    );
+  }
+
+  Widget _buildViewButton({
+    required String label,
+    required String value,
+    required Color blue,
+    required Color yellow,
+  }) {
+    final selected = _view == value;
+    return InkWell(
+      onTap: () {
+        if (_view == value) return;
+        setState(() => _view = value);
+        _loadDoubts();
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        decoration: BoxDecoration(
+          color: selected ? yellow : Colors.white,
+          border: Border.all(color: blue, width: 2.5),
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: selected
+              ? [BoxShadow(color: blue, offset: const Offset(3, 3))]
+              : null,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            color: blue,
+          ),
+        ),
+      ),
     );
   }
 
@@ -370,7 +443,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
         ),
         const SizedBox(height: 24),
         Text(
-          'CLEAN SLATE!',
+          _view == 'pending' ? 'CLEAN SLATE!' : 'NO HISTORY YET',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 24,
             fontWeight: FontWeight.w900,
@@ -380,7 +453,9 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          'ALL DOUBTS HAVE BEEN RESOLVED',
+          _view == 'pending'
+              ? 'ALL DOUBTS HAVE BEEN RESOLVED'
+              : 'NO RESOLVED/OLDER DOUBTS AVAILABLE',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 12,
             fontWeight: FontWeight.w900,

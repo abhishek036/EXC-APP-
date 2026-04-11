@@ -12,8 +12,8 @@ import '../../../../core/widgets/cp_pressable.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/cloud_storage_service.dart';
+import '../../../../core/utils/file_opener.dart';
 import '../../data/repositories/student_repository.dart';
 
 class AssignmentSubmissionPage extends StatefulWidget {
@@ -186,6 +186,30 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
     _selectedFile = null;
     _isFileUploaded = false;
     _lastDraftSignature = _draftSignature();
+  }
+
+  Future<void> _downloadAndOpenFile({
+    required String url,
+    required String fallbackFileName,
+    String? mimeType,
+  }) async {
+    final trimmedUrl = url.trim();
+    if (trimmedUrl.isEmpty) return;
+
+    try {
+      await downloadAndOpenFromUrl(
+        url: trimmedUrl,
+        fileName: fallbackFileName,
+        mimeType: (mimeType ?? '').trim().isEmpty ? null : mimeType,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to download/open this file right now.'),
+        ),
+      );
+    }
   }
 
   Future<void> _submitAssignment() async {
@@ -431,10 +455,12 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                   if (_assignmentFileUrl != null && _assignmentFileUrl!.isNotEmpty) ...[
                     CPPressable(
                       onTap: () async {
-                        final uri = Uri.tryParse(_assignmentFileUrl!);
-                        if (uri != null && await canLaunchUrl(uri)) {
-                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-                        }
+                        await _downloadAndOpenFile(
+                          url: _assignmentFileUrl!,
+                          fallbackFileName:
+                              (assignment['file_name'] ?? '$title.pdf').toString(),
+                          mimeType: (assignment['file_mime_type'] ?? '').toString(),
+                        );
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -497,10 +523,16 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                             const SizedBox(height: 8),
                             CPPressable(
                               onTap: () async {
-                                final uri = Uri.tryParse((_mySubmission?['file_url'] ?? '').toString());
-                                if (uri != null && await canLaunchUrl(uri)) {
-                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                }
+                                final submissionFileName =
+                                    (_mySubmission?['file_name'] ??
+                                            '${title}_submission.pdf')
+                                        .toString();
+                                await _downloadAndOpenFile(
+                                  url: (_mySubmission?['file_url'] ?? '').toString(),
+                                  fallbackFileName: submissionFileName,
+                                  mimeType: (_mySubmission?['file_mime_type'] ?? '')
+                                      .toString(),
+                                );
                               },
                               child: Text(
                                 'Open previously submitted file',

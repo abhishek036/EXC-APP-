@@ -14,14 +14,33 @@ Future<void> downloadAndOpenFromUrl({
   String? fileName,
   String? mimeType,
 }) async {
-  final response = await sl<ApiClient>().dio.get<List<int>>(
+  final apiClient = sl<ApiClient>();
+  Response<List<int>>? response;
+  Object? lastError;
+
+  for (final candidate in _buildDownloadUrlCandidates(
     url,
-    options: Options(
-      responseType: ResponseType.bytes,
-      followRedirects: true,
-      validateStatus: (code) => code != null && code >= 200 && code < 400,
-    ),
-  );
+    baseUrl: apiClient.dio.options.baseUrl,
+  )) {
+    try {
+      response = await apiClient.dio.get<List<int>>(
+        candidate,
+        options: Options(
+          responseType: ResponseType.bytes,
+          followRedirects: true,
+          validateStatus: (code) => code != null && code >= 200 && code < 400,
+        ),
+      );
+      break;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+
+  if (response == null) {
+    if (lastError is Exception) throw lastError;
+    throw Exception('Unable to download file');
+  }
 
   final bytes = Uint8List.fromList(response.data ?? const <int>[]);
   if (bytes.isEmpty) {
@@ -30,7 +49,7 @@ Future<void> downloadAndOpenFromUrl({
 
   final resolvedName = _resolveFileName(
     explicitName: fileName,
-    url: url,
+    url: response.requestOptions.uri.toString(),
     headers: response.headers,
   );
 
@@ -39,6 +58,83 @@ Future<void> downloadAndOpenFromUrl({
     fileName: resolvedName,
     mimeType: mimeType,
   );
+}
+
+List<String> _buildDownloadUrlCandidates(String rawUrl, {required String baseUrl}) {
+  final trimmed = rawUrl.trim();
+  if (trimmed.isEmpty) return const [];
+
+  final candidates = <String>[];
+  final seen = <String>{};
+
+  void add(String candidate) {
+    final normalized = candidate.trim();
+    if (normalized.isEmpty || seen.contains(normalized)) return;
+    seen.add(normalized);
+    candidates.add(normalized);
+  }
+
+  add(trimmed);
+
+  final uri = Uri.tryParse(trimmed);
+  if (uri != null) {
+    final pathWithQuery = _pathWithQuery(uri);
+    if (pathWithQuery.isNotEmpty) {
+      add(pathWithQuery);
+      add(pathWithQuery.startsWith('/') ? pathWithQuery.substring(1) : pathWithQuery);
+
+      final afterApi = _pathAfterApiPrefix(pathWithQuery);
+      if (afterApi != null && afterApi.isNotEmpty) {
+        add(afterApi);
+      }
+    }
+
+    final baseUri = Uri.tryParse(baseUrl);
+    if (baseUri != null &&
+        uri.hasScheme &&
+        uri.host.isNotEmpty &&
+        baseUri.host.isNotEmpty &&
+        uri.host.toLowerCase() != baseUri.host.toLowerCase()) {
+      if (pathWithQuery.isNotEmpty) {
+        add(pathWithQuery.startsWith('/') ? pathWithQuery.substring(1) : pathWithQuery);
+      }
+    }
+  }
+
+  if (trimmed.startsWith('/')) {
+    add(trimmed.substring(1));
+  }
+
+  return candidates;
+}
+
+String _pathWithQuery(Uri uri) {
+  final path = uri.path.isEmpty ? '/' : uri.path;
+  return uri.hasQuery ? '$path?${uri.query}' : path;
+}
+
+String? _pathAfterApiPrefix(String pathWithQuery) {
+  final lower = pathWithQuery.toLowerCase();
+
+  final apiV1Index = lower.indexOf('/api/v1/');
+  if (apiV1Index >= 0) {
+    return pathWithQuery.substring(apiV1Index + '/api/v1/'.length);
+  }
+
+  final apiIndex = lower.indexOf('/api/');
+  if (apiIndex >= 0) {
+    return pathWithQuery.substring(apiIndex + '/api/'.length);
+  }
+
+  if (lower.startsWith('api/v1/')) {
+    return pathWithQuery.substring('api/v1/'.length);
+  }
+
+  if (lower.startsWith('api/')) {
+    return pathWithQuery.substring('api/'.length);
+  }
+
+  return null;
 }
 
 String _resolveFileName({

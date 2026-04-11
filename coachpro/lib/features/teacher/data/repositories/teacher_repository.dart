@@ -316,15 +316,23 @@ class TeacherRepository {
   }
 
   // ── Doubts ───────────────────────────────────────────────
-  Future<List<Map<String, dynamic>>> getPendingDoubts() async {
+  Future<List<Map<String, dynamic>>> getDoubts({String? status}) async {
+    final normalizedStatus = status?.trim().toLowerCase();
     final response = await _api.dio.get(
       'doubts',
-      queryParameters: {'status': 'pending'},
+      queryParameters: {
+        if (normalizedStatus != null && normalizedStatus.isNotEmpty)
+          'status': normalizedStatus,
+      },
     );
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch doubts');
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingDoubts() async {
+    return getDoubts(status: 'pending');
   }
 
   Future<Map<String, dynamic>> answerDoubt({
@@ -475,6 +483,24 @@ class TeacherRepository {
       return _extractList(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch notes');
+  }
+
+  Future<Map<String, dynamic>> getStudyMaterialAccess({
+    required String noteId,
+    required String fileId,
+    String action = 'download',
+  }) async {
+    final normalizedAction = action.toLowerCase() == 'view' ? 'view' : 'download';
+    final response = await _api.dio.get(
+      'content/notes/$noteId/files/$fileId/access',
+      queryParameters: {
+        'action': normalizedAction,
+      },
+    );
+    if (response.statusCode == 200) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch secure file access');
   }
 
   // ── Create Quiz ──────────────────────────────────────────
