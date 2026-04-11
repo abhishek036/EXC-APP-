@@ -161,9 +161,6 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
       });
 
       _bindControllerStreams(controller);
-      await controller.loadVideoById(videoId: resolvedVideoId);
-      await _syncMuteState(controller);
-      await _loadAvailableQualities(controller);
 
       if (!mounted) {
         await controller.close();
@@ -176,6 +173,10 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
         _hasInitError = false;
       });
       _showControlsTemporarily();
+
+      // Do not block initialization waiting for WebView commands. The player
+      // widget must mount first so controller init can complete.
+      unawaited(_configureControllerAfterMount(controller, resolvedVideoId));
     } catch (e, st) {
       debugPrint('YouTube player initialization failed: $e');
       debugPrint('$st');
@@ -185,6 +186,21 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
         _isInitializing = false;
         _hasInitError = true;
       });
+    }
+  }
+
+  Future<void> _configureControllerAfterMount(
+    YoutubePlayerController controller,
+    String resolvedVideoId,
+  ) async {
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+      await controller.loadVideoById(videoId: resolvedVideoId);
+      await _syncMuteState(controller);
+      await _loadAvailableQualities(controller);
+    } catch (e, st) {
+      debugPrint('YouTube controller post-mount setup failed: $e');
+      debugPrint('$st');
     }
   }
 
