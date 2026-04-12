@@ -21,7 +21,6 @@ class ParentDashboardPage extends StatefulWidget {
 }
 
 class _ParentDashboardPageState extends State<ParentDashboardPage> {
-  final _scaffoldKey = GlobalKey<ScaffoldState>();
   final ParentRepository _parentRepo = sl<ParentRepository>();
   bool _isLoading = true;
   Map<String, dynamic>? _dashboardData;
@@ -110,7 +109,6 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
     }
 
     return Scaffold(
-      key: _scaffoldKey,
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       drawer: _buildDrawer(isDark),
       body: RefreshIndicator(
@@ -169,16 +167,18 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
             : 'GOOD EVENING';
     return Row(
       children: [
-        CPPressable(
-          onTap: () {
-            _scaffoldKey.currentState?.openDrawer();
-          },
-          child: const Padding(
-            padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
-            child: Icon(
-              Icons.menu_rounded,
-              color: AppColors.elitePrimary,
-              size: 28,
+        Builder(
+          builder: (scaffoldContext) => CPPressable(
+            onTap: () {
+              Scaffold.maybeOf(scaffoldContext)?.openDrawer();
+            },
+            child: const Padding(
+              padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
+              child: Icon(
+                Icons.menu_rounded,
+                color: AppColors.elitePrimary,
+                size: 28,
+              ),
             ),
           ),
         ),
