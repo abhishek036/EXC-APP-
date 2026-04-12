@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_animated_ring.dart';
+import '../../../../core/widgets/cp_user_avatar.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme_aware.dart';
+import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 
 import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/parent_repository.dart';
@@ -18,6 +21,7 @@ class ParentDashboardPage extends StatefulWidget {
 }
 
 class _ParentDashboardPageState extends State<ParentDashboardPage> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   final ParentRepository _parentRepo = sl<ParentRepository>();
   bool _isLoading = true;
   Map<String, dynamic>? _dashboardData;
@@ -106,7 +110,9 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
     }
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
+      drawer: _buildDrawer(isDark),
       body: RefreshIndicator(
         color: AppColors.elitePrimary,
         displacement: 20,
@@ -153,6 +159,9 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
   }
 
   Widget _buildAppBar(bool isDark) {
+    final authState = context.read<AuthBloc>().state;
+    final parentName = authState is AuthAuthenticated ? authState.user.name : 'Parent';
+    final avatarUrl = authState is AuthAuthenticated ? authState.user.avatarUrl : null;
     final greeting = DateTime.now().hour < 12
         ? 'GOOD MORNING'
         : DateTime.now().hour < 17
@@ -160,30 +169,29 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
             : 'GOOD EVENING';
     return Row(
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.elitePrimary,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isDark ? Colors.white24 : AppColors.elitePrimary,
-              width: isDark ? 1.5 : 3,
+        CPPressable(
+          onTap: () {
+            _scaffoldKey.currentState?.openDrawer();
+          },
+          child: const Padding(
+            padding: EdgeInsets.only(right: 12, top: 4, bottom: 4),
+            child: Icon(
+              Icons.menu_rounded,
+              color: AppColors.elitePrimary,
+              size: 28,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark ? Colors.black54 : AppColors.elitePrimary,
-                offset: const Offset(3, 3),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.family_restroom_rounded,
-            size: 22,
-            color: Colors.white,
           ),
         ),
-        const SizedBox(width: 12),
+        CPPressable(
+          onTap: () => context.go('/parent/profile'),
+          child: CpUserAvatar(
+            name: parentName,
+            avatarUrl: avatarUrl,
+            size: 44,
+            borderColor: AppColors.elitePrimary,
+          ),
+        ),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,6 +227,153 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
       ],
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);
   }
+
+  Widget _buildDrawer(bool isDark) {
+    final authState = context.read<AuthBloc>().state;
+    final parentName = authState is AuthAuthenticated ? authState.user.name : 'Parent';
+    final avatarUrl = authState is AuthAuthenticated ? authState.user.avatarUrl : null;
+
+    return Drawer(
+      backgroundColor: isDark ? AppColors.eliteDarkBg : Colors.white,
+      child: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  CpUserAvatar(
+                    name: parentName,
+                    avatarUrl: avatarUrl,
+                    size: 54,
+                    backgroundColor: AppColors.moltenAmber,
+                    textColor: AppColors.elitePrimary,
+                    borderColor: AppColors.elitePrimary,
+                    borderWidth: 3,
+                    showShadow: false,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'PARENT\nPANEL',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.elitePrimary,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(color: AppColors.elitePrimary, thickness: 2, height: 1),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                children: [
+                  _drawerTile(
+                    Icons.dashboard_rounded,
+                    'DASHBOARD',
+                    AppColors.elitePrimary,
+                    () => Navigator.pop(context),
+                  ),
+                  _drawerTile(
+                    Icons.insights_rounded,
+                    'CHILD ACTIVITY',
+                    AppColors.elitePrimary,
+                    () {
+                      Navigator.pop(context);
+                      if (_children.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('No child available yet')),
+                        );
+                        return;
+                      }
+                      context.go('/parent/weekly-report/${_children[_selectedChild]['id']}');
+                    },
+                  ),
+                  _drawerTile(
+                    Icons.history_edu_rounded,
+                    'PAYMENT HISTORY',
+                    AppColors.elitePrimary,
+                    () {
+                      Navigator.pop(context);
+                      context.go('/parent/payment-history');
+                    },
+                  ),
+                  _drawerTile(
+                    Icons.notifications_rounded,
+                    'NOTIFICATIONS',
+                    AppColors.elitePrimary,
+                    () {
+                      Navigator.pop(context);
+                      context.go('/parent/notifications');
+                    },
+                  ),
+                  _drawerTile(
+                    Icons.person_rounded,
+                    'PROFILE',
+                    AppColors.elitePrimary,
+                    () {
+                      Navigator.pop(context);
+                      context.go('/parent/profile');
+                    },
+                  ),
+                  _drawerTile(
+                    Icons.settings_rounded,
+                    'SETTINGS',
+                    AppColors.elitePrimary,
+                    () {
+                      Navigator.pop(context);
+                      context.go('/parent/settings');
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const Divider(thickness: 2, color: AppColors.elitePrimary, height: 1),
+            _drawerTile(
+              Icons.logout_rounded,
+              'SIGN OUT',
+              AppColors.coralRed,
+              () {
+                Navigator.pop(context);
+                context.read<AuthBloc>().add(AuthLogoutRequested());
+              },
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _drawerTile(
+    IconData icon,
+    String label,
+    Color color,
+    VoidCallback onTap,
+  ) => InkWell(
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(width: 16),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w900,
+              color: color,
+              fontSize: 16,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _appBarAction(IconData icon, VoidCallback onTap, bool isDark) {
     return CPPressable(
