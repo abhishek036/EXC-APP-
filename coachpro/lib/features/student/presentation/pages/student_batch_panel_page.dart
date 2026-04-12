@@ -9,8 +9,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/utils/file_opener.dart';
- '../../../../core/theme/theme_aware.dart';
-_DoubtThreadMessage {
+import '../../../../core/theme/theme_aware.dart';
+class _DoubtThreadMessage {
   final String label;
   final String text;
   final String? imageUrl;
@@ -3921,4 +3921,5 @@ class _SyllabusPaneState extends State<_SyllabusPane> with ThemeAware<_SyllabusP
     );
   }
 }
+
 

@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
- '../../../../core/theme/theme_aware.dart';
-_ThreadMessage {
+import '../../../../core/theme/theme_aware.dart';
+import '../../data/repositories/teacher_repository.dart';
+
+class _ThreadMessage {
   final String label;
   final String text;
   final String? imageUrl;
@@ -356,8 +359,8 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> with ThemeAware<D
   }
 
   Widget _buildChatBubble(_ThreadMessage message) {
-    const blue = Color(0xFF0D1282);
-    const yellow = Color(0xFFF0DE36);
+    const blue = AppColors.elitePrimary;
+    const yellow = AppColors.moltenAmber;
     final bubbleColor = message.isStudent ? yellow : Colors.white;
     final textColor = blue;
     final align = message.isStudent ? Alignment.centerRight : Alignment.centerLeft;
@@ -453,9 +456,9 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> with ThemeAware<D
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF0D1282);
-    const surface = Color(0xFFEEEDED);
-    const yellow = Color(0xFFF0DE36);
+    const blue = AppColors.elitePrimary;
+    const surface = AppColors.offWhite;
+    const yellow = AppColors.moltenAmber;
 
     final d = widget.doubt;
     final subject = (d['subject'] ?? 'General').toString().toUpperCase();
@@ -627,4 +630,7 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> with ThemeAware<D
     );
   }
 }
+
+
+
 

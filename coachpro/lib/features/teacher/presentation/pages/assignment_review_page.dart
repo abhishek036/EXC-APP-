@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/file_opener.dart';
 import '../../../../core/di/injection_container.dart';
- '../../../../core/theme/theme_aware.dart';
-AssignmentReviewPage extends StatefulWidget {
+import '../../../../core/theme/theme_aware.dart';
+import '../../data/repositories/teacher_repository.dart';
+
+class AssignmentReviewPage extends StatefulWidget {
   final String batchId;
   final String? initialAssignmentId;
   final String? initialAssignmentTitle;
@@ -228,9 +231,9 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF0D1282);
-    const surface = Color(0xFFEEEDED);
-    const yellow = Color(0xFFF0DE36);
+    const blue = AppColors.elitePrimary;
+    const surface = AppColors.offWhite;
+    const yellow = AppColors.moltenAmber;
 
     return Scaffold(
       backgroundColor: blue,
@@ -465,4 +468,7 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
     );
   }
 }
+
+
+
 

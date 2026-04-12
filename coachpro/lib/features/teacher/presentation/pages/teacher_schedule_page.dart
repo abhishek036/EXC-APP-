@@ -12,8 +12,8 @@ import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_toast.dart';
 import '../../data/repositories/teacher_repository.dart';
- '../../../../core/theme/theme_aware.dart';
-TeacherSchedulePage extends StatefulWidget {
+import '../../../../core/theme/theme_aware.dart';
+class TeacherSchedulePage extends StatefulWidget {
   const TeacherSchedulePage({super.key});
 
   @override
@@ -786,7 +786,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
                               child: Container(
                                 height: 56,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFD71313),
+                                  color: const AppColors.coralRed,
                                   border: Border.all(color: blue, width: 2),
                                   boxShadow: const [
                                     BoxShadow(
@@ -859,11 +859,11 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
   }
 
   Future<void> _showClearPastConfirm() async {
-    const blue = Color(0xFF0D1282);
+    const blue = AppColors.elitePrimary;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFFEEEDED),
+        backgroundColor: const AppColors.offWhite,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: blue, width: 3),
@@ -899,7 +899,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
               'CLEAR',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFFD71313),
+                color: const AppColors.coralRed,
               ),
             ),
           ),
@@ -928,11 +928,11 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
   }
 
   Future<bool?> _showDeleteConfirm() async {
-    const blue = Color(0xFF0D1282);
+    const blue = AppColors.elitePrimary;
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFFEEEDED),
+        backgroundColor: const AppColors.offWhite,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: blue, width: 3),
@@ -968,7 +968,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
               'DELETE',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFFD71313),
+                color: const AppColors.coralRed,
               ),
             ),
           ),
@@ -982,7 +982,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
     style: GoogleFonts.plusJakartaSans(
       fontSize: 10,
       fontWeight: FontWeight.w900,
-      color: const Color(0xFF0D1282),
+      color: const AppColors.elitePrimary,
       letterSpacing: 0.5,
     ),
   );
@@ -1038,7 +1038,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
         padding: const EdgeInsets.symmetric(horizontal: 16),
         icon: const Icon(
           Icons.keyboard_arrow_down_rounded,
-          color: Color(0xFF0D1282),
+          color: AppColors.elitePrimary,
         ),
         style: GoogleFonts.plusJakartaSans(
           fontWeight: FontWeight.w700,
@@ -1352,4 +1352,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
     }
   }
 }
+
+
+
 

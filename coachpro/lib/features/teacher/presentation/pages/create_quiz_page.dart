@@ -8,8 +8,8 @@ import 'package:file_picker/file_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/cloud_storage_service.dart';
- '../../../../core/theme/theme_aware.dart';
-CreateQuizPage extends StatefulWidget {
+import '../../../../core/theme/theme_aware.dart';
+class CreateQuizPage extends StatefulWidget {
   final String? initialBatchId;
   final String? initialSubject;
   final String? quizId;
@@ -465,9 +465,9 @@ class _CreateQuizPageState extends State<CreateQuizPage> with ThemeAware<CreateQ
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF0D1282);
-    const surface = Color(0xFFEEEDED);
-    const yellow = Color(0xFFF0DE36);
+    const blue = AppColors.elitePrimary;
+    const surface = AppColors.offWhite;
+    const yellow = AppColors.moltenAmber;
 
     return Scaffold(
       backgroundColor: blue,
@@ -1206,4 +1206,7 @@ class _CreateQuizPageState extends State<CreateQuizPage> with ThemeAware<CreateQ
     ),
   );
 }
+
+
+
 

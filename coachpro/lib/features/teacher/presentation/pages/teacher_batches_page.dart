@@ -8,8 +8,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/widgets/cp_role_shell.dart';
- '../../../../core/theme/theme_aware.dart';
-TeacherBatchesPage extends StatefulWidget {
+import '../../../../core/theme/theme_aware.dart';
+class TeacherBatchesPage extends StatefulWidget {
   const TeacherBatchesPage({super.key});
 
   @override
@@ -100,9 +100,9 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> with ThemeAware
 
   @override
   Widget build(BuildContext context) {
-    const primaryBlue = Color(0xFF0D1282);
-    const surfaceWhite = Color(0xFFEEEDED);
-    const accentYellow = Color(0xFFF0DE36);
+    const primaryBlue = AppColors.elitePrimary;
+    const surfaceWhite = AppColors.offWhite;
+    const accentYellow = AppColors.moltenAmber;
 
     final visibleBatches = _batches.where((b) {
       if (_query.trim().isEmpty) return true;
@@ -516,8 +516,8 @@ class _PremiumCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF0D1282);
-    const surface = Color(0xFFEEEDED);
+    const blue = AppColors.elitePrimary;
+    const surface = AppColors.offWhite;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -576,4 +576,7 @@ class _ActionBtn extends StatelessWidget {
     );
   }
 }
+
+
+
 

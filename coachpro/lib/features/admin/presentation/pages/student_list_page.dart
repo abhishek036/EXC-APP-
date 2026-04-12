@@ -9,8 +9,8 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/widgets/cp_pressable.dart';
- '../../../../core/theme/theme_aware.dart';
-StudentListPage extends StatefulWidget {
+import '../../../../core/theme/theme_aware.dart';
+class StudentListPage extends StatefulWidget {
   const StudentListPage({super.key});
 
   @override
@@ -1570,4 +1570,5 @@ class _BatchPickerSheet extends StatelessWidget {
     );
   }
 }
+
 

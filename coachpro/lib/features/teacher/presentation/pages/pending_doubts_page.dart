@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../../features/teacher/data/repositories/teacher_repository.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/secure_storage_service.dart';
- '../../../../core/theme/theme_aware.dart';
-PendingDoubtsPage extends StatefulWidget {
+import '../../../../core/theme/theme_aware.dart';
+class PendingDoubtsPage extends StatefulWidget {
   const PendingDoubtsPage({super.key});
 
   @override
@@ -80,9 +81,9 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> with ThemeAware<P
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF0D1282);
-    const surface = Color(0xFFEEEDED);
-    const yellow = Color(0xFFF0DE36);
+    const blue = AppColors.elitePrimary;
+    const surface = AppColors.offWhite;
+    const yellow = AppColors.moltenAmber;
 
     return Scaffold(
       backgroundColor: blue,
@@ -484,4 +485,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> with ThemeAware<P
     ),
   );
 }
+
+
+
 

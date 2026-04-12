@@ -5,8 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
- '../../../../core/theme/theme_aware.dart';
-QuizResultsPage extends StatefulWidget {
+import '../../../../core/theme/theme_aware.dart';
+class QuizResultsPage extends StatefulWidget {
   final String quizId;
   final String? fallbackTitle;
 
@@ -203,9 +203,9 @@ class _QuizResultsPageState extends State<QuizResultsPage> with ThemeAware<QuizR
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF0D1282);
-    const surface = Color(0xFFEEEDED);
-    const yellow = Color(0xFFF0DE36);
+    const blue = AppColors.elitePrimary;
+    const surface = AppColors.offWhite;
+    const yellow = AppColors.moltenAmber;
 
     final quiz = (_report['quiz'] as Map?) ?? const {};
     final title = (quiz['title'] ?? widget.fallbackTitle ?? 'QUIZ ANALYTICS')
@@ -837,4 +837,7 @@ class _QuizResultsPageState extends State<QuizResultsPage> with ThemeAware<QuizR
     );
   }
 }
+
+
+
 

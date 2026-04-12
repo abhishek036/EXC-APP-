@@ -4,8 +4,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../data/repositories/teacher_repository.dart';
- '../../../../core/theme/theme_aware.dart';
-YoutubeBroadcastPage extends StatefulWidget {
+import '../../../../core/theme/theme_aware.dart';
+class YoutubeBroadcastPage extends StatefulWidget {
   final String batchId;
 
   const YoutubeBroadcastPage({super.key, required this.batchId});
@@ -329,4 +329,5 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> with ThemeA
     );
   }
 }
+
 

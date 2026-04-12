@@ -6,8 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../features/teacher/data/repositories/teacher_repository.dart';
- '../../../../core/theme/theme_aware.dart';
-AttendanceMarkingPage extends StatefulWidget {
+import '../../../../core/theme/theme_aware.dart';
+class AttendanceMarkingPage extends StatefulWidget {
   final String? initialBatchId;
   final DateTime? initialDate;
   final String? initialSubject;
@@ -257,10 +257,10 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> with Them
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: const Color(0xFF0D1282),
+              primary: const AppColors.elitePrimary,
               onPrimary: Colors.white,
-              surface: const Color(0xFFEEEDED),
-              onSurface: const Color(0xFF0D1282),
+              surface: const AppColors.offWhite,
+              onSurface: const AppColors.elitePrimary,
             ),
           ),
           child: child!,
@@ -342,9 +342,9 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> with Them
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF0D1282);
-    const surface = Color(0xFFEEEDED);
-    const yellow = Color(0xFFF0DE36);
+    const blue = AppColors.elitePrimary;
+    const surface = AppColors.offWhite;
+    const yellow = AppColors.moltenAmber;
 
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
@@ -427,7 +427,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> with Them
         children: [
           Row(
             children: [
-              const Icon(Icons.people_alt_rounded, color: Color(0xFF0D1282)),
+              const Icon(Icons.people_alt_rounded, color: AppColors.elitePrimary),
               const SizedBox(width: 12),
               Expanded(
                 child: _batches.isEmpty
@@ -444,7 +444,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> with Them
                           isExpanded: true,
                           icon: const Icon(
                             Icons.keyboard_arrow_down_rounded,
-                            color: Color(0xFF0D1282),
+                            color: AppColors.elitePrimary,
                           ),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
@@ -480,7 +480,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> with Them
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.subject_rounded, color: Color(0xFF0D1282)),
+                const Icon(Icons.subject_rounded, color: AppColors.elitePrimary),
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonHideUnderline(
@@ -489,7 +489,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> with Them
                       isExpanded: true,
                       icon: const Icon(
                         Icons.keyboard_arrow_down_rounded,
-                        color: Color(0xFF0D1282),
+                        color: AppColors.elitePrimary,
                       ),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
@@ -543,7 +543,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> with Them
               ),
             ),
           ),
-          const Divider(height: 24, thickness: 1.5, color: Color(0xFF0D1282)),
+          const Divider(height: 24, thickness: 1.5, color: AppColors.elitePrimary),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -828,11 +828,11 @@ class _PremiumCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF0D1282);
+    const blue = AppColors.elitePrimary;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Color(0xFFEEEDED),
+        color: AppColors.offWhite,
         border: Border.all(color: blue, width: 2.5),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: blue, offset: const Offset(4, 4))],
@@ -920,4 +920,7 @@ class _AttStudent {
     );
   }
 }
+
+
+
 

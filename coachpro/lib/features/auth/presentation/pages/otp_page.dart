@@ -7,8 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../domain/entities/user_entity.dart';
- '../../../../core/theme/theme_aware.dart';
-OtpRouteArgs {
+import '../../../../core/theme/theme_aware.dart';
+class OtpRouteArgs {
   final String phoneNumber;
   final AppRole role;
   final String? infoMessage;
@@ -625,4 +625,5 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
     );
   }
 }
+
 

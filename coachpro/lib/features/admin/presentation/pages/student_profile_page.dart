@@ -8,8 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/admin_repository.dart';
- '../../../../core/theme/theme_aware.dart';
-StudentProfilePage extends StatefulWidget {
+import '../../../../core/theme/theme_aware.dart';
+class StudentProfilePage extends StatefulWidget {
   final String studentId;
   const StudentProfilePage({super.key, required this.studentId});
 
@@ -2039,4 +2039,5 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
     );
   }
 }
+
 

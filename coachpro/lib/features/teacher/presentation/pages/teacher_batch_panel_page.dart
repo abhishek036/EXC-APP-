@@ -14,8 +14,8 @@ import 'create_quiz_page.dart';
 import 'doubt_response_page.dart';
 import 'quiz_results_page.dart';
 import 'upload_material_page.dart';
- '../../../../core/theme/theme_aware.dart';
-TeacherBatchPanelPage extends StatefulWidget {
+import '../../../../core/theme/theme_aware.dart';
+class TeacherBatchPanelPage extends StatefulWidget {
   final String batchId;
   final int initialTabIndex;
 
@@ -530,9 +530,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
   @override
   Widget build(BuildContext context) {
     // Force Neo-Brutalist Colors
-    const primaryBlue = Color(0xFF0D1282);
-    const surfaceWhite = Color(0xFFEEEDED);
-    const accentYellow = Color(0xFFF0DE36);
+    const primaryBlue = AppColors.elitePrimary;
+    const surfaceWhite = AppColors.offWhite;
+    const accentYellow = AppColors.moltenAmber;
 
     final name = (_batch?['name'] ?? 'Batch Panel').toString();
 
@@ -1258,7 +1258,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                     children: [
                       const Icon(
                         Icons.pending_actions_rounded,
-                        color: Color(0xFF0D1282),
+                        color: AppColors.elitePrimary,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -1747,7 +1747,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFFEEEDED),
+        backgroundColor: const AppColors.offWhite,
         title: Text(
           'STUDENT PROFILE',
           style: GoogleFonts.plusJakartaSans(
@@ -3217,8 +3217,8 @@ class _PremiumCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF0D1282);
-    const surface = Color(0xFFEEEDED);
+    const blue = AppColors.elitePrimary;
+    const surface = AppColors.offWhite;
     return Container(
       margin: margin,
       padding: padding ?? const EdgeInsets.all(20),
@@ -3368,4 +3368,7 @@ class _ActionBtn extends StatelessWidget {
     );
   }
 }
+
+
+
 
