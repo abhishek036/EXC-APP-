@@ -45,7 +45,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
         backgroundColor: CT.bg(context),
         elevation: 0,
         title: Text('Languages',
-            style: GoogleFonts.sora(fontWeight: FontWeight.w800, color: CT.textH(context))),
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: CT.textH(context))),
         centerTitle: false,
       ),
       body: Column(
@@ -119,7 +119,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                           Expanded(
                             child: Text(
                               langName,
-                              style: GoogleFonts.sora(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                                 color: CT.textH(context),
@@ -162,7 +162,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                   child: Center(
                     child: Text(
                       'APPLY SELECTION',
-                      style: GoogleFonts.sora(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,

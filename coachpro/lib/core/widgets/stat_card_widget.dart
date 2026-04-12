@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../constants/app_dimensions.dart';
+import '../constants/app_colors.dart';
+
+/// Neo-brutalist stat card matching student dashboard style.
+/// Used for summary statistics (revenue, counts, etc).
 class StatCardWidget extends StatelessWidget {
   final String title;
   final String value;
@@ -21,79 +24,90 @@ class StatCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = (gradient as LinearGradient).colors.first;
     return Container(
-      width: 160,
-      padding: const EdgeInsets.all(AppDimensions.spaceLG),
+      width: 180,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusXL),
-        boxShadow: [
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.elitePrimary, width: 3),
+        boxShadow: const [
           BoxShadow(
-            color: (gradient as LinearGradient).colors.first.withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: AppColors.elitePrimary,
+            offset: Offset(4, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-            ),
-            child: Icon(icon, color: Colors.white, size: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              if (changeText != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    border: Border.all(color: Colors.white30, width: 1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isPositive
+                            ? Icons.trending_up
+                            : Icons.trending_down,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        changeText!,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: AppDimensions.spaceMD),
+          const SizedBox(height: 12),
           Text(
             value,
-            style: GoogleFonts.sora(
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
               color: Colors.white,
-              height: 1.1,
+              letterSpacing: -1.2,
             ),
           ),
-          const SizedBox(height: AppDimensions.spaceXS),
+          const SizedBox(height: 4),
           Text(
             title,
-            style: GoogleFonts.dmSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
               color: Colors.white.withValues(alpha: 0.8),
+              letterSpacing: 0.5,
             ),
           ),
-          if (changeText != null) ...[
-            const SizedBox(height: AppDimensions.spaceSM),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isPositive ? Icons.trending_up : Icons.trending_down,
-                    color: Colors.white,
-                    size: 12,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    changeText!,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );

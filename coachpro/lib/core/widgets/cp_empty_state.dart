@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../constants/app_colors.dart';
 import '../theme/theme_aware.dart';
 
-/// Full-screen empty state for lists with no data.
-/// Pairs with CPErrorState for the complete state management UX.
-/// Now theme-aware — adapts to light/dark mode automatically.
+/// Neo-brutalist empty state for lists with no data.
+/// Matches the student dashboard style with hard shadows and plusJakartaSans.
 class CPEmptyState extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -24,6 +24,7 @@ class CPEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = CT.isDark(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -34,13 +35,27 @@ class CPEmptyState extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: CT.accent(context).withValues(alpha: 0.08),
-                shape: BoxShape.circle,
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : AppColors.elitePrimary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? Colors.white24 : AppColors.elitePrimary,
+                  width: isDark ? 1.5 : 3,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark ? Colors.black54 : AppColors.elitePrimary,
+                    offset: const Offset(3, 3),
+                  ),
+                ],
               ),
               child: Icon(
                 icon,
                 size: 36,
-                color: CT.accent(context).withValues(alpha: 0.5),
+                color: isDark
+                    ? Colors.white38
+                    : AppColors.elitePrimary.withValues(alpha: 0.4),
               ),
             ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
 
@@ -48,10 +63,10 @@ class CPEmptyState extends StatelessWidget {
 
             Text(
               title,
-              style: GoogleFonts.sora(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: CT.textH(context),
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : AppColors.deepNavy,
               ),
               textAlign: TextAlign.center,
             ).animate(delay: 200.ms).fadeIn(),
@@ -60,9 +75,10 @@ class CPEmptyState extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 subtitle!,
-                style: GoogleFonts.dmSans(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
-                  color: CT.textS(context),
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white54 : Colors.black54,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -71,18 +87,45 @@ class CPEmptyState extends StatelessWidget {
 
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 24),
-              TextButton.icon(
-                onPressed: onAction,
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(
-                  actionLabel!,
-                  style: GoogleFonts.sora(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+              GestureDetector(
+                onTap: onAction,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
                   ),
-                ),
-                style: TextButton.styleFrom(
-                  foregroundColor: CT.accent(context),
+                  decoration: BoxDecoration(
+                    color: AppColors.moltenAmber,
+                    border: Border.all(
+                      color: AppColors.elitePrimary,
+                      width: 2,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.elitePrimary,
+                        offset: Offset(2, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.add,
+                        size: 18,
+                        color: AppColors.elitePrimary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        actionLabel!,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.elitePrimary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ).animate(delay: 400.ms).fadeIn(),
             ],

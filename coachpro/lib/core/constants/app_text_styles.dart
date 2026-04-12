@@ -9,21 +9,21 @@ import 'app_colors.dart';
 /// Mono font    : JetBrains Mono — scores, numbers, code
 ///
 /// STRICT SCALE — every text in the app MUST use one of these styles.
-/// Never call GoogleFonts.sora() or GoogleFonts.dmSans() inline.
+/// Never call GoogleFonts.plusJakartaSans() or GoogleFonts.plusJakartaSans() inline.
 class AppTextStyles {
   AppTextStyles._();
 
   // ═══════════════════════════════════════════════
   // DISPLAY — Hero headings, splash text
   // ═══════════════════════════════════════════════
-  static TextStyle display1 = GoogleFonts.sora(
+  static TextStyle display1 = GoogleFonts.plusJakartaSans(
     fontSize: 36,
     fontWeight: FontWeight.w800,
     color: AppColors.deepNavy,
     letterSpacing: -1.5,
     height: 1.1,
   );
-  static TextStyle display2 = GoogleFonts.sora(
+  static TextStyle display2 = GoogleFonts.plusJakartaSans(
     fontSize: 28,
     fontWeight: FontWeight.w700,
     color: AppColors.deepNavy,
@@ -34,26 +34,26 @@ class AppTextStyles {
   // ═══════════════════════════════════════════════
   // HEADINGS — Section titles, card headers
   // ═══════════════════════════════════════════════
-  static TextStyle heading1 = GoogleFonts.sora(
+  static TextStyle heading1 = GoogleFonts.plusJakartaSans(
     fontSize: 22,
     fontWeight: FontWeight.w700,
     color: AppColors.deepNavy,
     letterSpacing: -0.5,
     height: 1.2,
   );
-  static TextStyle heading2 = GoogleFonts.sora(
+  static TextStyle heading2 = GoogleFonts.plusJakartaSans(
     fontSize: 18,
     fontWeight: FontWeight.w600,
     color: AppColors.deepNavy,
     height: 1.3,
   );
-  static TextStyle heading3 = GoogleFonts.sora(
+  static TextStyle heading3 = GoogleFonts.plusJakartaSans(
     fontSize: 15,
     fontWeight: FontWeight.w600,
     color: AppColors.deepNavy,
     height: 1.3,
   );
-  static TextStyle heading4 = GoogleFonts.sora(
+  static TextStyle heading4 = GoogleFonts.plusJakartaSans(
     fontSize: 13,
     fontWeight: FontWeight.w600,
     color: AppColors.deepNavy,
@@ -63,13 +63,13 @@ class AppTextStyles {
   // ═══════════════════════════════════════════════
   // BODY — Paragraphs, descriptions
   // ═══════════════════════════════════════════════
-  static TextStyle body1 = GoogleFonts.dmSans(
+  static TextStyle body1 = GoogleFonts.plusJakartaSans(
     fontSize: 15,
     fontWeight: FontWeight.w400,
     color: AppColors.deepNavy,
     height: 1.6,
   );
-  static TextStyle body2 = GoogleFonts.dmSans(
+  static TextStyle body2 = GoogleFonts.plusJakartaSans(
     fontSize: 13,
     fontWeight: FontWeight.w400,
     color: AppColors.steelBlue,
@@ -79,31 +79,31 @@ class AppTextStyles {
   // ═══════════════════════════════════════════════
   // LEGACY BODY ALIASES (backward compatible)
   // ═══════════════════════════════════════════════
-  static TextStyle bodyLarge = GoogleFonts.dmSans(
+  static TextStyle bodyLarge = GoogleFonts.plusJakartaSans(
     fontSize: 16,
     fontWeight: FontWeight.w400,
     color: AppColors.deepNavy,
     height: 1.5,
   );
-  static TextStyle bodyMedium = GoogleFonts.dmSans(
+  static TextStyle bodyMedium = GoogleFonts.plusJakartaSans(
     fontSize: 14,
     fontWeight: FontWeight.w400,
     color: AppColors.deepNavy,
     height: 1.5,
   );
-  static TextStyle bodySmall = GoogleFonts.dmSans(
+  static TextStyle bodySmall = GoogleFonts.plusJakartaSans(
     fontSize: 12,
     fontWeight: FontWeight.w400,
     color: AppColors.steelBlue,
     height: 1.4,
   );
-  static TextStyle bodyLargeSemiBold = GoogleFonts.dmSans(
+  static TextStyle bodyLargeSemiBold = GoogleFonts.plusJakartaSans(
     fontSize: 16,
     fontWeight: FontWeight.w600,
     color: AppColors.deepNavy,
     height: 1.5,
   );
-  static TextStyle bodyMediumSemiBold = GoogleFonts.dmSans(
+  static TextStyle bodyMediumSemiBold = GoogleFonts.plusJakartaSans(
     fontSize: 14,
     fontWeight: FontWeight.w600,
     color: AppColors.deepNavy,
@@ -113,7 +113,7 @@ class AppTextStyles {
   // ═══════════════════════════════════════════════
   // CAPTION — Small informational text
   // ═══════════════════════════════════════════════
-  static TextStyle caption = GoogleFonts.dmSans(
+  static TextStyle caption = GoogleFonts.plusJakartaSans(
     fontSize: 11,
     fontWeight: FontWeight.w500,
     color: AppColors.slateGrey,
@@ -124,7 +124,7 @@ class AppTextStyles {
   // ═══════════════════════════════════════════════
   // OVERLINE — All-caps micro labels
   // ═══════════════════════════════════════════════
-  static TextStyle overline = GoogleFonts.dmSans(
+  static TextStyle overline = GoogleFonts.plusJakartaSans(
     fontSize: 10,
     fontWeight: FontWeight.w700,
     color: AppColors.slateGrey,
@@ -135,25 +135,25 @@ class AppTextStyles {
   // ═══════════════════════════════════════════════
   // LABELS — Chips, tags, captions
   // ═══════════════════════════════════════════════
-  static TextStyle label = GoogleFonts.dmSans(
+  static TextStyle label = GoogleFonts.plusJakartaSans(
     fontSize: 12,
     fontWeight: FontWeight.w600,
     color: AppColors.ash,
     letterSpacing: 0.8,
   );
-  static TextStyle labelLarge = GoogleFonts.dmSans(
+  static TextStyle labelLarge = GoogleFonts.plusJakartaSans(
     fontSize: 14,
     fontWeight: FontWeight.w700,
     color: AppColors.deepNavy,
     letterSpacing: 0.5,
   );
-  static TextStyle labelMedium = GoogleFonts.dmSans(
+  static TextStyle labelMedium = GoogleFonts.plusJakartaSans(
     fontSize: 12,
     fontWeight: FontWeight.w600,
     color: AppColors.steelBlue,
     letterSpacing: 0.5,
   );
-  static TextStyle labelSmall = GoogleFonts.dmSans(
+  static TextStyle labelSmall = GoogleFonts.plusJakartaSans(
     fontSize: 10,
     fontWeight: FontWeight.w600,
     color: AppColors.slateGrey,
@@ -183,7 +183,7 @@ class AppTextStyles {
     color: Colors.white,
     height: 1.1,
   );
-  static TextStyle statLabel = GoogleFonts.dmSans(
+  static TextStyle statLabel = GoogleFonts.plusJakartaSans(
     fontSize: 12,
     fontWeight: FontWeight.w500,
     color: Colors.white70,
@@ -192,18 +192,18 @@ class AppTextStyles {
   // ═══════════════════════════════════════════════
   // BUTTON TEXT
   // ═══════════════════════════════════════════════
-  static TextStyle buttonLarge = GoogleFonts.sora(
+  static TextStyle buttonLarge = GoogleFonts.plusJakartaSans(
     fontSize: 16,
     fontWeight: FontWeight.w600,
     color: Colors.white,
     letterSpacing: 0.5,
   );
-  static TextStyle buttonMedium = GoogleFonts.sora(
+  static TextStyle buttonMedium = GoogleFonts.plusJakartaSans(
     fontSize: 14,
     fontWeight: FontWeight.w600,
     color: Colors.white,
   );
-  static TextStyle buttonSmall = GoogleFonts.sora(
+  static TextStyle buttonSmall = GoogleFonts.plusJakartaSans(
     fontSize: 12,
     fontWeight: FontWeight.w600,
     color: Colors.white,
@@ -212,7 +212,7 @@ class AppTextStyles {
   // ═══════════════════════════════════════════════
   // CHIP / BADGE
   // ═══════════════════════════════════════════════
-  static TextStyle chip = GoogleFonts.dmSans(
+  static TextStyle chip = GoogleFonts.plusJakartaSans(
     fontSize: 11,
     fontWeight: FontWeight.w700,
     letterSpacing: 0.5,

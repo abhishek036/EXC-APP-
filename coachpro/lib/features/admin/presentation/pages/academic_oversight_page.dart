@@ -147,10 +147,10 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEEDED),
-        border: Border.all(color: const Color(0xFF0D1282), width: 2),
+        color: const Color(0xFFFFFFFF),
+        border: Border.all(color: const Color(0xFF354388), width: 2),
         boxShadow: const [
-          BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3)),
+          BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
         ],
       ),
       child: Row(
@@ -174,13 +174,13 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: active ? const Color(0xFFF0DE36) : const Color(0xFFEEEDED),
+            color: active ? const Color(0xFFBDAE18) : const Color(0xFFFFFFFF),
             border: active
-                ? Border.all(color: const Color(0xFF0D1282), width: 2)
+                ? Border.all(color: const Color(0xFF354388), width: 2)
                 : Border.all(color: Colors.transparent, width: 2),
             boxShadow: active
                 ? const [
-                    BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2)),
+                    BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
                   ]
                 : null,
           ),
@@ -190,7 +190,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
         ),
@@ -231,7 +231,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEEEDED),
+                      color: const Color(0xFFFFFFFF),
                       border: Border.all(color: AppColors.coralRed, width: 2),
                       boxShadow: const [
                         BoxShadow(
@@ -245,7 +245,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -270,7 +270,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                   height: 1.4,
                 ),
               ),
@@ -337,15 +337,15 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEEEDED),
-                  border: Border.all(color: const Color(0xFF0D1282), width: 2),
+                  color: const Color(0xFFFFFFFF),
+                  border: Border.all(color: const Color(0xFF354388), width: 2),
                   boxShadow: const [
-                    BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2)),
+                    BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
                   ],
                 ),
                 child: const Icon(
                   Icons.article_rounded,
-                  color: Color(0xFF0D1282),
+                  color: Color(0xFF354388),
                   size: 24,
                 ),
               ),
@@ -359,7 +359,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -370,13 +370,13 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: Color(0xFF0D1282)),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFF354388)),
             ],
           ),
         ).animate(delay: (i * 50).ms).fadeIn().slideX(begin: 0.05);
@@ -452,3 +452,4 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
     ),
   );
 }
+

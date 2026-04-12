@@ -139,7 +139,7 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
         backgroundColor: CT.bg(context),
         elevation: 0,
         title: Text('Video Lectures',
-            style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: CT.textH(context))),
         actions: [
           PopupMenuButton<String>(
             icon: Icon(Icons.sort_rounded, color: CT.textS(context)),
@@ -151,7 +151,7 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
                 child: Row(children: [
                   if (_sortBy == s) Icon(Icons.check_rounded, size: 18, color: accent),
                   if (_sortBy == s) const SizedBox(width: 8),
-                  Text(s, style: GoogleFonts.dmSans(color: CT.textH(context))),
+                  Text(s, style: GoogleFonts.plusJakartaSans(color: CT.textH(context))),
                 ]),
               );
             }).toList(),
@@ -161,9 +161,9 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
       body: _isLoading 
          ? const Center(child: CircularProgressIndicator()) 
          : _error != null 
-             ? Center(child: Text(_error!, style: GoogleFonts.dmSans(color: Colors.red)))
+             ? Center(child: Text(_error!, style: GoogleFonts.plusJakartaSans(color: Colors.red)))
              : _lectures.isEmpty
-                 ? Center(child: Text('No recorded lectures found.', style: GoogleFonts.dmSans(color: CT.textS(context))))
+                 ? Center(child: Text('No recorded lectures found.', style: GoogleFonts.plusJakartaSans(color: CT.textS(context))))
                  : CustomScrollView(
         slivers: [
           // Progress overview
@@ -195,17 +195,17 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
                           ),
                         ),
                         Text('${(_overallProgress * 100).toInt()}%',
-                            style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w700, color: accent)),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: accent)),
                       ]),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text('Your Progress',
-                            style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
                         const SizedBox(height: 4),
                         Text('$_completedCount completed · $_inProgressCount in progress · $_totalLectures total',
-                            style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context))),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textS(context))),
                       ]),
                     ),
                   ]),
@@ -220,7 +220,7 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(AppDimensions.pagePaddingH, 0, AppDimensions.pagePaddingH, AppDimensions.sm),
                 child: Text('Continue Watching',
-                    style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
               ),
             ),
             SliverToBoxAdapter(
@@ -260,7 +260,7 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
                           border: Border.all(color: isActive ? accent : CT.border(context)),
                         ),
                         child: Text(s,
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13, fontWeight: FontWeight.w600,
                                 color: isActive ? Colors.white : CT.textS(context))),
                       ),
@@ -278,7 +278,7 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.pagePaddingH),
               child: Text('All Lectures (${_filtered.length})',
-                  style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
             ),
           ),
 
@@ -368,7 +368,7 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text('${watchedMin}m / ${totalMin}m',
-                      style: GoogleFonts.dmSans(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600)),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600)),
                 ),
               ),
             ]),
@@ -378,10 +378,10 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(lecture['title'] as String,
                   maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: CT.textH(context))),
               const SizedBox(height: 4),
               Text('${lecture['teacher']} · ${lecture['subject']}',
-                  style: GoogleFonts.dmSans(fontSize: 11, color: CT.textS(context))),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textS(context))),
             ]),
           ),
         ],
@@ -449,36 +449,36 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(lecture['subject'] as String,
-                      style: GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.w600,
+                      style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600,
                           color: _getSubjectColor(lecture['subject'] as String))),
                 ),
                 if (isCompleted) ...[
                   const SizedBox(width: 6),
                   Icon(Icons.verified_rounded, size: 14, color: Colors.green.shade400),
                   const SizedBox(width: 2),
-                  Text('Completed', style: GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.green.shade400)),
+                  Text('Completed', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.green.shade400)),
                 ],
               ]),
               const SizedBox(height: 4),
               Text(lecture['title'] as String,
                   maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
               const SizedBox(height: 4),
               Text('${lecture['teacher']} · ${lecture['chapter']} · ${lecture['duration']}',
-                  style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context))),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textS(context))),
               const SizedBox(height: 4),
               Row(children: [
                 Icon(Icons.visibility_rounded, size: 13, color: CT.textM(context)),
                 const SizedBox(width: 3),
-                Text('${lecture['views']}', style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context))),
+                Text('${lecture['views']}', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textM(context))),
                 const SizedBox(width: 10),
                 Icon(Icons.calendar_today_rounded, size: 13, color: CT.textM(context)),
                 const SizedBox(width: 3),
-                Text(lecture['uploadDate'] as String, style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context))),
+                Text(lecture['uploadDate'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textM(context))),
                 if (isStarted && !isCompleted) ...[
                   const Spacer(),
                   Text('${(progress * 100).toInt()}%',
-                      style: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w700, color: accent)),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: accent)),
                 ],
               ]),
             ]),

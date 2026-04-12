@@ -55,26 +55,49 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
 
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: CT.bg(context),
-        body: const Center(child: CircularProgressIndicator()),
+        backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.elitePrimary),
+        ),
       );
     }
 
     if (_dashboardData == null) {
       return Scaffold(
-        backgroundColor: CT.bg(context),
+        backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 'Failed to load dashboard',
-                style: GoogleFonts.dmSans(color: CT.textS(context)),
+                style: GoogleFonts.plusJakartaSans(
+                  color: isDark ? Colors.white54 : Colors.black54,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: _loadDashboard,
-                child: const Text('Retry'),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: _loadDashboard,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.elitePrimary,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.elitePrimary, width: 2),
+                    boxShadow: const [
+                      BoxShadow(color: AppColors.elitePrimary, offset: Offset(3, 3)),
+                    ],
+                  ),
+                  child: Text(
+                    'Retry',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -83,8 +106,10 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
     }
 
     return Scaffold(
-      backgroundColor: CT.bg(context),
+      backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
       body: RefreshIndicator(
+        color: AppColors.elitePrimary,
+        displacement: 20,
         onRefresh: _loadDashboard,
         child: SafeArea(
           child: SingleChildScrollView(
@@ -127,70 +152,102 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
     );
   }
 
-  Widget _buildAppBar(bool isDark) => Row(
-    children: [
-      Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppDimensions.sm),
-            decoration: BoxDecoration(
-              color: CT.accent(context).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+  Widget _buildAppBar(bool isDark) {
+    final greeting = DateTime.now().hour < 12
+        ? 'GOOD MORNING'
+        : DateTime.now().hour < 17
+            ? 'GOOD AFTERNOON'
+            : 'GOOD EVENING';
+    return Row(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.elitePrimary,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? Colors.white24 : AppColors.elitePrimary,
+              width: isDark ? 1.5 : 3,
             ),
-            child: Icon(
-              Icons.school_rounded,
-              size: 20,
-              color: CT.accent(context),
-            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark ? Colors.black54 : AppColors.elitePrimary,
+                offset: const Offset(3, 3),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Text(
-            'Excellence Academy',
-            style: GoogleFonts.sora(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: CT.accent(context),
-            ),
+          child: const Icon(
+            Icons.family_restroom_rounded,
+            size: 22,
+            color: Colors.white,
           ),
-        ],
-      ),
-      const Spacer(),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$greeting, 👋',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white54 : Colors.black54,
+                ),
+              ),
+              Text(
+                'Parent Dashboard',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  letterSpacing: -0.5,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        _appBarAction(Icons.notifications_none_rounded, () {
+          context.go('/parent/notifications');
+        }, isDark),
+        const SizedBox(width: 8),
+        _appBarAction(Icons.settings_outlined, () {
+          context.go('/parent/settings');
+        }, isDark),
+      ],
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);
+  }
 
-      CPPressable(
-        onTap: () => context.go('/parent/notifications'),
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: CT.card(context),
-            borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-            boxShadow: AppDimensions.shadowSm(isDark),
+  Widget _appBarAction(IconData icon, VoidCallback onTap, bool isDark) {
+    return CPPressable(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.eliteDarkBg : Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isDark ? Colors.white24 : AppColors.elitePrimary,
+            width: 2,
           ),
-          child: Icon(
-            Icons.notifications_outlined,
-            size: 20,
-            color: CT.textH(context),
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black54 : AppColors.elitePrimary,
+              offset: const Offset(2, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          size: 21,
+          color: isDark ? Colors.white : AppColors.elitePrimary,
         ),
       ),
-      const SizedBox(width: AppDimensions.sm),
-      CPPressable(
-        onTap: () => context.go('/parent/settings'),
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: CT.card(context),
-            borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-            boxShadow: AppDimensions.shadowSm(isDark),
-          ),
-          child: Icon(
-            Icons.settings_outlined,
-            size: 20,
-            color: CT.textH(context),
-          ),
-        ),
-      ),
-    ],
-  ).animate().fadeIn(duration: 500.ms);
+    );
+  }
 
   Widget _buildChildSelector() => Row(
     children: List.generate(_children.length, (i) {
@@ -213,7 +270,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
             ),
             child: Text(
               child['name'] ?? 'Child',
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: sel ? Colors.white : CT.textS(context),
@@ -243,7 +300,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
               child: Center(
                 child: Text(
                   child['name']?[0] ?? 'C',
-                  style: GoogleFonts.sora(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -258,7 +315,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                 children: [
                   Text(
                     child['name'] ?? 'Student',
-                    style: GoogleFonts.sora(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: CT.textH(context),
@@ -266,7 +323,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                   ),
                   Text(
                     'Child Profile | Tap for details',
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       color: CT.textS(context),
                     ),
@@ -320,7 +377,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           const SizedBox(width: 5),
           Text(
             label,
-            style: GoogleFonts.dmSans(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
               fontWeight: FontWeight.w700,
               color: color,
@@ -338,7 +395,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
       children: [
         Text(
           'Activity Snapshot',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: CT.textH(context),
@@ -400,7 +457,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           const SizedBox(height: 6),
           Text(
             value,
-            style: GoogleFonts.sora(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w700,
               color: CT.textH(context),
@@ -411,7 +468,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           const SizedBox(height: 2),
           Text(
             label,
-            style: GoogleFonts.dmSans(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
               color: CT.textS(context),
             ),
@@ -453,7 +510,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                 const SizedBox(width: 6),
                 Text(
                   title,
-                  style: GoogleFonts.sora(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: CT.textH(context),
@@ -465,7 +522,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
             if (items.isEmpty)
               Text(
                 'No data yet',
-                style: GoogleFonts.dmSans(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   color: CT.textS(context),
                 ),
@@ -483,7 +540,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                           children: [
                             Text(
                               (item[labelKey] ?? item['title'] ?? '').toString(),
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 color: CT.textH(context),
@@ -493,7 +550,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                             ),
                             Text(
                               _fmtDate(item[dateKey]),
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 color: CT.textS(context),
                               ),
@@ -503,7 +560,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                       ),
                       Text(
                         '$pct%',
-                        style: GoogleFonts.sora(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: color,
@@ -523,7 +580,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
       children: [
         Text(
           'Recent Scores',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: CT.textH(context),
@@ -574,7 +631,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           children: [
             Text(
               'Assignments',
-              style: GoogleFonts.sora(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: CT.textH(context),
@@ -585,7 +642,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
               onTap: () => context.go('/parent/weekly-report/$childId'),
               child: Text(
                 'View all',
-                style: GoogleFonts.dmSans(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: CT.accent(context),
@@ -630,7 +687,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                         children: [
                           Text(
                             (item['title'] ?? 'Assignment').toString(),
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: CT.textH(context),
@@ -640,7 +697,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                           ),
                           Text(
                             'Due: $due',
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               color: CT.textS(context),
                             ),
@@ -684,7 +741,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                   color: AppColors.success,
                   child: Text(
                     '${(attendance * 100).toInt()}%',
-                    style: GoogleFonts.sora(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: AppColors.success,
@@ -694,7 +751,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                 const SizedBox(height: AppDimensions.sm),
                 Text(
                   'Attendance',
-                  style: GoogleFonts.dmSans(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: CT.textS(context),
@@ -702,7 +759,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                 ),
                 Text(
                   'Current Month',
-                  style: GoogleFonts.dmSans(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     color: CT.textM(context),
                   ),
@@ -715,7 +772,10 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
         Expanded(
           child: CPPressable(
             onTap: () {
-              if (pendingFee > 0) {
+              final recordId = child['pendingFeeRecordId'];
+              if (pendingFee > 0 && recordId != null) {
+                context.go('/parent/fee-payment/$recordId');
+              } else if (pendingFee > 0) {
                 context.go('/parent/fee-payment');
               } else {
                 context.go('/parent/payment-history');
@@ -750,7 +810,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                       const SizedBox(width: 6),
                       Text(
                         pendingFee > 0 ? 'Fee pending' : 'Fees Paid',
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: pendingFee > 0
@@ -763,7 +823,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                   const SizedBox(height: AppDimensions.sm),
                   Text(
                     'Rs $pendingFee',
-                    style: GoogleFonts.sora(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       color: CT.textH(context),
@@ -782,7 +842,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                       ),
                       child: Text(
                         'Pay Now',
-                        style: GoogleFonts.sora(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -809,7 +869,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
         children: [
           Text(
             'Upcoming Exam',
-            style: GoogleFonts.sora(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 15,
               fontWeight: FontWeight.w600,
               color: CT.textH(context),
@@ -843,7 +903,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
             children: [
               Text(
                 'Upcoming Exam',
-                style: GoogleFonts.sora(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: CT.textH(context),
@@ -858,7 +918,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                       children: [
                         Text(
                           latest['title'] ?? 'Test',
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: CT.textH(context),
@@ -866,7 +926,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                         ),
                         Text(
                           latest['subject'] ?? '',
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: CT.textS(context),
                           ),
@@ -879,7 +939,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                     children: [
                       Text(
                         'Marks: ${latest['total_marks']}',
-                        style: GoogleFonts.sora(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: CT.accent(context),
@@ -902,7 +962,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
     children: [
       Text(
         'Quick tools',
-        style: GoogleFonts.sora(
+        style: GoogleFonts.plusJakartaSans(
           fontSize: 15,
           fontWeight: FontWeight.w600,
           color: CT.textH(context),
@@ -961,7 +1021,15 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
               title: 'Pay Fees',
               subtitle: 'Upload proof and track status',
               color: AppColors.warning,
-              onTap: () => context.go('/parent/fee-payment'),
+              onTap: () {
+                final child = _children[_selectedChild];
+                final recordId = child['pendingFeeRecordId'];
+                if (recordId != null) {
+                  context.go('/parent/fee-payment/$recordId');
+                } else {
+                  context.go('/parent/fee-payment');
+                }
+              },
             ),
           ),
         ],
@@ -995,7 +1063,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           const SizedBox(height: AppDimensions.sm),
           Text(
             title,
-            style: GoogleFonts.sora(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: CT.textH(context),
@@ -1004,7 +1072,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           const SizedBox(height: 2),
           Text(
             subtitle,
-            style: GoogleFonts.dmSans(fontSize: 11, color: CT.textS(context)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textS(context)),
           ),
         ],
       ),
@@ -1019,7 +1087,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
       children: [
         Text(
           'Upcoming Schedule',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: CT.textH(context),
@@ -1059,7 +1127,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
             children: [
               Text(
                 time,
-                style: GoogleFonts.sora(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: CT.accent(context),
@@ -1072,7 +1140,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                   children: [
                     Text(
                       sub,
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: CT.textH(context),
@@ -1080,7 +1148,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                     ),
                     Text(
                       info,
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         color: CT.textS(context),
                       ),
@@ -1137,7 +1205,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                   children: [
                     Text(
                       latest['title'] ?? 'Announcement',
-                      style: GoogleFonts.sora(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: CT.textH(context),
@@ -1146,7 +1214,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                     const SizedBox(height: 4),
                     Text(
                       latest['body'] ?? '',
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         color: CT.textS(context),
                       ),
@@ -1183,7 +1251,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           const SizedBox(height: AppDimensions.sm),
           Text(
             message,
-            style: GoogleFonts.dmSans(fontSize: 13, color: CT.textS(context)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textS(context)),
           ),
         ],
       ),

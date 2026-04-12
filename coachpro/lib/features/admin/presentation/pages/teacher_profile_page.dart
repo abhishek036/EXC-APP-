@@ -243,7 +243,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
-            backgroundColor: const Color(0xFF0D1282),
+            backgroundColor: const Color(0xFF354388),
             leading: CPPressable(
               onTap: () {
                 if (context.canPop()) {
@@ -275,7 +275,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0DE36),
+                    color: const Color(0xFFBDAE18),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -286,7 +286,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                               height: 14,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Color(0xFF0D1282),
+                                color: Color(0xFF354388),
                               ),
                             )
                           : Icon(
@@ -294,7 +294,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                                   ? Icons.check_rounded
                                   : Icons.edit_rounded,
                               size: 14,
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                             ),
                       const SizedBox(width: 6),
                       Text(
@@ -302,7 +302,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                         ),
                       ),
                     ],
@@ -312,7 +312,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: const BoxDecoration(color: Color(0xFF0D1282)),
+                decoration: const BoxDecoration(color: Color(0xFF354388)),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -392,9 +392,9 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
       child: TabBar(
         controller: _tabController,
         isScrollable: true,
-        labelColor: const Color(0xFF0D1282),
+        labelColor: const Color(0xFF354388),
         unselectedLabelColor: Colors.grey,
-        indicatorColor: const Color(0xFFF0DE36),
+        indicatorColor: const Color(0xFFBDAE18),
         indicatorWeight: 4,
         labelStyle: GoogleFonts.plusJakartaSans(
           fontWeight: FontWeight.w800,
@@ -510,7 +510,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
             borderRadius: 16,
             child: Row(
               children: [
-                const Icon(Icons.group_rounded, color: Color(0xFF0D1282)),
+                const Icon(Icons.group_rounded, color: Color(0xFF354388)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -521,7 +521,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w800,
                           fontSize: 14,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -539,7 +539,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                 const Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 12,
-                  color: Color(0xFF0D1282),
+                  color: Color(0xFF354388),
                 ),
               ],
             ),
@@ -570,7 +570,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                 ),
               ),
               const SizedBox(height: 8),
@@ -579,7 +579,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                 ),
               ),
               const SizedBox(height: 8),
@@ -588,7 +588,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                 ),
               ),
             ],
@@ -622,7 +622,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                     width: 12,
                     height: 12,
                     decoration: const BoxDecoration(
-                      color: Color(0xFFF0DE36),
+                      color: Color(0xFFBDAE18),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -650,7 +650,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.w800,
                             fontSize: 13,
-                            color: const Color(0xFF0D1282),
+                            color: const Color(0xFF354388),
                           ),
                         ),
                         if (batchName.isNotEmpty) ...[
@@ -785,7 +785,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                       '⭐ ${_toNum(item['rating']).toStringAsFixed(1)}  ${item['student_name'] ?? ''}',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                     ),
                     if ((item['comment'] ?? '').toString().isNotEmpty) ...[
@@ -836,7 +836,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
         ),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, size: 18, color: const Color(0xFF0D1282)),
+          prefixIcon: Icon(icon, size: 18, color: const Color(0xFF354388)),
           filled: true,
           fillColor: isDark
               ? Colors.white.withValues(alpha: 0.06)
@@ -872,8 +872,8 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
               onChanged: (value) {
                 setState(() => _permissions[key] = value);
               },
-              activeThumbColor: const Color(0xFFF0DE36),
-              activeTrackColor: const Color(0xFF0D1282),
+              activeThumbColor: const Color(0xFFBDAE18),
+              activeTrackColor: const Color(0xFF354388),
             ),
           ],
         ),
@@ -911,7 +911,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
       style: GoogleFonts.plusJakartaSans(
         fontSize: 12,
         fontWeight: FontWeight.w900,
-        color: const Color(0xFF0D1282),
+        color: const Color(0xFF354388),
         letterSpacing: 1.1,
       ),
     );
@@ -936,3 +936,4 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
     );
   }
 }
+

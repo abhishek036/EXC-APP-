@@ -307,17 +307,17 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: const Color(0xFFEEEDED),
-          border: Border.all(color: const Color(0xFF0D1282), width: 2),
+          color: const Color(0xFFFFFFFF),
+          border: Border.all(color: const Color(0xFF354388), width: 2),
           boxShadow: const [
             BoxShadow(
-              color: Color(0xFF0D1282),
+              color: Color(0xFF354388),
               offset: Offset(3, 3),
               blurRadius: 0,
             ),
           ],
         ),
-        child: Icon(icon, size: 20, color: const Color(0xFF0D1282)),
+        child: Icon(icon, size: 20, color: const Color(0xFF354388)),
       ),
     );
   }
@@ -365,11 +365,11 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFF0D1282),
-          border: Border.all(color: const Color(0xFF0D1282), width: 3),
+          color: const Color(0xFF354388),
+          border: Border.all(color: const Color(0xFF354388), width: 3),
           boxShadow: const [
             BoxShadow(
-              color: Color(0xFF0D1282),
+              color: Color(0xFF354388),
               offset: Offset(4, 4),
               blurRadius: 0,
             ),
@@ -383,7 +383,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 9,
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFFF0DE36),
+                color: const Color(0xFFBDAE18),
                 letterSpacing: 1,
               ),
             ),
@@ -393,7 +393,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFFEEEDED),
+                color: const Color(0xFFFFFFFF),
                 letterSpacing: -1,
               ),
             ),
@@ -417,7 +417,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 9,
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
                 letterSpacing: 1,
               ),
             ),
@@ -456,12 +456,12 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
               color: _selectedBatch == i
-                  ? const Color(0xFFF0DE36)
-                  : const Color(0xFFEEEDED),
-              border: Border.all(color: const Color(0xFF0D1282), width: 2),
+                  ? const Color(0xFFBDAE18)
+                  : const Color(0xFFFFFFFF),
+              border: Border.all(color: const Color(0xFF354388), width: 2),
               boxShadow: _selectedBatch == i
                   ? const [
-                      BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3)),
+                      BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
                     ]
                   : [],
             ),
@@ -471,7 +471,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                 ),
               ),
             ),
@@ -603,11 +603,11 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                             toY: e.value,
                             width: 14,
                             borderRadius: BorderRadius.zero,
-                            color: const Color(0xFF0D1282),
+                            color: const Color(0xFF354388),
                             backDrawRodData: BackgroundBarChartRodData(
                               show: true,
                               toY: 100,
-                              color: const Color(0xFFEEEDED),
+                              color: const Color(0xFFFFFFFF),
                             ),
                           ),
                         ],
@@ -698,7 +698,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEEDED),
+                    color: const Color(0xFFFFFFFF),
                     border: Border.all(color: AppColors.coralRed, width: 2),
                     boxShadow: const [
                       BoxShadow(
@@ -728,7 +728,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -737,7 +737,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                         ),
                       ),
                     ],
@@ -751,14 +751,14 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEEEDED),
+                      color: const Color(0xFFFFFFFF),
                       border: Border.all(
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         width: 2,
                       ),
                       boxShadow: const [
                         BoxShadow(
-                          color: Color(0xFF0D1282),
+                          color: Color(0xFF354388),
                           offset: Offset(2, 2),
                         ),
                       ],
@@ -785,3 +785,4 @@ class _BatchOption {
   final String name;
   const _BatchOption({required this.id, required this.name});
 }
+

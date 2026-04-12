@@ -231,14 +231,14 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                         height: 48,
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEEDED),
+                          color: const Color(0xFFFFFFFF),
                           border: Border.all(
-                            color: const Color(0xFF0D1282),
+                            color: const Color(0xFF354388),
                             width: 2,
                           ),
                           boxShadow: const [
                             BoxShadow(
-                              color: Color(0xFF0D1282),
+                              color: Color(0xFF354388),
                               offset: Offset(3, 3),
                             ),
                           ],
@@ -248,9 +248,9 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                           dividerColor: Colors.transparent,
                           indicatorSize: TabBarIndicatorSize.tab,
                           indicator: BoxDecoration(
-                            color: const Color(0xFFF0DE36),
+                            color: const Color(0xFFBDAE18),
                             border: Border.all(
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                               width: 2,
                             ),
                           ),
@@ -263,9 +263,9 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
-                          labelColor: const Color(0xFF0D1282),
+                          labelColor: const Color(0xFF354388),
                           unselectedLabelColor: const Color(
-                            0xFF0D1282,
+                            0xFF354388,
                           ).withValues(alpha: 0.5),
                           tabs: const [
                             Tab(text: 'OVERVIEW'),
@@ -397,10 +397,10 @@ class _AdminReportsPageState extends State<AdminReportsPage>
   Widget _buildRevenueCard(bool isDark) => Container(
     padding: const EdgeInsets.all(28),
     decoration: BoxDecoration(
-      color: const Color(0xFF0D1282),
-      border: Border.all(color: const Color(0xFF0D1282), width: 3),
+      color: const Color(0xFF354388),
+      border: Border.all(color: const Color(0xFF354388), width: 3),
       boxShadow: const [
-        BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4)),
+        BoxShadow(color: Color(0xFF354388), offset: Offset(4, 4)),
       ],
     ),
     child: Column(
@@ -443,10 +443,10 @@ class _AdminReportsPageState extends State<AdminReportsPage>
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               margin: const EdgeInsets.only(bottom: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFFF0DE36),
-                border: Border.all(color: const Color(0xFF0D1282), width: 2),
+                color: const Color(0xFFBDAE18),
+                border: Border.all(color: const Color(0xFF354388), width: 2),
                 boxShadow: const [
-                  BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2)),
+                  BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
                 ],
               ),
               child: Row(
@@ -456,7 +456,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                     width: 6,
                     height: 6,
                     decoration: const BoxDecoration(
-                      color: Color(0xFF0D1282),
+                      color: Color(0xFF354388),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -466,7 +466,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 9,
                       fontWeight: FontWeight.w900,
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       letterSpacing: 1,
                     ),
                   ),
@@ -710,7 +710,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                           toY: e.value.toDouble(),
                           width: 14,
                           borderRadius: BorderRadius.zero,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                         ),
                       ],
                     ),
@@ -862,10 +862,10 @@ class _AdminReportsPageState extends State<AdminReportsPage>
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFEEEDED),
-              border: Border.all(color: const Color(0xFF0D1282), width: 2),
+              color: const Color(0xFFFFFFFF),
+              border: Border.all(color: const Color(0xFF354388), width: 2),
               boxShadow: const [
-                BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2)),
+                BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
               ],
             ),
             child: Row(
@@ -1022,15 +1022,15 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                     FlSpot(5, _studentCount.toDouble()),
                   ],
                   isCurved: false,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                   barWidth: 4,
                   dotData: FlDotData(
                     show: true,
                     getDotPainter: (s, d, bar, i) => FlDotCirclePainter(
                       radius: 4,
-                      color: const Color(0xFFEEEDED),
+                      color: const Color(0xFFFFFFFF),
                       strokeWidth: 2,
-                      strokeColor: const Color(0xFF0D1282),
+                      strokeColor: const Color(0xFF354388),
                     ),
                   ),
                   belowBarData: BarAreaData(show: false),
@@ -1918,3 +1918,4 @@ class _AdminReportsPageState extends State<AdminReportsPage>
     );
   }
 }
+

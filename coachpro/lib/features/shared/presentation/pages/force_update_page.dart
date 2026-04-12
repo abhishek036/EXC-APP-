@@ -61,7 +61,7 @@ class ForceUpdatePage extends StatelessWidget {
               
               Text(
                 'SYSTEM UPGRADE',
-                style: GoogleFonts.sora(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
                   color: CT.textH(context),
@@ -74,7 +74,7 @@ class ForceUpdatePage extends StatelessWidget {
               Text(
                 'We have deployed critical updates to Excellence Academy. Your current version is no longer supported.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.dmSans(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   color: CT.textM(context),
                   height: 1.6,
@@ -134,7 +134,7 @@ class ForceUpdatePage extends StatelessWidget {
                         const SizedBox(width: 12),
                         Text(
                           'INSTALL UPDATE',
-                          style: GoogleFonts.sora(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,

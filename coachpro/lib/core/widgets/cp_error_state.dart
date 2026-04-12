@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
-import '../constants/app_dimensions.dart';
 
-/// Full-screen error state with retry action.
-/// Shows on API failures or unexpected errors.
+/// Neo-brutalist error state with retry action.
+/// Matches the student dashboard error state style.
 class CPErrorState extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -24,51 +23,89 @@ class CPErrorState extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.xl),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 100,
-              height: 100,
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
                 color: AppColors.coralRed.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.coralRed,
+                  width: 3,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: AppColors.coralRed,
+                    offset: Offset(3, 3),
+                  ),
+                ],
               ),
-              child: Icon(icon, size: 44, color: AppColors.coralRed),
+              child: Icon(icon, size: 36, color: AppColors.coralRed),
             ),
-            const SizedBox(height: AppDimensions.lg),
+            const SizedBox(height: 24),
             Text(
               title,
-              style: GoogleFonts.sora(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.smoke : AppColors.textPrimary,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : AppColors.deepNavy,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppDimensions.sm),
+            const SizedBox(height: 8),
             Text(
               subtitle,
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                color: isDark ? AppColors.silverGrey : AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white54 : Colors.black54,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
             ),
             if (onRetry != null) ...[
-              const SizedBox(height: AppDimensions.lg),
-              ElevatedButton.icon(
-                onPressed: onRetry,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.electricBlue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusFull)),
+              const SizedBox(height: 24),
+              GestureDetector(
+                onTap: onRetry,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.elitePrimary,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.elitePrimary,
+                      width: 2,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.elitePrimary,
+                        offset: Offset(3, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.refresh, size: 18, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Try Again',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                icon: const Icon(Icons.refresh, size: 18),
-                label: Text('Try Again', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600)),
               ),
             ],
           ],

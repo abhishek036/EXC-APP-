@@ -382,7 +382,7 @@ class _LeadsPageState extends State<LeadsPage> {
           'Delete Lead?',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w900,
-            color: const Color(0xFF0D1282),
+            color: const Color(0xFF354388),
           ),
         ),
         content: Text(
@@ -398,7 +398,7 @@ class _LeadsPageState extends State<LeadsPage> {
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
               'Delete',
-              style: TextStyle(color: Color(0xFFD71313)),
+              style: TextStyle(color: Color(0xFFB6231B)),
             ),
           ),
         ],
@@ -868,7 +868,7 @@ class _LeadsPageState extends State<LeadsPage> {
                                                     Icons
                                                         .delete_outline_rounded,
                                                     size: 16,
-                                                    color: Color(0xFFD71313),
+                                                    color: Color(0xFFB6231B),
                                                   ),
                                                   const SizedBox(width: 12),
                                                   Text(
@@ -879,7 +879,7 @@ class _LeadsPageState extends State<LeadsPage> {
                                                           fontWeight:
                                                               FontWeight.w600,
                                                           color: const Color(
-                                                            0xFFD71313,
+                                                            0xFFB6231B,
                                                           ),
                                                         ),
                                                   ),
@@ -905,3 +905,4 @@ class _LeadsPageState extends State<LeadsPage> {
     );
   }
 }
+

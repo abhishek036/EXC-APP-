@@ -226,7 +226,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
             color: Colors.white,
           ),
         ),
-        backgroundColor: const Color(0xFF0D1282),
+        backgroundColor: const Color(0xFF354388),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -271,7 +271,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
       if (mounted) {
         _showSnack(
           '${_selected.length} students assigned to ${picked['name']}',
-          const Color(0xFFF0DE36),
+          const Color(0xFFBDAE18),
         );
         setState(() {
           _selectMode = false;
@@ -284,7 +284,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
       if (mounted) {
         _showSnack(
           'Assigned locally (sync when online)',
-          const Color(0xFFF0DE36),
+          const Color(0xFFBDAE18),
         );
         setState(() {
           _selectMode = false;
@@ -321,7 +321,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
     final overdue = _students.where((s) => s.feeStatus == 'OVERDUE').length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEEEDED),
+      backgroundColor: const Color(0xFFFFFFFF),
       floatingActionButton: _selectMode
           ? null
           : FloatingActionButton(
@@ -341,7 +341,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                   _loadAll();
                 }
               },
-              backgroundColor: const Color(0xFF0D1282),
+              backgroundColor: const Color(0xFF354388),
               child: const Icon(
                 Icons.add_rounded,
                 color: Colors.white,
@@ -381,7 +381,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                       : filtered.isEmpty
                       ? _buildEmptyState(total == 0)
                       : RefreshIndicator(
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           onRefresh: _loadAll,
                           child: ListView.builder(
                             padding: EdgeInsets.only(
@@ -410,7 +410,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
   Widget _buildAppBar(List<_Student> filtered) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 16, 8),
-      color: const Color(0xFFEEEDED),
+      color: const Color(0xFFFFFFFF),
       child: Row(
         children: [
           CPPressable(
@@ -426,14 +426,14 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               height: 40,
               margin: const EdgeInsets.only(right: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFEEEDED),
+                color: const Color(0xFFFFFFFF),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF0D1282), width: 1.5),
+                border: Border.all(color: const Color(0xFF354388), width: 1.5),
               ),
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 size: 16,
-                color: Color(0xFF0D1282),
+                color: Color(0xFF354388),
               ),
             ),
           ),
@@ -446,7 +446,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -454,7 +454,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                   '${filtered.length} record${filtered.length == 1 ? '' : 's'} found',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -470,15 +470,15 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               height: 40,
               decoration: BoxDecoration(
                 color: _selectMode
-                    ? const Color(0xFFF0DE36)
-                    : const Color(0xFFEEEDED),
+                    ? const Color(0xFFBDAE18)
+                    : const Color(0xFFFFFFFF),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF0D1282), width: 1.5),
+                border: Border.all(color: const Color(0xFF354388), width: 1.5),
               ),
               child: Icon(
                 _selectMode ? Icons.close_rounded : Icons.checklist_rounded,
                 size: 20,
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
               ),
             ),
           ),
@@ -495,7 +495,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF0D1282),
+          color: const Color(0xFF354388),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -525,10 +525,10 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0DE36), // Bright Neo-Brutalist Yellow
+                  color: const Color(0xFFBDAE18), // Bright Neo-Brutalist Yellow
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                     width: 1.5,
                   ),
                 ),
@@ -538,7 +538,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                     const Icon(
                       Icons.notifications_active_rounded,
                       size: 16,
-                      color: Color(0xFF0D1282),
+                      color: Color(0xFF354388),
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -546,7 +546,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                     ),
                   ],
@@ -572,7 +572,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                         height: 14,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Color(0xFF0D1282),
+                          color: Color(0xFF354388),
                         ),
                       )
                     : Row(
@@ -581,7 +581,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                           const Icon(
                             Icons.group_add_rounded,
                             size: 16,
-                            color: Color(0xFF0D1282),
+                            color: Color(0xFF354388),
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -589,7 +589,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
                               fontWeight: FontWeight.w900,
-                              color: Color(0xFF0D1282),
+                              color: Color(0xFF354388),
                             ),
                           ),
                         ],
@@ -610,28 +610,28 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
           _metricCard(
             'Total',
             '$total',
-            const Color(0xFF0D1282),
+            const Color(0xFF354388),
             Icons.people_rounded,
           ),
           const SizedBox(width: 10),
           _metricCard(
             'Active',
             '$active',
-            const Color(0xFFF0DE36),
+            const Color(0xFFBDAE18),
             Icons.check_circle_rounded,
           ),
           const SizedBox(width: 10),
           _metricCard(
             'Fee Due',
             '$feeDue',
-            const Color(0xFFF0DE36),
+            const Color(0xFFBDAE18),
             Icons.receipt_long_rounded,
           ),
           const SizedBox(width: 10),
           _metricCard(
             'Overdue',
             '$overdue',
-            const Color(0xFFD71313),
+            const Color(0xFFB6231B),
             Icons.warning_rounded,
           ),
         ],
@@ -673,7 +673,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 9,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
                 letterSpacing: 0.5,
               ),
             ),
@@ -691,7 +691,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFEEEDED), width: 1.5),
+          border: Border.all(color: const Color(0xFFFFFFFF), width: 1.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -705,18 +705,18 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF0D1282),
+            color: const Color(0xFF354388),
           ),
           decoration: InputDecoration(
             hintText: 'Search by name, ID, or phone…',
             hintStyle: GoogleFonts.plusJakartaSans(
               fontSize: 13,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
             prefixIcon: const Icon(
               Icons.search_rounded,
               size: 20,
-              color: Color(0xFF0D1282),
+              color: Color(0xFF354388),
             ),
             suffixIcon: _searchController.text.isNotEmpty
                 ? CPPressable(
@@ -727,7 +727,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                     child: const Icon(
                       Icons.clear_rounded,
                       size: 18,
-                      color: Color(0xFF0D1282),
+                      color: Color(0xFF354388),
                     ),
                   )
                 : null,
@@ -759,10 +759,10 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               color: _selectedBatch == i
-                  ? const Color(0xFF0D1282)
+                  ? const Color(0xFF354388)
                   : Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF0D1282), width: 1.5),
+              border: Border.all(color: const Color(0xFF354388), width: 1.5),
             ),
             child: Center(
               child: Text(
@@ -772,7 +772,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                   fontWeight: FontWeight.w700,
                   color: _selectedBatch == i
                       ? Colors.white
-                      : const Color(0xFF0D1282),
+                      : const Color(0xFF354388),
                 ),
               ),
             ),
@@ -802,11 +802,11 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                 padding: const EdgeInsets.symmetric(vertical: 7),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFFF0DE36)
+                      ? const Color(0xFFBDAE18)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   border: isSelected
-                      ? Border.all(color: const Color(0xFF0D1282), width: 1.5)
+                      ? Border.all(color: const Color(0xFF354388), width: 1.5)
                       : null,
                 ),
                 child: Center(
@@ -816,8 +816,8 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: isSelected
-                          ? const Color(0xFF0D1282)
-                          : const Color(0xFF0D1282),
+                          ? const Color(0xFF354388)
+                          : const Color(0xFF354388),
                     ),
                   ),
                 ),
@@ -848,13 +848,13 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
           Container(
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              color: const Color(0xFF0D1282).withValues(alpha: 0.06),
+              color: const Color(0xFF354388).withValues(alpha: 0.06),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.people_alt_rounded,
               size: 52,
-              color: Color(0xFF0D1282),
+              color: Color(0xFF354388),
             ),
           ),
           const SizedBox(height: 20),
@@ -865,7 +865,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
             style: GoogleFonts.plusJakartaSans(
               fontSize: 17,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
           const SizedBox(height: 8),
@@ -877,7 +877,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                   : 'Try adjusting your search or filter criteria',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -899,7 +899,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                   vertical: 14,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
@@ -938,7 +938,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                 ),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                     width: 1.5,
                   ),
                   borderRadius: BorderRadius.circular(14),
@@ -947,7 +947,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                   'Clear Filters',
                   style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                   ),
                 ),
               ),
@@ -967,13 +967,13 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
             Container(
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                color: const Color(0xFFD71313).withValues(alpha: 0.08),
+                color: const Color(0xFFB6231B).withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.cloud_off_rounded,
                 size: 52,
-                color: Color(0xFFD71313),
+                color: Color(0xFFB6231B),
               ),
             ),
             const SizedBox(height: 20),
@@ -982,7 +982,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
               ),
             ),
             const SizedBox(height: 8),
@@ -990,7 +990,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               'Check the network or backend connection, then retry.',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -1004,7 +1004,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -1030,25 +1030,25 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
     final isInactive = student.status == 'inactive';
 
     final feeColor = isPaid
-        ? const Color(0xFFF0DE36)
+        ? const Color(0xFFBDAE18)
         : isOverdue
-        ? const Color(0xFFD71313)
-        : const Color(0xFFF0DE36);
+        ? const Color(0xFFB6231B)
+        : const Color(0xFFBDAE18);
 
     final attColor = student.attendance >= 80
-        ? const Color(0xFFF0DE36)
+        ? const Color(0xFFBDAE18)
         : student.attendance >= 65
-        ? const Color(0xFFF0DE36)
-        : const Color(0xFFD71313);
+        ? const Color(0xFFBDAE18)
+        : const Color(0xFFB6231B);
 
     // Avatar background based on first initial
     final avatarColors = [
-      const Color(0xFF0D1282),
-      const Color(0xFFF0DE36),
+      const Color(0xFF354388),
+      const Color(0xFFBDAE18),
       const Color(0xFF7C3AED),
-      const Color(0xFFF0DE36),
-      const Color(0xFF0D1282),
-      const Color(0xFFD71313),
+      const Color(0xFFBDAE18),
+      const Color(0xFF354388),
+      const Color(0xFFB6231B),
     ];
     final avatarColor = avatarColors[index % avatarColors.length];
 
@@ -1076,17 +1076,17 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: isSelected
-                  ? const Color(0xFF0D1282).withValues(alpha: 0.06)
+                  ? const Color(0xFF354388).withValues(alpha: 0.06)
                   : isOverdue
                   ? const Color(0xFFFFF5F5)
                   : Colors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: isSelected
-                    ? const Color(0xFF0D1282)
+                    ? const Color(0xFF354388)
                     : isOverdue
-                    ? const Color(0xFFD71313).withValues(alpha: 0.2)
-                    : const Color(0xFFEEEDED),
+                    ? const Color(0xFFB6231B).withValues(alpha: 0.2)
+                    : const Color(0xFFFFFFFF),
                 width: 1.5,
               ),
               boxShadow: [
@@ -1108,10 +1108,10 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                     margin: const EdgeInsets.only(right: 10),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFF0D1282)
+                          ? const Color(0xFF354388)
                           : Colors.transparent,
                       border: Border.all(
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(6),
@@ -1157,7 +1157,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                         decoration: BoxDecoration(
                           color: isInactive
                               ? const Color(0xFF9CA3AF)
-                              : const Color(0xFFF0DE36),
+                              : const Color(0xFFBDAE18),
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
@@ -1181,7 +1181,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: const Color(0xFF0D1282),
+                                color: const Color(0xFF354388),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1193,7 +1193,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                               width: 7,
                               height: 7,
                               decoration: const BoxDecoration(
-                                color: Color(0xFFD71313),
+                                color: Color(0xFFB6231B),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -1206,7 +1206,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                             : student.batchNames.join(', '),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1265,7 +1265,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                           width: 38,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEEEDED),
+                            color: const Color(0xFFFFFFFF),
                             borderRadius: BorderRadius.circular(2),
                           ),
                           child: FractionallySizedBox(
@@ -1440,7 +1440,7 @@ class _BatchPickerSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(top: 8, bottom: 20),
               decoration: BoxDecoration(
-                color: const Color(0xFFEEEDED),
+                color: const Color(0xFFFFFFFF),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1450,7 +1450,7 @@ class _BatchPickerSheet extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
           const SizedBox(height: 4),
@@ -1458,7 +1458,7 @@ class _BatchPickerSheet extends StatelessWidget {
             'Select a batch from the list below',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
           const SizedBox(height: 16),
@@ -1471,16 +1471,16 @@ class _BatchPickerSheet extends StatelessWidget {
               shrinkWrap: true,
               itemCount: availableBatches.length,
               separatorBuilder: (_, _) =>
-                  const Divider(height: 1, color: Color(0xFFEEEDED)),
+                  const Divider(height: 1, color: Color(0xFFFFFFFF)),
               itemBuilder: (ctx, i) {
                 final batch = availableBatches[i];
                 final name = (batch['name'] ?? 'Batch').toString();
                 // Color cycling for batch avatars
                 final colors = [
-                  const Color(0xFF0D1282),
+                  const Color(0xFF354388),
                   const Color(0xFF7C3AED),
-                  const Color(0xFF0D1282),
-                  const Color(0xFFF0DE36),
+                  const Color(0xFF354388),
+                  const Color(0xFFBDAE18),
                 ];
                 final color = colors[i % colors.length];
                 return CPPressable(
@@ -1515,7 +1515,7 @@ class _BatchPickerSheet extends StatelessWidget {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF0D1282),
+                                  color: const Color(0xFF354388),
                                 ),
                               ),
                               Text(
@@ -1525,7 +1525,7 @@ class _BatchPickerSheet extends StatelessWidget {
                                     .toString(),
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
-                                  color: const Color(0xFF0D1282),
+                                  color: const Color(0xFF354388),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1554,14 +1554,14 @@ class _BatchPickerSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: Color(0xFFEEEDED)),
+                  side: const BorderSide(color: Color(0xFFFFFFFF)),
                 ),
               ),
               child: Text(
                 'Cancel',
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                 ),
               ),
             ),
@@ -1571,5 +1571,6 @@ class _BatchPickerSheet extends StatelessWidget {
     );
   }
 }
+
 
 

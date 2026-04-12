@@ -166,7 +166,7 @@ class RoleLiveDashboardPage extends StatelessWidget {
                       child: Text(
                         'Unable to load live dashboard data. ${snapshot.error}',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.dmSans(color: CT.textS(context)),
+                        style: GoogleFonts.plusJakartaSans(color: CT.textS(context)),
                       ),
                     ),
                   );
@@ -190,7 +190,7 @@ class RoleLiveDashboardPage extends StatelessWidget {
                               children: [
                                 Text(
                                   _title(role),
-                                  style: GoogleFonts.sora(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 22,
                                     fontWeight: FontWeight.w700,
                                     color: CT.textH(context),
@@ -199,7 +199,7 @@ class RoleLiveDashboardPage extends StatelessWidget {
                                 const SizedBox(height: 4),
                                 Text(
                                   'Welcome, ${user.name}',
-                                  style: GoogleFonts.dmSans(fontSize: 13, color: CT.textS(context)),
+                                  style: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textS(context)),
                                 ),
                               ],
                             ),
@@ -234,14 +234,14 @@ class RoleLiveDashboardPage extends StatelessWidget {
                               children: [
                                 Text(
                                   '$value',
-                                  style: GoogleFonts.sora(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w700,
                                     color: CT.textH(context),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(cfg.label, style: GoogleFonts.dmSans(color: CT.textS(context))),
+                                Text(cfg.label, style: GoogleFonts.plusJakartaSans(color: CT.textS(context))),
                               ],
                             ),
                           );
@@ -250,7 +250,7 @@ class RoleLiveDashboardPage extends StatelessWidget {
                       const SizedBox(height: AppDimensions.lg),
                       Text(
                         'Quick Actions',
-                        style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w600, color: CT.textH(context)),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: CT.textH(context)),
                       ),
                       const SizedBox(height: AppDimensions.md),
                       Wrap(
@@ -270,7 +270,7 @@ class RoleLiveDashboardPage extends StatelessWidget {
                                   Expanded(
                                     child: Text(
                                       action.label,
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
                                         color: CT.textH(context),
@@ -293,14 +293,14 @@ class RoleLiveDashboardPage extends StatelessWidget {
                           children: [
                             Text(
                               'Latest Announcement',
-                              style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w600, color: CT.textH(context)),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: CT.textH(context)),
                             ),
                             const SizedBox(height: AppDimensions.sm),
                             Text(
                               announcement.isEmpty
                                   ? 'No announcement yet. This section is now live and will update from Firestore.'
                                   : announcement,
-                              style: GoogleFonts.dmSans(color: CT.textS(context), height: 1.5),
+                              style: GoogleFonts.plusJakartaSans(color: CT.textS(context), height: 1.5),
                             ),
                           ],
                         ),

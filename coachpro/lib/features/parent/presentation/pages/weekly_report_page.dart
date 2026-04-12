@@ -145,7 +145,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
         ),
         title: Text(
           'Weekly Report',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: CT.textH(context),
@@ -158,7 +158,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
           ? Center(
               child: Text(
                 'Error: $_error',
-                style: GoogleFonts.dmSans(color: CT.textS(context)),
+                style: GoogleFonts.plusJakartaSans(color: CT.textS(context)),
               ),
             )
           : RefreshIndicator(
@@ -235,7 +235,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
         children: [
           Text(
             name,
-            style: GoogleFonts.sora(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -246,7 +246,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
             batches.isEmpty
                 ? 'Latest updates for your child'
                 : batches.join(' | '),
-            style: GoogleFonts.dmSans(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               color: Colors.white.withValues(alpha: 0.9),
             ),
@@ -318,7 +318,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
           const SizedBox(height: 6),
           Text(
             value,
-            style: GoogleFonts.sora(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: CT.textH(context),
@@ -328,7 +328,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: GoogleFonts.dmSans(fontSize: 11, color: CT.textS(context)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textS(context)),
           ),
         ],
       ),
@@ -341,7 +341,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       children: [
         Text(
           'Daily Attendance',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: CT.textH(context),
@@ -370,7 +370,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                       width: 58,
                       child: Text(
                         _fmtDateShort(item['date']),
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: CT.textH(context),
@@ -391,7 +391,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                     const SizedBox(width: 10),
                     Text(
                       '${_toInt(item['attendance_percent'])}%',
-                      style: GoogleFonts.sora(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: color,
@@ -412,7 +412,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       children: [
         Text(
           'Upcoming Schedule',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: CT.textH(context),
@@ -440,7 +440,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                         ),
                         child: Text(
                           _fmtTime(item['scheduled_at']),
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: AppColors.primary,
@@ -454,7 +454,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                           children: [
                             Text(
                               (item['title'] ?? 'Class').toString(),
-                              style: GoogleFonts.sora(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: CT.textH(context),
@@ -462,7 +462,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                             ),
                             Text(
                               '${item['subject'] ?? ''} | ${item['batch_name'] ?? ''} | ${item['teacher_name'] ?? ''}',
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 color: CT.textS(context),
                               ),
@@ -505,7 +505,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                 const SizedBox(width: 6),
                 Text(
                   title,
-                  style: GoogleFonts.sora(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: CT.textH(context),
@@ -517,7 +517,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
             if (items.isEmpty)
               Text(
                 'No records',
-                style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context)),
+                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textS(context)),
               )
             else
               ...items.take(3).map((item) {
@@ -535,7 +535,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                           children: [
                             Text(
                               scoreTitle,
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 color: CT.textH(context),
@@ -545,7 +545,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                             ),
                             Text(
                               _fmtDate(item[dateKey] ?? exam?['exam_date'] ?? quiz?['scheduled_at']),
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 color: CT.textS(context),
                               ),
@@ -555,7 +555,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                       ),
                       Text(
                         '$percent%',
-                        style: GoogleFonts.sora(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: color,
@@ -575,7 +575,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       children: [
         Text(
           'Quiz & Test Scores',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: CT.textH(context),
@@ -640,7 +640,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                   children: [
                     Text(
                       (item['title'] ?? item['assignment_title'] ?? 'Assignment').toString(),
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: CT.textH(context),
@@ -652,7 +652,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                       item['due_date'] != null
                           ? 'Due: ${_fmtDate(item['due_date'])}'
                           : 'Submitted: ${_fmtDate(item['submitted_at'])}',
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         color: CT.textS(context),
                       ),
@@ -671,7 +671,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       children: [
         Text(
           'Assignments',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: CT.textH(context),
@@ -714,7 +714,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       children: [
         Text(
           'Fees Overview',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: CT.textH(context),
@@ -775,7 +775,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                         children: [
                           Text(
                             '${item['month']}/${item['year']} | ${(item['batch']?['name'] ?? 'Batch').toString()}',
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: CT.textH(context),
@@ -783,7 +783,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                           ),
                           Text(
                             'Due: ${_fmtDate(item['due_date'])}',
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               color: CT.textS(context),
                             ),
@@ -793,7 +793,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                     ),
                     Text(
                       'Rs $remaining',
-                      style: GoogleFonts.sora(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: color,
@@ -814,7 +814,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       children: [
         Text(
           'Activity Feed',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: CT.textH(context),
@@ -850,7 +850,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                         children: [
                           Text(
                             (item['title'] ?? 'Activity update').toString(),
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: CT.textH(context),
@@ -859,7 +859,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                           const SizedBox(height: 2),
                           Text(
                             (item['subtitle'] ?? '').toString(),
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               color: CT.textS(context),
                             ),
@@ -867,7 +867,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
                           const SizedBox(height: 2),
                           Text(
                             _fmtDate(item['timestamp']),
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
                               color: CT.textM(context),
                             ),
@@ -890,7 +890,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       decoration: CT.cardDecor(context),
       child: Text(
         message,
-        style: GoogleFonts.dmSans(
+        style: GoogleFonts.plusJakartaSans(
           fontSize: 12,
           color: CT.textS(context),
         ),

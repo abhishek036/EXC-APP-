@@ -57,7 +57,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         ),
         title: Text(
           'Payment History',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: CT.textH(context),
@@ -68,11 +68,11 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(
-                  child: Text('Failed to load payment history', style: GoogleFonts.dmSans(color: CT.textS(context))),
+                  child: Text('Failed to load payment history', style: GoogleFonts.plusJakartaSans(color: CT.textS(context))),
                 )
               : _items.isEmpty
                   ? Center(
-                      child: Text('No payment records yet', style: GoogleFonts.dmSans(color: CT.textS(context))),
+                      child: Text('No payment records yet', style: GoogleFonts.plusJakartaSans(color: CT.textS(context))),
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(
@@ -125,7 +125,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         children: [
           Text(
             value,
-            style: GoogleFonts.sora(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: color,
@@ -133,7 +133,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
           ),
           Text(
             title,
-            style: GoogleFonts.dmSans(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: CT.textS(context),
@@ -168,7 +168,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
               Expanded(
                 child: Text(
                   item.month,
-                  style: GoogleFonts.sora(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: CT.textH(context),
@@ -183,7 +183,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                 ),
                 child: Text(
                   statusLabel,
-                  style: GoogleFonts.dmSans(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: statusColor,
@@ -195,7 +195,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
           const SizedBox(height: AppDimensions.xs),
           Text(
             item.description,
-            style: GoogleFonts.dmSans(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               color: CT.textS(context),
             ),
@@ -214,7 +214,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
               const Spacer(),
               Text(
                 item.date,
-                style: GoogleFonts.dmSans(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   color: CT.textM(context),
                 ),

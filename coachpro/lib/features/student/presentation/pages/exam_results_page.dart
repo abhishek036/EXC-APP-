@@ -234,7 +234,7 @@ class _ExamResultsPageState extends State<ExamResultsPage> {
         width: double.infinity,
         padding: const EdgeInsets.all(AppDimensions.lg),
         decoration: BoxDecoration(
-          color: const Color(0xFF0D1282),
+          color: const Color(0xFF354388),
           borderRadius: BorderRadius.circular(AppDimensions.radiusLG),
           boxShadow: const [
             BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
@@ -561,3 +561,4 @@ class _ExamResultsPageState extends State<ExamResultsPage> {
     );
   }
 }
+

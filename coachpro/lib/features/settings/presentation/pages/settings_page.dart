@@ -88,7 +88,7 @@ class _SettingsPageState extends State<SettingsPage> {
           onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/'); } },
           child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
         ),
-        title: Text('Settings', style: GoogleFonts.sora(fontWeight: FontWeight.w600, color: CT.textH(context))),
+        title: Text('Settings', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: CT.textH(context))),
         backgroundColor: CT.bg(context),
         elevation: 0,
       ),
@@ -163,7 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     const Icon(Icons.logout, color: AppColors.error, size: 20),
                     const SizedBox(width: AppDimensions.sm),
-                    Text('Log Out', style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.error)),
+                    Text('Log Out', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.error)),
                   ]),
                 ),
               ),
@@ -179,15 +179,15 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(context: context, builder: (ctx) => AlertDialog(
       backgroundColor: CT.card(context),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusMD)),
-      title: Text('Log out?', style: GoogleFonts.sora(fontWeight: FontWeight.w600, color: CT.textH(context))),
-      content: Text('You\'ll need to sign in again to access your account.', style: GoogleFonts.dmSans(color: CT.textS(context))),
+      title: Text('Log out?', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: CT.textH(context))),
+      content: Text('You\'ll need to sign in again to access your account.', style: GoogleFonts.plusJakartaSans(color: CT.textS(context))),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: GoogleFonts.dmSans(color: CT.textM(context)))),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: CT.textM(context)))),
         ElevatedButton(
           onPressed: () { Navigator.pop(ctx); context.read<AuthBloc>().add(const AuthLogoutRequested()); },
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white, elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusXS))),
-          child: Text('Log Out', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
+          child: Text('Log Out', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
         ),
       ],
     ));
@@ -199,7 +199,7 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(AppDimensions.lg),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Video Quality', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w600, color: CT.textH(context))),
+          Text('Video Quality', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: CT.textH(context))),
           const SizedBox(height: AppDimensions.md),
           ...['Auto', '1080p', '720p', '480p', '360p'].map((q) => CPPressable(
             onTap: () { setState(() => _videoQuality = q); _saveString('videoQuality', q); Navigator.pop(ctx); },
@@ -209,7 +209,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 Icon(_videoQuality == q ? Icons.radio_button_checked : Icons.radio_button_unchecked,
                   color: _videoQuality == q ? CT.accent(context) : CT.textM(context)),
                 const SizedBox(width: AppDimensions.step),
-                Text(q, style: GoogleFonts.dmSans(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                Text(q, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
               ]),
             ),
           )),
@@ -224,7 +224,7 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(AppDimensions.lg),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Language', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w600, color: CT.textH(context))),
+          Text('Language', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: CT.textH(context))),
           const SizedBox(height: AppDimensions.md),
           ...['English', 'Hindi', 'Hinglish'].map((l) => CPPressable(
             onTap: () { setState(() => _language = l); _saveString('language', l); Navigator.pop(ctx); },
@@ -234,7 +234,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 Icon(_language == l ? Icons.radio_button_checked : Icons.radio_button_unchecked,
                   color: _language == l ? CT.accent(context) : CT.textM(context)),
                 const SizedBox(width: AppDimensions.step),
-                Text(l, style: GoogleFonts.dmSans(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                Text(l, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
               ]),
             ),
           )),
@@ -268,9 +268,9 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: CT.textM(context).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
-              Text('Help & FAQ', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
+              Text('Help & FAQ', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
               const SizedBox(height: 4),
-              Text('Find answers to frequently asked questions', style: GoogleFonts.dmSans(fontSize: 13, color: CT.textS(context))),
+              Text('Find answers to frequently asked questions', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textS(context))),
               const SizedBox(height: 12),
             ]),
           ),
@@ -285,9 +285,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   shape: const Border(),
-                  title: Text(faqs[i]['q']!, style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                  title: Text(faqs[i]['q']!, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: CT.textH(context))),
                   iconColor: CT.accent(context), collapsedIconColor: CT.textM(context),
-                  children: [Text(faqs[i]['a']!, style: GoogleFonts.dmSans(fontSize: 13, height: 1.5, color: CT.textS(context)))],
+                  children: [Text(faqs[i]['a']!, style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.5, color: CT.textS(context)))],
                 ),
               ),
             ),
@@ -309,11 +309,11 @@ class _SettingsPageState extends State<SettingsPage> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: CT.textM(context).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 20),
-          Text('Contact Support', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
+          Text('Contact Support', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
           const SizedBox(height: 4),
-          Text('We usually respond within 24 hours', style: GoogleFonts.dmSans(fontSize: 13, color: CT.textS(context))),
+          Text('We usually respond within 24 hours', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textS(context))),
           const SizedBox(height: 20),
-          Text('Topic', style: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w600, color: CT.textM(context))),
+          Text('Topic', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: CT.textM(context))),
           const SizedBox(height: 8),
           Wrap(spacing: 8, runSpacing: 8, children: topics.map((t) => CPPressable(
             onTap: () => setS(() => selectedTopic = t),
@@ -324,15 +324,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: selectedTopic == t ? CT.accent(context) : CT.border(context)),
               ),
-              child: Text(t, style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600, color: selectedTopic == t ? CT.accent(context) : CT.textS(context))),
+              child: Text(t, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: selectedTopic == t ? CT.accent(context) : CT.textS(context))),
             ),
           )).toList()),
           const SizedBox(height: 16),
           TextField(
             controller: msgCtrl, maxLines: 4,
-            style: GoogleFonts.dmSans(fontSize: 14, color: CT.textH(context)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textH(context)),
             decoration: InputDecoration(
-              hintText: 'Describe your issue or question...', hintStyle: GoogleFonts.dmSans(fontSize: 13, color: CT.textM(context)),
+              hintText: 'Describe your issue or question...', hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textM(context)),
               filled: true, fillColor: CT.card(context),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: CT.border(context))),
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: CT.border(context))),
@@ -349,7 +349,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 _showSnack('Support request sent! We\'ll get back to you soon.');
               },
               icon: const Icon(Icons.send, size: 18),
-              label: Text('Send Message', style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600)),
+              label: Text('Send Message', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(backgroundColor: CT.accent(context), foregroundColor: Colors.white, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
             ),
@@ -370,11 +370,11 @@ class _SettingsPageState extends State<SettingsPage> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: CT.textM(context).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 20),
-          Text('Report a Bug', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
+          Text('Report a Bug', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
           const SizedBox(height: 4),
-          Text('Help us improve by reporting issues', style: GoogleFonts.dmSans(fontSize: 13, color: CT.textS(context))),
+          Text('Help us improve by reporting issues', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textS(context))),
           const SizedBox(height: 20),
-          Text('Severity', style: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w600, color: CT.textM(context))),
+          Text('Severity', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: CT.textM(context))),
           const SizedBox(height: 8),
           Row(children: ['Low', 'Medium', 'High', 'Critical'].map((s) {
             final colors = {'Low': AppColors.mintGreen, 'Medium': AppColors.moltenAmber, 'High': AppColors.coralRed, 'Critical': const Color(0xFFB71C1C)};
@@ -391,7 +391,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     border: Border.all(color: severity == s ? c : CT.border(context)),
                   ),
                   alignment: Alignment.center,
-                  child: Text(s, style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w600, color: severity == s ? c : CT.textS(context))),
+                  child: Text(s, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: severity == s ? c : CT.textS(context))),
                 ),
               ),
             ));
@@ -399,9 +399,9 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
           TextField(
             controller: descCtrl, maxLines: 4,
-            style: GoogleFonts.dmSans(fontSize: 14, color: CT.textH(context)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textH(context)),
             decoration: InputDecoration(
-              hintText: 'Describe the bug in detail...\nWhat happened? What did you expect?', hintStyle: GoogleFonts.dmSans(fontSize: 13, color: CT.textM(context)),
+              hintText: 'Describe the bug in detail...\nWhat happened? What did you expect?', hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textM(context)),
               filled: true, fillColor: CT.card(context),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: CT.border(context))),
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: CT.border(context))),
@@ -418,7 +418,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 _showSnack('Bug report submitted! Thank you for helping us improve.');
               },
               icon: const Icon(Icons.bug_report_outlined, size: 18),
-              label: Text('Submit Report', style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600)),
+              label: Text('Submit Report', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(backgroundColor: CT.accent(context), foregroundColor: Colors.white, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
             ),
@@ -445,9 +445,9 @@ class _SettingsPageState extends State<SettingsPage> {
           child: const Icon(Icons.star_rounded, color: Colors.white, size: 30),
         ),
         const SizedBox(height: 16),
-        Text('Rate Excellence Academy', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
+        Text('Rate Excellence Academy', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
         const SizedBox(height: 6),
-        Text('Your feedback helps us improve!', style: GoogleFonts.dmSans(fontSize: 13, color: CT.textS(context))),
+        Text('Your feedback helps us improve!', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textS(context))),
         const SizedBox(height: 20),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(5, (i) => CPPressable(
           onTap: () => setS(() => rating = i + 1),
@@ -460,10 +460,10 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 16),
         if (rating > 0) TextField(
           controller: reviewCtrl, maxLines: 3,
-          style: GoogleFonts.dmSans(fontSize: 13, color: CT.textH(context)),
+          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textH(context)),
           decoration: InputDecoration(
             hintText: rating >= 4 ? 'Tell us what you love!' : 'How can we improve?',
-            hintStyle: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context)),
+            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textM(context)),
             filled: true, fillColor: CT.bg(context),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: CT.border(context))),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: CT.border(context))),
@@ -477,13 +477,13 @@ class _SettingsPageState extends State<SettingsPage> {
             onPressed: rating > 0 ? () { Navigator.pop(ctx); _showSnack('Thank you for your $rating-star rating! ⭐'); } : null,
             style: ElevatedButton.styleFrom(backgroundColor: CT.accent(context), foregroundColor: Colors.white, elevation: 0, disabledBackgroundColor: CT.textM(context).withValues(alpha: 0.2),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-            child: Text('Submit Rating', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600)),
+            child: Text('Submit Rating', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
           ),
         ),
         const SizedBox(height: 8),
         CPPressable(
           onTap: () => Navigator.pop(ctx),
-          child: Text('Maybe Later', style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: CT.textM(context))),
+          child: Text('Maybe Later', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: CT.textM(context))),
         ),
       ]),
     )));
@@ -603,7 +603,7 @@ For privacy concerns, contact us at privacy@Excellence Academy.app''');
               Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: CT.textM(context).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Row(children: [
-                Text(title, style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
+                Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
                 const Spacer(),
                 CPPressable(onTap: () => Navigator.pop(ctx), child: Icon(Icons.close, color: CT.textM(context))),
               ]),
@@ -614,7 +614,7 @@ For privacy concerns, contact us at privacy@Excellence Academy.app''');
             child: SingleChildScrollView(
               controller: scrollCtrl,
               padding: const EdgeInsets.all(20),
-              child: Text(content, style: GoogleFonts.dmSans(fontSize: 13, height: 1.7, color: CT.textS(context))),
+              child: Text(content, style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.7, color: CT.textS(context))),
             ),
           ),
         ]),
@@ -624,7 +624,7 @@ For privacy concerns, contact us at privacy@Excellence Academy.app''');
 
   void _showSnack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, style: GoogleFonts.dmSans(color: Colors.white)),
+      content: Text(msg, style: GoogleFonts.plusJakartaSans(color: Colors.white)),
       backgroundColor: CT.accent(context),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -633,7 +633,7 @@ For privacy concerns, contact us at privacy@Excellence Academy.app''');
 
   Widget _sectionTitle(String title) => Padding(
     padding: const EdgeInsets.only(bottom: AppDimensions.step),
-    child: Text(title, style: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textM(context), letterSpacing: 0.8)),
+    child: Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textM(context), letterSpacing: 0.8)),
   );
 
   Widget _settingsTile(IconData icon, String title, {String? subtitle, Widget? trailing, VoidCallback? onTap, required bool isDark}) => CPPressable(
@@ -650,8 +650,8 @@ For privacy concerns, contact us at privacy@Excellence Academy.app''');
         ),
         const SizedBox(width: AppDimensions.md),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context))),
-          if (subtitle != null) Text(subtitle, style: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context))),
+          Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context))),
+          if (subtitle != null) Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textM(context))),
         ])),
         trailing ?? Icon(Icons.chevron_right, color: CT.textM(context), size: 20),
       ]),
@@ -669,7 +669,7 @@ For privacy concerns, contact us at privacy@Excellence Academy.app''');
         child: Icon(icon, size: 20, color: CT.accent(context)),
       ),
       const SizedBox(width: AppDimensions.md),
-      Expanded(child: Text(title, style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context)))),
+      Expanded(child: Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context)))),
       Switch.adaptive(value: value, onChanged: onChanged, activeTrackColor: CT.accent(context)),
     ]),
   );
@@ -701,27 +701,27 @@ class _DataExportDialogState extends State<_DataExportDialog> with SingleTickerP
       if (!_exporting && !_done) ...[
         Icon(Icons.download_for_offline_outlined, size: 48, color: widget.accent),
         const SizedBox(height: 16),
-        Text('Export Your Data', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w700, color: widget.textH)),
+        Text('Export Your Data', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: widget.textH)),
         const SizedBox(height: 8),
         Text('This will prepare a download of your profile, attendance, scores, and activity data.',
-          style: GoogleFonts.dmSans(fontSize: 13, color: widget.textS, height: 1.5), textAlign: TextAlign.center),
+          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: widget.textS, height: 1.5), textAlign: TextAlign.center),
         const SizedBox(height: 24),
         SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
           onPressed: _startExport,
           style: ElevatedButton.styleFrom(backgroundColor: widget.accent, foregroundColor: Colors.white, elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-          child: Text('Export Data', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600)),
+          child: Text('Export Data', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
         )),
         const SizedBox(height: 8),
-        TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: GoogleFonts.dmSans(color: widget.textS))),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: widget.textS))),
       ],
       if (_exporting) ...[
         const SizedBox(height: 12),
         SizedBox(width: 48, height: 48, child: CircularProgressIndicator(strokeWidth: 3, color: widget.accent)),
         const SizedBox(height: 20),
-        Text('Preparing your data...', style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w600, color: widget.textH)),
+        Text('Preparing your data...', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: widget.textH)),
         const SizedBox(height: 8),
-        Text('This may take a moment', style: GoogleFonts.dmSans(fontSize: 13, color: widget.textS)),
+        Text('This may take a moment', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: widget.textS)),
         const SizedBox(height: 12),
       ],
       if (_done) ...[
@@ -732,15 +732,15 @@ class _DataExportDialogState extends State<_DataExportDialog> with SingleTickerP
           child: const Icon(Icons.check_circle, color: AppColors.mintGreen, size: 36),
         ),
         const SizedBox(height: 16),
-        Text('Export Ready!', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w700, color: widget.textH)),
+        Text('Export Ready!', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: widget.textH)),
         const SizedBox(height: 8),
-        Text('Your data has been exported successfully.', style: GoogleFonts.dmSans(fontSize: 13, color: widget.textS), textAlign: TextAlign.center),
+        Text('Your data has been exported successfully.', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: widget.textS), textAlign: TextAlign.center),
         const SizedBox(height: 24),
         SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
           onPressed: () => Navigator.pop(context),
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.mintGreen, foregroundColor: Colors.white, elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-          child: Text('Done', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600)),
+          child: Text('Done', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
         )),
         const SizedBox(height: 12),
       ],

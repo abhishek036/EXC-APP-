@@ -83,7 +83,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     padding: const EdgeInsets.only(top: 4, right: 4),
                     child: TextButton(
                       onPressed: () => context.go('/login'),
-                      child: Text('skip', style: GoogleFonts.dmSans(color: CT.textM(context), fontWeight: FontWeight.w600, fontSize: 14)),
+                      child: Text('skip', style: GoogleFonts.plusJakartaSans(color: CT.textM(context), fontWeight: FontWeight.w600, fontSize: 14)),
                     ),
                   ),
                 ),
@@ -174,7 +174,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           // Title
           Text(
             item.title,
-            style: GoogleFonts.sora(fontSize: 26, fontWeight: FontWeight.w800, color: CT.textH(context), letterSpacing: -0.5),
+            style: GoogleFonts.plusJakartaSans(fontSize: 26, fontWeight: FontWeight.w800, color: CT.textH(context), letterSpacing: -0.5),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 250.ms, duration: 400.ms).slideY(begin: 0.15, end: 0),
 
@@ -185,7 +185,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
               item.subtitle,
-              style: GoogleFonts.dmSans(fontSize: 15, color: CT.textS(context), height: 1.6),
+              style: GoogleFonts.plusJakartaSans(fontSize: 15, color: CT.textS(context), height: 1.6),
               textAlign: TextAlign.center,
             ).animate().fadeIn(delay: 400.ms, duration: 400.ms).slideY(begin: 0.15, end: 0),
           ),

@@ -38,7 +38,8 @@ class CloudStorageService {
     });
 
     final dio = sl<ApiClient>().dio;
-    final response = await dio.post('/upload', data: formData);
+    // Removed leading slash to prevent baseUrl segment loss
+    final response = await dio.post('upload', data: formData);
 
     if (response.statusCode == 201 && response.data['success'] == true) {
       return response.data['data']['fileUrl'] as String;
@@ -70,7 +71,8 @@ class CloudStorageService {
     });
 
     final dio = sl<ApiClient>().dio;
-    final response = await dio.post('/upload', data: formData);
+    // Removed leading slash to prevent baseUrl segment loss
+    final response = await dio.post('upload', data: formData);
 
     if (response.statusCode == 201 && response.data['success'] == true) {
       return response.data['data']['fileUrl'] as String;

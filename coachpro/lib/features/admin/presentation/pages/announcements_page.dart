@@ -116,14 +116,14 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEEEDED),
+                            color: const Color(0xFFFFFFFF),
                             border: Border.all(
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                               width: 2,
                             ),
                             boxShadow: const [
                               BoxShadow(
-                                color: Color(0xFF0D1282),
+                                color: Color(0xFF354388),
                                 offset: Offset(2, 2),
                               ),
                             ],
@@ -131,7 +131,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                           child: const Icon(
                             Icons.arrow_back_ios_new_rounded,
                             size: 20,
-                            color: Color(0xFF0D1282),
+                            color: Color(0xFF354388),
                           ),
                         ),
                       ),
@@ -155,14 +155,14 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                               vertical: 12,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE3D465),
+                              color: const Color(0xFFBDAE18),
                               border: Border.all(
-                                color: const Color(0xFF0D1282),
+                                color: const Color(0xFF354388),
                                 width: 2,
                               ),
                               boxShadow: const [
                                 BoxShadow(
-                                  color: Color(0xFF0D1282),
+                                  color: Color(0xFF354388),
                                   offset: Offset(2, 2),
                                 ),
                               ],
@@ -172,7 +172,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                 const Icon(
                                   Icons.add_alert_rounded,
                                   size: 20,
-                                  color: Color(0xFF0D1282),
+                                  color: Color(0xFF354388),
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
@@ -180,7 +180,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF0D1282),
+                                    color: const Color(0xFF354388),
                                     letterSpacing: -0.5,
                                   ),
                                 ),
@@ -218,15 +218,15 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                           decoration: BoxDecoration(
                             color: isActive
                                 ? _filterColors[i]
-                                : const Color(0xFFEEEDED),
+                                : const Color(0xFFFFFFFF),
                             border: Border.all(
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                               width: 2,
                             ),
                             boxShadow: isActive
                                 ? const [
                                     BoxShadow(
-                                      color: Color(0xFF0D1282),
+                                      color: Color(0xFF354388),
                                       offset: Offset(2, 2),
                                     ),
                                   ]
@@ -240,7 +240,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                               fontWeight: FontWeight.w900,
                               color: isActive
                                   ? Colors.white
-                                  : const Color(0xFF0D1282),
+                                  : const Color(0xFF354388),
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -307,11 +307,11 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                                     ),
                                                 decoration: BoxDecoration(
                                                   color: const Color(
-                                                    0xFF0D1282,
+                                                    0xFF354388,
                                                   ),
                                                   border: Border.all(
                                                     color: const Color(
-                                                      0xFF0D1282,
+                                                      0xFF354388,
                                                     ),
                                                     width: 2,
                                                   ),
@@ -370,7 +370,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                           isDark: isDark,
                                           padding: const EdgeInsets.all(20),
                                           border: Border.all(
-                                            color: const Color(0xFF0D1282),
+                                            color: const Color(0xFF354388),
                                             width: pinned ? 4 : 2,
                                           ),
                                           child: Column(
@@ -389,14 +389,14 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                                       color: color,
                                                       border: Border.all(
                                                         color: const Color(
-                                                          0xFF0D1282,
+                                                          0xFF354388,
                                                         ),
                                                         width: 2,
                                                       ),
                                                       boxShadow: const [
                                                         BoxShadow(
                                                           color: Color(
-                                                            0xFF0D1282,
+                                                            0xFF354388,
                                                           ),
                                                           offset: Offset(2, 2),
                                                         ),
@@ -449,18 +449,18 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                                             ),
                                                         decoration: BoxDecoration(
                                                           color: const Color(
-                                                            0xFFE3D465,
+                                                            0xFFBDAE18,
                                                           ),
                                                           border: Border.all(
                                                             color: const Color(
-                                                              0xFF0D1282,
+                                                              0xFF354388,
                                                             ),
                                                             width: 2,
                                                           ),
                                                           boxShadow: const [
                                                             BoxShadow(
                                                               color: Color(
-                                                                0xFF0D1282,
+                                                                0xFF354388,
                                                               ),
                                                               offset: Offset(
                                                                 2,
@@ -473,7 +473,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                                           Icons.edit_outlined,
                                                           size: 16,
                                                           color: Color(
-                                                            0xFF0D1282,
+                                                            0xFF354388,
                                                           ),
                                                         ),
                                                       ),
@@ -496,14 +496,14 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                                               AppColors.error,
                                                           border: Border.all(
                                                             color: const Color(
-                                                              0xFF0D1282,
+                                                              0xFF354388,
                                                             ),
                                                             width: 2,
                                                           ),
                                                           boxShadow: const [
                                                             BoxShadow(
                                                               color: Color(
-                                                                0xFF0D1282,
+                                                                0xFF354388,
                                                               ),
                                                               offset: Offset(
                                                                 2,
@@ -737,7 +737,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
             : AppColors.eliteLightBg,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.zero,
-          side: BorderSide(color: const Color(0xFF0D1282), width: 3),
+          side: BorderSide(color: const Color(0xFF354388), width: 3),
         ),
         title: Row(
           children: [
@@ -745,9 +745,9 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: AppColors.error,
-                border: Border.all(color: const Color(0xFF0D1282), width: 2),
+                border: Border.all(color: const Color(0xFF354388), width: 2),
                 boxShadow: const [
-                  BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2)),
+                  BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
                 ],
               ),
               child: const Icon(Icons.warning_rounded, color: Colors.white),
@@ -776,24 +776,24 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             style: TextButton.styleFrom(
-              side: const BorderSide(color: Color(0xFF0D1282), width: 2),
+              side: const BorderSide(color: Color(0xFF354388), width: 2),
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.zero,
               ),
-              backgroundColor: const Color(0xFFEEEDED),
+              backgroundColor: const Color(0xFFFFFFFF),
             ),
             child: Text(
               'CANCEL',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
               ),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(
-              side: const BorderSide(color: Color(0xFF0D1282), width: 2),
+              side: const BorderSide(color: Color(0xFF354388), width: 2),
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.zero,
               ),
@@ -845,8 +845,8 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
             ),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFFEEEDED),
-              border: Border.all(color: const Color(0xFF0D1282), width: 4),
+              color: const Color(0xFFFFFFFF),
+              border: Border.all(color: const Color(0xFF354388), width: 4),
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -914,7 +914,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       letterSpacing: 1.0,
                     ),
                   ),
@@ -923,12 +923,12 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       border: Border.all(
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         width: 2,
                       ),
                       boxShadow: const [
                         BoxShadow(
-                          color: Color(0xFF0D1282),
+                          color: Color(0xFF354388),
                           offset: Offset(2, 2),
                         ),
                       ],
@@ -938,18 +938,18 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                       decoration: InputDecoration(
                         hintText: 'Enter broadcast subject',
                         hintStyle: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0D1282).withValues(alpha: 0.5),
+                          color: const Color(0xFF354388).withValues(alpha: 0.5),
                         ),
                         prefixIcon: const Icon(
                           Icons.subject_rounded,
-                          color: Color(0xFF0D1282),
+                          color: Color(0xFF354388),
                         ),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
@@ -964,12 +964,12 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       border: Border.all(
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         width: 2,
                       ),
                       boxShadow: const [
                         BoxShadow(
-                          color: Color(0xFF0D1282),
+                          color: Color(0xFF354388),
                           offset: Offset(2, 2),
                         ),
                       ],
@@ -980,14 +980,14 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                       decoration: InputDecoration(
                         hintText: 'Write announcement details...',
                         hintStyle: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF0D1282).withValues(alpha: 0.5),
+                          color: const Color(0xFF354388).withValues(alpha: 0.5),
                         ),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
@@ -1062,15 +1062,15 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: pin
-                                ? const Color(0xFFF0DE36)
-                                : const Color(0xFFEEEDED),
+                                ? const Color(0xFFBDAE18)
+                                : const Color(0xFFFFFFFF),
                             border: Border.all(
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                               width: 2,
                             ),
                             boxShadow: const [
                               BoxShadow(
-                                color: Color(0xFF0D1282),
+                                color: Color(0xFF354388),
                                 offset: Offset(2, 2),
                               ),
                             ],
@@ -1079,7 +1079,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                             pin
                                 ? Icons.push_pin_rounded
                                 : Icons.push_pin_outlined,
-                            color: const Color(0xFF0D1282),
+                            color: const Color(0xFF354388),
                             size: 24,
                           ),
                         ),
@@ -1124,14 +1124,14 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         border: Border.all(
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           width: 2,
                         ),
                         boxShadow: const [
                           BoxShadow(
-                            color: Color(0xFF0D1282),
+                            color: Color(0xFF354388),
                             offset: Offset(4, 4),
                           ),
                         ],
@@ -1157,3 +1157,4 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
     );
   }
 }
+

@@ -56,7 +56,7 @@ class _ChatListPageState extends State<ChatListPage> {
       appBar: AppBar(
         backgroundColor: CT.bg(context),
         elevation: 0,
-        title: Text('Messages', style: GoogleFonts.sora(fontWeight: FontWeight.w600, color: CT.textH(context))),
+        title: Text('Messages', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: CT.textH(context))),
         actions: [
           CPPressable(
             child: Padding(
@@ -69,9 +69,9 @@ class _ChatListPageState extends State<ChatListPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!, style: GoogleFonts.dmSans(color: CT.textM(context))))
+              ? Center(child: Text(_error!, style: GoogleFonts.plusJakartaSans(color: CT.textM(context))))
               : _rooms.isEmpty
-                ? Center(child: Text('No messages yet', style: GoogleFonts.dmSans(color: CT.textM(context))))
+                ? Center(child: Text('No messages yet', style: GoogleFonts.plusJakartaSans(color: CT.textM(context))))
                 : ListView.separated(
                   padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
                   itemCount: _rooms.length,
@@ -110,13 +110,13 @@ class _ChatListPageState extends State<ChatListPage> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(title, style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                                      Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
                                       if (lastTime.isNotEmpty)
-                                        Text(_formatTime(lastTime), style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context))),
+                                        Text(_formatTime(lastTime), style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textM(context))),
                                     ],
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(lastMsg, style: GoogleFonts.dmSans(fontSize: 13, color: CT.textS(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  Text(lastMsg, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textS(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
                                 ],
                               ),
                             ),

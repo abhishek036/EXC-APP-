@@ -106,14 +106,14 @@ class _BatchesPageState extends State<BatchesPage> {
                         borderRadius: BorderRadius.circular(20),
                         border: selected
                             ? Border.all(
-                                color: const Color(0xFF0D1282),
+                                color: const Color(0xFF354388),
                                 width: 2,
                               )
                             : Border.all(color: CT.border(context)),
                         boxShadow: selected
                             ? const [
                                 BoxShadow(
-                                  color: Color(0xFF0D1282),
+                                  color: Color(0xFF354388),
                                   offset: Offset(2, 2),
                                 ),
                               ]
@@ -354,7 +354,7 @@ class _BatchesPageState extends State<BatchesPage> {
                       max: 5,
                       divisions: 4,
                       label: rating.toStringAsFixed(1),
-                      activeColor: const Color(0xFFF0DE36),
+                      activeColor: const Color(0xFFBDAE18),
                       inactiveColor: CT.textS(context).withValues(alpha: 0.2),
                       onChanged: (value) => setState(() => rating = value),
                     ),
@@ -438,3 +438,4 @@ class _BatchesPageState extends State<BatchesPage> {
     );
   }
 }
+

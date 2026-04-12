@@ -70,7 +70,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         backgroundColor: CT.bg(context),
         elevation: 0,
         title: Text('Notification Settings',
-            style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: CT.textH(context))),
       ),
       body: ListView(
         padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
@@ -93,7 +93,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
           if (_globalEnabled) ...[
             // Sound & Vibration
-            Text('General', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textS(context))),
+            Text('General', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textS(context))),
             const SizedBox(height: AppDimensions.sm),
             _buildToggleCard(
               icon: Icons.volume_up_rounded,
@@ -127,7 +127,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
             const SizedBox(height: AppDimensions.lg),
 
             // Category toggles
-            Text('Categories', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textS(context))),
+            Text('Categories', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textS(context))),
             const SizedBox(height: AppDimensions.sm),
             ..._buildCategoryToggles(accent),
           ],
@@ -163,7 +163,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   Expanded(
                     child: Text(
                       'Push Registration',
-                      style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context)),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context)),
                     ),
                   ),
                   TextButton(
@@ -171,7 +171,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                       await PushNotificationService.instance.syncTokenRegistration();
                       _refreshStatus();
                     },
-                    child: Text('Refresh', style: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w700, color: accent)),
+                    child: Text('Refresh', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: accent)),
                   ),
                 ],
               ),
@@ -180,7 +180,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                 status == null
                     ? 'Checking push token state...'
                     : '${status.message}\nToken: $tokenText\nBackend sync: ${ready ? 'OK' : 'Not registered'}',
-                style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context), height: 1.4),
+                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textS(context), height: 1.4),
               ),
             ],
           ),
@@ -245,8 +245,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
-              Text(subtitle, style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context))),
+              Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
+              Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textS(context))),
             ]),
           ),
           Switch.adaptive(

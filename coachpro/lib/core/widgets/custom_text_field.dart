@@ -47,7 +47,7 @@ class CustomTextField extends StatelessWidget {
           Row(children: [
             Text(
               label!,
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: CT.textS(context),
@@ -55,7 +55,7 @@ class CustomTextField extends StatelessWidget {
               ),
             ),
             if (isRequired)
-              Text(' *', style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.error)),
+              Text(' *', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.error)),
           ]),
           const SizedBox(height: AppDimensions.spaceSM),
         ],
@@ -68,14 +68,14 @@ class CustomTextField extends StatelessWidget {
           maxLines: maxLines,
           readOnly: readOnly,
           textAlign: textAlign,
-          style: GoogleFonts.dmSans(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: CT.textH(context),
           ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.dmSans(fontSize: 14, color: CT.textM(context)),
+            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textM(context)),
             prefixIcon: prefixIcon != null
                 ? Icon(prefixIcon, size: 20, color: CT.textM(context))
                 : null,

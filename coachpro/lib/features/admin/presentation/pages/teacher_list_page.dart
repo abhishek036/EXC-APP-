@@ -205,16 +205,16 @@ class _TeacherListPageState extends State<TeacherListPage> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: primary ? const Color(0xFF0D1282) : const Color(0xFFEEEDED),
-          border: Border.all(color: const Color(0xFF0D1282), width: 2),
+          color: primary ? const Color(0xFF354388) : const Color(0xFFFFFFFF),
+          border: Border.all(color: const Color(0xFF354388), width: 2),
           boxShadow: const [
-            BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2)),
+            BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
           ],
         ),
         child: Icon(
           icon,
           size: 22,
-          color: primary ? Colors.white : const Color(0xFF0D1282),
+          color: primary ? Colors.white : const Color(0xFF354388),
         ),
       ),
     );
@@ -363,9 +363,9 @@ class _TeacherListPageState extends State<TeacherListPage> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEEDED),
+                    color: const Color(0xFFFFFFFF),
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 2,
                     ),
                   ),
@@ -375,7 +375,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                     ),
                   ),
                 ),
@@ -389,7 +389,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           letterSpacing: -0.4,
                         ),
                       ),
@@ -398,7 +398,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
                         subject,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.2,
                         ),
@@ -410,7 +410,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
                             Icons.phone_iphone_rounded,
                             size: 12,
                             color: const Color(
-                              0xFF0D1282,
+                              0xFF354388,
                             ).withValues(alpha: 0.5),
                           ),
                           const SizedBox(width: 6),
@@ -418,7 +418,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
                             displayPhone,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -430,10 +430,10 @@ class _TeacherListPageState extends State<TeacherListPage> {
                             ),
                             decoration: BoxDecoration(
                               color: isActive
-                                  ? const Color(0xFFF0DE36)
-                                  : const Color(0xFFD71313),
+                                  ? const Color(0xFFBDAE18)
+                                  : const Color(0xFFB6231B),
                               border: Border.all(
-                                color: const Color(0xFF0D1282),
+                                color: const Color(0xFF354388),
                                 width: 1.5,
                               ),
                             ),
@@ -442,7 +442,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w900,
-                                color: const Color(0xFF0D1282),
+                                color: const Color(0xFF354388),
                               ),
                             ),
                           ),
@@ -454,19 +454,19 @@ class _TeacherListPageState extends State<TeacherListPage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEEDED),
+                    color: const Color(0xFFFFFFFF),
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 2,
                     ),
                     boxShadow: const [
-                      BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2)),
+                      BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
                     ],
                   ),
                   child: const Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 14,
-                    color: Color(0xFF0D1282),
+                    color: Color(0xFF354388),
                   ),
                 ),
               ],
@@ -527,7 +527,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD71313),
+              backgroundColor: const Color(0xFFB6231B),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -550,9 +550,9 @@ class _TeacherListPageState extends State<TeacherListPage> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color,
-        border: Border.all(color: const Color(0xFF0D1282), width: 2),
+        border: Border.all(color: const Color(0xFF354388), width: 2),
         boxShadow: const [
-          BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2)),
+          BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
         ],
       ),
       child: Text(
@@ -560,10 +560,11 @@ class _TeacherListPageState extends State<TeacherListPage> {
         style: GoogleFonts.plusJakartaSans(
           fontSize: 9,
           fontWeight: FontWeight.w900,
-          color: const Color(0xFF0D1282),
+          color: const Color(0xFF354388),
           letterSpacing: 0.5,
         ),
       ),
     );
   }
 }
+

@@ -160,7 +160,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1282),
+        color: const Color(0xFF354388),
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
@@ -297,7 +297,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1282),
+        color: const Color(0xFF354388),
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
@@ -534,3 +534,4 @@ class _QuizResultPageState extends State<QuizResultPage> {
     );
   }
 }
+

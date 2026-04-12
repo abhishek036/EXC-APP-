@@ -437,8 +437,8 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
               final summary = material.chapterTitle.toLowerCase() == 'general'
                   ? ''
                   : material.chapterTitle;
-              context.push('/student/youtube-player', extra: {
-                'videoId': material.url,
+              context.push('/student/video-player', extra: {
+                'videoUrl': material.url,
                 'title': material.title,
                 'summary': summary,
                 'teacherName': material.teacher,

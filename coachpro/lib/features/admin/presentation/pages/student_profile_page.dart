@@ -300,14 +300,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
           _editMode = false;
           _saving = false;
         });
-        _showSnack('Student updated successfully!', const Color(0xFFF0DE36));
+        _showSnack('Student updated successfully!', const Color(0xFFBDAE18));
       }
     } catch (_) {
       if (mounted) {
         setState(() => _saving = false);
         _showSnack(
           'Failed to save changes. Please try again.',
-          const Color(0xFFD71313),
+          const Color(0xFFB6231B),
         );
       }
     }
@@ -329,7 +329,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
           'This will permanently remove "${_student?['name'] ?? 'this student'}" and all their records.',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
-            color: const Color(0xFF0D1282),
+            color: const Color(0xFF354388),
           ),
         ),
         actions: [
@@ -339,7 +339,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               'Cancel',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
               ),
             ),
           ),
@@ -349,7 +349,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               'Delete',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFFD71313),
+                color: const Color(0xFFB6231B),
               ),
             ),
           ),
@@ -366,7 +366,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
     } catch (_) {
       if (mounted) {
         setState(() => _deleting = false);
-        _showSnack('Delete failed. Try again.', const Color(0xFFD71313));
+        _showSnack('Delete failed. Try again.', const Color(0xFFB6231B));
       }
     }
   }
@@ -406,7 +406,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
           'Remove this student from "$batchName"?',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
-            color: const Color(0xFF0D1282),
+            color: const Color(0xFF354388),
           ),
         ),
         actions: [
@@ -416,7 +416,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               'Cancel',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
               ),
             ),
           ),
@@ -426,7 +426,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               'Remove',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFFD71313),
+                color: const Color(0xFFB6231B),
               ),
             ),
           ),
@@ -441,7 +441,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
         studentId: widget.studentId,
       );
       if (mounted) {
-        _showSnack('Removed from $batchName', const Color(0xFFF0DE36));
+        _showSnack('Removed from $batchName', const Color(0xFFBDAE18));
       }
     } catch (_) {
       if (mounted) {
@@ -453,7 +453,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
             _studentBatchData.add(batch);
           }
         });
-        _showSnack('Remove failed. Try again.', const Color(0xFFD71313));
+        _showSnack('Remove failed. Try again.', const Color(0xFFB6231B));
       }
     }
   }
@@ -468,7 +468,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
     if (available.isEmpty) {
       _showSnack(
         'Student is already in all available batches',
-        const Color(0xFFF0DE36),
+        const Color(0xFFBDAE18),
       );
       return;
     }
@@ -496,13 +496,13 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
         batchId: batchId,
         studentId: widget.studentId,
       );
-      if (mounted) _showSnack('Added to $batchName!', const Color(0xFFF0DE36));
+      if (mounted) _showSnack('Added to $batchName!', const Color(0xFFBDAE18));
     } catch (_) {
       if (mounted) {
         setState(
           () => _studentBatchData.removeWhere((b) => b['id'] == batchId),
         );
-        _showSnack('Assignment failed. Try again.', const Color(0xFFD71313));
+        _showSnack('Assignment failed. Try again.', const Color(0xFFB6231B));
       }
     }
   }
@@ -511,16 +511,16 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
-        backgroundColor: const Color(0xFFEEEDED),
+        backgroundColor: const Color(0xFFFFFFFF),
         body: const Center(
-          child: CircularProgressIndicator(color: Color(0xFF0D1282)),
+          child: CircularProgressIndicator(color: Color(0xFF354388)),
         ),
       );
     }
 
     if (_loadFailed) {
       return Scaffold(
-        backgroundColor: const Color(0xFFEEEDED),
+        backgroundColor: const Color(0xFFFFFFFF),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -529,7 +529,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
             child: const Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
-              color: Color(0xFF0D1282),
+              color: Color(0xFF354388),
             ),
           ),
         ),
@@ -542,7 +542,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 Icon(
                   Icons.cloud_off_rounded,
                   size: 64,
-                  color: const Color(0xFFD71313).withValues(alpha: 0.3),
+                  color: const Color(0xFFB6231B).withValues(alpha: 0.3),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -558,7 +558,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                   textAlign: TextAlign.center,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                   ),
                 ),
                 if (_loadErrorDetails.isNotEmpty) ...[
@@ -569,7 +569,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFEEEDED)),
+                      border: Border.all(color: const Color(0xFFFFFFFF)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -579,7 +579,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0D1282),
+                            color: const Color(0xFF354388),
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -602,7 +602,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                               if (mounted) {
                                 _showSnack(
                                   'Error copied',
-                                  const Color(0xFFF0DE36),
+                                  const Color(0xFFBDAE18),
                                 );
                               }
                             },
@@ -611,7 +611,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: const Color(0xFF0D1282),
+                                color: const Color(0xFF354388),
                               ),
                             ),
                           ),
@@ -627,7 +627,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                     'Retry',
                     style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                     ),
                   ),
                 ),
@@ -640,7 +640,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
 
     if (_student == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFEEEDED),
+        backgroundColor: const Color(0xFFFFFFFF),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -649,7 +649,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
             child: const Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
-              color: Color(0xFF0D1282),
+              color: Color(0xFF354388),
             ),
           ),
         ),
@@ -660,7 +660,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               Icon(
                 Icons.person_search_rounded,
                 size: 64,
-                color: const Color(0xFF0D1282).withValues(alpha: 0.3),
+                color: const Color(0xFF354388).withValues(alpha: 0.3),
               ),
               const SizedBox(height: 16),
               Text(
@@ -677,7 +677,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                   'Retry',
                   style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                   ),
                 ),
               ),
@@ -718,18 +718,18 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
         .toList();
 
     final attColor = attendance >= 80
-        ? const Color(0xFFF0DE36)
+        ? const Color(0xFFBDAE18)
         : attendance >= 65
-        ? const Color(0xFFF0DE36)
-        : const Color(0xFFD71313);
+        ? const Color(0xFFBDAE18)
+        : const Color(0xFFB6231B);
     final feeColor = feeStatus == 'PAID'
-        ? const Color(0xFFF0DE36)
+        ? const Color(0xFFBDAE18)
         : feeStatus == 'OVERDUE'
-        ? const Color(0xFFD71313)
-        : const Color(0xFFF0DE36);
+        ? const Color(0xFFB6231B)
+        : const Color(0xFFBDAE18);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEEEDED),
+      backgroundColor: const Color(0xFFFFFFFF),
       body: Stack(
         children: [
           NestedScrollView(
@@ -738,7 +738,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               SliverAppBar(
                 expandedHeight: 260,
                 pinned: true,
-                backgroundColor: const Color(0xFF0D1282),
+                backgroundColor: const Color(0xFF354388),
                 leading: CPPressable(
                   onTap: () {
                     if (_editMode) {
@@ -766,7 +766,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0DE36),
+                          color: const Color(0xFFBDAE18),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: _saving
@@ -775,7 +775,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                                 height: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Color(0xFF0D1282),
+                                  color: Color(0xFF354388),
                                 ),
                               )
                             : Row(
@@ -784,7 +784,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                                   const Icon(
                                     Icons.check_rounded,
                                     size: 14,
-                                    color: Color(0xFF0D1282),
+                                    color: Color(0xFF354388),
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -792,7 +792,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF0D1282),
+                                      color: const Color(0xFF354388),
                                     ),
                                   ),
                                 ],
@@ -809,7 +809,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0DE36),
+                          color: const Color(0xFFBDAE18),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -818,7 +818,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                             const Icon(
                               Icons.edit_rounded,
                               size: 14,
-                              color: Color(0xFF0D1282),
+                              color: Color(0xFF354388),
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -826,7 +826,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
-                                color: const Color(0xFF0D1282),
+                                color: const Color(0xFF354388),
                               ),
                             ),
                           ],
@@ -857,7 +857,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                     child: SafeArea(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -924,7 +924,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                                 decoration: BoxDecoration(
                                   color: status == 'active'
                                       ? const Color(
-                                          0xFFF0DE36,
+                                          0xFFBDAE18,
                                         ).withValues(alpha: 0.2)
                                       : Colors.white12,
                                   borderRadius: BorderRadius.circular(12),
@@ -973,9 +973,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 ),
                 bottom: TabBar(
                   controller: _tabs,
-                  labelColor: const Color(0xFFF0DE36),
+                  labelColor: const Color(0xFFBDAE18),
                   unselectedLabelColor: Colors.white60,
-                  indicatorColor: const Color(0xFFF0DE36),
+                  indicatorColor: const Color(0xFFBDAE18),
                   indicatorWeight: 3,
                   labelStyle: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
@@ -1150,7 +1150,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -1187,14 +1187,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                       Icon(
                         Icons.class_outlined,
                         size: 36,
-                        color: const Color(0xFF0D1282).withValues(alpha: 0.3),
+                        color: const Color(0xFF354388).withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'No batches assigned yet',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1206,7 +1206,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0D1282),
+                            color: const Color(0xFF354388),
                           ),
                         ),
                       ),
@@ -1218,10 +1218,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                   final b = entry.value;
                   final bName = (b['name'] ?? 'Batch').toString();
                   final colors = [
-                    const Color(0xFF0D1282),
+                    const Color(0xFF354388),
                     const Color(0xFF7C3AED),
-                    const Color(0xFF0D1282),
-                    const Color(0xFFF0DE36),
+                    const Color(0xFF354388),
+                    const Color(0xFFBDAE18),
                   ];
                   final ic = colors[entry.key % colors.length];
                   return Column(
@@ -1256,14 +1256,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF0D1282),
+                                      color: const Color(0xFF354388),
                                     ),
                                   ),
                                   Text(
                                     'Active enrollment',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
-                                      color: const Color(0xFF0D1282),
+                                      color: const Color(0xFF354388),
                                     ),
                                   ),
                                 ],
@@ -1277,14 +1277,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                                 height: 32,
                                 decoration: BoxDecoration(
                                   color: const Color(
-                                    0xFFD71313,
+                                    0xFFB6231B,
                                   ).withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Icon(
                                   Icons.remove_circle_outline_rounded,
                                   size: 17,
-                                  color: Color(0xFFD71313),
+                                  color: Color(0xFFB6231B),
                                 ),
                               ),
                             ),
@@ -1310,14 +1310,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 _actionBtn(
                   Icons.call_rounded,
                   'Call Student',
-                  const Color(0xFF0D1282),
+                  const Color(0xFF354388),
                   () => _callPhone(phone),
                 ),
                 const SizedBox(width: 12),
                 _actionBtn(
                   Icons.chat_rounded,
                   'WhatsApp Parent',
-                  const Color(0xFFF0DE36),
+                  const Color(0xFFBDAE18),
                   () =>
                       _openWhatsApp(parentPhone.isEmpty ? phone : parentPhone),
                 ),
@@ -1356,13 +1356,13 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               _feeMetricCard(
                 'Total Paid',
                 '₹${paidAmount.toInt()}',
-                const Color(0xFFF0DE36),
+                const Color(0xFFBDAE18),
               ),
               const SizedBox(width: 12),
               _feeMetricCard(
                 'Outstanding',
                 '₹${(totalAmount - paidAmount).toInt()}',
-                const Color(0xFFD71313),
+                const Color(0xFFB6231B),
               ),
             ],
           ),
@@ -1372,13 +1372,13 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               _feeMetricCard(
                 'Months Paid',
                 '$totalPaid',
-                const Color(0xFF0D1282),
+                const Color(0xFF354388),
               ),
               const SizedBox(width: 12),
               _feeMetricCard(
                 'Months Due',
                 '$totalDue',
-                const Color(0xFFF0DE36),
+                const Color(0xFFBDAE18),
               ),
             ],
           ),
@@ -1398,10 +1398,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               final amount = _toInt(fee['amount']);
               final st = (fee['status'] ?? 'PENDING').toString().toUpperCase();
               final stColor = st == 'PAID'
-                  ? const Color(0xFFF0DE36)
+                  ? const Color(0xFFBDAE18)
                   : st == 'OVERDUE'
-                  ? const Color(0xFFD71313)
-                  : const Color(0xFFF0DE36);
+                  ? const Color(0xFFB6231B)
+                  : const Color(0xFFBDAE18);
               final dueDate = (fee['dueDate'] ?? fee['due_date'] ?? '')
                   .toString();
 
@@ -1450,7 +1450,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF0D1282),
+                                  color: const Color(0xFF354388),
                                 ),
                               ),
                               if (dueDate.isNotEmpty)
@@ -1458,7 +1458,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                                   'Due: $dueDate',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
-                                    color: const Color(0xFF0D1282),
+                                    color: const Color(0xFF354388),
                                   ),
                                 ),
                             ],
@@ -1472,7 +1472,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
-                                color: const Color(0xFF0D1282),
+                                color: const Color(0xFF354388),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -1531,10 +1531,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               final grade = (exam['grade'] ?? '').toString();
               final pct = total > 0 ? score / total : 0.0;
               final perfColor = pct >= 0.75
-                  ? const Color(0xFFF0DE36)
+                  ? const Color(0xFFBDAE18)
                   : pct >= 0.5
-                  ? const Color(0xFFF0DE36)
-                  : const Color(0xFFD71313);
+                  ? const Color(0xFFBDAE18)
+                  : const Color(0xFFB6231B);
 
               return Container(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -1563,7 +1563,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF0D1282),
+                                      color: const Color(0xFF354388),
                                     ),
                                   ),
                                   if (subject.isNotEmpty)
@@ -1571,7 +1571,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                                       subject,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
-                                        color: const Color(0xFF0D1282),
+                                        color: const Color(0xFF354388),
                                       ),
                                     ),
                                 ],
@@ -1594,7 +1594,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF0D1282),
+                                      color: const Color(0xFF354388),
                                     ),
                                   ),
                               ],
@@ -1607,7 +1607,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                           child: LinearProgressIndicator(
                             value: pct.clamp(0.0, 1.0),
                             minHeight: 6,
-                            backgroundColor: const Color(0xFFEEEDED),
+                            backgroundColor: const Color(0xFFFFFFFF),
                             valueColor: AlwaysStoppedAnimation(perfColor),
                           ),
                         ),
@@ -1629,7 +1629,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
     style: GoogleFonts.plusJakartaSans(
       fontSize: 14,
       fontWeight: FontWeight.w700,
-      color: const Color(0xFF0D1282),
+      color: const Color(0xFF354388),
     ),
   );
 
@@ -1649,7 +1649,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
   );
 
   Widget _dividerLine() =>
-      const Divider(height: 1, indent: 56, color: Color(0xFFEEEDED));
+      const Divider(height: 1, indent: 56, color: Color(0xFFFFFFFF));
 
   Widget _field({
     required String label,
@@ -1661,7 +1661,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     child: Row(
       children: [
-        Icon(icon, size: 20, color: const Color(0xFF0D1282)),
+        Icon(icon, size: 20, color: const Color(0xFF354388)),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
@@ -1671,7 +1671,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 label,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1683,7 +1683,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                       decoration: InputDecoration(
                         isDense: true,
@@ -1691,20 +1691,20 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                         border: UnderlineInputBorder(
                           borderSide: BorderSide(
                             color: const Color(
-                              0xFF0D1282,
+                              0xFF354388,
                             ).withValues(alpha: 0.3),
                           ),
                         ),
                         focusedBorder: const UnderlineInputBorder(
                           borderSide: BorderSide(
-                            color: Color(0xFF0D1282),
+                            color: Color(0xFF354388),
                             width: 1.5,
                           ),
                         ),
                         enabledBorder: UnderlineInputBorder(
                           borderSide: BorderSide(
                             color: const Color(
-                              0xFF0D1282,
+                              0xFF354388,
                             ).withValues(alpha: 0.2),
                           ),
                         ),
@@ -1715,7 +1715,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                     ),
             ],
@@ -1733,7 +1733,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     child: Row(
       children: [
-        Icon(icon, size: 20, color: const Color(0xFF0D1282)),
+        Icon(icon, size: 20, color: const Color(0xFF354388)),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
@@ -1743,7 +1743,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 label,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1753,7 +1753,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                 ),
               ),
             ],
@@ -1794,7 +1794,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
             label,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1855,14 +1855,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
           Icon(
             icon,
             size: 56,
-            color: const Color(0xFF0D1282).withValues(alpha: 0.2),
+            color: const Color(0xFF354388).withValues(alpha: 0.2),
           ),
           const SizedBox(height: 16),
           Text(
             msg,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -1902,7 +1902,7 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(top: 8, bottom: 20),
               decoration: BoxDecoration(
-                color: const Color(0xFFEEEDED),
+                color: const Color(0xFFFFFFFF),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1912,7 +1912,7 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
           const SizedBox(height: 4),
@@ -1920,7 +1920,7 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
             'Select a batch to enroll this student',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
           const SizedBox(height: 16),
@@ -1932,15 +1932,15 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
               shrinkWrap: true,
               itemCount: batches.length,
               separatorBuilder: (_, _) =>
-                  const Divider(height: 1, color: Color(0xFFEEEDED)),
+                  const Divider(height: 1, color: Color(0xFFFFFFFF)),
               itemBuilder: (ctx, i) {
                 final batch = batches[i];
                 final name = (batch['name'] ?? 'Batch').toString();
                 final bColors = [
-                  const Color(0xFF0D1282),
+                  const Color(0xFF354388),
                   const Color(0xFF7C3AED),
-                  const Color(0xFF0D1282),
-                  const Color(0xFFF0DE36),
+                  const Color(0xFF354388),
+                  const Color(0xFFBDAE18),
                 ];
                 final c = bColors[i % bColors.length];
                 return CPPressable(
@@ -1971,7 +1971,7 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF0D1282),
+                                  color: const Color(0xFF354388),
                                 ),
                               ),
                               Text(
@@ -1981,7 +1981,7 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
                                     .toString(),
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
-                                  color: const Color(0xFF0D1282),
+                                  color: const Color(0xFF354388),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -2023,14 +2023,14 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: Color(0xFFEEEDED)),
+                  side: const BorderSide(color: Color(0xFFFFFFFF)),
                 ),
               ),
               child: Text(
                 'Cancel',
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                 ),
               ),
             ),
@@ -2040,5 +2040,6 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
     );
   }
 }
+
 
 

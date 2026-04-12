@@ -167,7 +167,7 @@ class _FeeHistoryPageState extends State<FeeHistoryPage> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1282),
+        color: const Color(0xFF354388),
         borderRadius: BorderRadius.circular(AppDimensions.radiusLG),
         boxShadow: const [
           BoxShadow(
@@ -343,3 +343,4 @@ class _FeeHistoryPageState extends State<FeeHistoryPage> {
         .slideX(begin: 0.05, end: 0);
   }
 }
+

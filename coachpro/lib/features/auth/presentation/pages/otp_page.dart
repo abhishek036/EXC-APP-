@@ -515,7 +515,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF0D1282),
+                                            color: const Color(0xFF354388),
                                           ),
                                         ),
                                       )
@@ -634,5 +634,6 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
     );
   }
 }
+
 
 

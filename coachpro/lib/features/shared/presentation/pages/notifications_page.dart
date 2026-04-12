@@ -287,7 +287,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     children: [
                       Text(
                         'NEW BROADCAST',
-                        style: GoogleFonts.sora(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
                           letterSpacing: -0.5,
@@ -302,7 +302,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   const SizedBox(height: 24),
                   TextField(
                     controller: titleCtrl,
-                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w600),
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
                       labelText: 'HEADER TITLE',
                       labelStyle: GoogleFonts.jetBrainsMono(
@@ -323,7 +323,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     controller: bodyCtrl,
                     minLines: 3,
                     maxLines: 5,
-                    style: GoogleFonts.dmSans(),
+                    style: GoogleFonts.plusJakartaSans(),
                     decoration: InputDecoration(
                       labelText: 'MESSAGE BODY',
                       labelStyle: GoogleFonts.jetBrainsMono(
@@ -459,7 +459,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       child: Center(
                         child: Text(
                           'EMIT BROADCAST',
-                          style: GoogleFonts.sora(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
                             color: CT.elevated(context),
@@ -494,7 +494,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           children: [
             Text(
               'ACTIVITY',
-              style: GoogleFonts.sora(
+              style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w900,
                 fontSize: 20,
                 letterSpacing: -0.5,
@@ -711,7 +711,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                                         notif['title']
                                                             .toString()
                                                             .toUpperCase(),
-                                                        style: GoogleFonts.sora(
+                                                        style: GoogleFonts.plusJakartaSans(
                                                           fontSize: 13,
                                                           fontWeight:
                                                               FontWeight.w800,
@@ -754,7 +754,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                       const SizedBox(height: 4),
                                       Text(
                                         notif['body'].toString(),
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           color: CT.textM(context),
                                           height: 1.4,
@@ -826,14 +826,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
       itemBuilder: (_) => [
         PopupMenuItem(
           value: 'delete',
-          child: Text('Remove', style: GoogleFonts.dmSans(fontSize: 13)),
+          child: Text('Remove', style: GoogleFonts.plusJakartaSans(fontSize: 13)),
         ),
         if (_canComposeOrGlobalDelete)
           PopupMenuItem(
             value: 'delete_global',
             child: Text(
               'Recall Broadcast',
-              style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.error),
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.error),
             ),
           ),
       ],
@@ -906,7 +906,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           const SizedBox(height: 24),
           Text(
             'ZERO ACTIVITY NODES',
-            style: GoogleFonts.sora(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 16,
               fontWeight: FontWeight.w900,
               color: CT.textH(context),
@@ -916,7 +916,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           const SizedBox(height: 8),
           Text(
             'You are fully synchronized with the hub.',
-            style: GoogleFonts.dmSans(fontSize: 14, color: CT.textS(context)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textS(context)),
           ),
         ],
       ).animate().fadeIn().scale(begin: const Offset(0.95, 0.95)),

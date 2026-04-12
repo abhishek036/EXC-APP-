@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -64,32 +65,22 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   }
 
   Future<void> _loadFeeRecords({bool silent = false}) async {
-    final previousRecords = List<Map<String, dynamic>>.from(_records);
     if (!silent) {
-      setState(() {
-        _loading = true;
-        _error = '';
-      });
+      if (mounted) setState(() => _loading = true);
     }
     try {
       final records = await _adminRepo.getFeeRecords();
       if (!mounted) return;
 
-      List<Map<String, dynamic>> effectiveRecords;
-      if (records.isNotEmpty) {
-        effectiveRecords = records;
-      } else {
-        effectiveRecords = previousRecords;
-      }
-
       setState(() {
-        _records = effectiveRecords;
+        _records = List<Map<String, dynamic>>.from(records);
         _loading = false;
+        _error = '';
       });
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = !silent ? 'Unable to load fee records' : '';
+          _error = !silent ? 'Unable to load fee records: $e' : '';
           _loading = false;
         });
       }
@@ -119,32 +110,43 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
       record['final_amount'] ?? record['amount'] ?? record['total_amount'],
     );
     final paid = _toDouble(record['paid_amount']);
-    final explicitRemaining = _toDouble(record['remaining_amount']);
-    final outstanding = explicitRemaining > 0
-        ? explicitRemaining
+    final explicitRemaining = record['remaining_amount'];
+    
+    // Use explicit remaining if available, else derive
+    final outstanding = explicitRemaining != null
+        ? _toDouble(explicitRemaining)
         : (total - paid).clamp(0, double.infinity).toDouble();
 
-    final now = DateTime.now();
-    final dueDate = DateTime.tryParse((record['due_date'] ?? '').toString());
     final rawStatus = (record['fee_status'] ?? record['status'] ?? '')
         .toString()
         .toLowerCase();
 
-    String status;
-    if (outstanding <= 0) {
-      status = 'paid';
-    } else if (rawStatus == 'pending_verification') {
-      status = 'pending';
-    } else if (dueDate != null &&
-        dueDate.isBefore(DateTime(now.year, now.month, now.day))) {
-      status = 'overdue';
-    } else if (rawStatus == 'partial') {
-      status = 'partial';
-    } else {
-      status = 'pending';
+    // 1. Fully Paid logic
+    if (outstanding <= 0 || rawStatus == 'paid') {
+      return (total: total, paid: paid, outstanding: 0.0, status: 'paid');
     }
 
-    return (total: total, paid: paid, outstanding: outstanding, status: status);
+    // 2. Pending Review
+    if (rawStatus == 'pending_verification' || rawStatus == 'under_review') {
+      return (total: total, paid: paid, outstanding: outstanding, status: 'pending');
+    }
+
+    // 3. Overdue check
+    final dueDate = DateTime.tryParse((record['due_date'] ?? '').toString());
+    if (dueDate != null) {
+      final now = DateTime.now();
+      if (dueDate.isBefore(DateTime(now.year, now.month, now.day))) {
+        return (total: total, paid: paid, outstanding: outstanding, status: 'overdue');
+      }
+    }
+
+    // 4. Partial check (outstanding > 0 and paid > 0)
+    if (paid > 0) {
+      return (total: total, paid: paid, outstanding: outstanding, status: 'partial');
+    }
+
+    // 5. Default
+    return (total: total, paid: paid, outstanding: outstanding, status: 'pending');
   }
 
   @override
@@ -173,6 +175,12 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                     ),
                   ),
                   actions: [
+                    _appBarAction(
+                      Icons.fact_check_outlined,
+                      () => context.push('/admin/fee-payment'),
+                      isDark,
+                    ),
+                    const SizedBox(width: 12),
                     _appBarAction(
                       Icons.auto_awesome_rounded,
                       () => _showGenerateFeesSheet(context),
@@ -268,11 +276,11 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                   vertical: 16,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D1282),
-                  border: Border.all(color: const Color(0xFF0D1282), width: 3),
+                  color: const Color(0xFF354388),
+                  border: Border.all(color: const Color(0xFF354388), width: 3),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0xFF0D1282),
+                      color: Color(0xFF354388),
                       offset: Offset(4, 4),
                       blurRadius: 0,
                     ),
@@ -282,7 +290,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                   children: [
                     const Icon(
                       Icons.add_rounded,
-                      color: Color(0xFFEEEDED),
+                      color: Color(0xFFFFFFFF),
                       size: 24,
                     ),
                     const SizedBox(width: 8),
@@ -290,7 +298,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                       'ADJUST FEE',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFFEEEDED),
+                        color: const Color(0xFFFFFFFF),
                         fontSize: 13,
                         letterSpacing: 0.5,
                       ),
@@ -318,42 +326,44 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: const Color(0xFFF0DE36),
-          border: Border.all(color: const Color(0xFF0D1282), width: 2),
+          color: const Color(0xFFBDAE18),
+          border: Border.all(color: const Color(0xFF354388), width: 2),
           boxShadow: const [
             BoxShadow(
-              color: Color(0xFF0D1282),
+              color: Color(0xFF354388),
               offset: Offset(3, 3),
               blurRadius: 0,
             ),
           ],
         ),
-        child: Icon(icon, size: 20, color: const Color(0xFF0D1282)),
+        child: Icon(icon, size: 20, color: const Color(0xFF354388)),
       ),
     );
   }
 
   Widget _buildSummaryHeader(bool isDark) {
-    double col = 0, pen = 0, over = 0;
-    for (final f in _records) {
-      final metrics = _feeMetrics(f);
-      col += metrics.paid;
+    double revenue = 0, pending = 0, overdue = 0;
+    for (final record in _records) {
+      final metrics = _feeMetrics(record);
+      revenue += metrics.paid;
+      
       if (metrics.status == 'overdue') {
-        over += metrics.outstanding;
-      } else if (metrics.status != 'paid') {
-        pen += metrics.outstanding;
+        overdue += metrics.outstanding;
+      } else if (metrics.status == 'pending' || metrics.status == 'partial') {
+        // Only count actual outstanding for pending/partial
+        pending += metrics.outstanding;
       }
     }
     return Row(
       children: [
-        _heroStat('Total Revenue', col, AppColors.premiumEliteGradient, isDark),
+        _heroStat('Total Revenue', revenue, AppColors.premiumEliteGradient, isDark),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             children: [
-              _miniStat('Pending', pen, AppColors.feePending, isDark),
+              _miniStat('Pending', pending, AppColors.feePending, isDark),
               const SizedBox(height: 8),
-              _miniStat('Overdue', over, AppColors.error, isDark),
+              _miniStat('Overdue', overdue, AppColors.error, isDark),
             ],
           ),
         ),
@@ -367,11 +377,11 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
       height: 110,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1282),
-        border: Border.all(color: const Color(0xFF0D1282), width: 3),
+        color: const Color(0xFF354388),
+        border: Border.all(color: const Color(0xFF354388), width: 3),
         boxShadow: const [
           BoxShadow(
-            color: Color(0xFF0D1282),
+            color: Color(0xFF354388),
             offset: Offset(4, 4),
             blurRadius: 0,
           ),
@@ -386,7 +396,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 9,
               fontWeight: FontWeight.w900,
-              color: const Color(0xFFF0DE36),
+              color: const Color(0xFFBDAE18),
               letterSpacing: 0.5,
             ),
           ),
@@ -458,12 +468,12 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
               color: _selectedStatus == i
-                  ? const Color(0xFFF0DE36)
-                  : const Color(0xFFEEEDED),
-              border: Border.all(color: const Color(0xFF0D1282), width: 2),
+                  ? const Color(0xFFBDAE18)
+                  : const Color(0xFFFFFFFF),
+              border: Border.all(color: const Color(0xFF354388), width: 2),
               boxShadow: _selectedStatus == i
                   ? const [
-                      BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3)),
+                      BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
                     ]
                   : [],
             ),
@@ -473,7 +483,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 10,
                   fontWeight: FontWeight.w900,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -488,10 +498,10 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEEDED),
-        border: Border.all(color: const Color(0xFF0D1282), width: 2),
+        color: const Color(0xFFFFFFFF),
+        border: Border.all(color: const Color(0xFF354388), width: 2),
         boxShadow: const [
-          BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3)),
+          BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
         ],
       ),
       child: TextField(
@@ -581,9 +591,9 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0DE36),
+                    color: const Color(0xFFBDAE18),
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 2,
                     ),
                   ),
@@ -593,7 +603,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                     ),
                   ),
@@ -608,7 +618,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -618,7 +628,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -633,7 +643,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         letterSpacing: -0.8,
                       ),
                     ),
@@ -644,7 +654,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEEEDED),
+                        color: const Color(0xFFFFFFFF),
                         border: Border.all(color: sColor, width: 2),
                         boxShadow: [
                           BoxShadow(color: sColor, offset: const Offset(2, 2)),
@@ -655,7 +665,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -837,10 +847,10 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                 width: double.infinity,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0DE36),
-                  border: Border.all(color: const Color(0xFF0D1282), width: 3),
+                  color: const Color(0xFFBDAE18),
+                  border: Border.all(color: const Color(0xFF354388), width: 3),
                   boxShadow: const [
-                    BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3)),
+                    BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
                   ],
                 ),
                 child: Center(
@@ -850,14 +860,14 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                       Icon(
                         Icons.print_rounded,
                         size: 20,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                       const SizedBox(width: 10),
                       Text(
                         'Generate Receipt',
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           fontSize: 13,
                           letterSpacing: 0.5,
                         ),
@@ -973,7 +983,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         color: (isDark ? Colors.white : AppColors.deepNavy)
                             .withValues(alpha: 0.05),
                         border: Border.all(
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           width: 2,
                         ),
                       ),
@@ -1017,22 +1027,27 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                           ),
                           isExpanded: true,
                           dropdownColor: isDark
-                              ? const Color(0xFF0D1282)
+                              ? const Color(0xFF354388)
                               : Colors.white,
                           icon: const Icon(Icons.keyboard_arrow_down_rounded),
                           items: adjustableRecords.map((r) {
                             final pend = _feeMetrics(r).outstanding;
+                            final studentName = (r['student']?['name'] ?? 'Pupil').toString();
+                            final month = _monthLabel(r['month'], r['year']);
+                            final batchName = (r['batch']?['name'] ?? 'Batch').toString();
+                            
                             return DropdownMenuItem(
                               value: r['id'].toString(),
                               child: Text(
-                                '${r['student']?['name']} • ₹${pend.toInt()}',
+                                '$studentName • $month • $batchName • ₹${pend.toInt()}',
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14,
+                                  fontSize: 12, // Slightly smaller for dense info
                                   fontWeight: FontWeight.w700,
                                   color: isDark
                                       ? Colors.white
                                       : AppColors.deepNavy,
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             );
                           }).toList(),
@@ -1311,7 +1326,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         ),
                         isExpanded: true,
                         dropdownColor: isDark
-                            ? const Color(0xFF0D1282)
+                            ? const Color(0xFF354388)
                             : Colors.white,
                         items: batches
                             .map(
@@ -1365,7 +1380,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                               value: m,
                               isExpanded: true,
                               dropdownColor: isDark
-                                  ? const Color(0xFF0D1282)
+                                  ? const Color(0xFF354388)
                                   : Colors.white,
                               items: List.generate(
                                 12,
@@ -1419,7 +1434,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                               value: y,
                               isExpanded: true,
                               dropdownColor: isDark
-                                  ? const Color(0xFF0D1282)
+                                  ? const Color(0xFF354388)
                                   : Colors.white,
                               items: [y, y + 1]
                                   .map(
@@ -1574,7 +1589,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                             ),
                             isExpanded: true,
                             dropdownColor: isDark
-                                ? const Color(0xFF0D1282)
+                                ? const Color(0xFF354388)
                                 : Colors.white,
                             items: batches
                                 .map(
@@ -1699,3 +1714,4 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     return '';
   }
 }
+

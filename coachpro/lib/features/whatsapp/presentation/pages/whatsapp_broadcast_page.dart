@@ -190,7 +190,7 @@ class _WhatsAppBroadcastPageState extends State<WhatsAppBroadcastPage> {
         backgroundColor: CT.bg(context),
         elevation: 0,
         title: Text('WhatsApp Broadcast',
-            style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: CT.textH(context))),
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
@@ -201,7 +201,7 @@ class _WhatsAppBroadcastPageState extends State<WhatsAppBroadcastPage> {
               padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
               children: [
                 // Message type selector
-                Text('Message Type', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                Text('Message Type', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
                 const SizedBox(height: AppDimensions.sm),
                 Wrap(
                   spacing: 8,
@@ -227,7 +227,7 @@ class _WhatsAppBroadcastPageState extends State<WhatsAppBroadcastPage> {
                             ),
                             const SizedBox(width: 6),
                             Text(type,
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13, fontWeight: FontWeight.w600,
                                     color: isActive ? Colors.white : CT.textS(context))),
                           ],
@@ -240,7 +240,7 @@ class _WhatsAppBroadcastPageState extends State<WhatsAppBroadcastPage> {
                 const SizedBox(height: AppDimensions.lg),
 
                 // Batch filter
-                Text('Filter by Batch', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                Text('Filter by Batch', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
                 const SizedBox(height: AppDimensions.sm),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -254,7 +254,7 @@ class _WhatsAppBroadcastPageState extends State<WhatsAppBroadcastPage> {
                       value: _batches.contains(_selectedBatch) ? _selectedBatch : _batches.first,
                       isExpanded: true,
                       dropdownColor: CT.card(context),
-                      style: GoogleFonts.dmSans(fontSize: 14, color: CT.textH(context)),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textH(context)),
                       items: _batches.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
                       onChanged: (v) => setState(() => _selectedBatch = v!),
                     ),
@@ -265,16 +265,16 @@ class _WhatsAppBroadcastPageState extends State<WhatsAppBroadcastPage> {
 
                 // Custom message (for announcements)
                 if (_selectedType == 'General Announcement') ...[
-                  Text('Custom Message', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                  Text('Custom Message', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
                   const SizedBox(height: AppDimensions.sm),
                   TextField(
                     controller: _customMessageController,
                     maxLines: 4,
-                    style: GoogleFonts.dmSans(color: CT.textH(context)),
+                    style: GoogleFonts.plusJakartaSans(color: CT.textH(context)),
                     onChanged: (_) => setState((){}),
                     decoration: InputDecoration(
                       hintText: 'Type your announcement message...',
-                      hintStyle: GoogleFonts.dmSans(color: CT.textM(context)),
+                      hintStyle: GoogleFonts.plusJakartaSans(color: CT.textM(context)),
                       filled: true,
                       fillColor: CT.card(context),
                       border: OutlineInputBorder(
@@ -306,12 +306,12 @@ class _WhatsAppBroadcastPageState extends State<WhatsAppBroadcastPage> {
                     Row(children: [
                       const Icon(Icons.visibility_rounded, size: 16, color: Color(0xFF25D366)),
                       const SizedBox(width: 6),
-                      Text('Message Preview', style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF25D366))),
+                      Text('Message Preview', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF25D366))),
                     ]),
                     const SizedBox(height: 8),
                     Text(
                       _getPreviewMessage(),
-                      style: GoogleFonts.dmSans(fontSize: 13, color: CT.textH(context), height: 1.5),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textH(context), height: 1.5),
                     ),
                   ]),
                 ).animate().fadeIn(delay: 200.ms),
@@ -321,13 +321,13 @@ class _WhatsAppBroadcastPageState extends State<WhatsAppBroadcastPage> {
                 // Recipients list
                 Row(
                   children: [
-                    Text('Recipients ($_selectedCount)', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                    Text('Recipients ($_selectedCount)', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
                     const Spacer(),
                     CPPressable(
                       onTap: () => _toggleSelectAll(_selectedCount < _filteredParents.length),
                       child: Text(
                         _selectedCount == _filteredParents.length ? 'Deselect All' : 'Select All',
-                        style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w600, color: accent),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: accent),
                       ),
                     ),
                   ],
@@ -336,7 +336,7 @@ class _WhatsAppBroadcastPageState extends State<WhatsAppBroadcastPage> {
                 if (_filteredParents.isEmpty)
                   Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Center(child: Text('No students with parent phone numbers found.', style: GoogleFonts.dmSans(color: CT.textM(context)))),
+                    child: Center(child: Text('No students with parent phone numbers found.', style: GoogleFonts.plusJakartaSans(color: CT.textM(context)))),
                   ),
                 ..._filteredParents.asMap().entries.map((e) {
                   final p = e.value;
@@ -353,13 +353,13 @@ class _WhatsAppBroadcastPageState extends State<WhatsAppBroadcastPage> {
                       activeColor: accent,
                       checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                       title: Text(p['name'] as String,
-                          style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
                       subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text('Student: ${p['student']} · ${p['batch']}',
-                            style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context))),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textS(context))),
                         if (_selectedType == 'Fee Reminder' && (p['feeDue'] as int) > 0)
                           Text('Fee Due: ₹${p['feeDue']} · Due: ${p['dueDate']}',
-                              style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.red.shade400)),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.red.shade400)),
                       ]),
                       secondary: Container(
                         width: 40, height: 40,
@@ -401,7 +401,7 @@ class _WhatsAppBroadcastPageState extends State<WhatsAppBroadcastPage> {
                       : const Icon(Icons.send_rounded),
                   label: Text(
                     _isSending ? 'Sending...' : 'Send via WhatsApp ($_selectedCount)',
-                    style: GoogleFonts.sora(fontWeight: FontWeight.w600, fontSize: 15),
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, fontSize: 15),
                   ),
                 ),
               ),

@@ -121,7 +121,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
                 Text(
                   "Welcome! Let's set you up",
-                  style: GoogleFonts.sora(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
                     color: CT.textH(context),
@@ -132,17 +132,17 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
                 Text(
                   'Just a couple of details and you\'re good to go.',
-                  style: GoogleFonts.dmSans(fontSize: 14, color: CT.textM(context)),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textM(context)),
                 ).animate().fadeIn(delay: 300.ms),
 
                 const SizedBox(height: 40),
 
                 // Name field
-                Text('YOUR NAME', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textS(context))),
+                Text('YOUR NAME', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textS(context))),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameCtrl,
-                  style: GoogleFonts.dmSans(color: CT.textH(context)),
+                  style: GoogleFonts.plusJakartaSans(color: CT.textH(context)),
                   textCapitalization: TextCapitalization.words,
                   validator: (v) => (v == null || v.trim().length < 2) ? 'Please enter your full name' : null,
                   decoration: _inputDec('e.g. Arjun Sharma', Icons.person_outline),
@@ -163,8 +163,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Set a Password (optional)', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
-                          Text('So you can log in with password next time', style: GoogleFonts.dmSans(fontSize: 12, color: CT.textM(context))),
+                          Text('Set a Password (optional)', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                          Text('So you can log in with password next time', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textM(context))),
                         ],
                       ),
                     ),
@@ -173,12 +173,12 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
                 if (_setPassword) ...[
                   const SizedBox(height: 16),
-                  Text('PASSWORD', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textS(context))),
+                  Text('PASSWORD', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textS(context))),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _passCtrl,
                     obscureText: true,
-                    style: GoogleFonts.dmSans(color: CT.textH(context)),
+                    style: GoogleFonts.plusJakartaSans(color: CT.textH(context)),
                     validator: (v) {
                       if (!_setPassword) return null;
                       if (v == null || v.trim().length < 6) return 'Minimum 6 characters';
@@ -187,12 +187,12 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                     decoration: _inputDec('Enter password', Icons.lock_outline),
                   ).animate().fadeIn(),
                   const SizedBox(height: 12),
-                  Text('CONFIRM PASSWORD', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textS(context))),
+                  Text('CONFIRM PASSWORD', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textS(context))),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _confirmPassCtrl,
                     obscureText: true,
-                    style: GoogleFonts.dmSans(color: CT.textH(context)),
+                    style: GoogleFonts.plusJakartaSans(color: CT.textH(context)),
                     validator: (v) {
                       if (!_setPassword) return null;
                       if (v != _passCtrl.text) return 'Passwords do not match';
@@ -228,7 +228,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                                 children: [
                                   const Icon(Icons.check_circle_outline, color: Colors.white),
                                   const SizedBox(width: 10),
-                                  Text('Save & Continue', style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                                  Text('Save & Continue', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
                                 ],
                               ),
                       ),
@@ -250,7 +250,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         _routeToDashboard(state.user.role.name);
                       }
                     },
-                    child: Text('Skip for now', style: GoogleFonts.dmSans(fontSize: 14, color: CT.textM(context))),
+                    child: Text('Skip for now', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textM(context))),
                   ),
                 ),
               ],
@@ -264,7 +264,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   InputDecoration _inputDec(String hint, IconData icon) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: GoogleFonts.dmSans(color: CT.textM(context)),
+      hintStyle: GoogleFonts.plusJakartaSans(color: CT.textM(context)),
       prefixIcon: Icon(icon, color: CT.textM(context)),
       filled: true,
       fillColor: CT.card(context),

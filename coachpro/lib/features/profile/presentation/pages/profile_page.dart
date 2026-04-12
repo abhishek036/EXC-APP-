@@ -237,7 +237,7 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
               SliverAppBar(
                 expandedHeight: 260,
                 pinned: true,
-                backgroundColor: const Color(0xFF0D1282),
+                backgroundColor: const Color(0xFF354388),
                 leading: CPPressable(
                   onTap: _handleBack,
                   child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
@@ -250,13 +250,13 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
                         margin: const EdgeInsets.only(right: 16),
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0DE36),
+                          color: const Color(0xFFBDAE18),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.edit_rounded, size: 14, color: Color(0xFF0D1282)),
+                          const Icon(Icons.edit_rounded, size: 14, color: Color(0xFF354388)),
                           const SizedBox(width: 6),
-                          Text('Edit', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFF0D1282))),
+                          Text('Edit', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFF354388))),
                         ]),
                       ),
                     )
@@ -274,7 +274,7 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -307,8 +307,8 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
                               onTap: _showImageOptions,
                               child: Container(
                                 padding: const EdgeInsets.all(6),
-                                decoration: const BoxDecoration(color: Color(0xFFF0DE36), shape: BoxShape.circle),
-                                child: const Icon(Icons.camera_alt_rounded, size: 14, color: Color(0xFF0D1282)),
+                                decoration: const BoxDecoration(color: Color(0xFFBDAE18), shape: BoxShape.circle),
+                                child: const Icon(Icons.camera_alt_rounded, size: 14, color: Color(0xFF354388)),
                               ),
                             ),
                         ]),
@@ -559,3 +559,4 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
     ),
   );
 }
+

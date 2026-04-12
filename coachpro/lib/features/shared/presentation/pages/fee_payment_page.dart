@@ -16,7 +16,8 @@ import '../../../parent/data/repositories/parent_repository.dart';
 import '../../../student/data/repositories/student_repository.dart';
 
 class FeePaymentPage extends StatefulWidget {
-  const FeePaymentPage({super.key});
+  final String? recordId;
+  const FeePaymentPage({super.key, this.recordId});
 
   @override
   State<FeePaymentPage> createState() => _FeePaymentPageState();
@@ -42,105 +43,152 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
   @override
   void initState() {
     super.initState();
-    _loadFeeData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadFeeData();
+    });
   }
 
-  Future<void> _loadFeeData() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _loadFeeData({bool silent = false}) async {
+    if (!mounted) return;
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
       final rolePrefix = context.rolePrefix;
+      final isAdmin = rolePrefix == '/admin';
+      final isParent = rolePrefix == '/parent';
 
-      if (rolePrefix == '/admin') {
+      debugPrint('💰 [FeePaymentPage] Loading data for role: $rolePrefix');
+
+      if (isAdmin) {
         final queue = await _adminRepo.getFeeVerificationQueue(status: 'pending');
-        final pendingAmount = queue.fold<double>(
-          0,
-          (sum, item) => sum + _toDouble(item['amount_paid']),
-        );
+        final double pendingAmount = queue.fold<double>(0, (sum, item) {
+          return sum + _toDouble(item['amount']);
+        });
 
         if (!mounted) return;
         setState(() {
           _invoiceLabel = 'PENDING REVIEWS';
-          _batchName = 'All Batches';
+          _batchName = 'Verification Queue';
           _status = queue.isEmpty ? 'paid' : 'pending_verification';
           _selectedFeeRecordId = null;
           _amountDue = pendingAmount;
           _pendingReviewCount = queue.length;
           _dueText = queue.isEmpty
-              ? 'NO PAYMENT PROOFS PENDING REVIEW'
-              : '${queue.length} PROOFS WAITING FOR VERIFICATION';
+              ? 'NO PAYMENT PROOFS PENDING'
+              : '${queue.length} PROOFS WAITING';
+          _feeRecords = queue;
           _loading = false;
         });
         return;
       }
 
-      final records = rolePrefix == '/parent'
+      final List<Map<String, dynamic>> records = isParent
           ? await _parentRepo.getPaymentHistory()
           : await _studentRepo.getFeeHistory();
 
-        final normalizedRecords = records
-          .whereType<Map>()
-          .map((entry) => Map<String, dynamic>.from(entry))
-          .toList();
-
-        final pending = normalizedRecords.where((record) {
-          final status = (record['status'] ?? '').toString().toLowerCase();
-          final remaining = _remainingAmountForRecord(record);
-          return remaining > 0 ||
-          status == 'pending_verification' ||
-          status == 'rejected';
-        }).toList();
-
-      pending.sort((a, b) {
-        final aDue = DateTime.tryParse((a['due_date'] ?? '').toString());
-        final bDue = DateTime.tryParse((b['due_date'] ?? '').toString());
-        if (aDue == null && bDue == null) return 0;
-        if (aDue == null) return 1;
-        if (bDue == null) return -1;
-        return aDue.compareTo(bDue);
-      });
-
-        final target = pending.isNotEmpty
-          ? pending.first
-          : (normalizedRecords.isNotEmpty
-            ? normalizedRecords.first
-            : <String, dynamic>{});
-      final amount = _remainingAmountForRecord(target);
-
-        final month = _toInt(target['month']);
-        final year = _toInt(target['year']);
-      final monthNames = const ['', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-      final label = (month != null && month >= 1 && month <= 12 && year != null)
-          ? '${monthNames[month]} $year'
-          : 'CURRENT DUE';
-
-      final dueDt = DateTime.tryParse((target['due_date'] ?? '').toString());
-      final dueStr = dueDt == null
-          ? 'DUE DATE UNAVAILABLE'
-          : 'DUE BY ${dueDt.day.toString().padLeft(2, '0')} ${monthNames[dueDt.month]}, ${dueDt.year}';
+      debugPrint('💰 [FeePaymentPage] Received ${records.length} records');
 
       if (!mounted) return;
-      setState(() {
-        _invoiceLabel = label;
-        _batchName = (target['batch']?['name'] ?? 'Batch').toString();
-        _status = (target['status'] ?? 'unpaid').toString().toLowerCase();
-        _selectedFeeRecordId = target['id']?.toString();
-        _amountDue = amount;
-        _pendingReviewCount = 0;
-        _dueText = amount > 0 ? dueStr : 'NO PENDING DUES';
-        _feeRecords = pending.isNotEmpty ? pending : normalizedRecords;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Unable to load fee details';
-        _feeRecords = [];
-        _loading = false;
-      });
+
+      final normalizedRecords = records.map((entry) {
+        try {
+          return Map<String, dynamic>.from(entry);
+        } catch (e) {
+          return <String, dynamic>{};
+        }
+      }).where((e) => e.isNotEmpty).toList();
+
+      final pending = normalizedRecords.where((record) {
+        final status = (record['status'] ?? record['fee_status'] ?? '').toString().toLowerCase();
+        final remaining = _remainingAmountForRecord(record);
+        return remaining > 0 ||
+            status == 'pending_verification' ||
+            status == 'rejected' ||
+            status == 'unpaid' ||
+            status == 'partial';
+      }).toList();
+
+      debugPrint('💰 [FeePaymentPage] Filtered ${pending.length} pending records');
+
+      Map<String, dynamic>? target;
+      if (widget.recordId != null) {
+        target = normalizedRecords.firstWhere(
+          (r) => r['id']?.toString() == widget.recordId,
+          orElse: () => pending.isNotEmpty ? pending.first : (normalizedRecords.isNotEmpty ? normalizedRecords.first : <String, dynamic>{}),
+        );
+      } else if (pending.isNotEmpty) {
+        target = pending.first;
+      } else if (normalizedRecords.isNotEmpty) {
+        target = normalizedRecords.first;
+      }
+
+      if (target != null && target.isNotEmpty) {
+        final double amount = _remainingAmountForRecord(target);
+        final int? month = _toInt(target['month']);
+        final int? year = _toInt(target['year']);
+        const monthNames = ['', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+        final label = (month != null && month >= 1 && month <= 12 && year != null)
+            ? '${monthNames[month]} $year'
+            : 'CURRENT DUE';
+
+        final dueDtRaw = target['due_date'];
+        DateTime? dueDt;
+        if (dueDtRaw != null) {
+          if (dueDtRaw is DateTime) {
+            dueDt = dueDtRaw;
+          } else {
+            dueDt = DateTime.tryParse(dueDtRaw.toString());
+          }
+        }
+
+        final dueStr = dueDt == null
+            ? 'DUE DATE UNAVAILABLE'
+            : 'DUE BY ${dueDt.day} ${monthNames[dueDt.month]} ${dueDt.year}';
+
+        setState(() {
+          _selectedFeeRecordId = target?['id']?.toString();
+          _invoiceLabel = label;
+          _batchName = (target?['batch']?['name'] ?? 'Batch').toString();
+          _status = (target?['status'] ?? target?['fee_status'] ?? 'unpaid').toString().toLowerCase();
+          _amountDue = amount;
+          _pendingReviewCount = 0;
+          
+          if (_status == 'pending_verification' || _status == 'under_review') {
+            _dueText = 'VERIFICATION PENDING';
+          } else if (_status == 'rejected') {
+            _dueText = 'PAYMENT REJECTED - RETRY';
+          } else {
+            _dueText = amount > 0 ? dueStr : 'CLEARED';
+          }
+          
+          _feeRecords = pending.isNotEmpty ? pending : normalizedRecords;
+          _loading = false;
+        });
+      } else {
+        setState(() {
+          _invoiceLabel = 'NONE';
+          _selectedFeeRecordId = null;
+          _amountDue = 0;
+          _batchName = 'No active records';
+          _dueText = 'NO PENDING DUES';
+          _feeRecords = normalizedRecords;
+          _loading = false;
+        });
+      }
+    } catch (e, stack) {
+      debugPrint('❌ [FeePaymentPage] Load error: $e\n$stack');
+      if (mounted) {
+        setState(() {
+          _error = 'Unable to load fee details: $e';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -157,10 +205,23 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
   String _safeString(dynamic value) => value == null ? '' : value.toString();
 
   double _remainingAmountForRecord(Map<String, dynamic> record) {
-    final explicitRemaining = _toDouble(record['remaining_amount']);
-    if (explicitRemaining > 0) return explicitRemaining;
-    final totalAmount = _toDouble(record['final_amount'] ?? record['amount_due'] ?? record['amount'] ?? 0);
+    final rawRemaining = record['remaining_amount'];
+    final totalAmount = _toDouble(
+      record['final_amount'] ?? record['amount_due'] ?? record['amount'] ?? 0,
+    );
     final paidAmount = _toDouble(record['paid_amount'] ?? 0);
+
+    // If backend provides a specific remaining amount, use it if it seems valid
+    if (rawRemaining != null) {
+      final rem = _toDouble(rawRemaining);
+      // If it's 0 but total > 0 and status isn't paid, it might be a malformed payload
+      final String status = (record['status'] ?? '').toString().toLowerCase();
+      if (rem <= 0 && totalAmount > 0 && status != 'paid') {
+        return (totalAmount - paidAmount).clamp(0, double.infinity).toDouble();
+      }
+      return rem;
+    }
+
     return (totalAmount - paidAmount).clamp(0, double.infinity).toDouble();
   }
 
@@ -170,12 +231,15 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
     final batchName = (record['batch'] is Map)
         ? ((record['batch']['name'] ?? 'Batch').toString())
         : 'Batch';
+    final studentName = (record['student'] is Map && record['student']['name'] != null)
+        ? ' (${record['student']['name']})'
+        : '';
     final monthNames = const ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final period = (month != null && month >= 1 && month <= 12 && year != null)
         ? '${monthNames[month]} $year'
         : 'Current due';
     final due = _remainingAmountForRecord(record);
-    return '$batchName • $period • Due ₹${due.toStringAsFixed(0)}';
+    return '$batchName$studentName • $period • Due ₹${due.toStringAsFixed(0)}';
   }
 
   @override
@@ -197,7 +261,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
       appBar: AppBar(
         title: Text(
           'SECURE CHECKOUT',
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w800,
             fontSize: 16,
             letterSpacing: 1.5,
@@ -261,7 +325,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                             const SizedBox(height: 12),
                             Text(
                               '₹${_amountDue.toStringAsFixed(2)}',
-                              style: GoogleFonts.sora(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 36,
                                 color: CT.elevated(context),
                                 fontWeight: FontWeight.w900,
@@ -292,7 +356,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                       Flexible(
                                         child: Text(
                                           _dueText,
-                                          style: GoogleFonts.sora(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
                                             color: CT.elevated(context),
                                             fontWeight: FontWeight.w700,
@@ -318,7 +382,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                       ),
                                       child: Text(
                                         'Payment proof is pending admin verification',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w700,
                                           color: CT.elevated(context),
@@ -348,7 +412,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Text(
                         _error!,
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: CT.error(context),
@@ -358,7 +422,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
 
                   Text(
                     'QR PAYMENT ONLY',
-                    style: GoogleFonts.sora(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
                       color: CT.textH(context),
@@ -408,7 +472,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                         const SizedBox(height: 20),
                         Text(
                           'SCAN THIS QR TO PAY',
-                          style: GoogleFonts.sora(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
                             color: CT.textS(context),
@@ -418,7 +482,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                         Text(
                           'Only QR-based payment is accepted. Upload payment screenshot for admin verification.',
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: CT.textM(context),
@@ -498,7 +562,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                         const SizedBox(width: 12),
                         Text(
                           actionLabel,
-                          style: GoogleFonts.sora(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
                             color: CT.elevated(context),
@@ -611,7 +675,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                         children: [
                           Text(
                             'Payment Proof Verification',
-                            style: GoogleFonts.sora(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
                               color: CT.textH(context),
@@ -620,7 +684,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                           const SizedBox(height: 6),
                           Text(
                             '${queue.length} pending submissions',
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: CT.textS(context),
@@ -632,7 +696,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                 ? Center(
                                     child: Text(
                                       'No pending payment proofs right now.',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
                                         color: CT.textS(context),
@@ -670,7 +734,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                           children: [
                                             Text(
                                               (student['name'] ?? 'Student').toString(),
-                                              style: GoogleFonts.sora(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w800,
                                                 color: CT.textH(context),
@@ -679,7 +743,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                             const SizedBox(height: 4),
                                             Text(
                                               'Batch: ${(batch['name'] ?? 'Unknown').toString()}',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w700,
                                                 color: CT.textS(context),
@@ -688,7 +752,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                             const SizedBox(height: 4),
                                             Text(
                                               'Amount: ₹${amount.toStringAsFixed(0)}',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w700,
                                                 color: CT.textH(context),
@@ -698,7 +762,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                               const SizedBox(height: 4),
                                               Text(
                                                 'Submitted: ${submittedAt.day.toString().padLeft(2, '0')}/${submittedAt.month.toString().padLeft(2, '0')}/${submittedAt.year}',
-                                                style: GoogleFonts.dmSans(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w600,
                                                   color: CT.textS(context),
@@ -720,7 +784,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                                     color: CT.card(context),
                                                     child: Text(
                                                       'Could not load screenshot preview',
-                                                      style: GoogleFonts.dmSans(
+                                                      style: GoogleFonts.plusJakartaSans(
                                                         fontSize: 12,
                                                         fontWeight: FontWeight.w700,
                                                         color: CT.textS(context),
@@ -738,7 +802,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                                     onPressed: isProcessing ? null : () => approve(item),
                                                     child: Text(
                                                       isProcessing ? 'Processing...' : 'Approve',
-                                                      style: GoogleFonts.sora(fontWeight: FontWeight.w700),
+                                                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
                                                     ),
                                                   ),
                                                 ),
@@ -748,7 +812,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                                     onPressed: isProcessing ? null : () => reject(item),
                                                     child: Text(
                                                       'Reject',
-                                                      style: GoogleFonts.sora(fontWeight: FontWeight.w700),
+                                                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
                                                     ),
                                                   ),
                                                 ),
@@ -786,7 +850,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
         return AlertDialog(
           title: Text(
             'Reject Payment Proof',
-            style: GoogleFonts.sora(fontWeight: FontWeight.w800),
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
           ),
           content: TextField(
             controller: controller,
@@ -882,7 +946,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                     children: [
                       Text(
                         'Submit Payment Proof',
-                        style: GoogleFonts.sora(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                           color: CT.textH(context),
@@ -891,7 +955,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                       const SizedBox(height: 10),
                       Text(
                         'Batch: $_batchName',
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: CT.textS(context),
@@ -983,7 +1047,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                             screenshotUrl == null
                                 ? (uploading ? 'Uploading screenshot...' : 'Upload payment screenshot')
                                 : 'Screenshot uploaded successfully',
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: CT.textH(context),
@@ -1000,7 +1064,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                         },
                         child: Text(
                           whatsappNotified ? 'WhatsApp message opened' : 'Inform via WhatsApp (optional)',
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: CT.accent(context),
@@ -1074,7 +1138,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                 },
                           child: Text(
                             submitting ? 'Submitting...' : 'Submit Proof',
-                            style: GoogleFonts.sora(fontWeight: FontWeight.w700),
+                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),

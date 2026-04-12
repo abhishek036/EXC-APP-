@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 
+/// Neo-brutalist card with hard shadows and thick borders.
+/// Supports both light and dark modes matching the student dashboard style.
 class CPGlassCard extends StatelessWidget {
   final Widget child;
   final double borderRadius;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry? margin;
-  final double blur;
+  final double blur; // kept for backward compat but not used
   final bool isDark;
   final BoxBorder? border;
+  final Color? backgroundColor;
 
   const CPGlassCard({
     super.key,
@@ -18,6 +22,7 @@ class CPGlassCard extends StatelessWidget {
     this.blur = 12.0,
     required this.isDark,
     this.border,
+    this.backgroundColor,
   });
 
   @override
@@ -27,16 +32,21 @@ class CPGlassCard extends StatelessWidget {
       child: Container(
         padding: padding,
         decoration: BoxDecoration(
-          color: const Color(0xFFEEEDED), // Off White
-          border: border ?? Border.all(color: const Color(0xFF0D1282), width: 3), // 3px Deep Blue
+          color: backgroundColor ??
+              (isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg),
+          border: border ??
+              Border.all(
+                color: isDark ? Colors.white24 : AppColors.elitePrimary,
+                width: isDark ? 1.5 : 3,
+              ),
           borderRadius: BorderRadius.circular(borderRadius),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0xFF0D1282), // Deep Blue hard shadow
-              offset: Offset(4, 4),
+              color: isDark ? Colors.black54 : AppColors.elitePrimary,
+              offset: const Offset(4, 4),
               blurRadius: 0,
               spreadRadius: 0,
-            )
+            ),
           ],
         ),
         child: child,

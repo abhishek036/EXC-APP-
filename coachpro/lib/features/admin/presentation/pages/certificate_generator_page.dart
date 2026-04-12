@@ -263,7 +263,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
                 ),
               ),
               isExpanded: true,
-              dropdownColor: isDark ? const Color(0xFF0D1282) : Colors.white,
+              dropdownColor: isDark ? const Color(0xFF354388) : Colors.white,
               icon: Icon(
                 Icons.keyboard_arrow_down_rounded,
                 color: isDark ? Colors.white38 : Colors.black38,
@@ -441,3 +441,4 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
     }
   }
 }
+

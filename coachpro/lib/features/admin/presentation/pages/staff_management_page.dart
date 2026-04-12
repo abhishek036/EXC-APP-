@@ -126,11 +126,11 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                   vertical: 16,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D1282),
-                  border: Border.all(color: const Color(0xFF0D1282), width: 3),
+                  color: const Color(0xFF354388),
+                  border: Border.all(color: const Color(0xFF354388), width: 3),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0xFF0D1282),
+                      color: Color(0xFF354388),
                       offset: Offset(4, 4),
                       blurRadius: 0,
                     ),
@@ -140,7 +140,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                   children: [
                     const Icon(
                       Icons.add_rounded,
-                      color: Color(0xFFEEEDED),
+                      color: Color(0xFFFFFFFF),
                       size: 24,
                     ),
                     const SizedBox(width: 8),
@@ -148,7 +148,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       _tabIndex == 0 ? 'ONBOARD STAFF' : 'RECORD PAYOUT',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFFEEEDED),
+                        color: const Color(0xFFFFFFFF),
                         fontSize: 13,
                         letterSpacing: 0.5,
                       ),
@@ -206,17 +206,17 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: const Color(0xFFEEEDED),
-          border: Border.all(color: const Color(0xFF0D1282), width: 2),
+          color: const Color(0xFFFFFFFF),
+          border: Border.all(color: const Color(0xFF354388), width: 2),
           boxShadow: const [
             BoxShadow(
-              color: Color(0xFF0D1282),
+              color: Color(0xFF354388),
               offset: Offset(3, 3),
               blurRadius: 0,
             ),
           ],
         ),
-        child: Icon(icon, size: 20, color: const Color(0xFF0D1282)),
+        child: Icon(icon, size: 20, color: const Color(0xFF354388)),
       ),
     );
   }
@@ -320,11 +320,11 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: active ? const Color(0xFFE3D465) : const Color(0xFFEEEDED),
-            border: Border.all(color: const Color(0xFF0D1282), width: 2),
+            color: active ? const Color(0xFFBDAE18) : const Color(0xFFFFFFFF),
+            border: Border.all(color: const Color(0xFF354388), width: 2),
             boxShadow: active
                 ? const [
-                    BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3)),
+                    BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
                   ]
                 : null,
           ),
@@ -334,7 +334,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
         ),
@@ -426,7 +426,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEEEDED),
+                      color: const Color(0xFFFFFFFF),
                       border: Border.all(
                         color: AppColors.elitePrimary,
                         width: 2,
@@ -443,7 +443,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 8,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -454,16 +454,16 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEEEDED),
+                        color: const Color(0xFFFFFFFF),
                         border: Border.all(
-                          color: const Color(0xFFD71313),
+                          color: const Color(0xFFB6231B),
                           width: 2,
                         ),
                       ),
                       child: const Icon(
                         Icons.delete_outline_rounded,
                         size: 16,
-                        color: Color(0xFFD71313),
+                        color: Color(0xFFB6231B),
                       ),
                     ),
                   ),
@@ -491,7 +491,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           'Delete Employee?',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w900,
-            color: const Color(0xFF0D1282),
+            color: const Color(0xFF354388),
           ),
         ),
         content: Text(
@@ -518,7 +518,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
               'Delete',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFFD71313),
+                color: const Color(0xFFB6231B),
               ),
             ),
           ),
@@ -566,7 +566,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEEEDED),
+                  color: const Color(0xFFFFFFFF),
                   border: Border.all(color: AppColors.mintGreen, width: 2),
                   boxShadow: const [
                     BoxShadow(color: AppColors.mintGreen, offset: Offset(2, 2)),
@@ -943,7 +943,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                     ),
                     isExpanded: true,
                     dropdownColor: isDark
-                        ? const Color(0xFF0D1282)
+                        ? const Color(0xFF354388)
                         : Colors.white,
                     items: _staff
                         .map(
@@ -990,16 +990,16 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
                               color: type == opt
-                                  ? const Color(0xFFE3D465)
-                                  : const Color(0xFFEEEDED),
+                                  ? const Color(0xFFBDAE18)
+                                  : const Color(0xFFFFFFFF),
                               border: Border.all(
-                                color: const Color(0xFF0D1282),
+                                color: const Color(0xFF354388),
                                 width: 2,
                               ),
                               boxShadow: type == opt
                                   ? const [
                                       BoxShadow(
-                                        color: Color(0xFF0D1282),
+                                        color: Color(0xFF354388),
                                         offset: Offset(3, 3),
                                       ),
                                     ]
@@ -1011,7 +1011,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w900,
-                                  color: const Color(0xFF0D1282),
+                                  color: const Color(0xFF354388),
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -1085,3 +1085,4 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     );
   }
 }
+

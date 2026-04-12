@@ -289,7 +289,7 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
                                 child: CPPressable(
                                   onTap: () => context.push('/forgot-password'),
                                   child: Text('Forgot Password?',
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF0D1282))),
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF354388))),
                                 ),
                               ),
                               const SizedBox(height: 20),
@@ -309,7 +309,7 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
                                 onTap: () => setState(() => _loginMethod = _loginMethod == LoginMethod.otp ? LoginMethod.password : LoginMethod.otp),
                                 child: Text(
                                   _loginMethod == LoginMethod.otp ? 'Use Username / Password instead' : 'Use OTP Login instead',
-                                  style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF0D1282)),
+                                  style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF354388)),
                                 ),
                               ),
                             ),
@@ -423,7 +423,7 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
                       const SizedBox(width: 16),
                       Icon(icon, size: 20, color: const Color(0xFF6B7280)),
                       const SizedBox(width: 8),
-                      Text(prefixText, style: GoogleFonts.plusJakartaSans(color: const Color(0xFF0D1282), fontWeight: FontWeight.w700, fontSize: 15)),
+                      Text(prefixText, style: GoogleFonts.plusJakartaSans(color: const Color(0xFF354388), fontWeight: FontWeight.w700, fontSize: 15)),
                       const SizedBox(width: 4),
                     ],
                   )
@@ -492,4 +492,5 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
     );
   }
 }
+
 

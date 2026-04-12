@@ -23,7 +23,7 @@ class OfflineBanner extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               'No internet connection. You are offline.',
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,

@@ -174,6 +174,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       'createdAt': userData['created_at'],
     });
 
+    // Avoid emitting if the user data is identical to current state
+    if (state is AuthAuthenticated) {
+      final current = (state as AuthAuthenticated).user;
+      if (current == user) {
+        debugPrint('👤 [AuthBloc] Profile unchanged, skipping emit');
+        return;
+      }
+    }
+
     await _storage.saveUserJson(jsonEncode(user.toJson()));
     await sl<PushNotificationService>().syncTokenRegistration();
     emit(AuthAuthenticated(user));

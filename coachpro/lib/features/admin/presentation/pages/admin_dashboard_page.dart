@@ -12,6 +12,7 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_shimmer.dart';
 import '../../../../core/widgets/cp_glass_card.dart';
+import '../../../../core/widgets/cp_section_header.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../data/repositories/admin_repository.dart';
 
@@ -45,6 +46,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   };
   int _overdueCount = 0;
   double _totalOverdue = 0;
+  int _pendingProofsCount = 0;
 
   List<Map<String, dynamic>> _todaysClasses = const [];
   List<Map<String, dynamic>> _recentPayments = const [];
@@ -183,6 +185,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         return monthly[m] ?? 0.0;
       });
 
+      final pendingQueue = await _adminRepo.getFeeVerificationQueue(status: 'pending');
+
       if (!mounted) return;
       setState(() {
         _stats = {
@@ -194,6 +198,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         };
         _overdueCount = overC;
         _totalOverdue = overA;
+        _pendingProofsCount = pendingQueue.length;
         _todaysClasses = todayCls;
         _recentPayments = paymentRows.take(5).toList();
         _absentToday = absentToday;
@@ -491,7 +496,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       color: Colors.white,
                     ),
                   ),
-                  backgroundColor: const Color(0xFF0D1282),
+                  backgroundColor: const Color(0xFF354388),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -737,6 +742,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
             const SizedBox(width: 14),
             _glassStat(
+              'VERIFY PROOFS',
+              '$_pendingProofsCount',
+              AppColors.moltenAmber,
+              isDark,
+              Icons.fact_check_outlined,
+              onTap: () => context.push('/admin/fee-payment'),
+            ),
+            const SizedBox(width: 14),
+            _glassStat(
               'BATCHES',
               '${_stats['batches']}',
               AppColors.elitePrimary,
@@ -806,51 +820,60 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     String value,
     Color color,
     bool isDark,
-    IconData icon,
-  ) {
-    return Container(
-      width: 160,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.eliteDarkBg : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black, width: 3),
-        boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.elitePrimary.withValues(alpha: 0.65),
-                    letterSpacing: 0.5,
+    IconData icon, {
+    VoidCallback? onTap,
+  }) {
+    return CPPressable(
+      onTap: onTap,
+      child: Container(
+        width: 160,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.eliteDarkBg : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black, width: 3),
+          boxShadow: [
+            if (onTap != null)
+              BoxShadow(color: color, offset: const Offset(4, 4))
+            else
+              const BoxShadow(color: Colors.black, offset: Offset(4, 4)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.elitePrimary.withValues(alpha: 0.65),
+                      letterSpacing: 0.5,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const SizedBox(width: 8),
-              Icon(icon, size: 18, color: color),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              color: AppColors.elitePrimary,
-              letterSpacing: -0.5,
+                const SizedBox(width: 8),
+                Icon(icon, size: 18, color: color),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text(
+              value,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: AppColors.elitePrimary,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -879,7 +902,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   height: 88,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: Colors.black, width: 3),
                     boxShadow: const [
@@ -954,7 +977,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       const Icon(
                         Icons.currency_rupee_rounded,
                         size: 22,
-                        color: Color(0xFF0D1282),
+                        color: Color(0xFF354388),
                       ),
                       const Spacer(),
                       Text(
@@ -997,7 +1020,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       const Icon(
                         Icons.fact_check_rounded,
                         size: 22,
-                        color: Color(0xFFD71313),
+                        color: Color(0xFFB6231B),
                       ),
                       const Spacer(),
                       Text(
@@ -1425,7 +1448,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
@@ -1452,50 +1475,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildSectionHeader(String title, VoidCallback onTap, bool isDark) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white : AppColors.deepNavy,
-            letterSpacing: -0.6,
-          ),
-        ),
-        CPPressable(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.moltenAmber,
-              border: Border.all(color: AppColors.elitePrimary, width: 2),
-              boxShadow: const [
-                BoxShadow(color: AppColors.elitePrimary, offset: Offset(2, 2)),
-              ],
-            ),
-            child: Row(
-              children: [
-                Text(
-                  'Explore all',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.elitePrimary,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 10,
-                  color: AppColors.elitePrimary,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+    return CPSectionHeader(
+      title: title,
+      actionLabel: 'Explore all',
+      onAction: onTap,
     );
   }
 
@@ -1945,3 +1928,4 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     ),
   );
 }
+

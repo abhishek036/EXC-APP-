@@ -126,7 +126,7 @@ class _SyllabusTrackerPageState extends State<SyllabusTrackerPage> {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
@@ -359,3 +359,4 @@ class _Chapter {
   final int topicsLeft;
   _Chapter(this.title, this.progress, this.topicsLeft);
 }
+

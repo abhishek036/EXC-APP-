@@ -460,7 +460,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             const Icon(
               Icons.error_outline_rounded,
               size: 52,
-              color: Color(0xFFD71313),
+              color: Color(0xFFB6231B),
             ),
             const SizedBox(height: 12),
             Text(
@@ -491,8 +491,8 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         ? 'Closed'
         : (isActive ? 'Active' : 'Paused');
     final statusColor = _isCompleted
-        ? const Color(0xFFD71313)
-        : (isActive ? const Color(0xFF0D1282) : Colors.black54);
+        ? const Color(0xFFB6231B)
+        : (isActive ? const Color(0xFF354388) : Colors.black54);
     final pending = _toDouble(fee['pending']);
     final paid = _toDouble(fee['paid']);
 
@@ -505,11 +505,11 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       ),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEEDED),
-        border: Border.all(color: const Color(0xFF0D1282), width: 2.5),
+        color: const Color(0xFFFFFFFF),
+        border: Border.all(color: const Color(0xFF354388), width: 2.5),
         boxShadow: const [
           BoxShadow(
-            color: Color(0xFF0D1282),
+            color: Color(0xFF354388),
             offset: Offset(4, 4),
             blurRadius: 0,
           ),
@@ -530,7 +530,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -562,7 +562,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                   ),
                 ),
               ),
@@ -573,11 +573,11 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0DE36),
-              border: Border.all(color: const Color(0xFF0D1282), width: 2),
+              color: const Color(0xFFBDAE18),
+              border: Border.all(color: const Color(0xFF354388), width: 2),
               boxShadow: const [
                 BoxShadow(
-                  color: Color(0xFF0D1282),
+                  color: Color(0xFF354388),
                   offset: Offset(3, 3),
                   blurRadius: 0,
                 ),
@@ -587,7 +587,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
               children: [
                 const Icon(
                   Icons.currency_rupee_rounded,
-                  color: Color(0xFF0D1282),
+                  color: Color(0xFF354388),
                   size: 22,
                 ),
                 const SizedBox(width: 10),
@@ -600,7 +600,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 30,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           letterSpacing: -0.6,
                         ),
                       ),
@@ -609,7 +609,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                         ),
                       ),
                     ],
@@ -623,7 +623,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(
-                      color: const Color(0xFFD71313),
+                      color: const Color(0xFFB6231B),
                       width: 1.2,
                     ),
                   ),
@@ -635,7 +635,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFFD71313),
+                          color: const Color(0xFFB6231B),
                         ),
                       ),
                       Text(
@@ -643,7 +643,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFFD71313),
+                          color: const Color(0xFFB6231B),
                         ),
                       ),
                     ],
@@ -661,28 +661,28 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                 'Total Students',
                 '$totalStudents',
                 Icons.groups_rounded,
-                const Color(0xFF0D1282),
+                const Color(0xFF354388),
                 width: 154,
               ),
               _quickStatCard(
                 'Active Students',
                 '$activeStudents',
                 Icons.how_to_reg_rounded,
-                const Color(0xFF0D1282),
+                const Color(0xFF354388),
                 width: 154,
               ),
               _quickStatCard(
                 'Monthly Fee',
                 '₹${_toDouble(_feeStructure?['monthly_fee']).toStringAsFixed(0)}',
                 Icons.payments_rounded,
-                const Color(0xFFF0DE36),
+                const Color(0xFFBDAE18),
                 width: 154,
               ),
               _quickStatCard(
                 'Duration',
                 '${_dateLabel(_batch!['start_date'])} - ${_dateLabel(_batch!['end_date'])}',
                 Icons.date_range_rounded,
-                const Color(0xFF0D1282),
+                const Color(0xFF354388),
                 width: 154,
               ),
             ],
@@ -695,22 +695,22 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
               _microTag(
                 'Lectures ${_lectures.length}',
                 Icons.ondemand_video_rounded,
-                const Color(0xFF0D1282),
+                const Color(0xFF354388),
               ),
               _microTag(
                 'Notes ${_materials.length}',
                 Icons.description_outlined,
-                const Color(0xFF0D1282),
+                const Color(0xFF354388),
               ),
               _microTag(
                 'Tests ${_quizzes.length}',
                 Icons.quiz_outlined,
-                const Color(0xFF0D1282),
+                const Color(0xFF354388),
               ),
               _microTag(
                 'Low Attendance ${_students.where((s) => _studentAttendance(s) < 70).length}',
                 Icons.warning_amber_rounded,
-                const Color(0xFFD71313),
+                const Color(0xFFB6231B),
               ),
             ],
           ),
@@ -731,10 +731,10 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: const Color(0xFF0D1282), width: 1.5),
+        border: Border.all(color: const Color(0xFF354388), width: 1.5),
         boxShadow: const [
           BoxShadow(
-            color: Color(0xFF0D1282),
+            color: Color(0xFF354388),
             offset: Offset(2, 2),
             blurRadius: 0,
           ),
@@ -743,7 +743,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: const Color(0xFF0D1282)),
+          Icon(icon, size: 16, color: const Color(0xFF354388)),
           const SizedBox(height: 6),
           Text(
             value,
@@ -816,7 +816,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       decoration: BoxDecoration(
         color: CT.card(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF0D1282), width: 1.6),
+        border: Border.all(color: const Color(0xFF354388), width: 1.6),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -826,7 +826,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             style: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.w900,
               fontSize: 14,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
           Text(
@@ -834,7 +834,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF0D1282).withValues(alpha: 0.72),
+              color: const Color(0xFF354388).withValues(alpha: 0.72),
             ),
           ),
           const SizedBox(height: 10),
@@ -850,7 +850,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                             'Lectures',
                             '${data['lectures']}',
                             Icons.ondemand_video_rounded,
-                            const Color(0xFF0D1282),
+                            const Color(0xFF354388),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -859,7 +859,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                             'Notes',
                             '${data['notes']}',
                             Icons.description_outlined,
-                            const Color(0xFF0D1282),
+                            const Color(0xFF354388),
                           ),
                         ),
                       ],
@@ -872,7 +872,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                             'Tests',
                             '${data['tests']}',
                             Icons.quiz_outlined,
-                            const Color(0xFF0D1282),
+                            const Color(0xFF354388),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -881,7 +881,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                             'Submissions',
                             '${data['assignmentsSubmitted']}',
                             Icons.assignment_turned_in_outlined,
-                            const Color(0xFF0D1282),
+                            const Color(0xFF354388),
                           ),
                         ),
                       ],
@@ -896,7 +896,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             'Fees Paid',
             '₹${_toDouble(data['feesPaid']).toStringAsFixed(0)}',
             Icons.payments_rounded,
-            const Color(0xFFF0DE36),
+            const Color(0xFFBDAE18),
             emphasized: true,
           ),
           const SizedBox(height: 8),
@@ -904,7 +904,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             'Fees Pending',
             '₹${_toDouble(data['feesPending']).toStringAsFixed(0)}',
             Icons.warning_rounded,
-            const Color(0xFFD71313),
+            const Color(0xFFB6231B),
             emphasized: true,
           ),
           const SizedBox(height: 8),
@@ -912,7 +912,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             'Low Attendance',
             '${data['lowAttendance']} Students',
             Icons.error_outline_rounded,
-            const Color(0xFFD71313),
+            const Color(0xFFB6231B),
           ),
         ],
       ),
@@ -939,7 +939,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             style: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.w900,
               fontSize: 15,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
           const SizedBox(height: 3),
@@ -950,7 +950,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
         ],
@@ -983,7 +983,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
               ),
             ),
           ),
@@ -992,7 +992,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: emphasized ? 15 : 13,
               fontWeight: FontWeight.w900,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
         ],
@@ -1016,13 +1016,13 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
               duration: const Duration(milliseconds: 160),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: BoxDecoration(
-                color: selected ? const Color(0xFF0D1282) : Colors.white,
-                border: Border.all(color: const Color(0xFF0D1282), width: 1.4),
+                color: selected ? const Color(0xFF354388) : Colors.white,
+                border: Border.all(color: const Color(0xFF354388), width: 1.4),
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: selected
                     ? const [
                         BoxShadow(
-                          color: Color(0xFF0D1282),
+                          color: Color(0xFF354388),
                           offset: Offset(2, 2),
                           blurRadius: 0,
                         ),
@@ -1036,8 +1036,8 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     fontWeight: FontWeight.w800,
                     fontSize: 12,
                     color: selected
-                        ? const Color(0xFFEEEDED)
-                        : const Color(0xFF0D1282),
+                        ? const Color(0xFFFFFFFF)
+                        : const Color(0xFF354388),
                   ),
                 ),
               ),
@@ -1084,7 +1084,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       decoration: BoxDecoration(
         color: CT.card(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF0D1282), width: 1.6),
+        border: Border.all(color: const Color(0xFF354388), width: 1.6),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1097,7 +1097,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w900,
                     fontSize: 14,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                   ),
                 ),
               ),
@@ -1221,9 +1221,9 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEEEDED),
+                            color: const Color(0xFFFFFFFF),
                             border: Border.all(
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                               width: 1.2,
                             ),
                           ),
@@ -1232,7 +1232,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                             style: GoogleFonts.plusJakartaSans(
                               fontWeight: FontWeight.w700,
                               fontSize: 12,
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                             ),
                           ),
                         ),
@@ -1249,7 +1249,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 1,
                     ),
                   ),
@@ -1259,13 +1259,13 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                         width: 28,
                         height: 28,
                         decoration: const BoxDecoration(
-                          color: Color(0xFFF0DE36),
+                          color: Color(0xFFBDAE18),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.timeline_rounded,
                           size: 16,
-                          color: Color(0xFF0D1282),
+                          color: Color(0xFF354388),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -1307,7 +1307,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             border: Border.all(
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                               width: 1,
                             ),
                           ),
@@ -1318,7 +1318,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                                 width: 8,
                                 height: 8,
                                 margin: const EdgeInsets.only(top: 4),
-                                color: const Color(0xFFF0DE36),
+                                color: const Color(0xFFBDAE18),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -1384,9 +1384,9 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: selected ? const Color(0xFFF0DE36) : Colors.white,
+                    color: selected ? const Color(0xFFBDAE18) : Colors.white,
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 1.2,
                     ),
                   ),
@@ -1395,7 +1395,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                     ),
                   ),
                 ),
@@ -1445,7 +1445,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 1,
                     ),
                   ),
@@ -1466,8 +1466,8 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                           _statusTag(
                             status,
                             status.toLowerCase() == 'live'
-                                ? const Color(0xFFF0DE36)
-                                : const Color(0xFF0D1282),
+                                ? const Color(0xFFBDAE18)
+                                : const Color(0xFF354388),
                           ),
                         ],
                       ),
@@ -1539,7 +1539,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(
                     Icons.description_outlined,
-                    color: Color(0xFF0D1282),
+                    color: Color(0xFF354388),
                   ),
                   title: Text(
                     (note['title'] ?? note['file_name'] ?? 'Note').toString(),
@@ -1561,7 +1561,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1614,7 +1614,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 1,
                     ),
                   ),
@@ -1682,7 +1682,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 1,
                     ),
                   ),
@@ -1690,7 +1690,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     children: [
                       const Icon(
                         Icons.folder_open_rounded,
-                        color: Color(0xFF0D1282),
+                        color: Color(0xFF354388),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -1708,7 +1708,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                         ),
                       ),
                     ],
@@ -1801,7 +1801,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       border: Border.all(
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         width: 1,
                       ),
                     ),
@@ -1815,14 +1815,14 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                         });
                       },
                       leading: CircleAvatar(
-                        backgroundColor: const Color(0xFFEEEDED),
+                        backgroundColor: const Color(0xFFFFFFFF),
                         child: Text(
                           ((student['name'] ?? 'S').toString())
                               .substring(0, 1)
                               .toUpperCase(),
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.w900,
-                            color: const Color(0xFF0D1282),
+                            color: const Color(0xFF354388),
                           ),
                         ),
                       ),
@@ -1843,8 +1843,8 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                           _statusTag(
                             feeStatus,
                             feeStatus == 'Paid'
-                                ? const Color(0xFFF0DE36)
-                                : const Color(0xFFD71313),
+                                ? const Color(0xFFBDAE18)
+                                : const Color(0xFFB6231B),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -1917,7 +1917,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         border: Border.all(
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           width: 1,
                         ),
                       ),
@@ -1938,8 +1938,8 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                               _statusTag(
                                 status,
                                 status == 'Completed'
-                                    ? const Color(0xFF0D1282)
-                                    : const Color(0xFFF0DE36),
+                                    ? const Color(0xFF354388)
+                                    : const Color(0xFFBDAE18),
                               ),
                             ],
                           ),
@@ -1975,7 +1975,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFFD71313),
+                                  color: const Color(0xFFB6231B),
                                 ),
                               ),
                             ],
@@ -2012,22 +2012,22 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
               _feeMetric(
                 'Total Revenue',
                 '₹${_toDouble(fee['total']).toStringAsFixed(0)}',
-                const Color(0xFF0D1282),
+                const Color(0xFF354388),
               ),
               _feeMetric(
                 'Pending Fees',
                 '₹${_toDouble(fee['pending']).toStringAsFixed(0)}',
-                const Color(0xFFD71313),
+                const Color(0xFFB6231B),
               ),
               _feeMetric(
                 'Collected Today',
                 '₹${_toDouble(fee['collectedToday']).toStringAsFixed(0)}',
-                const Color(0xFFF0DE36),
+                const Color(0xFFBDAE18),
               ),
               _feeMetric(
                 'Monthly Fee',
                 '₹${_toDouble(_feeStructure?['monthly_fee']).toStringAsFixed(0)}',
-                const Color(0xFF0D1282),
+                const Color(0xFF354388),
               ),
             ],
           ),
@@ -2081,7 +2081,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       border: Border.all(
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         width: 1,
                       ),
                     ),
@@ -2102,8 +2102,8 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                             _statusTag(
                               status,
                               status == 'Paid'
-                                  ? const Color(0xFFF0DE36)
-                                  : const Color(0xFFD71313),
+                                  ? const Color(0xFFBDAE18)
+                                  : const Color(0xFFB6231B),
                             ),
                           ],
                         ),
@@ -2159,7 +2159,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             style: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.w900,
               fontSize: 13,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
           const SizedBox(height: 2),
@@ -2185,15 +2185,15 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       children: [
         _sectionCard(
           title: 'Attendance Graph',
-          child: _miniBarGraph(attendanceTrend, const Color(0xFF0D1282)),
+          child: _miniBarGraph(attendanceTrend, const Color(0xFF354388)),
         ),
         _sectionCard(
           title: 'Performance Graph',
-          child: _miniBarGraph(performanceTrend, const Color(0xFFF0DE36)),
+          child: _miniBarGraph(performanceTrend, const Color(0xFFBDAE18)),
         ),
         _sectionCard(
           title: 'Revenue Graph',
-          child: _miniBarGraph(revenueTrend, const Color(0xFFD71313)),
+          child: _miniBarGraph(revenueTrend, const Color(0xFFB6231B)),
         ),
       ],
     );
@@ -2298,15 +2298,15 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEEDED),
+                    color: const Color(0xFFFFFFFF),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 1.6,
                     ),
                     boxShadow: const [
                       BoxShadow(
-                        color: Color(0xFF0D1282),
+                        color: Color(0xFF354388),
                         offset: Offset(3, 3),
                         blurRadius: 0,
                       ),
@@ -2342,8 +2342,8 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         FloatingActionButton.extended(
           heroTag: '${widget.batchId}_fab_menu',
           onPressed: () => setState(() => _fabExpanded = !_fabExpanded),
-          backgroundColor: const Color(0xFF0D1282),
-          foregroundColor: const Color(0xFFEEEDED),
+          backgroundColor: const Color(0xFF354388),
+          foregroundColor: const Color(0xFFFFFFFF),
           icon: Icon(
             _fabExpanded ? Icons.close_rounded : Icons.add_rounded,
             size: 18,
@@ -2377,8 +2377,8 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
           ),
         ),
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Color(0xFF0D1282), width: 1.2),
-          foregroundColor: const Color(0xFF0D1282),
+          side: const BorderSide(color: Color(0xFF354388), width: 1.2),
+          foregroundColor: const Color(0xFF354388),
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -2393,19 +2393,19 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: const Color(0xFF0D1282), width: 1.2),
+        border: Border.all(color: const Color(0xFF354388), width: 1.2),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF0D1282)),
+          Icon(icon, size: 14, color: const Color(0xFF354388)),
           const SizedBox(width: 6),
           Text(
             text,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF0D1282),
+              color: const Color(0xFF354388),
             ),
           ),
         ],
@@ -2425,7 +2425,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         style: GoogleFonts.plusJakartaSans(
           fontSize: 10,
           fontWeight: FontWeight.w800,
-          color: const Color(0xFF0D1282),
+          color: const Color(0xFF354388),
         ),
       ),
     );
@@ -2545,11 +2545,11 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             return Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
-                color: Color(0xFFEEEDED),
+                color: Color(0xFFFFFFFF),
                 border: Border(
-                  top: BorderSide(color: Color(0xFF0D1282), width: 3),
-                  left: BorderSide(color: Color(0xFF0D1282), width: 3),
-                  right: BorderSide(color: Color(0xFF0D1282), width: 3),
+                  top: BorderSide(color: Color(0xFF354388), width: 3),
+                  left: BorderSide(color: Color(0xFF354388), width: 3),
+                  right: BorderSide(color: Color(0xFF354388), width: 3),
                 ),
               ),
               child: Column(
@@ -2559,7 +2559,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     'Migrate students',
                     style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w900,
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -2657,11 +2657,11 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                 MediaQuery.of(ctx).viewInsets.bottom + 20,
               ),
               decoration: const BoxDecoration(
-                color: Color(0xFFEEEDED),
+                color: Color(0xFFFFFFFF),
                 border: Border(
-                  top: BorderSide(color: Color(0xFF0D1282), width: 3),
-                  left: BorderSide(color: Color(0xFF0D1282), width: 3),
-                  right: BorderSide(color: Color(0xFF0D1282), width: 3),
+                  top: BorderSide(color: Color(0xFF354388), width: 3),
+                  left: BorderSide(color: Color(0xFF354388), width: 3),
+                  right: BorderSide(color: Color(0xFF354388), width: 3),
                 ),
               ),
               child: SingleChildScrollView(
@@ -2673,7 +2673,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w900,
                         fontSize: 18,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -2710,7 +2710,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                       'Teachers',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -2741,7 +2741,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                       'FAQs',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -2854,3 +2854,4 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     );
   }
 }
+

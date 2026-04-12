@@ -157,7 +157,7 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                   letterSpacing: 1.2,
                 ),
               ),
@@ -191,7 +191,7 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
-                  color: const Color(0xFF0D1282),
+                  color: const Color(0xFF354388),
                   letterSpacing: 1.2,
                 ),
               ),
@@ -232,7 +232,7 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
                         onPressed: _isSaving ? null : () => context.pop(),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(
-                            color: Color(0xFF0D1282),
+                            color: Color(0xFF354388),
                             width: 2,
                           ),
                           shape: RoundedRectangleBorder(
@@ -244,7 +244,7 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0D1282),
+                            color: const Color(0xFF354388),
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -259,7 +259,7 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
                       child: Container(
                         height: 56,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         alignment: Alignment.center,
@@ -332,20 +332,20 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
               color: Colors.grey.withValues(alpha: 0.5),
               fontWeight: FontWeight.w600,
             ),
-            prefixIcon: Icon(icon, size: 20, color: const Color(0xFF0D1282)),
+            prefixIcon: Icon(icon, size: 20, color: const Color(0xFF354388)),
             filled: true,
             fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFFEEEDED), width: 2),
+              borderSide: const BorderSide(color: Color(0xFFFFFFFF), width: 2),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFFEEEDED), width: 2),
+              borderSide: const BorderSide(color: Color(0xFFFFFFFF), width: 2),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF0D1282), width: 2),
+              borderSide: const BorderSide(color: Color(0xFF354388), width: 2),
             ),
           ),
         ),
@@ -353,3 +353,4 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
     );
   }
 }
+

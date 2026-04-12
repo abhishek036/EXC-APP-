@@ -225,15 +225,20 @@ class PushNotificationService {
     );
     debugPrint('FCM permission status: ${permission.authorizationStatus.name}');
 
-    _fcmToken = await messaging.getToken();
-    if (_fcmToken != null && _fcmToken!.isNotEmpty) {
-      await _registerCurrentToken();
-    }
+    try {
+      _fcmToken = await messaging.getToken();
+      if (_fcmToken != null && _fcmToken!.isNotEmpty) {
+        await _registerCurrentToken();
+      }
 
-    messaging.onTokenRefresh.listen((token) async {
-      _fcmToken = token;
-      await _registerCurrentToken();
-    });
+      messaging.onTokenRefresh.listen((token) async {
+        _fcmToken = token;
+        await _registerCurrentToken();
+      });
+    } catch (e) {
+      debugPrint('FCM getToken error: $e');
+      _fcmToken = null;
+    }
 
     FirebaseMessaging.onMessage.listen((message) async {
       final data = _normalizeMessage(message);

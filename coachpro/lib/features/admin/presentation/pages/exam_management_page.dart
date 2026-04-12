@@ -110,14 +110,14 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0DE36),
+                          color: const Color(0xFFBDAE18),
                           border: Border.all(
-                            color: const Color(0xFF0D1282),
+                            color: const Color(0xFF354388),
                             width: 2,
                           ),
                           boxShadow: const [
                             BoxShadow(
-                              color: Color(0xFF0D1282),
+                              color: Color(0xFF354388),
                               offset: Offset(2, 2),
                             ),
                           ],
@@ -126,7 +126,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                           children: [
                             const Icon(
                               Icons.add_rounded,
-                              color: Color(0xFF0D1282),
+                              color: Color(0xFF354388),
                               size: 18,
                             ),
                             const SizedBox(width: 6),
@@ -134,7 +134,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                               'NEW EXAM',
                               style: GoogleFonts.plusJakartaSans(
                                 fontWeight: FontWeight.w900,
-                                color: const Color(0xFF0D1282),
+                                color: const Color(0xFF354388),
                                 fontSize: 11,
                                 letterSpacing: 0.5,
                               ),
@@ -155,14 +155,14 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                         height: 48,
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEEDED),
+                          color: const Color(0xFFFFFFFF),
                           border: Border.all(
-                            color: const Color(0xFF0D1282),
+                            color: const Color(0xFF354388),
                             width: 2,
                           ),
                           boxShadow: const [
                             BoxShadow(
-                              color: Color(0xFF0D1282),
+                              color: Color(0xFF354388),
                               offset: Offset(2, 2),
                             ),
                           ],
@@ -172,14 +172,14 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                           dividerColor: Colors.transparent,
                           indicatorSize: TabBarIndicatorSize.tab,
                           indicator: BoxDecoration(
-                            color: const Color(0xFF0D1282),
+                            color: const Color(0xFF354388),
                             border: Border.all(
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                               width: 2,
                             ),
                             boxShadow: const [
                               BoxShadow(
-                                color: Color(0xFF0D1282),
+                                color: Color(0xFF354388),
                                 offset: Offset(2, 2),
                               ),
                             ],
@@ -194,7 +194,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                             fontWeight: FontWeight.w700,
                           ),
                           labelColor: Colors.white,
-                          unselectedLabelColor: const Color(0xFF0D1282),
+                          unselectedLabelColor: const Color(0xFF354388),
                           tabs: const [
                             Tab(text: 'UPCOMING'),
                             Tab(text: 'COMPLETED'),
@@ -254,13 +254,13 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                 Container(
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEEDED),
+                    color: const Color(0xFFFFFFFF),
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 3,
                     ),
                     boxShadow: const [
-                      BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4)),
+                      BoxShadow(color: Color(0xFF354388), offset: Offset(4, 4)),
                     ],
                   ),
                   child: Icon(
@@ -268,7 +268,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                         ? Icons.event_rounded
                         : Icons.fact_check_rounded,
                     size: 48,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -279,7 +279,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w900,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                   ),
                 ),
               ],
@@ -324,7 +324,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
             isDark: isDark,
             padding: const EdgeInsets.all(20),
             borderRadius: 0,
-            border: Border.all(color: const Color(0xFF0D1282), width: 3),
+            border: Border.all(color: const Color(0xFF354388), width: 3),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -332,13 +332,13 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                   width: 50,
                   height: 70,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEEDED),
+                    color: const Color(0xFFFFFFFF),
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 2,
                     ),
                     boxShadow: const [
-                      BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2)),
+                      BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
                     ],
                   ),
                   child: Column(
@@ -349,7 +349,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                             ? Icons.event_rounded
                             : Icons.check_circle_rounded,
                         size: 22,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -359,7 +359,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                         ),
                       ),
                       Text(
@@ -367,7 +367,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           letterSpacing: -1,
                         ),
                       ),
@@ -411,7 +411,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -459,7 +459,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
         isDark: isDark,
         padding: const EdgeInsets.all(28),
         borderRadius: 0,
-        border: Border.all(color: const Color(0xFF0D1282), width: 4),
+        border: Border.all(color: const Color(0xFF354388), width: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -469,8 +469,8 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                 width: 50,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D1282),
-                  border: Border.all(color: const Color(0xFF0D1282)),
+                  color: const Color(0xFF354388),
+                  border: Border.all(color: const Color(0xFF354388)),
                 ),
               ),
             ),
@@ -488,7 +488,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
               'Manage "${exam['name']}"',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -520,23 +520,23 @@ class _ExamManagementPageState extends State<ExamManagementPage>
   Widget _infoChip(IconData icon, String text, bool isDark) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: const Color(0xFFF0DE36),
-      border: Border.all(color: const Color(0xFF0D1282), width: 2),
+      color: const Color(0xFFBDAE18),
+      border: Border.all(color: const Color(0xFF354388), width: 2),
       boxShadow: const [
-        BoxShadow(color: Color(0xFF0D1282), offset: Offset(2, 2)),
+        BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
       ],
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 12, color: const Color(0xFF0D1282)),
+        Icon(icon, size: 12, color: const Color(0xFF354388)),
         const SizedBox(width: 4),
         Text(
           text,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 10,
             fontWeight: FontWeight.w900,
-            color: const Color(0xFF0D1282),
+            color: const Color(0xFF354388),
             letterSpacing: 0.5,
           ),
         ),
@@ -557,19 +557,19 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                 Container(
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEEDED),
+                    color: const Color(0xFFFFFFFF),
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 3,
                     ),
                     boxShadow: const [
-                      BoxShadow(color: Color(0xFF0D1282), offset: Offset(4, 4)),
+                      BoxShadow(color: Color(0xFF354388), offset: Offset(4, 4)),
                     ],
                   ),
                   child: Icon(
                     Icons.leaderboard_rounded,
                     size: 48,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -578,7 +578,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w900,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                   ),
                 ),
               ],
@@ -613,21 +613,21 @@ class _ExamManagementPageState extends State<ExamManagementPage>
               isDark: isDark,
               padding: const EdgeInsets.all(16),
               borderRadius: 0,
-              border: Border.all(color: const Color(0xFF0D1282), width: 3),
+              border: Border.all(color: const Color(0xFF354388), width: 3),
               child: Row(
                 children: [
                   Container(
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEEEDED),
+                      color: const Color(0xFFFFFFFF),
                       border: Border.all(
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         width: 2,
                       ),
                       boxShadow: const [
                         BoxShadow(
-                          color: Color(0xFF0D1282),
+                          color: Color(0xFF354388),
                           offset: Offset(2, 2),
                         ),
                       ],
@@ -644,7 +644,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0D1282),
+                          color: const Color(0xFF354388),
                         ),
                       ),
                     ),
@@ -668,7 +668,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                           examName,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
-                            color: const Color(0xFF0D1282),
+                            color: const Color(0xFF354388),
                             fontWeight: FontWeight.w900,
                             letterSpacing: 0.5,
                           ),
@@ -698,12 +698,12 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                           decoration: BoxDecoration(
                             color: gradeColor,
                             border: Border.all(
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                               width: 2,
                             ),
                             boxShadow: const [
                               BoxShadow(
-                                color: Color(0xFF0D1282),
+                                color: Color(0xFF354388),
                                 offset: Offset(2, 2),
                               ),
                             ],
@@ -713,7 +713,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
                               fontWeight: FontWeight.w900,
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -751,10 +751,10 @@ class _ExamManagementPageState extends State<ExamManagementPage>
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark
             ? AppColors.eliteDarkBg
-            : const Color(0xFFEEEDED),
+            : const Color(0xFFFFFFFF),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.zero,
-          side: BorderSide(color: Color(0xFF0D1282), width: 3),
+          side: BorderSide(color: Color(0xFF354388), width: 3),
         ),
         title: Text(
           'Delete Exam?',
@@ -767,7 +767,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
         content: Text(
           'Delete "${exam['name']}" permanently from the database.',
           style: GoogleFonts.plusJakartaSans(
-            color: isDark ? Colors.white70 : const Color(0xFF0D1282),
+            color: isDark ? Colors.white70 : const Color(0xFF354388),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -775,7 +775,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             style: TextButton.styleFrom(
-              side: const BorderSide(color: Color(0xFF0D1282), width: 2),
+              side: const BorderSide(color: Color(0xFF354388), width: 2),
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.zero,
               ),
@@ -784,7 +784,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
               'CANCEL',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFF0D1282),
+                color: const Color(0xFF354388),
               ),
             ),
           ),
@@ -795,7 +795,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.zero,
               ),
-              side: const BorderSide(color: Color(0xFF0D1282), width: 2),
+              side: const BorderSide(color: Color(0xFF354388), width: 2),
             ),
             child: Text(
               'DELETE',
@@ -834,7 +834,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
         isDark: isDark,
         padding: const EdgeInsets.all(28),
         borderRadius: 0,
-        border: Border.all(color: const Color(0xFF0D1282), width: 4),
+        border: Border.all(color: const Color(0xFF354388), width: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -844,8 +844,8 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                 width: 50,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D1282),
-                  border: Border.all(color: const Color(0xFF0D1282)),
+                  color: const Color(0xFF354388),
+                  border: Border.all(color: const Color(0xFF354388)),
                 ),
               ),
             ),
@@ -865,7 +865,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFF0D1282).withValues(alpha: 0.5),
+                color: const Color(0xFF354388).withValues(alpha: 0.5),
                 letterSpacing: 0.5,
               ),
             ),
@@ -960,7 +960,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
             isDark: isDark,
             padding: const EdgeInsets.all(28),
             borderRadius: 0,
-            border: Border.all(color: const Color(0xFF0D1282), width: 4),
+            border: Border.all(color: const Color(0xFF354388), width: 4),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -971,8 +971,8 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                       width: 50,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0D1282),
-                        border: Border.all(color: const Color(0xFF0D1282)),
+                        color: const Color(0xFF354388),
+                        border: Border.all(color: const Color(0xFF354388)),
                       ),
                     ),
                   ),
@@ -991,7 +991,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                     'Schedule a new assessment for a target batch.',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -1071,7 +1071,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -1083,14 +1083,14 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEEEDED),
+                      color: const Color(0xFFFFFFFF),
                       border: Border.all(
-                        color: const Color(0xFF0D1282),
+                        color: const Color(0xFF354388),
                         width: 2,
                       ),
                       boxShadow: const [
                         BoxShadow(
-                          color: Color(0xFF0D1282),
+                          color: Color(0xFF354388),
                           offset: Offset(2, 2),
                         ),
                       ],
@@ -1110,7 +1110,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                         ),
                         isExpanded: true,
                         dropdownColor: isDark
-                            ? const Color(0xFF0D1282)
+                            ? const Color(0xFF354388)
                             : Colors.white,
                         items: _batches
                             .map(
@@ -1179,3 +1179,4 @@ class _ExamManagementPageState extends State<ExamManagementPage>
     );
   }
 }
+

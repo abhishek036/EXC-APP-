@@ -117,7 +117,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
             const SizedBox(width: 10),
             Text(
               'Live Sessions',
-              style: GoogleFonts.sora(
+              style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w700,
                 color: CT.textH(context),
               ),
@@ -174,7 +174,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
             const SizedBox(height: 16),
             Text(
               'Unable to load live sessions',
-              style: GoogleFonts.sora(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: CT.textH(context),
@@ -183,7 +183,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
             const SizedBox(height: 8),
             Text(
               _error ?? '',
-              style: GoogleFonts.dmSans(fontSize: 13, color: CT.textM(context)),
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textM(context)),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -207,7 +207,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
                 ),
                 child: Text(
                   'Retry',
-                  style: GoogleFonts.sora(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -249,7 +249,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
             const SizedBox(height: 24),
             Text(
               'No Live Sessions Right Now',
-              style: GoogleFonts.sora(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: CT.textH(context),
@@ -258,7 +258,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
             const SizedBox(height: 8),
             Text(
               'When your teacher starts a live class, it will appear here. Pull down to refresh.',
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 color: CT.textM(context),
                 height: 1.5,
@@ -291,7 +291,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
                     const SizedBox(width: 8),
                     Text(
                       'Refresh',
-                      style: GoogleFonts.sora(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: AppColors.elitePrimary,
@@ -419,7 +419,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
                             const SizedBox(width: 6),
                             Text(
                               'LIVE',
-                              style: GoogleFonts.sora(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
                                 color: Colors.white,
@@ -445,7 +445,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
                     ),
                     child: Text(
                       'SCHEDULED',
-                      style: GoogleFonts.sora(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
                         color: Colors.black,
@@ -458,7 +458,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
                 const SizedBox(width: 4),
                 Text(
                   timeStr,
-                  style: GoogleFonts.dmSans(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: CT.textM(context),
@@ -476,7 +476,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.sora(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
                     color: CT.textH(context),
@@ -489,7 +489,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
                   const SizedBox(height: 4),
                   Text(
                     subject,
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: AppColors.elitePrimary,
@@ -515,7 +515,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
                     Expanded(
                       child: Text(
                         teacherName,
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: CT.textS(context),
@@ -535,7 +535,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
                         ),
                         child: Text(
                           batchName,
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: CT.textM(context),
@@ -577,7 +577,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
                           const SizedBox(width: 8),
                           Text(
                             isActive ? 'Join Live Class' : 'Waiting for teacher...',
-                            style: GoogleFonts.sora(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: isActive ? Colors.white : AppColors.elitePrimary,

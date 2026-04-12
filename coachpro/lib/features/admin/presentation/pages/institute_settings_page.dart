@@ -156,14 +156,14 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEEEDED),
+                            color: const Color(0xFFFFFFFF),
                             border: Border.all(
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                               width: 2,
                             ),
                             boxShadow: const [
                               BoxShadow(
-                                color: Color(0xFF0D1282),
+                                color: Color(0xFF354388),
                                 offset: Offset(2, 2),
                               ),
                             ],
@@ -171,7 +171,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                           child: const Icon(
                             Icons.arrow_back_ios_new_rounded,
                             size: 20,
-                            color: Color(0xFF0D1282),
+                            color: Color(0xFF354388),
                           ),
                         ),
                       ),
@@ -184,7 +184,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                               letterSpacing: -1.0,
                             ),
                           ),
@@ -193,7 +193,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF0D1282),
+                              color: const Color(0xFF354388),
                             ),
                           ),
                         ],
@@ -356,7 +356,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                               const SizedBox(height: 12),
                               _buildYoutubeDefaultVisibilityDropdown(
                                 isDark,
-                                const Color(0xFF0D1282),
+                                const Color(0xFF354388),
                               ),
 
                               const SizedBox(
@@ -402,13 +402,13 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0DE36),
+                    color: const Color(0xFFBDAE18),
                     border: Border.all(
-                      color: const Color(0xFF0D1282),
+                      color: const Color(0xFF354388),
                       width: 3,
                     ),
                     boxShadow: const [
-                      BoxShadow(color: Color(0xFF0D1282), offset: Offset(3, 3)),
+                      BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
                     ],
                   ),
                   child: _isSaving
@@ -427,7 +427,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                           children: [
                             const Icon(
                               Icons.shield_rounded,
-                              color: Color(0xFF0D1282),
+                              color: Color(0xFF354388),
                               size: 20,
                             ),
                             const SizedBox(width: 8),
@@ -436,7 +436,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w900,
-                                color: const Color(0xFF0D1282),
+                                color: const Color(0xFF354388),
                                 letterSpacing: -0.5,
                               ),
                             ),
@@ -494,7 +494,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFEEEDED),
+              color: const Color(0xFFFFFFFF),
               border: Border.all(color: accentColor, width: 2),
               boxShadow: [
                 BoxShadow(color: accentColor, offset: const Offset(2, 2)),
@@ -512,7 +512,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -522,7 +522,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                     height: 1.3,
                   ),
                 ),
@@ -617,3 +617,4 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
     );
   }
 }
+

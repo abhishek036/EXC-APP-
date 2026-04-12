@@ -105,7 +105,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           },
           child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
         ),
-        title: Text('Forgot Password', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
+        title: Text('Forgot Password', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: CT.textH(context))),
         backgroundColor: CT.bg(context),
         elevation: 0,
       ),
@@ -159,11 +159,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     child: Center(
                       child: active && i < _step.index
                           ? const Icon(Icons.check, size: 16, color: Colors.white)
-                          : Text('${i + 1}', style: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w700, color: active ? Colors.white : CT.textM(context))),
+                          : Text('${i + 1}', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: active ? Colors.white : CT.textM(context))),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(labels[i], style: GoogleFonts.dmSans(fontSize: 10, color: active ? AppColors.primary : CT.textS(context))),
+                  Text(labels[i], style: GoogleFonts.plusJakartaSans(fontSize: 10, color: active ? AppColors.primary : CT.textS(context))),
                 ],
               ),
               if (i < 2) Expanded(
@@ -184,16 +184,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       key: const ValueKey('phone'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Enter phone number', style: GoogleFonts.sora(fontSize: 20, fontWeight: FontWeight.w700, color: CT.textH(context))),
+        Text('Enter phone number', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w700, color: CT.textH(context))),
         const SizedBox(height: 6),
-        Text("We'll send a verification OTP to this number.", style: GoogleFonts.dmSans(fontSize: 14, color: CT.textM(context))),
+        Text("We'll send a verification OTP to this number.", style: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textM(context))),
         const SizedBox(height: 28),
         _label('REGISTERED PHONE'),
         const SizedBox(height: 8),
         TextFormField(
           controller: _phoneCtrl,
           keyboardType: TextInputType.phone,
-          style: GoogleFonts.dmSans(color: CT.textH(context)),
+          style: GoogleFonts.plusJakartaSans(color: CT.textH(context)),
           validator: (v) => (v == null || v.trim().length < 10) ? 'Enter a valid phone' : null,
           decoration: _inputDec('e.g. 9876543210', Icons.phone_outlined),
         ).animate().fadeIn(),
@@ -208,9 +208,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       key: const ValueKey('otp'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Enter OTP', style: GoogleFonts.sora(fontSize: 20, fontWeight: FontWeight.w700, color: CT.textH(context))),
+        Text('Enter OTP', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w700, color: CT.textH(context))),
         const SizedBox(height: 6),
-        Text('Sent to ${_phoneCtrl.text.trim()}', style: GoogleFonts.dmSans(fontSize: 14, color: CT.textM(context))),
+        Text('Sent to ${_phoneCtrl.text.trim()}', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textM(context))),
         const SizedBox(height: 28),
         _label('6-DIGIT CODE'),
         const SizedBox(height: 8),
@@ -219,7 +219,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           keyboardType: TextInputType.number,
           maxLength: 6,
           textAlign: TextAlign.center,
-          style: GoogleFonts.sora(fontSize: 24, letterSpacing: 10, fontWeight: FontWeight.w800, color: CT.textH(context)),
+          style: GoogleFonts.plusJakartaSans(fontSize: 24, letterSpacing: 10, fontWeight: FontWeight.w800, color: CT.textH(context)),
           decoration: _inputDec('', Icons.lock_clock_outlined).copyWith(counterText: ''),
         ).animate().fadeIn(),
         const SizedBox(height: 32),
@@ -228,7 +228,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         Center(
           child: TextButton(
             onPressed: _isLoading ? null : _sendOtp,
-            child: Text('Resend OTP', style: GoogleFonts.dmSans(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.w600)),
+            child: Text('Resend OTP', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.w600)),
           ),
         ),
       ],
@@ -240,16 +240,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       key: const ValueKey('pw'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Set New Password', style: GoogleFonts.sora(fontSize: 20, fontWeight: FontWeight.w700, color: CT.textH(context))),
+        Text('Set New Password', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w700, color: CT.textH(context))),
         const SizedBox(height: 6),
-        Text('At least 6 characters.', style: GoogleFonts.dmSans(fontSize: 14, color: CT.textM(context))),
+        Text('At least 6 characters.', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textM(context))),
         const SizedBox(height: 28),
         _label('NEW PASSWORD'),
         const SizedBox(height: 8),
         TextFormField(
           controller: _passCtrl,
           obscureText: !_showPass,
-          style: GoogleFonts.dmSans(color: CT.textH(context)),
+          style: GoogleFonts.plusJakartaSans(color: CT.textH(context)),
           validator: (v) => (v == null || v.length < 6) ? 'Minimum 6 characters' : null,
           decoration: _inputDec('Enter new password', Icons.lock_outline).copyWith(
             suffixIcon: IconButton(
@@ -264,7 +264,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         TextFormField(
           controller: _confirmCtrl,
           obscureText: !_showPass,
-          style: GoogleFonts.dmSans(color: CT.textH(context)),
+          style: GoogleFonts.plusJakartaSans(color: CT.textH(context)),
           validator: (v) => v != _passCtrl.text ? 'Passwords do not match' : null,
           decoration: _inputDec('Re-enter password', Icons.lock_outline),
         ).animate().fadeIn(),
@@ -274,11 +274,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     );
   }
 
-  Widget _label(String t) => Text(t, style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textS(context)));
+  Widget _label(String t) => Text(t, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textS(context)));
 
   InputDecoration _inputDec(String hint, IconData icon) => InputDecoration(
     hintText: hint,
-    hintStyle: GoogleFonts.dmSans(color: CT.textM(context)),
+    hintStyle: GoogleFonts.plusJakartaSans(color: CT.textM(context)),
     prefixIcon: Icon(icon, color: CT.textM(context)),
     filled: true, fillColor: CT.card(context),
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
@@ -309,7 +309,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             alignment: Alignment.center,
             child: _isLoading
                 ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                : Text(label, style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                : Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
           ),
         ),
       ),

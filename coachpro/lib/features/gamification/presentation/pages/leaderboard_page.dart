@@ -76,7 +76,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             expandedHeight: 100,
             title: Text(
               'Leaderboard & XP',
-              style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context)),
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: CT.textH(context)),
             ),
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(48),
@@ -86,8 +86,8 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                 unselectedLabelColor: CT.textS(context),
                 indicatorColor: accent,
                 indicatorWeight: 3,
-                labelStyle: GoogleFonts.dmSans(fontWeight: FontWeight.w700, fontSize: 14),
-                unselectedLabelStyle: GoogleFonts.dmSans(fontWeight: FontWeight.w500, fontSize: 14),
+                labelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 14),
+                unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w500, fontSize: 14),
                 tabs: const [
                   Tab(text: 'Leaderboard'),
                   Tab(text: 'My XP'),
@@ -135,7 +135,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                       ),
                       child: Text(
                         period,
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: isActive ? Colors.white : CT.textS(context),
@@ -204,19 +204,19 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                     decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
                     child: Center(
                       child: Text('#${_myProfile['rank']}',
-                          style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Your Position', style: GoogleFonts.sora(fontWeight: FontWeight.w600, color: CT.textH(context))),
+                      Text('Your Position', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: CT.textH(context))),
                       Text('${_myProfile['xp']} XP · Level ${_myProfile['level']} · ${_myProfile['title']}',
-                          style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context))),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textS(context))),
                     ]),
                   ),
                   Icon(Icons.arrow_upward_rounded, color: Colors.green.shade400, size: 20),
-                  Text('+2', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: Colors.green.shade400)),
+                  Text('+2', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: Colors.green.shade400)),
                 ],
               ),
             ).animate().fadeIn(delay: 400.ms),
@@ -247,9 +247,9 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         const SizedBox(height: 8),
         Text(
           (entry['name'] as String).split(' ').first,
-          style: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w600, color: CT.textH(context)),
+          style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: CT.textH(context)),
         ),
-        Text('${entry['xp']} XP', style: GoogleFonts.dmSans(fontSize: 11, color: CT.textS(context))),
+        Text('${entry['xp']} XP', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textS(context))),
         const SizedBox(height: 6),
         // Podium bar
         Container(
@@ -264,7 +264,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
           ),
           child: Center(
-            child: Text('#$rank', style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+            child: Text('#$rank', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
           ),
         ),
       ],
@@ -285,7 +285,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
           SizedBox(
             width: 32,
             child: Text('#${entry['rank']}',
-                style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textS(context))),
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: CT.textS(context))),
           ),
           Container(
             width: 40, height: 40,
@@ -296,17 +296,17 @@ class _LeaderboardPageState extends State<LeaderboardPage>
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(isMe ? 'You' : entry['name'] as String,
-                  style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: CT.textH(context))),
               Text('Level ${entry['level']} · ${entry['batch']}',
-                  style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context))),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textS(context))),
             ]),
           ),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('${entry['xp']} XP', style: GoogleFonts.sora(fontSize: 14, fontWeight: FontWeight.w700, color: accent)),
+            Text('${entry['xp']} XP', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: accent)),
             Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.local_fire_department_rounded, size: 14, color: Colors.orange.shade400),
               const SizedBox(width: 2),
-              Text('${entry['streak']}d', style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context))),
+              Text('${entry['streak']}d', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textM(context))),
             ]),
           ]),
         ],
@@ -346,8 +346,8 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                           ),
                         ),
                         Column(mainAxisSize: MainAxisSize.min, children: [
-                          Text('${_myProfile['level']}', style: GoogleFonts.sora(fontSize: 24, fontWeight: FontWeight.w800, color: accent)),
-                          Text('Level', style: GoogleFonts.dmSans(fontSize: 10, color: CT.textS(context))),
+                          Text('${_myProfile['level']}', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w800, color: accent)),
+                          Text('Level', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: CT.textS(context))),
                         ]),
                       ],
                     ),
@@ -356,10 +356,10 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(_myProfile['title'] as String,
-                          style: GoogleFonts.sora(fontSize: 20, fontWeight: FontWeight.w700, color: CT.textH(context))),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w700, color: CT.textH(context))),
                       const SizedBox(height: 4),
                       Text('${_myProfile['xp']} Total XP',
-                          style: GoogleFonts.dmSans(fontSize: 14, color: CT.textS(context))),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textS(context))),
                       const SizedBox(height: 8),
                       // XP bar to next level
                       ClipRRect(
@@ -373,7 +373,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                       ),
                       const SizedBox(height: 4),
                       Text('325 XP to Level ${(_myProfile['level'] as int) + 1}',
-                          style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context))),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textM(context))),
                     ]),
                   ),
                 ],
@@ -398,7 +398,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         const SizedBox(height: AppDimensions.lg),
 
         // XP Points system
-        Text('How to Earn XP', style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
+        Text('How to Earn XP', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
         const SizedBox(height: AppDimensions.sm),
         ...[
           {'action': 'Attend a class', 'points': '+10 XP', 'icon': Icons.school_rounded},
@@ -420,8 +420,8 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             child: Row(children: [
               Icon(item['icon'] as IconData, size: 20, color: accent),
               const SizedBox(width: 12),
-              Expanded(child: Text(item['action'] as String, style: GoogleFonts.dmSans(fontSize: 13, color: CT.textH(context)))),
-              Text(item['points'] as String, style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.green.shade400)),
+              Expanded(child: Text(item['action'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textH(context)))),
+              Text(item['points'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.green.shade400)),
             ]),
           ).animate().fadeIn(delay: (100 * e.key).ms);
         }),
@@ -429,7 +429,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         const SizedBox(height: AppDimensions.lg),
 
         // Recent XP Activity
-        Text('Recent Activity', style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
+        Text('Recent Activity', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
         const SizedBox(height: AppDimensions.sm),
         ...recentXP.asMap().entries.map((e) {
           final item = e.value;
@@ -452,11 +452,11 @@ class _LeaderboardPageState extends State<LeaderboardPage>
               ),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(item['desc'] as String, style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w500, color: CT.textH(context))),
-                Text(item['time'] as String, style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context))),
+                Text(item['desc'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: CT.textH(context))),
+                Text(item['time'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textM(context))),
               ])),
               Text('+${item['points']} XP',
-                  style: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.green.shade400)),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.green.shade400)),
             ]),
           ).animate().fadeIn(delay: (80 * e.key).ms);
         }),
@@ -476,9 +476,9 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         child: Column(children: [
           Icon(icon, color: color, size: 24),
           const SizedBox(height: 6),
-          Text(value, style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w800, color: color)),
+          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, color: color)),
           const SizedBox(height: 2),
-          Text(label, textAlign: TextAlign.center, style: GoogleFonts.dmSans(fontSize: 10, color: CT.textS(context))),
+          Text(label, textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: CT.textS(context))),
         ]),
       ),
     );
@@ -516,7 +516,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             const SizedBox(width: 14),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('$earned / ${badges.length} Badges Earned',
-                  style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: CT.textH(context))),
               const SizedBox(height: 4),
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
@@ -529,7 +529,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
               ),
               const SizedBox(height: 4),
               Text('Keep going! ${badges.length - earned} more to unlock.',
-                  style: GoogleFonts.dmSans(fontSize: 12, color: CT.textS(context))),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textS(context))),
             ])),
           ]),
         ).animate().fadeIn(duration: 400.ms),
@@ -570,7 +570,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                   Text(
                     badge['name'] as String,
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.sora(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: isEarned ? CT.textH(context) : CT.textM(context),
@@ -580,7 +580,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
                   Text(
                     badge['desc'] as String,
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context)),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textM(context)),
                   ),
                   if (!isEarned) ...[
                     const SizedBox(height: 4),
