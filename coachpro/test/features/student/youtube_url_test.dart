@@ -1,24 +1,46 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 // Helper to test regex logic from the player page without full widget creation
 String resolveVideoId(String input) {
   final raw = input.trim();
   if (raw.isEmpty) return '';
 
-  // Standard convertUrlToId handles watch?v= and youtu.be
-  final idFromUrl = YoutubePlayer.convertUrlToId(raw);
-  if (idFromUrl != null) return idFromUrl;
+  final uri = Uri.tryParse(raw);
+  if (uri != null) {
+    final host = uri.host.toLowerCase();
 
-  // Handle /live/ links specifically
-  final liveMatch = RegExp(r"youtube\.com/live/([a-zA-Z0-9_-]{11})").firstMatch(raw);
-  if (liveMatch != null) return liveMatch.group(1)!;
+    if (host == 'youtu.be' || host == 'www.youtu.be') {
+      if (uri.pathSegments.isNotEmpty) {
+        final id = uri.pathSegments.first;
+        if (_isYoutubeId(id)) return id;
+      }
+    }
 
-  // Handle other common patterns if needed
-  if (raw.length == 11) return raw;
-  
+    if (host.contains('youtube.com')) {
+      final videoId = uri.queryParameters['v'];
+      if (videoId != null && _isYoutubeId(videoId)) return videoId;
+
+      final segments = uri.pathSegments;
+      final liveIndex = segments.indexOf('live');
+      if (liveIndex >= 0 && segments.length > liveIndex + 1) {
+        final id = segments[liveIndex + 1];
+        if (_isYoutubeId(id)) return id;
+      }
+
+      final shortsIndex = segments.indexOf('shorts');
+      if (shortsIndex >= 0 && segments.length > shortsIndex + 1) {
+        final id = segments[shortsIndex + 1];
+        if (_isYoutubeId(id)) return id;
+      }
+    }
+  }
+
+  if (_isYoutubeId(raw)) return raw;
+
   return raw;
 }
+
+bool _isYoutubeId(String value) => RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(value);
 
 void main() {
   group('YouTube URL Resolution Tests', () {

@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/theme_aware.dart';
-import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/student_repository.dart';
 
@@ -55,7 +54,6 @@ class _QuizStateView {
     : quiz['show_instant_result'] == true;
 
   final submittedAt = attempt?['submitted_at'];
-  final startedAt = attempt?['started_at'];
   final hasAttempt = attempt != null;
   final isSubmitted = submittedAt != null;
   final isInProgress = hasAttempt && !isSubmitted;
@@ -125,7 +123,6 @@ class QuizzesListPage extends StatefulWidget {
 
 class _QuizzesListPageState extends State<QuizzesListPage> {
   final _studentRepo = sl<StudentRepository>();
-  List<Map<String, dynamic>> _quizzes = [];
   List<Map<String, dynamic>> _newQuizzes = [];
   List<Map<String, dynamic>> _resultQuizzes = [];
   List<Map<String, dynamic>> _oldQuizzes = [];
@@ -167,7 +164,6 @@ class _QuizzesListPageState extends State<QuizzesListPage> {
       }
 
       setState(() {
-        _quizzes = data;
         _newQuizzes = newQuizzes;
         _resultQuizzes = resultQuizzes;
         _oldQuizzes = oldQuizzes;

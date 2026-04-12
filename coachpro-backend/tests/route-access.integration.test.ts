@@ -76,6 +76,12 @@ jest.mock('../src/modules/fee/fee.controller', () => {
       generateMonthly = (_req: any, res: any) => res.status(200).json({ ok: true });
       getRecords = (_req: any, res: any) => res.status(200).json({ ok: true });
       recordPayment = (_req: any, res: any) => res.status(200).json({ ok: true });
+      adjustFeeRecord = (_req: any, res: any) => res.status(200).json({ ok: true });
+      submitPaymentProof = (_req: any, res: any) => res.status(200).json({ ok: true });
+      getMyPaymentProofs = (_req: any, res: any) => res.status(200).json({ ok: true });
+      getPaymentsForReview = (_req: any, res: any) => res.status(200).json({ ok: true });
+      approvePaymentProof = (_req: any, res: any) => res.status(200).json({ ok: true });
+      rejectPaymentProof = (_req: any, res: any) => res.status(200).json({ ok: true });
     },
   };
 });
@@ -139,6 +145,22 @@ describe('route access integration', () => {
       .post('/fees/pay')
       .set('x-role', 'admin')
       .send({ fee_record_id: 'f1', amount_paid: 10, payment_method: 'upi' });
+    expect(okAdmin.status).toBe(200);
+  });
+
+  test('fee adjustment route is admin-only', async () => {
+    const app = appWith('/fees', feeRoutes);
+
+    const blockedTeacher = await request(app)
+      .post('/fees/adjust')
+      .set('x-role', 'teacher')
+      .send({ fee_record_id: 'f1', delta_amount: 10, reason: 'manual correction' });
+    expect(blockedTeacher.status).toBe(403);
+
+    const okAdmin = await request(app)
+      .post('/fees/adjust')
+      .set('x-role', 'admin')
+      .send({ fee_record_id: 'f1', delta_amount: 10, reason: 'manual correction' });
     expect(okAdmin.status).toBe(200);
   });
 
