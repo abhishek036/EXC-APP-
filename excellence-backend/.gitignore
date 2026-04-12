@@ -20,6 +20,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 tunnel.log
+.dev-server.pid
 
 # Cloudflare
 cloudflared.exe
@@ -27,3 +28,7 @@ cloudflared.exe
 # OS
 .DS_Store
 Thumbs.db
+
+# Local runtime artifacts
+tmp/
+tsconfig.tsbuildinfo
