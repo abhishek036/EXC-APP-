@@ -247,18 +247,25 @@ class _PaymentItem {
   factory _PaymentItem.fromMap(Map<String, dynamic> map) {
     final rawStatus = (map['status'] ?? 'pending').toString().toLowerCase();
     final status = rawStatus == 'paid'
-        ? _PaymentStatus.paid
-        : rawStatus == 'overdue'
-            ? _PaymentStatus.overdue
-            : _PaymentStatus.pending;
+      ? _PaymentStatus.paid
+      : rawStatus == 'overdue'
+        ? _PaymentStatus.overdue
+        : _PaymentStatus.pending;
 
     const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final monthNum = (map['month'] as num?)?.toInt() ?? 0;
-    final year = (map['year'] as num?)?.toInt() ?? 0;
+    final monthNum = _toInt(map['month']) ?? 0;
+    final year = _toInt(map['year']) ?? 0;
     final batchInfo = map['batch'] is Map ? (map['batch'] as Map)['name'] ?? '' : '';
     final monthLabel = monthNum > 0 && monthNum <= 12
         ? '${monthNames[monthNum]} $year'
         : (map['month'] ?? 'Unknown').toString();
+
+    final totalAmount = _toDouble(map['final_amount'] ?? map['amount_due'] ?? map['amount'] ?? 0);
+    final paidAmount = _toDouble(map['paid_amount']);
+    final explicitRemaining = _toDouble(map['remaining_amount']);
+    final remainingAmount = explicitRemaining > 0
+      ? explicitRemaining
+      : (totalAmount - paidAmount).clamp(0, double.infinity).toDouble();
 
     final rawDueDate = map['due_date']?.toString() ?? '';
     String formattedDate = (map['dateLabel'] ?? '').toString();
@@ -276,9 +283,19 @@ class _PaymentItem {
       description: batchInfo.toString().isNotEmpty
           ? 'Batch: $batchInfo'
           : (map['description'] ?? 'Fee Payment').toString(),
-      amount: (map['final_amount'] ?? map['amount_due'] ?? map['amount'] ?? 0).toString(),
+      amount: (status == _PaymentStatus.paid ? totalAmount : remainingAmount).toStringAsFixed(0),
       date: formattedDate,
       status: status,
     );
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  static double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 }

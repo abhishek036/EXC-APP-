@@ -50,9 +50,9 @@ class _FeeHistoryPageState extends State<FeeHistoryPage> {
 
       if (!mounted) return;
       setState(() {
-        _totalPaid = (summary['total_paid'] ?? 0).toDouble();
-        _totalPending = (summary['total_pending'] ?? 0).toDouble();
-        _totalRecords = (summary['total_records'] ?? 0) as int;
+        _totalPaid = _toDouble(summary['total_paid']);
+        _totalPending = _toDouble(summary['total_pending']);
+        _totalRecords = _toInt(summary['total_records']);
         _records = records;
         _isLoading = false;
       });
@@ -83,6 +83,11 @@ class _FeeHistoryPageState extends State<FeeHistoryPage> {
   double _toDouble(dynamic value) {
     if (value is num) return value.toDouble();
     return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  int _toInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   double _remainingAmount(Map<String, dynamic> record) {

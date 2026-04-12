@@ -86,14 +86,13 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
           .map((entry) => Map<String, dynamic>.from(entry))
           .toList();
 
-        final pending = normalizedRecords.where((r) {
-        final status = (r['status'] ?? '').toString().toLowerCase();
-        return status == 'pending' ||
-            status == 'overdue' ||
-            status == 'unpaid' ||
-            status == 'pending_verification' ||
-            status == 'rejected';
-      }).toList();
+        final pending = normalizedRecords.where((record) {
+          final status = (record['status'] ?? '').toString().toLowerCase();
+          final remaining = _remainingAmountForRecord(record);
+          return remaining > 0 ||
+          status == 'pending_verification' ||
+          status == 'rejected';
+        }).toList();
 
       pending.sort((a, b) {
         final aDue = DateTime.tryParse((a['due_date'] ?? '').toString());
@@ -109,9 +108,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
           : (normalizedRecords.isNotEmpty
             ? normalizedRecords.first
             : <String, dynamic>{});
-      final totalAmount = _toDouble(target['final_amount'] ?? target['amount_due'] ?? target['amount'] ?? 0);
-      final paidAmount = _toDouble(target['paid_amount'] ?? 0);
-      final amount = (totalAmount - paidAmount).clamp(0, double.infinity).toDouble();
+      final amount = _remainingAmountForRecord(target);
 
         final month = _toInt(target['month']);
         final year = _toInt(target['year']);
@@ -131,9 +128,9 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
         _batchName = (target['batch']?['name'] ?? 'Batch').toString();
         _status = (target['status'] ?? 'unpaid').toString().toLowerCase();
         _selectedFeeRecordId = target['id']?.toString();
-        _amountDue = amount > 0 ? amount : totalAmount;
+        _amountDue = amount;
         _pendingReviewCount = 0;
-        _dueText = dueStr;
+        _dueText = amount > 0 ? dueStr : 'NO PENDING DUES';
         _feeRecords = pending.isNotEmpty ? pending : normalizedRecords;
         _loading = false;
       });
@@ -157,7 +154,11 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
     return int.tryParse(value?.toString() ?? '');
   }
 
+  String _safeString(dynamic value) => value == null ? '' : value.toString();
+
   double _remainingAmountForRecord(Map<String, dynamic> record) {
+    final explicitRemaining = _toDouble(record['remaining_amount']);
+    if (explicitRemaining > 0) return explicitRemaining;
     final totalAmount = _toDouble(record['final_amount'] ?? record['amount_due'] ?? record['amount'] ?? 0);
     final paidAmount = _toDouble(record['paid_amount'] ?? 0);
     return (totalAmount - paidAmount).clamp(0, double.infinity).toDouble();
@@ -450,13 +451,15 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                     return;
                   }
 
-                  if (_selectedFeeRecordId == null || _selectedFeeRecordId!.isEmpty) {
+                  final selectedFeeRecordId = _safeString(_selectedFeeRecordId).trim();
+
+                  if (selectedFeeRecordId.isEmpty) {
                     if (_feeRecords.isNotEmpty) {
                       _selectedFeeRecordId = (_feeRecords.first['id'] ?? '').toString();
                     }
                   }
 
-                  if (_selectedFeeRecordId == null || _selectedFeeRecordId!.isEmpty) {
+                  if (_safeString(_selectedFeeRecordId).trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('No fee record available for proof submission.')),
                     );
