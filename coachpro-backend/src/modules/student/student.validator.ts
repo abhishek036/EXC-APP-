@@ -11,7 +11,7 @@ export const createStudentSchema = z.object({
     prev_institute: z.string().max(200).optional(),
     // Allow optionally passing parent details during student creation
     parent_name: z.string().min(2).max(200).optional(),
-    parent_phone: z.string().min(10).max(15).optional(),
+    parent_phone: z.union([z.string().min(10).max(20), z.literal(''), z.null()]).optional(),
     parent_relation: z.string().max(20).optional(),
     batch_ids: z.array(z.string()).optional(),
     lead_id: z.string().uuid().optional(),

@@ -1,6 +1,8 @@
 import { prisma } from '../../server';
 import { CreateStudentInput, UpdateStudentInput } from './student.validator';
 import { Prisma } from '@prisma/client';
+import { ApiError } from '../../middleware/error.middleware';
+import { buildPhoneVariants, normalizeIndianPhone } from '../../utils/phone';
 
 export class StudentRepository {
   async listStudents(instituteId: string, filters: { name?: string, phone?: string, batchId?: string, isActive?: boolean }, pagination: { skip: number, take: number }) {
@@ -23,6 +25,26 @@ export class StudentRepository {
         where: whereClause,
         include: {
           _count: { select: { student_batches: true } },
+          parent_students: {
+            where: { is_primary: true },
+            take: 1,
+            include: {
+              parent: {
+                select: {
+                  id: true,
+                  name: true,
+                  phone: true,
+                  user: {
+                    select: {
+                      id: true,
+                      status: true,
+                      is_active: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           student_batches: {
             where: { is_active: true },
             include: {
@@ -50,7 +72,19 @@ export class StudentRepository {
       where: { id: studentId, institute_id: instituteId },
       include: {
         parent_students: {
-           include: { parent: true }
+           include: {
+            parent: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    status: true,
+                    is_active: true,
+                  },
+                },
+              },
+            },
+          }
         },
         student_batches: {
            where: { is_active: true },
@@ -76,6 +110,166 @@ export class StudentRepository {
     });
   }
 
+  private resolveParentName(studentName: string, parentName?: string | null): string {
+    const trimmedParentName = String(parentName || '').trim();
+    if (trimmedParentName.length > 0) return trimmedParentName;
+
+    const trimmedStudentName = String(studentName || '').trim();
+    if (!trimmedStudentName) return 'Parent';
+
+    return `${trimmedStudentName} Parent`;
+  }
+
+  async findOrCreateParentByPhone(
+    tx: any,
+    instituteId: string,
+    parentPhone: string,
+    options?: { parentName?: string; studentName?: string },
+  ) {
+    const normalizedPhone = normalizeIndianPhone(parentPhone);
+    if (!normalizedPhone) {
+      throw new ApiError('Invalid parent phone. Expected +91XXXXXXXXXX or 10-digit number.', 400, 'INVALID_PARENT_PHONE');
+    }
+
+    const phoneVariants = buildPhoneVariants(normalizedPhone);
+
+    const [parentByPhone, parentUserByPhone, nonParentUserByPhone] = await Promise.all([
+      tx.parent.findFirst({
+        where: {
+          institute_id: instituteId,
+          phone: { in: phoneVariants },
+        },
+        include: { user: true },
+      }),
+      tx.user.findFirst({
+        where: {
+          institute_id: instituteId,
+          role: 'parent',
+          phone: { in: phoneVariants },
+        },
+      }),
+      tx.user.findFirst({
+        where: {
+          institute_id: instituteId,
+          role: { not: 'parent' },
+          phone: { in: phoneVariants },
+        },
+        select: { id: true, role: true },
+      }),
+    ]);
+
+    if (nonParentUserByPhone) {
+      throw new ApiError(
+        `Phone is already used by a ${nonParentUserByPhone.role} account. Please use a different parent phone.`,
+        409,
+        'PHONE_ROLE_CONFLICT',
+      );
+    }
+
+    let parentUser = parentByPhone?.user || parentUserByPhone;
+
+    if (!parentUser) {
+      parentUser = await tx.user.create({
+        data: {
+          institute_id: instituteId,
+          phone: normalizedPhone,
+          role: 'parent',
+          status: 'INACTIVE',
+          is_active: true,
+        },
+      });
+    } else {
+      const userPatch: Record<string, unknown> = {};
+      if (parentUser.phone !== normalizedPhone) userPatch.phone = normalizedPhone;
+      if (Object.keys(userPatch).length > 0) {
+        parentUser = await tx.user.update({
+          where: { id: parentUser.id },
+          data: userPatch,
+        });
+      }
+    }
+
+    const resolvedParentName = this.resolveParentName(options?.studentName || '', options?.parentName);
+
+    if (parentByPhone) {
+      const parentPatch: Record<string, unknown> = {};
+      if (parentByPhone.phone !== normalizedPhone) parentPatch.phone = normalizedPhone;
+      if (parentByPhone.user_id !== parentUser.id) parentPatch.user_id = parentUser.id;
+      if (String(options?.parentName || '').trim().length > 0 && parentByPhone.name !== resolvedParentName) {
+        parentPatch.name = resolvedParentName;
+      }
+
+      if (Object.keys(parentPatch).length === 0) return parentByPhone;
+
+      return tx.parent.update({
+        where: { id: parentByPhone.id },
+        data: parentPatch,
+      });
+    }
+
+    return tx.parent.create({
+      data: {
+        institute_id: instituteId,
+        user_id: parentUser.id,
+        name: resolvedParentName,
+        phone: normalizedPhone,
+      },
+    });
+  }
+
+  async linkParentToStudent(
+    tx: any,
+    instituteId: string,
+    parentId: string,
+    studentId: string,
+    relation?: string,
+  ) {
+    const normalizedRelation =
+      typeof relation === 'string' && relation.trim().length > 0 ? relation.trim() : 'guardian';
+
+    // Enforce a single active parent mapping per student for now.
+    await tx.parentStudent.deleteMany({
+      where: {
+        student_id: studentId,
+        parent: { institute_id: instituteId },
+        NOT: { parent_id: parentId },
+      },
+    });
+
+    return tx.parentStudent.upsert({
+      where: {
+        parent_id_student_id: {
+          parent_id: parentId,
+          student_id: studentId,
+        },
+      },
+      update: {
+        relation: normalizedRelation,
+        is_primary: true,
+      },
+      create: {
+        parent_id: parentId,
+        student_id: studentId,
+        relation: normalizedRelation,
+        is_primary: true,
+      },
+    });
+  }
+
+  async getParentStudents(tx: any, instituteId: string, parentId: string) {
+    const links = await tx.parentStudent.findMany({
+      where: {
+        parent_id: parentId,
+        parent: { institute_id: instituteId },
+      },
+      include: {
+        student: true,
+      },
+    });
+
+    return links.map((entry: any) => entry.student);
+  }
+
   async createStudentWithUserAndParent(instituteId: string, data: CreateStudentInput, _passwordHash?: string) {
      return prisma.$transaction(async (tx: any) => {
          // 1. Create Student record
@@ -92,23 +286,14 @@ export class StudentRepository {
              }
          });
 
-         // 2. Create Parent if required
-         if (data.parent_name && data.parent_phone) {
-             const parent = await tx.parent.create({
-                 data: {
-                     institute_id: instituteId,
-                     name: data.parent_name,
-                     phone: data.parent_phone,
-                 }
-             });
-
-             await tx.parentStudent.create({
-                 data: {
-                     parent_id: parent.id,
-                     student_id: student.id,
-                     relation: data.parent_relation || 'guardian'
-                 }
-             });
+         // 2. Link/Create Parent by normalized phone
+         const hasParentPhone = typeof data.parent_phone === 'string' && data.parent_phone.trim().length > 0;
+         if (hasParentPhone) {
+           const parent = await this.findOrCreateParentByPhone(tx, instituteId, data.parent_phone!, {
+             parentName: data.parent_name,
+             studentName: data.name,
+           });
+           await this.linkParentToStudent(tx, instituteId, parent.id, student.id, data.parent_relation);
          }
 
          // 3. Assign student to batches if provided
@@ -173,9 +358,22 @@ export class StudentRepository {
       });
 
       const hasParentName = typeof parent_name === 'string' && parent_name.trim().length > 0;
+      const parentPhoneProvided = Object.prototype.hasOwnProperty.call(data as Record<string, unknown>, 'parent_phone');
       const hasParentPhone = typeof parent_phone === 'string' && parent_phone.trim().length > 0;
 
-      if (hasParentName && hasParentPhone) {
+      if (parentPhoneProvided) {
+        if (hasParentPhone) {
+          const parent = await this.findOrCreateParentByPhone(tx, instituteId, parent_phone!, {
+            parentName: hasParentName ? parent_name : undefined,
+            studentName: student.name,
+          });
+          await this.linkParentToStudent(tx, instituteId, parent.id, studentId, parent_relation);
+        } else {
+          await tx.parentStudent.deleteMany({
+            where: { student_id: studentId },
+          });
+        }
+      } else if (hasParentName) {
         const existingLink = await tx.parentStudent.findFirst({
           where: { student_id: studentId },
           include: { parent: true },
@@ -186,36 +384,15 @@ export class StudentRepository {
             where: { id: existingLink.parent_id },
             data: {
               name: parent_name.trim(),
-              phone: parent_phone.trim(),
             },
           });
 
-          await tx.parentStudent.update({
-            where: { parent_id_student_id: { parent_id: existingLink.parent_id, student_id: studentId } },
-            data: {
-              relation: (typeof parent_relation === 'string' && parent_relation.trim().length > 0)
-                  ? parent_relation.trim()
-                  : existingLink.relation,
-            },
-          });
-        } else {
-          const parent = await tx.parent.create({
-            data: {
-              institute_id: instituteId,
-              name: parent_name.trim(),
-              phone: parent_phone.trim(),
-            },
-          });
-
-          await tx.parentStudent.create({
-            data: {
-              parent_id: parent.id,
-              student_id: studentId,
-              relation: (typeof parent_relation === 'string' && parent_relation.trim().length > 0)
-                  ? parent_relation.trim()
-                  : 'guardian',
-            },
-          });
+          if (typeof parent_relation === 'string' && parent_relation.trim().length > 0) {
+            await tx.parentStudent.update({
+              where: { parent_id_student_id: { parent_id: existingLink.parent_id, student_id: studentId } },
+              data: { relation: parent_relation.trim() },
+            });
+          }
         }
       }
 

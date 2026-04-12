@@ -291,6 +291,7 @@ model ParentStudent {
   is_primary Boolean? @default(true)
 
   @@unique([parent_id, student_id])
+  @@index([student_id])
   @@map("parent_students")
 }
 

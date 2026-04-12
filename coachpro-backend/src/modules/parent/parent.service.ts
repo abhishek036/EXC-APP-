@@ -1,5 +1,6 @@
 import { ParentRepository } from './parent.repository';
 import { prisma } from '../../server';
+import { ApiError } from '../../middleware/error.middleware';
 
 export class ParentService {
   private parentRepo: ParentRepository;
@@ -8,11 +9,41 @@ export class ParentService {
     this.parentRepo = new ParentRepository();
   }
 
-  async getDashboardData(userId: string, instituteId: string) {
-    const parent = await this.parentRepo.findParentByUserId(userId, instituteId);
-    if (!parent) return null;
+  private async resolveParentContext(userId: string, instituteId: string) {
+    const user = await prisma.user.findFirst({
+      where: { id: userId, institute_id: instituteId },
+      select: { phone: true },
+    });
 
-    const students = (parent as any).parent_students.map((ps: any) => ps.student);
+    const parent = await this.parentRepo.findParentByUserIdOrPhone(userId, instituteId, user?.phone);
+    if (!parent) {
+      return { parent: null, students: [] as any[] };
+    }
+
+    const students = await this.parentRepo.getParentStudents(instituteId, parent.id);
+    return { parent, students };
+  }
+
+  private noLinkPayload(parent: any = null) {
+    return {
+      linked: false,
+      message: 'No student linked to this account',
+      action: 'Contact coaching',
+      parent: parent ? { id: parent.id, name: parent.name, phone: parent.phone } : null,
+      children: [],
+      todaySchedule: [],
+      upcomingExams: [],
+      pendingFees: [],
+      announcements: [],
+    };
+  }
+
+  async getDashboardData(userId: string, instituteId: string) {
+    const { parent, students } = await this.resolveParentContext(userId, instituteId);
+    if (!parent || students.length === 0) {
+      return this.noLinkPayload(parent);
+    }
+
     const studentIds = students.map((s: any) => s.id);
 
     // Run aggregations for ALL children
@@ -50,6 +81,7 @@ export class ParentService {
     ]);
 
     return {
+      linked: true,
       parent: { id: parent.id, name: parent.name, phone: parent.phone },
       children: students.map((s: any) => ({
          id: s.id,
@@ -75,13 +107,20 @@ export class ParentService {
     return total > 0 ? Math.round((present / total) * 100) : 0;
   }
 
+  async getParentStudents(userId: string, instituteId: string) {
+    const { students } = await this.resolveParentContext(userId, instituteId);
+    return students;
+  }
+
   async getMyChildren(userId: string, instituteId: string) {
-    return this.parentRepo.getChildren(userId, instituteId);
+    return this.getParentStudents(userId, instituteId);
   }
 
   async getPaymentHistory(userId: string, instituteId: string) {
-    const students = await this.parentRepo.getChildren(userId, instituteId);
+    const students = await this.getParentStudents(userId, instituteId);
     const studentIds = students.map((s: any) => s.id);
+    if (!studentIds.length) return [];
+
     return prisma.feeRecord.findMany({
       where: { student_id: { in: studentIds }, institute_id: instituteId },
       include: { 
@@ -93,13 +132,21 @@ export class ParentService {
   }
 
   async getChildReport(userId: string, childId: string, instituteId: string) {
-    // Verify child belongs to parent
-    const parent = await prisma.parent.findFirst({
-       where: { user_id: userId, institute_id: instituteId },
-       include: { parent_students: { where: { student_id: childId } } }
+    const { parent } = await this.resolveParentContext(userId, instituteId);
+    if (!parent) {
+      throw new ApiError('Parent profile not found', 404, 'NOT_FOUND');
+    }
+
+    const relation = await prisma.parentStudent.findFirst({
+      where: {
+        parent_id: parent.id,
+        student_id: childId,
+      },
+      select: { id: true },
     });
-    if (!parent || parent.parent_students.length === 0) {
-       throw new Error('Unauthorized or child not found');
+
+    if (!relation) {
+       throw new ApiError('Unauthorized or child not found', 403, 'FORBIDDEN');
     }
 
     const [attendance, results] = await Promise.all([

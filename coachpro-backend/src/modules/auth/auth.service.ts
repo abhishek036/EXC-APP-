@@ -5,6 +5,7 @@ import { AuthRepository } from './auth.repository';
 import { generateOTP, generateTokens } from '../../utils/otp';
 import { ApiError } from '../../middleware/error.middleware';
 import { prisma } from '../../server';
+import { buildPhoneVariants, normalizeIndianPhone } from '../../utils/phone';
 
 export class AuthService {
     private authRepository: AuthRepository;
@@ -98,6 +99,103 @@ export class AuthService {
         });
     }
 
+    private async _syncParentLinkState(db: any, user: any): Promise<{ user: any; parentLink: Record<string, unknown> }> {
+        const normalizedPhone = normalizeIndianPhone(user.phone);
+        const resolvedPhone = normalizedPhone || String(user.phone || '').trim();
+
+        if (!resolvedPhone) {
+            throw new ApiError('Parent phone is missing on account', 400, 'PARENT_PHONE_MISSING');
+        }
+
+        if (normalizedPhone && user.phone !== normalizedPhone) {
+            user = await db.user.update({
+                where: { id: user.id },
+                data: { phone: normalizedPhone },
+            });
+        }
+
+        const phoneVariants = buildPhoneVariants(resolvedPhone);
+
+        let parent = await db.parent.findFirst({
+            where: {
+                institute_id: user.institute_id,
+                OR: [
+                    { user_id: user.id },
+                    ...(phoneVariants.length > 0 ? [{ phone: { in: phoneVariants } }] : []),
+                ],
+            },
+        });
+
+        if (!parent) {
+            parent = await db.parent.create({
+                data: {
+                    institute_id: user.institute_id,
+                    user_id: user.id,
+                    name: 'Parent',
+                    phone: resolvedPhone,
+                },
+            });
+        } else {
+            const parentPatch: Record<string, unknown> = {};
+            if (parent.user_id !== user.id) parentPatch.user_id = user.id;
+            if (parent.phone !== resolvedPhone) parentPatch.phone = resolvedPhone;
+            if (Object.keys(parentPatch).length > 0) {
+                parent = await db.parent.update({
+                    where: { id: parent.id },
+                    data: parentPatch,
+                });
+            }
+        }
+
+        const links = await db.parentStudent.findMany({
+            where: { parent_id: parent.id },
+            include: {
+                student: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
+        });
+
+        const linkedStudents = links.map((entry: any) => entry.student);
+        const hasLinkedStudents = linkedStudents.length > 0;
+        const targetStatus = hasLinkedStudents ? 'ACTIVE' : 'INACTIVE';
+
+        if (user.status !== targetStatus) {
+            user = await db.user.update({
+                where: { id: user.id },
+                data: {
+                    status: targetStatus,
+                    is_active: true,
+                },
+            });
+        }
+
+        if (hasLinkedStudents) {
+            return {
+                user,
+                parentLink: {
+                    linked: true,
+                    student_count: linkedStudents.length,
+                    students: linkedStudents,
+                },
+            };
+        }
+
+        return {
+            user,
+            parentLink: {
+                linked: false,
+                student_count: 0,
+                students: [],
+                message: 'No student linked to this account',
+                action: 'Contact coaching',
+            },
+        };
+    }
+
     private _selectUserForInstitute(users: any[], instituteId?: string): any | null {
         if (instituteId) {
             const matched = users.find((entry) => entry.institute_id === instituteId) || null;
@@ -175,12 +273,12 @@ export class AuthService {
     async sendOtp(phone: string, purpose: string, joinCode?: string) {
         console.log(`[AUTH] sendOtp requested for phone: "${phone}", purpose: ${purpose}`);
 
-        const normalizedPhone = String(phone || '').trim();
+        const normalizedPhone = normalizeIndianPhone(phone);
         if (!normalizedPhone) {
             throw new ApiError('Phone number is required', 400, 'INVALID_PHONE');
         }
 
-        const phonesToSearch = this._phoneVariants(normalizedPhone);
+        const phonesToSearch = buildPhoneVariants(normalizedPhone);
         const joinInstitute = await this._resolveJoinInstitute(prisma, joinCode);
         const users = await this._findActiveUsersByPhone(prisma, phonesToSearch);
 
@@ -247,23 +345,28 @@ export class AuthService {
             throw new ApiError('OTP must be exactly 6 numeric digits', 400, 'INVALID_OTP_FORMAT');
         }
 
+        const normalizedPhone = normalizeIndianPhone(phone);
+        if (!normalizedPhone) {
+            throw new ApiError('Phone number is required', 400, 'INVALID_PHONE');
+        }
+
         // --- 1. OTP CHECK (Outside main transaction to avoid locking OTP table long-term) ---
         const isDevBypass = (process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_OTP === 'true') && 
                             otp === (process.env.TEST_OTP || '123456');
 
         if (!isDevBypass) {
-            const validOtp = await this.authRepository.verifyOtp(phone, otp, purpose);
+            const validOtp = await this.authRepository.verifyOtp(normalizedPhone, otp, purpose);
             if (!validOtp) {
-                console.log(`[AUTH] Invalid OTP attempt for ${phone}: received "${otp}"`);
+                console.log(`[AUTH] Invalid OTP attempt for ${normalizedPhone}: received "${otp}"`);
                 throw new ApiError('Invalid or expired OTP', 400, 'INVALID_OTP');
             }
         } else {
-            console.log(`[AUTH] Master OTP used for ${phone}`);
+            console.log(`[AUTH] Master OTP used for ${normalizedPhone}`);
         }
 
         // --- 2. RUN REGISTRATION/LOGIN LOGIC IN TRANSACTION ---
         return await prisma.$transaction(async (tx: any) => {
-            const phonesToSearch = this._phoneVariants(phone);
+            const phonesToSearch = buildPhoneVariants(normalizedPhone);
             const joinInstitute = await this._resolveJoinInstitute(tx, joinCode);
             const users = await this._findActiveUsersByPhone(tx, phonesToSearch);
             let user: any = this._selectUserForInstitute(users, joinInstitute?.id);
@@ -328,17 +431,20 @@ export class AuthService {
             if (!user) {
                 user = await tx.user.create({
                     data: {
-                        phone,
+                        phone: normalizedPhone,
                         institute_id: instituteIdToUse,
                         role: assignedRole,
-                        status: 'ACTIVE'
+                        status: assignedRole === 'parent' ? 'INACTIVE' : 'ACTIVE'
                     }
                 });
                 isNewUser = true;
             } else {
                 if (user.status === 'BLOCKED') throw new ApiError('Blocked.', 403, 'BLOCKED');
                 if (user.status === 'PENDING') {
-                    user = await tx.user.update({ where: { id: user.id }, data: { status: 'ACTIVE' } });
+                    user = await tx.user.update({
+                        where: { id: user.id },
+                        data: { status: user.role === 'parent' ? 'INACTIVE' : 'ACTIVE' },
+                    });
                 }
             }
 
@@ -357,6 +463,13 @@ export class AuthService {
             if (teacher && !teacher.user_id) await tx.teacher.update({ where: { id: teacher.id }, data: { user_id: user.id } });
             if (student && !student.user_id) await tx.student.update({ where: { id: student.id }, data: { user_id: user.id } });
             if (parent && !parent.user_id) await tx.parent.update({ where: { id: parent.id }, data: { user_id: user.id } });
+
+            let parentLink: Record<string, unknown> | undefined;
+            if (user.role === 'parent') {
+                const syncResult = await this._syncParentLinkState(tx, user);
+                user = syncResult.user;
+                parentLink = syncResult.parentLink;
+            }
 
             const sessionStartedAt = new Date();
             await tx.user.update({
@@ -402,27 +515,26 @@ export class AuthService {
                 user: { id: user.id, role: user.role, instituteId: user.institute_id, name: profile?.name },
                 accessToken,
                 refreshToken,
-                isNewUser
+                isNewUser,
+                ...(parentLink ? { parent_link: parentLink } : {}),
             };
         });
     }
 
     private _phoneVariants(phone: string) {
-        const base = String(phone || '').trim();
-        const variants = new Set<string>();
-        if (!base) return [];
-
-        variants.add(base);
-        if (base.startsWith('+91')) variants.add(base.substring(3));
-        if (base.length === 10) variants.add(`+91${base}`);
-        return Array.from(variants);
+        return buildPhoneVariants(phone);
     }
 
     async loginWithPassword(phone: string, password: string, joinCode?: string) {
-        const phonesToSearch = this._phoneVariants(phone);
+        const normalizedPhone = normalizeIndianPhone(phone);
+        if (!normalizedPhone) {
+            throw new ApiError('Phone number is required', 400, 'INVALID_PHONE');
+        }
+
+        const phonesToSearch = this._phoneVariants(normalizedPhone);
         const joinInstitute = await this._resolveJoinInstitute(prisma, joinCode);
         const users = await this._findActiveUsersByPhone(prisma, phonesToSearch);
-        const user: any = this._selectUserForInstitute(users, joinInstitute?.id);
+        let user: any = this._selectUserForInstitute(users, joinInstitute?.id);
 
         if (!user) {
             throw new ApiError('Invalid credentials or user not found', 401, 'INVALID_CREDENTIALS');
@@ -442,6 +554,13 @@ export class AuthService {
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
             throw new ApiError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
+        }
+
+        let parentLink: Record<string, unknown> | undefined;
+        if (user.role === 'parent') {
+            const syncResult = await this._syncParentLinkState(prisma, user);
+            user = syncResult.user;
+            parentLink = syncResult.parentLink;
         }
 
         const sessionStartedAt = new Date();
@@ -471,7 +590,8 @@ export class AuthService {
         return {
             user: { id: user.id, role: user.role, instituteId: user.institute_id, name: profile?.name },
             accessToken,
-            refreshToken
+            refreshToken,
+            ...(parentLink ? { parent_link: parentLink } : {}),
         };
     }
 
@@ -579,11 +699,7 @@ export class AuthService {
                 await prisma.parent.updateMany({ where: { user_id: userId, institute_id: user.institute_id }, data: { name } });
             } else if (this._isAdminRole(role)) {
                 const phonesToSearch = user.phone
-                    ? [
-                        user.phone,
-                        ...(user.phone.startsWith('+91') ? [user.phone.substring(3)] : []),
-                        ...(user.phone.length === 10 ? [`+91${user.phone}`] : []),
-                    ]
+                    ? this._phoneVariants(user.phone)
                     : [];
 
                 const updateResult = await prisma.staff.updateMany({
@@ -740,27 +856,7 @@ export class AuthService {
 
     // FIX: Improved phone normalization to ensure consistent format
     private _normalizePhones(phone: string): string[] {
-        const base = String(phone || '').trim();
-        const variants = new Set<string>();
-        if (!base) return [];
-
-        // Always store +91 format in DB lookups
-        variants.add(base);
-        // Remove +91 if present
-        if (base.startsWith('+91')) {
-            variants.add(base.substring(3));
-        } else if (base.startsWith('+')) {
-            // Handle other country codes
-            const withoutPlus = base.substring(1);
-            variants.add(withoutPlus);
-            variants.add(`+91${withoutPlus}`);
-        }
-        // If 10 digits, add +91 prefix
-        if (base.length === 10 && /^\d+$/.test(base)) {
-            variants.add(`+91${base}`);
-        }
-
-        return Array.from(variants);
+        return this._phoneVariants(phone);
     }
 
     async updateAvatar(userId: string, role: string, avatarUrl: string) {

@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ParentService } from './parent.service';
 import { sendResponse } from '../../utils/response';
-import { ApiError } from '../../middleware/error.middleware';
 
 export class ParentController {
   private parentService: ParentService;
@@ -13,7 +12,6 @@ export class ParentController {
   getDashboard = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.parentService.getDashboardData(req.user!.userId, req.instituteId!);
-      if (!data) throw new ApiError('Parent profile not found', 404, 'NOT_FOUND');
       return sendResponse({ res, data, message: 'Parent dashboard fetched' });
     } catch (error) { next(error); }
   };

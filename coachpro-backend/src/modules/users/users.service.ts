@@ -1,5 +1,6 @@
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
+import { buildPhoneVariants, normalizeIndianPhone } from '../../utils/phone';
 
 const VALID_STATUSES = ['ACTIVE', 'INACTIVE', 'BLOCKED', 'PENDING'];
 const VALID_ROLES = ['admin', 'super_admin', 'sub_admin', 'teacher', 'student', 'parent'];
@@ -145,6 +146,9 @@ export class UsersService {
     if (!user) throw new ApiError('User not found', 404, 'NOT_FOUND');
 
     return prisma.$transaction(async (tx) => {
+      const normalizedPhone = normalizeIndianPhone(user.phone) || user.phone;
+      const phoneVariants = buildPhoneVariants(normalizedPhone);
+
       const updatedUser = await tx.user.update({
         where: { id: userId },
         data: { role },
@@ -153,17 +157,17 @@ export class UsersService {
 
       if (role === 'teacher') {
         // Look for existing teacher
-        const existingTeacher = await tx.teacher.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+        const existingTeacher = await tx.teacher.findFirst({ where: { phone: { in: phoneVariants }, institute_id: instituteId } });
         if (existingTeacher) {
           await tx.teacher.update({ where: { id: existingTeacher.id }, data: { user_id: userId, is_active: true } });
         } else {
           // Get name from student if available
-          const student = await tx.student.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+          const student = await tx.student.findFirst({ where: { phone: { in: phoneVariants }, institute_id: instituteId } });
           await tx.teacher.create({
             data: {
               institute_id: instituteId,
               user_id: userId,
-              phone: user.phone,
+              phone: normalizedPhone,
               name: student?.name || 'New Teacher',
               email: user.email,
               is_active: true
@@ -172,11 +176,11 @@ export class UsersService {
         }
         // Disable student profile so they don't appear in active student lists
         await tx.student.updateMany({
-          where: { phone: user.phone, institute_id: instituteId },
+          where: { phone: { in: phoneVariants }, institute_id: instituteId },
           data: { is_active: false }
         });
         // Remove from active batches
-        const oldStudent = await tx.student.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+        const oldStudent = await tx.student.findFirst({ where: { phone: { in: phoneVariants }, institute_id: instituteId } });
         if (oldStudent) {
             await tx.studentBatch.updateMany({
                 where: { student_id: oldStudent.id, is_active: true },
@@ -185,17 +189,17 @@ export class UsersService {
         }
       } else if (role === 'student') {
         // Look for existing student
-        const existingStudent = await tx.student.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+        const existingStudent = await tx.student.findFirst({ where: { phone: { in: phoneVariants }, institute_id: instituteId } });
         if (existingStudent) {
           await tx.student.update({ where: { id: existingStudent.id }, data: { user_id: userId, is_active: true } });
         } else {
           // Get name from teacher if available
-          const teacher = await tx.teacher.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+          const teacher = await tx.teacher.findFirst({ where: { phone: { in: phoneVariants }, institute_id: instituteId } });
           await tx.student.create({
             data: {
               institute_id: instituteId,
               user_id: userId,
-              phone: user.phone,
+              phone: normalizedPhone,
               name: teacher?.name || 'New Student',
               is_active: true
             }
@@ -203,25 +207,37 @@ export class UsersService {
         }
         // Disable teacher profile so they don't appear in active teacher contexts
         await tx.teacher.updateMany({
-          where: { phone: user.phone, institute_id: instituteId },
+          where: { phone: { in: phoneVariants }, institute_id: instituteId },
           data: { is_active: false }
         });
         // Optional: Admin needs to manually reassign batches taught by this teacher
       } else {
         // If changing to parent, link or create a parent profile
         if (role === 'parent') {
-          const existingParent = await tx.parent.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
-          if (existingParent) {
-            await tx.parent.update({ where: { id: existingParent.id }, data: { user_id: userId } });
+          if (normalizedPhone !== user.phone) {
+            await tx.user.update({
+              where: { id: userId },
+              data: { phone: normalizedPhone, status: 'INACTIVE', is_active: true },
+            });
           } else {
-            const oldProf = await tx.student.findFirst({ where: { phone: user.phone, institute_id: instituteId } })
-              || await tx.teacher.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+            await tx.user.update({
+              where: { id: userId },
+              data: { status: 'INACTIVE', is_active: true },
+            });
+          }
+
+          const existingParent = await tx.parent.findFirst({ where: { phone: { in: phoneVariants }, institute_id: instituteId } });
+          if (existingParent) {
+            await tx.parent.update({ where: { id: existingParent.id }, data: { user_id: userId, phone: normalizedPhone } });
+          } else {
+            const oldProf = await tx.student.findFirst({ where: { phone: { in: phoneVariants }, institute_id: instituteId } })
+              || await tx.teacher.findFirst({ where: { phone: { in: phoneVariants }, institute_id: instituteId } });
             
             await tx.parent.create({
               data: {
                 institute_id: instituteId,
                 user_id: userId,
-                phone: user.phone,
+                phone: normalizedPhone,
                 name: (oldProf as any)?.name || 'New Parent',
               }
             });
@@ -230,14 +246,14 @@ export class UsersService {
 
         // Deactivate both teacher and student to avoid listing them
         await tx.teacher.updateMany({
-          where: { phone: user.phone, institute_id: instituteId },
+          where: { phone: { in: phoneVariants }, institute_id: instituteId },
           data: { is_active: false }
         });
         await tx.student.updateMany({
-          where: { phone: user.phone, institute_id: instituteId },
+          where: { phone: { in: phoneVariants }, institute_id: instituteId },
           data: { is_active: false }
         });
-        const oldStudent = await tx.student.findFirst({ where: { phone: user.phone, institute_id: instituteId } });
+        const oldStudent = await tx.student.findFirst({ where: { phone: { in: phoneVariants }, institute_id: instituteId } });
         if (oldStudent) {
             await tx.studentBatch.updateMany({
                 where: { student_id: oldStudent.id, is_active: true },

@@ -1,16 +1,9 @@
 import { prisma } from '../../server';
+import { buildPhoneVariants } from '../../utils/phone';
 
 export class AuthRepository {
     private _phoneVariants(phone: string) {
-        const base = (phone || '').trim();
-        const variants = new Set<string>();
-        if (!base) return [];
-
-        variants.add(base);
-        if (base.startsWith('+91')) variants.add(base.substring(3));
-        if (base.length === 10) variants.add(`+91${base}`);
-
-        return Array.from(variants);
+        return buildPhoneVariants(phone);
     }
 
   async findUserByPhone(phone: string) {

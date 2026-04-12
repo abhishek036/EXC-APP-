@@ -2,6 +2,7 @@ import { StudentRepository } from './student.repository';
 import { CreateStudentInput, UpdateStudentInput } from './student.validator';
 import { ApiError } from '../../middleware/error.middleware';
 import { prisma } from '../../server';
+import { normalizeIndianPhone } from '../../utils/phone';
 
 export class StudentService {
   private studentRepository: StudentRepository;
@@ -85,6 +86,13 @@ export class StudentService {
     return {
       data: students.map(s => ({
         ...s,
+        parent_phone: (s as any).parent_students?.[0]?.parent?.phone ?? null,
+        parent_status:
+          (s as any).parent_students?.[0]?.parent?.user?.status === 'ACTIVE'
+            ? 'Joined'
+            : ((s as any).parent_students?.[0]?.parent ? 'Not Joined' : null),
+        parent_relation: (s as any).parent_students?.[0]?.relation ?? null,
+        parent_profile_id: (s as any).parent_students?.[0]?.parent?.id ?? null,
         active_batches_count: s._count.student_batches,
         attendancePercent: 0 // In a real app, calculate this or join from record counts
       })),
@@ -107,15 +115,35 @@ export class StudentService {
     const s = student as any;
     return {
        ...s,
+       parent_phone: s.parent_students?.[0]?.parent?.phone ?? null,
+       parent_status: s.parent_students?.[0]?.parent?.user?.status === 'ACTIVE' ? 'Joined' : (s.parent_students?.[0]?.parent ? 'Not Joined' : null),
+       parent_relation: s.parent_students?.[0]?.relation ?? null,
        batches: s.student_batches?.map((sb: any) => sb.batch) || []
     }
   }
 
+  private normalizeParentPhoneOrThrow(parentPhone?: string | null): string | undefined {
+    if (parentPhone === undefined) return undefined;
+    if (parentPhone === null) return '';
+
+    const trimmed = String(parentPhone || '').trim();
+    if (!trimmed) return '';
+
+    const normalized = normalizeIndianPhone(trimmed);
+    if (!normalized) {
+      throw new ApiError('Invalid parent phone. Use +91XXXXXXXXXX or 10-digit number.', 400, 'INVALID_PARENT_PHONE');
+    }
+
+    return normalized;
+  }
+
   async createStudent(instituteId: string, data: CreateStudentInput) {
     const canonicalPhone = this.canonicalPhone(data.phone);
+    const normalizedParentPhone = this.normalizeParentPhoneOrThrow(data.parent_phone);
     const normalizedData: CreateStudentInput = {
       ...data,
       ...(canonicalPhone ? { phone: canonicalPhone } : {}),
+      ...(normalizedParentPhone !== undefined ? { parent_phone: normalizedParentPhone } : {}),
     };
 
     // 1. Find existing student by phone variants; if found, reuse/update instead of creating duplicate.
@@ -224,7 +252,16 @@ export class StudentService {
     const student = await this.studentRepository.findStudentById(studentId, instituteId);
     if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
 
-    return this.studentRepository.updateStudent(studentId, instituteId, data);
+    const incoming = (data ?? {}) as UpdateStudentInput;
+
+    const normalizedPatch: UpdateStudentInput = {
+      ...incoming,
+      ...(Object.prototype.hasOwnProperty.call(incoming as Record<string, unknown>, 'parent_phone')
+        ? { parent_phone: this.normalizeParentPhoneOrThrow((incoming as any).parent_phone) }
+        : {}),
+    };
+
+    return this.studentRepository.updateStudent(studentId, instituteId, normalizedPatch);
   }
 
   async changeStatus(studentId: string, instituteId: string, isActive: boolean) {
