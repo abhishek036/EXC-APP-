@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:coachpro/core/constants/app_colors.dart';
-import 'package:coachpro/core/constants/app_dimensions.dart';
-import 'package:coachpro/core/theme/app_theme.dart';
+import 'package:excellence/core/constants/app_colors.dart';
+import 'package:excellence/core/constants/app_dimensions.dart';
+import 'package:excellence/core/theme/app_theme.dart';
 
 void main() {
   setUpAll(() {
@@ -83,3 +83,4 @@ void main() {
     });
   });
 }
+

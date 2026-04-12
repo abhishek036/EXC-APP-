@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:coachpro/core/di/injection_container.dart';
-import 'package:coachpro/core/services/whatsapp_service.dart';
-import 'package:coachpro/core/services/push_notification_service.dart';
-import 'package:coachpro/core/services/auto_notification_service.dart';
-import 'package:coachpro/core/services/data_export_service.dart';
-import 'package:coachpro/core/services/secure_storage_service.dart';
-import 'package:coachpro/core/network/api_client.dart';
-import 'package:coachpro/core/network/network_info.dart';
-import 'package:coachpro/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:excellence/core/di/injection_container.dart';
+import 'package:excellence/core/services/whatsapp_service.dart';
+import 'package:excellence/core/services/push_notification_service.dart';
+import 'package:excellence/core/services/auto_notification_service.dart';
+import 'package:excellence/core/services/data_export_service.dart';
+import 'package:excellence/core/services/secure_storage_service.dart';
+import 'package:excellence/core/network/api_client.dart';
+import 'package:excellence/core/network/network_info.dart';
+import 'package:excellence/features/auth/presentation/bloc/auth_bloc.dart';
 
 void main() {
   group('Dependency Injection', () {
@@ -70,3 +70,4 @@ void main() {
     });
   });
 }
+

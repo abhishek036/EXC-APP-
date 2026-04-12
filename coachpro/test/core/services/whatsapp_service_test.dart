@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:coachpro/core/services/whatsapp_service.dart';
+import 'package:excellence/core/services/whatsapp_service.dart';
 
 void main() {
   late WhatsAppService service;
@@ -143,3 +143,4 @@ void main() {
     });
   });
 }
+

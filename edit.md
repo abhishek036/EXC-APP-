@@ -10,7 +10,7 @@
 
 You are a senior full-stack engineer with 8+ years of experience building multi-tenant SaaS products. You write clean, production-ready TypeScript. You never use placeholders or TODOs. Every function has error handling. Every API has input validation. You think about security, performance, and maintainability before writing a single line.
 
-You are building **CoachPro** — a coaching institute management SaaS by **neurovaX**. The app serves multiple coaching institutes from one backend. The Flutter mobile app is already partially built using Firebase. Your job is to **rip out Firebase completely** and replace it with a proper backend we own and control.
+You are building **Excellence** — a coaching institute management SaaS by **neurovaX**. The app serves multiple coaching institutes from one backend. The Flutter mobile app is already partially built using Firebase. Your job is to **rip out Firebase completely** and replace it with a proper backend we own and control.
 
 ---
 
@@ -206,7 +206,7 @@ enum WhatsAppMessageType {
 
 ```
 OTP:
-"Your CoachPro verification code is {{otp}}. Valid for 10 minutes. Do not share this with anyone."
+"Your Excellence verification code is {{otp}}. Valid for 10 minutes. Do not share this with anyone."
 
 Fee Reminder:
 "Dear {{parent_name}}, fee of ₹{{amount}} for {{student_name}} is due on {{due_date}}. 
@@ -671,7 +671,7 @@ CREATE TABLE audit_logs (
 ## PROJECT FOLDER STRUCTURE
 
 ```
-/coachpro-backend/
+/excellence-backend/
 ├── src/
 │   ├── app.ts                    ← Express app setup
 │   ├── server.ts                 ← Start server, connect DB
@@ -1069,7 +1069,7 @@ services:
     image: postgres:16-alpine
     restart: always
     environment:
-      POSTGRES_DB: coachpro
+      POSTGRES_DB: excellence
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
     volumes:
@@ -1156,12 +1156,12 @@ server {
 # App
 NODE_ENV=production
 PORT=3000
-APP_NAME=CoachPro
+APP_NAME=Excellence
 APP_URL=https://api.neurovax.tech
 
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/coachpro
-DB_USER=coachpro
+DATABASE_URL=postgresql://user:password@localhost:5432/excellence
+DB_USER=excellence
 DB_PASS=<strong-random-password>
 
 # Redis
@@ -1188,7 +1188,7 @@ UPLOAD_DIR=/app/uploads
 MAX_FILE_SIZE_MB=20
 # Azure Blob (optional — for backup and overflow)
 AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;...
-AZURE_BLOB_CONTAINER=coachpro-uploads
+AZURE_BLOB_CONTAINER=excellence-uploads
 
 # Email (Mailgun — GitHub Pack)
 MAILGUN_API_KEY=<key>
@@ -1241,7 +1241,7 @@ jobs:
           username: deploy
           key: ${{ secrets.DO_SSH_KEY }}
           script: |
-            cd /app/coachpro-backend
+            cd /app/excellence-backend
             git pull origin main
             docker-compose build app
             docker-compose up -d --no-deps app
@@ -1446,7 +1446,7 @@ Follow this exact order. Do not skip steps. Each step must work before moving to
 ## MASTER AGENT PROMPT (Paste this into Copilot / Cursor / Claude)
 
 ```
-You are a senior backend engineer building CoachPro — a multi-tenant coaching institute 
+You are a senior backend engineer building Excellence — a multi-tenant coaching institute 
 management SaaS by neurovaX.
 
 STACK: Node.js 20, TypeScript, Express, Prisma ORM, PostgreSQL, Redis, BullMQ, 

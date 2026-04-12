@@ -1,4 +1,4 @@
-Analyzing coachpro...                                           
+Analyzing excellence...                                           
 
    info - Statements in an if should be enclosed in a block - lib\core\services\cloud_storage_service.dart:55:43 - curly_braces_in_flow_control_structures
    info - Statements in an if should be enclosed in a block - lib\core\services\cloud_storage_service.dart:56:71 - curly_braces_in_flow_control_structures
@@ -44,4 +44,5 @@ warning - The value of the field '_error' isn't used - lib\features\teacher\pres
   error - The named parameter 'assignmentId' isn't defined - lib\features\teacher\presentation\pages\teacher_batch_panel_page.dart:971:31 - undefined_named_parameter
   error - The named parameter 'assignmentTitle' isn't defined - lib\features\teacher\presentation\pages\teacher_batch_panel_page.dart:972:31 - undefined_named_parameter
   error - The named parameter 'padding' isn't defined - lib\features\teacher\presentation\pages\teacher_batch_panel_page.dart:1349:13 - undefined_named_parameter
+
 

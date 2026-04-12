@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:coachpro/features/auth/data/models/user_model.dart';
-import 'package:coachpro/features/auth/domain/entities/user_entity.dart';
+import 'package:excellence/features/auth/data/models/user_model.dart';
+import 'package:excellence/features/auth/domain/entities/user_entity.dart';
 
 void main() {
   group('UserEntity', () {
@@ -149,3 +149,4 @@ void main() {
     });
   });
 }
+

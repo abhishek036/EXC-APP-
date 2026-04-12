@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:coachpro/core/services/auto_notification_service.dart';
+import 'package:excellence/core/services/auto_notification_service.dart';
 
 void main() {
   group('AutoNotificationRule', () {
@@ -213,3 +213,4 @@ void main() {
     });
   });
 }
+

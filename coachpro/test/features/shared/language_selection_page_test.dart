@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:coachpro/features/shared/presentation/pages/language_selection_page.dart';
-import 'package:coachpro/core/l10n/app_localizations.dart';
-import 'package:coachpro/core/l10n/app_locales.dart';
+import 'package:excellence/features/shared/presentation/pages/language_selection_page.dart';
+import 'package:excellence/core/l10n/app_localizations.dart';
+import 'package:excellence/core/l10n/app_locales.dart';
 import '../../helpers/test_helpers.dart';
 
 void main() {
@@ -44,3 +44,4 @@ void main() {
     });
   });
 }
+

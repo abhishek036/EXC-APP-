@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:coachpro/core/errors/exceptions.dart';
-import 'package:coachpro/core/errors/failures.dart';
+import 'package:excellence/core/errors/exceptions.dart';
+import 'package:excellence/core/errors/failures.dart';
 
 void main() {
   group('Exceptions', () {
@@ -92,3 +92,4 @@ void main() {
     });
   });
 }
+

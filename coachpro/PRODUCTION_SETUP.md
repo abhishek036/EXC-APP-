@@ -1,4 +1,4 @@
-# CoachPro Production Setup (Android + Web)
+# Excellence Production Setup (Android + Web)
 
 This app is now wired for real Firebase-backed auth/profile flows.
 
@@ -73,3 +73,4 @@ service cloud.firestore {
 - [ ] Firestore rules hardened
 - [ ] Crashlytics enabled and tested
 - [ ] WhatsApp integrations moved to backend before launch
+

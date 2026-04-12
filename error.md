@@ -1,15 +1,15 @@
 PS C:\Users\Admin\Pictures\COACHING APP> ^C
-PS C:\Users\Admin\Pictures\COACHING APP> cd 'c:\Users\Admin\Pictures\COACHING APP\coachpro'
-PS C:\Users\Admin\Pictures\COACHING APP\coachpro> python fix_toasts.py
-Updated c:\Users\Admin\Pictures\COACHING APP\coachpro\lib\features\admin\presentation\pages\add_student_page.dart
-Updated c:\Users\Admin\Pictures\COACHING APP\coachpro\lib\features\admin\presentation\pages\announcements_page.dart
-Updated c:\Users\Admin\Pictures\COACHING APP\coachpro\lib\features\admin\presentation\pages\attendance_overview_page.dart
-Updated c:\Users\Admin\Pictures\COACHING APP\coachpro\lib\features\admin\presentation\pages\batch_management_page.dart
-Updated c:\Users\Admin\Pictures\COACHING APP\coachpro\lib\features\admin\presentation\pages\exam_management_page.dart
-Updated c:\Users\Admin\Pictures\COACHING APP\coachpro\lib\features\admin\presentation\pages\fee_collection_page.dart
-Updated c:\Users\Admin\Pictures\COACHING APP\coachpro\lib\features\admin\presentation\pages\student_profile_page.dart
-PS C:\Users\Admin\Pictures\COACHING APP\coachpro> cd 'c:\Users\Admin\Pictures\COACHING APP\coachpro'
-PS C:\Users\Admin\Pictures\COACHING APP\coachpro> flutter run -d chrome
+PS C:\Users\Admin\Pictures\COACHING APP> cd 'c:\Users\Admin\Pictures\COACHING APP\excellence'
+PS C:\Users\Admin\Pictures\COACHING APP\excellence> python fix_toasts.py
+Updated c:\Users\Admin\Pictures\COACHING APP\excellence\lib\features\admin\presentation\pages\add_student_page.dart
+Updated c:\Users\Admin\Pictures\COACHING APP\excellence\lib\features\admin\presentation\pages\announcements_page.dart
+Updated c:\Users\Admin\Pictures\COACHING APP\excellence\lib\features\admin\presentation\pages\attendance_overview_page.dart
+Updated c:\Users\Admin\Pictures\COACHING APP\excellence\lib\features\admin\presentation\pages\batch_management_page.dart
+Updated c:\Users\Admin\Pictures\COACHING APP\excellence\lib\features\admin\presentation\pages\exam_management_page.dart
+Updated c:\Users\Admin\Pictures\COACHING APP\excellence\lib\features\admin\presentation\pages\fee_collection_page.dart
+Updated c:\Users\Admin\Pictures\COACHING APP\excellence\lib\features\admin\presentation\pages\student_profile_page.dart
+PS C:\Users\Admin\Pictures\COACHING APP\excellence> cd 'c:\Users\Admin\Pictures\COACHING APP\excellence'
+PS C:\Users\Admin\Pictures\COACHING APP\excellence> flutter run -d chrome
 Launching lib\main.dart on Chrome in debug mode...
 Waiting for connection from debug service on Chrome...             67.7s
 
@@ -40,14 +40,14 @@ and restart the app.
 
 The relevant error-causing widget was:
   BlocBuilder<AuthBloc, AuthState>
-  BlocBuilder:file:///C:/Users/Admin/Pictures/COACHING%20APP/coachpro/lib/features/shared/presentation/pages/role_live_dashboard_page.dart:1
+  BlocBuilder:file:///C:/Users/Admin/Pictures/COACHING%20APP/excellence/lib/features/shared/presentation/pages/role_live_dashboard_page.dart:1
   05:12
 
 When the exception was thrown, this was the stack:
 dart-sdk/lib/_internal/js_dev_runtime/private/ddc_runtime/errors.dart 274:3               throw_
-package:coachpro/core/services/firebase_auth_service.dart 25:7                            [_ensureFirebaseReady]
-package:coachpro/core/services/firebase_auth_service.dart 192:5                           streamRoleDashboard
-package:coachpro/features/shared/presentation/pages/role_live_dashboard_page.dart 118:30  <fn>
+package:excellence/core/services/firebase_auth_service.dart 25:7                            [_ensureFirebaseReady]
+package:excellence/core/services/firebase_auth_service.dart 192:5                           streamRoleDashboard
+package:excellence/features/shared/presentation/pages/role_live_dashboard_page.dart 118:30  <fn>
 package:flutter_bloc/src/bloc_builder.dart 91:57                                          build
 package:flutter_bloc/src/bloc_builder.dart 188:21                                         build
 package:flutter/src/widgets/framework.dart 5931:27                                        build
@@ -184,3 +184,4 @@ dart-sdk/lib/_internal/js_dev_runtime/patch/js_allow_interop_patch.dart 224:27  
 dart-sdk/lib/_internal/js_dev_runtime/patch/js_allow_interop_patch.dart 84:15             ret
 
 ════════════════════════════════════════════════════════════════════════════════════════════════════
+

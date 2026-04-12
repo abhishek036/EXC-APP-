@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:coachpro/features/video_lectures/domain/entities/video_lecture_entity.dart';
+import 'package:excellence/features/video_lectures/domain/entities/video_lecture_entity.dart';
 
 void main() {
   group('VideoLecture', () {
@@ -152,3 +152,4 @@ void main() {
     });
   });
 }
+

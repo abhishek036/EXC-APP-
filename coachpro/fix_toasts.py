@@ -1,7 +1,7 @@
 import os
 import re
 
-directory = r"c:\Users\Admin\Pictures\COACHING APP\coachpro\lib"
+directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib")
 
 # regex to find CPToast.show(..., type: CPToastType.XYZ)
 pattern = re.compile(

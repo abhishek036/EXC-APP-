@@ -36,7 +36,7 @@
             android:value="2" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="coachpro_default_channel" />
+            android:value="excellence_default_channel" />
     </application>
     <queries>
         <intent>
@@ -45,3 +45,4 @@
         </intent>
     </queries>
 </manifest>
+

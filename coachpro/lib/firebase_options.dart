@@ -68,7 +68,7 @@ class DefaultFirebaseOptions {
     projectId: 'excellence-academy-9154a',
     storageBucket: 'excellence-academy-9154a.firebasestorage.app',
     iosClientId: '100598842137-cb4j9h11gl6qk7jmgi2lppjho0r3mak3.apps.googleusercontent.com',
-    iosBundleId: 'com.example.coachpro',
+    iosBundleId: 'com.example.excellence',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -81,3 +81,4 @@ class DefaultFirebaseOptions {
     iosBundleId: 'excellence.academy',
   );
 }
+

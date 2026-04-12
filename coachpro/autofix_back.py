@@ -1,7 +1,7 @@
 import os
 import re
 
-lib_dir = "d:\\COACHING APP\\coachpro\\lib"
+lib_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib")
 
 for root, dirs, files in os.walk(lib_dir):
     for f in files:

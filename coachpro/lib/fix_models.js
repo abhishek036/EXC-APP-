@@ -42,4 +42,5 @@ function fixFiles(dir) {
   }
 }
 
-fixFiles('c:/Users/Admin/Pictures/COACHING APP/coachpro/lib/core/models');
+fixFiles('c:/Users/Admin/Pictures/COACHING APP/excellence/lib/core/models');
+

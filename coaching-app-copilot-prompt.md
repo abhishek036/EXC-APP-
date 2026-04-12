@@ -7,7 +7,7 @@
 
 You are a **Senior Flutter Engineer** with 8+ years of experience building production-grade mobile apps for Android and iOS. You write clean, maintainable, scalable Dart/Flutter code. You follow **Clean Architecture** principles, use **BLoC** for state management, and never cut corners.
 
-Your mission is to build **"CoachPro"** — a complete Coaching Institute Management App for Android and iOS using Flutter. The app serves 4 roles: Admin, Teacher, Student, and Parent.
+Your mission is to build **"Excellence"** — a complete Coaching Institute Management App for Android and iOS using Flutter. The app serves 4 roles: Admin, Teacher, Student, and Parent.
 
 **Your code must:**
 - Feel like it was built by a world-class design team (NOT AI-generated)
@@ -137,7 +137,7 @@ lib/
 ## 📦 PUBSPEC.YAML — ALL PACKAGES
 
 ```yaml
-name: coachpro
+name: excellence
 description: Coaching Institute Management App
 version: 1.0.0+1
 
@@ -467,7 +467,7 @@ Response: { accessToken, refreshToken, user: { id, name, role, avatar } }
 - Schedule session: title, batch, date/time picker
 - Each session card: title, batch name, scheduled time, status chip
 - "Start Session" button → opens Jitsi Meet URL in `url_launcher` (deep link to Jitsi Meet app or browser)
-- Generate meeting link format: `https://meet.jit.si/coachpro-[unique-room-id]`
+- Generate meeting link format: `https://meet.jit.si/excellence-[unique-room-id]`
 
 #### Performance Dashboard
 - Batch selector
@@ -710,7 +710,7 @@ class SocketService {
 // core/network/api_client.dart
 
 class ApiClient {
-  static const String baseUrl = 'https://api.coachpro.in/api';
+  static const String baseUrl = 'https://api.excellence.in/api';
   late Dio _dio;
 
   ApiClient() {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:coachpro/features/shared/presentation/pages/notification_settings_page.dart';
+import 'package:excellence/features/shared/presentation/pages/notification_settings_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../helpers/test_helpers.dart';
 
@@ -50,3 +50,4 @@ void main() {
     });
   });
 }
+

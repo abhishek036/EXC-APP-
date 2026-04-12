@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:coachpro/features/gamification/domain/entities/gamification_entity.dart';
+import 'package:excellence/features/gamification/domain/entities/gamification_entity.dart';
 
 void main() {
   group('XPRecord', () {
@@ -259,3 +259,4 @@ void main() {
     });
   });
 }
+

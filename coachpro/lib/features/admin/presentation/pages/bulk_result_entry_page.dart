@@ -243,7 +243,7 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
                       icon: _isSaving
                           ? Icons.hourglass_empty_rounded
                           : Icons.check_circle_rounded,
-                      onPressed: _isSaving ? () {} : _saveResults,
+                      onPressed: _isSaving ? null : _saveResults,
                     ),
                   ),
               ],

@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:coachpro/core/l10n/app_localizations.dart';
-import 'package:coachpro/core/l10n/app_locales.dart';
-import 'package:coachpro/core/l10n/translations/en.dart';
-import 'package:coachpro/core/l10n/translations/hi.dart';
+import 'package:excellence/core/l10n/app_localizations.dart';
+import 'package:excellence/core/l10n/app_locales.dart';
+import 'package:excellence/core/l10n/translations/en.dart';
+import 'package:excellence/core/l10n/translations/hi.dart';
 
 void main() {
   group('AppLocalizations', () {
@@ -172,3 +172,4 @@ void main() {
     });
   });
 }
+

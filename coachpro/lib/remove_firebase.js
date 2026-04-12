@@ -57,5 +57,6 @@ function replaceInDir(dir) {
   }
 }
 
-replaceInDir('c:/Users/Admin/Pictures/COACHING APP/coachpro/lib/core/models');
+replaceInDir('c:/Users/Admin/Pictures/COACHING APP/excellence/lib/core/models');
 console.log('Done');
+

@@ -1,9 +1,18 @@
 import os, re
+from pathlib import Path
+
+workspace_root = Path(__file__).resolve().parent
+app_root = workspace_root / 'excellence'
+if not app_root.exists():
+    app_root = next(
+        (p for p in workspace_root.iterdir() if p.is_dir() and (p / 'pubspec.yaml').exists()),
+        app_root,
+    )
 
 panels = {
-    'student': 'd:/COACHING APP/coachpro/lib/features/student/presentation/pages',
-    'teacher': 'd:/COACHING APP/coachpro/lib/features/teacher/presentation/pages',
-    'admin':   'd:/COACHING APP/coachpro/lib/features/admin/presentation/pages',
+    'student': str(app_root / 'lib/features/student/presentation/pages'),
+    'teacher': str(app_root / 'lib/features/teacher/presentation/pages'),
+    'admin': str(app_root / 'lib/features/admin/presentation/pages'),
 }
 
 for panel, path in panels.items():

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:coachpro/core/models/quiz_model.dart';
+import 'package:excellence/core/models/quiz_model.dart';
 
 void main() {
   group('QuizModel', () {
@@ -114,3 +114,4 @@ void main() {
     });
   });
 }
+

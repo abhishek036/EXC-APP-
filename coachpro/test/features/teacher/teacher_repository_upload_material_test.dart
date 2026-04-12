@@ -1,7 +1,7 @@
-import 'package:coachpro/core/di/injection_container.dart';
-import 'package:coachpro/core/network/api_client.dart';
-import 'package:coachpro/core/services/secure_storage_service.dart';
-import 'package:coachpro/features/teacher/data/repositories/teacher_repository.dart';
+import 'package:excellence/core/di/injection_container.dart';
+import 'package:excellence/core/network/api_client.dart';
+import 'package:excellence/core/services/secure_storage_service.dart';
+import 'package:excellence/features/teacher/data/repositories/teacher_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -93,3 +93,4 @@ void main() {
     expect(payload.containsKey('file_type'), isFalse);
   });
 }
+
