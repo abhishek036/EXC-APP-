@@ -37,6 +37,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
   double _amountDue = 0;
   int _pendingReviewCount = 0;
   String _dueText = 'DUE DATE UNAVAILABLE';
+  List<Map<String, dynamic>> _feeRecords = [];
 
   @override
   void initState() {
@@ -80,7 +81,12 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
           ? await _parentRepo.getPaymentHistory()
           : await _studentRepo.getFeeHistory();
 
-      final pending = records.where((r) {
+        final normalizedRecords = records
+          .whereType<Map>()
+          .map((entry) => Map<String, dynamic>.from(entry))
+          .toList();
+
+        final pending = normalizedRecords.where((r) {
         final status = (r['status'] ?? '').toString().toLowerCase();
         return status == 'pending' ||
             status == 'overdue' ||
@@ -98,13 +104,17 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
         return aDue.compareTo(bDue);
       });
 
-      final target = pending.isNotEmpty ? pending.first : (records.isNotEmpty ? records.first : <String, dynamic>{});
+        final target = pending.isNotEmpty
+          ? pending.first
+          : (normalizedRecords.isNotEmpty
+            ? normalizedRecords.first
+            : <String, dynamic>{});
       final totalAmount = _toDouble(target['final_amount'] ?? target['amount_due'] ?? target['amount'] ?? 0);
       final paidAmount = _toDouble(target['paid_amount'] ?? 0);
       final amount = (totalAmount - paidAmount).clamp(0, double.infinity).toDouble();
 
-      final month = (target['month'] as num?)?.toInt();
-      final year = (target['year'] as num?)?.toInt();
+        final month = _toInt(target['month']);
+        final year = _toInt(target['year']);
       final monthNames = const ['', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
       final label = (month != null && month >= 1 && month <= 12 && year != null)
           ? '${monthNames[month]} $year'
@@ -124,12 +134,14 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
         _amountDue = amount > 0 ? amount : totalAmount;
         _pendingReviewCount = 0;
         _dueText = dueStr;
+        _feeRecords = pending.isNotEmpty ? pending : normalizedRecords;
         _loading = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _error = 'Unable to load fee details';
+        _feeRecords = [];
         _loading = false;
       });
     }
@@ -138,6 +150,31 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
   double _toDouble(dynamic value) {
     if (value is num) return value.toDouble();
     return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  int? _toInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  double _remainingAmountForRecord(Map<String, dynamic> record) {
+    final totalAmount = _toDouble(record['final_amount'] ?? record['amount_due'] ?? record['amount'] ?? 0);
+    final paidAmount = _toDouble(record['paid_amount'] ?? 0);
+    return (totalAmount - paidAmount).clamp(0, double.infinity).toDouble();
+  }
+
+  String _formatFeeRecordLabel(Map<String, dynamic> record) {
+    final month = _toInt(record['month']);
+    final year = _toInt(record['year']);
+    final batchName = (record['batch'] is Map)
+        ? ((record['batch']['name'] ?? 'Batch').toString())
+        : 'Batch';
+    final monthNames = const ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final period = (month != null && month >= 1 && month <= 12 && year != null)
+        ? '${monthNames[month]} $year'
+        : 'Current due';
+    final due = _remainingAmountForRecord(record);
+    return '$batchName • $period • Due ₹${due.toStringAsFixed(0)}';
   }
 
   @override
@@ -152,7 +189,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
         : 'NO PROOFS TO REVIEW')
       : (_amountDue > 0
         ? 'SUBMIT PROOF ₹${_amountDue.toStringAsFixed(0)}'
-        : 'VERIFY PAYMENT STATUS');
+        : 'SUBMIT / VERIFY PAYMENT');
 
     return Scaffold(
       backgroundColor: CT.bg(context),
@@ -414,15 +451,14 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                   }
 
                   if (_selectedFeeRecordId == null || _selectedFeeRecordId!.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('No fee record available for proof submission.')),
-                    );
-                    return;
+                    if (_feeRecords.isNotEmpty) {
+                      _selectedFeeRecordId = (_feeRecords.first['id'] ?? '').toString();
+                    }
                   }
 
-                  if (_amountDue <= 0) {
+                  if (_selectedFeeRecordId == null || _selectedFeeRecordId!.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('No pending amount for this fee record.')),
+                      const SnackBar(content: Text('No fee record available for proof submission.')),
                     );
                     return;
                   }
@@ -793,7 +829,25 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
   }
 
   void _showProofSubmissionSheet() {
-    final amountCtrl = TextEditingController(text: _amountDue.toStringAsFixed(0));
+    final validRecords = _feeRecords
+      .where((record) => (record['id'] ?? '').toString().isNotEmpty)
+      .toList();
+
+    String selectedFeeRecordId = _selectedFeeRecordId ??
+      (validRecords.isNotEmpty ? (validRecords.first['id'] ?? '').toString() : '');
+
+    Map<String, dynamic> selectedRecord = selectedFeeRecordId.isEmpty
+      ? <String, dynamic>{}
+      : validRecords.firstWhere(
+        (record) => (record['id'] ?? '').toString() == selectedFeeRecordId,
+        orElse: () => validRecords.isNotEmpty ? validRecords.first : <String, dynamic>{},
+        );
+
+    final defaultAmount = selectedRecord.isNotEmpty
+      ? _remainingAmountForRecord(selectedRecord)
+      : _amountDue;
+
+    final amountCtrl = TextEditingController(text: defaultAmount.toStringAsFixed(0));
     final noteCtrl = TextEditingController();
     String? screenshotUrl;
     bool uploading = false;
@@ -840,6 +894,40 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                           color: CT.textS(context),
                         ),
                       ),
+                      if (validRecords.length > 1) ...[
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          key: ValueKey(selectedFeeRecordId),
+                          initialValue: selectedFeeRecordId.isEmpty ? null : selectedFeeRecordId,
+                          decoration: const InputDecoration(
+                            labelText: 'Fee record',
+                          ),
+                          items: validRecords
+                              .map(
+                                (record) => DropdownMenuItem<String>(
+                                  value: (record['id'] ?? '').toString(),
+                                  child: Text(
+                                    _formatFeeRecordLabel(record),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null || value.isEmpty) return;
+                            final nextRecord = validRecords.firstWhere(
+                              (record) => (record['id'] ?? '').toString() == value,
+                              orElse: () => selectedRecord,
+                            );
+                            setSheet(() {
+                              selectedFeeRecordId = value;
+                              selectedRecord = nextRecord;
+                              amountCtrl.text = _remainingAmountForRecord(nextRecord).toStringAsFixed(0);
+                            });
+                          },
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       CustomTextField(
                         label: 'Amount',
@@ -940,9 +1028,15 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                   try {
                                     setSheet(() => submitting = true);
                                     final rolePrefix = context.rolePrefix;
+                                    if (selectedFeeRecordId.isEmpty) {
+                                      ScaffoldMessenger.of(ctx).showSnackBar(
+                                        const SnackBar(content: Text('Select a fee record first.')),
+                                      );
+                                      return;
+                                    }
                                     if (rolePrefix == '/parent') {
                                       await _parentRepo.submitFeePaymentProof(
-                                        feeRecordId: _selectedFeeRecordId!,
+                                        feeRecordId: selectedFeeRecordId,
                                         amount: amount,
                                         screenshotUrl: screenshotUrl!,
                                         note: noteCtrl.text,
@@ -950,13 +1044,14 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                       );
                                     } else {
                                       await _studentRepo.submitFeePaymentProof(
-                                        feeRecordId: _selectedFeeRecordId!,
+                                        feeRecordId: selectedFeeRecordId,
                                         amount: amount,
                                         screenshotUrl: screenshotUrl!,
                                         note: noteCtrl.text,
                                         whatsappNotified: whatsappNotified,
                                       );
                                     }
+                                    _selectedFeeRecordId = selectedFeeRecordId;
                                     if (!ctx.mounted) return;
                                     Navigator.of(ctx).pop();
                                     if (!mounted) return;
