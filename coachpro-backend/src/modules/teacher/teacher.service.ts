@@ -179,7 +179,29 @@ export class TeacherService {
     const teacher = await this.teacherRepository.findTeacherById(teacherId, instituteId);
     if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
-    return this.teacherRepository.removeTeacher(teacherId);
+    const removed = await this.teacherRepository.removeTeacher(teacherId, instituteId);
+
+    const institute = await prisma.institute.findUnique({
+      where: { id: instituteId },
+      select: { settings: true },
+    });
+
+    const settings = (institute?.settings ?? {}) as Record<string, any>;
+    const teacherMeta = (settings['teacher_meta'] ?? {}) as Record<string, any>;
+    if (Object.prototype.hasOwnProperty.call(teacherMeta, teacherId)) {
+      delete teacherMeta[teacherId];
+      await prisma.institute.update({
+        where: { id: instituteId },
+        data: {
+          settings: {
+            ...settings,
+            teacher_meta: teacherMeta,
+          },
+        },
+      });
+    }
+
+    return removed;
   }
 
   async updateTeacherSettings(teacherId: string, instituteId: string, data: UpdateTeacherSettingsInput) {

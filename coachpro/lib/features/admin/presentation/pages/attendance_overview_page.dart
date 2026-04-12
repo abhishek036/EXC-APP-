@@ -92,6 +92,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
       );
       final todayData = stats['today'] as List<dynamic>? ?? [];
       final monthlyData = stats['monthly'] as List<dynamic>? ?? [];
+      final weeklyRaw = stats['weekly'];
 
       final todayRecords = <Map<String, dynamic>>[];
       for (final session in todayData) {
@@ -106,7 +107,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
         }
       }
 
-      final weekly = _processMonthlyStats(monthlyData);
+      final weekly = _resolveWeeklyPercentages(weeklyRaw, monthlyData);
 
       if (!mounted) return;
       setState(() {
@@ -122,6 +123,16 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
         _loading = false;
       });
     }
+  }
+
+  List<double> _resolveWeeklyPercentages(dynamic weeklyRaw, List<dynamic> monthlyData) {
+    if (weeklyRaw is List && weeklyRaw.length == 6) {
+      final values = weeklyRaw
+          .map((value) => value is num ? value.toDouble() : double.tryParse(value.toString()) ?? 0)
+          .toList();
+      return values;
+    }
+    return _processMonthlyStats(monthlyData);
   }
 
   List<double> _processMonthlyStats(List<dynamic> monthlyData) {

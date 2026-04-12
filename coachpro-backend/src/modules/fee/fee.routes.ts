@@ -7,6 +7,7 @@ import {
 	recordFeePaymentSchema,
 	submitFeeProofSchema,
 	reviewFeePaymentSchema,
+	adjustFeeRecordSchema,
 } from './fee.validator';
 import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
 import { tenantMiddleware } from '../../middleware/tenant.middleware';
@@ -26,6 +27,7 @@ router.get('/records', requireRole('admin', 'sub_admin'), controller.getRecords)
 
 // Payment Logging (admin-verified)
 router.post('/pay', requireRole('admin'), validate(recordFeePaymentSchema), controller.recordPayment);
+router.post('/adjust', requireRole('admin'), validate(adjustFeeRecordSchema), controller.adjustFeeRecord);
 
 // Student manual QR flow
 router.post('/payments/proof', requireRole('student', 'parent'), validate(submitFeeProofSchema), controller.submitPaymentProof);

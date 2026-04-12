@@ -48,8 +48,19 @@ export const reviewFeePaymentSchema = z.object({
   })
 });
 
+export const adjustFeeRecordSchema = z.object({
+  body: z.object({
+    fee_record_id: z.string().uuid(),
+    adjustment_type: z.enum(['increase', 'decrease']),
+    amount: z.number().positive(),
+    reason: z.string().min(3).max(1000),
+    note: z.string().max(1000).optional(),
+  }),
+});
+
 export type DefineFeeStructureInput = z.infer<typeof defineFeeStructureSchema>['body'];
 export type RecordFeePaymentInput = z.infer<typeof recordFeePaymentSchema>['body'];
 export type GenerateMonthlyFeesInput = z.infer<typeof generateMonthlyFeesSchema>['body'];
 export type SubmitFeeProofInput = z.infer<typeof submitFeeProofSchema>['body'];
 export type ReviewFeePaymentInput = z.infer<typeof reviewFeePaymentSchema>['body'];
+export type AdjustFeeRecordInput = z.infer<typeof adjustFeeRecordSchema>['body'];

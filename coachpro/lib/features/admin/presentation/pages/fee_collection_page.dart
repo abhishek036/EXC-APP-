@@ -115,21 +115,26 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   ({double total, double paid, double outstanding, String status}) _feeMetrics(
     Map<String, dynamic> record,
   ) {
-    final total = _toDouble(record['final_amount'] ?? record['amount']);
-    final payments = (record['payments'] as List?) ?? const [];
-    final paid = payments.fold<double>(
-      0,
-      (sum, payment) => sum + _toDouble((payment as Map)['amount_paid']),
+    final total = _toDouble(
+      record['final_amount'] ?? record['amount'] ?? record['total_amount'],
     );
-    final outstanding = (total - paid).clamp(0, double.infinity).toDouble();
+    final paid = _toDouble(record['paid_amount']);
+    final explicitRemaining = _toDouble(record['remaining_amount']);
+    final outstanding = explicitRemaining > 0
+        ? explicitRemaining
+        : (total - paid).clamp(0, double.infinity).toDouble();
 
     final now = DateTime.now();
     final dueDate = DateTime.tryParse((record['due_date'] ?? '').toString());
-    final rawStatus = (record['status'] ?? '').toString().toLowerCase();
+    final rawStatus = (record['fee_status'] ?? record['status'] ?? '')
+        .toString()
+        .toLowerCase();
 
     String status;
     if (outstanding <= 0) {
       status = 'paid';
+    } else if (rawStatus == 'pending_verification') {
+      status = 'pending';
     } else if (dueDate != null &&
         dueDate.isBefore(DateTime(now.year, now.month, now.day))) {
       status = 'overdue';
@@ -255,7 +260,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
             child: CPPressable(
               onTap: () {
                 HapticFeedback.heavyImpact();
-                _showCollectFeeSheet(context);
+                _showAdjustFeeSheet(context);
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -282,7 +287,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'COLLECT FEE',
+                      'ADJUST FEE',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w900,
                         color: const Color(0xFFEEEDED),
@@ -794,7 +799,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         );
                         payments.add({
                           'amount_paid': pend,
-                          'payment_mode': 'cash',
+                          'payment_mode': 'manual_qr_admin',
                         });
                         updated['payments'] = payments;
                         updated['status'] = 'paid';
@@ -805,7 +810,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                     await _adminRepo.recordFeePayment(
                       feeRecordId: id,
                       amountPaid: pend,
-                      paymentMode: 'cash',
+                      paymentMode: 'manual_qr_admin',
                       note: 'Bulk update',
                     );
                     if (ctx.mounted) {
@@ -895,18 +900,19 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     ),
   );
 
-  void _showCollectFeeSheet(BuildContext context) {
+  void _showAdjustFeeSheet(BuildContext context) {
     final isDark = CT.isDark(context);
-    final debtors = _records
-        .where((r) => _feeMetrics(r).outstanding > 0)
-        .toList();
-    String? sid = debtors.isNotEmpty ? debtors.first['id'].toString() : null;
+    final adjustableRecords = List<Map<String, dynamic>>.from(_records);
+    String? sid = adjustableRecords.isNotEmpty
+      ? adjustableRecords.first['id'].toString()
+      : null;
     final amtC = TextEditingController();
-    final nC = TextEditingController();
-    String mode = 'cash';
+    final reasonC = TextEditingController();
+    final noteC = TextEditingController();
+    String adjustmentType = 'decrease';
 
-    if (sid != null && debtors.isNotEmpty) {
-      final first = debtors.first;
+    if (sid != null && adjustableRecords.isNotEmpty) {
+      final first = adjustableRecords.first;
       final pend = _feeMetrics(first).outstanding;
       amtC.text = pend > 0 ? pend.toInt().toString() : '';
     }
@@ -948,7 +954,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                   ),
                   const SizedBox(height: 32),
                   Text(
-                    'Immediate Collection',
+                    'Manual Fee Adjustment',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
@@ -957,9 +963,9 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  _sheetLabel('ACTIVE DEBTORS', isDark),
+                  _sheetLabel('FEE RECORDS', isDark),
                   const SizedBox(height: 10),
-                  if (debtors.isEmpty) ...[
+                  if (adjustableRecords.isEmpty) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -972,7 +978,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         ),
                       ),
                       child: Text(
-                        'No outstanding accounts available',
+                        'No fee records available',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           color: isDark ? Colors.white38 : Colors.black38,
@@ -1000,7 +1006,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         child: DropdownButton<String>(
                           value: sid,
                           hint: Text(
-                            'Select outstanding account',
+                            'Select fee record',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               color: isDark
@@ -1014,7 +1020,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                               ? const Color(0xFF0D1282)
                               : Colors.white,
                           icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                          items: debtors.map((r) {
+                          items: adjustableRecords.map((r) {
                             final pend = _feeMetrics(r).outstanding;
                             return DropdownMenuItem(
                               value: r['id'].toString(),
@@ -1051,23 +1057,23 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                   ],
                   const SizedBox(height: 24),
                   CustomTextField(
-                    label: 'Amount Tendered (₹)',
+                    label: 'Adjustment Amount (₹)',
                     hint: '0',
                     controller: amtC,
                     prefixIcon: Icons.currency_rupee_rounded,
                     keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 28),
-                  _sheetLabel('TENDER TYPE', isDark),
+                  _sheetLabel('ADJUSTMENT TYPE', isDark),
                   const SizedBox(height: 12),
                   Row(
-                    children: ['cash', 'upi', 'bank']
+                    children: ['decrease', 'increase']
                         .map(
                           (m) => Expanded(
                             child: CPPressable(
                               onTap: () {
                                 HapticFeedback.selectionClick();
-                                setS(() => mode = m);
+                                setS(() => adjustmentType = m);
                               },
                               child: AnimatedContainer(
                                 duration: 250.ms,
@@ -1078,7 +1084,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                                   vertical: 14,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: mode == m
+                                  color: adjustmentType == m
                                       ? AppColors.elitePrimary
                                       : (isDark
                                                 ? Colors.white
@@ -1086,7 +1092,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                                             .withValues(alpha: 0.05),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: mode == m
+                                    color: adjustmentType == m
                                         ? Colors.transparent
                                         : (isDark
                                               ? Colors.white.withValues(
@@ -1103,7 +1109,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w900,
-                                      color: mode == m
+                                      color: adjustmentType == m
                                           ? Colors.white
                                           : (isDark
                                                 ? Colors.white38
@@ -1118,15 +1124,29 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         )
                         .toList(),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 20),
+                  CustomTextField(
+                    label: 'Reason *',
+                    hint: 'Why is this adjustment needed?',
+                    controller: reasonC,
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 12),
+                  CustomTextField(
+                    label: 'Internal Note (optional)',
+                    hint: 'Additional context for audit trail',
+                    controller: noteC,
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 36),
                   CustomButton(
-                    text: 'Process Payment',
-                    icon: Icons.offline_bolt_rounded,
+                    text: 'Apply Adjustment',
+                    icon: Icons.tune_rounded,
                     onPressed: () async {
-                      if (debtors.isEmpty) {
+                      if (adjustableRecords.isEmpty) {
                         CPToast.warning(
                           ctx,
-                          'No outstanding accounts to collect',
+                          'No fee records to adjust',
                         );
                         return;
                       }
@@ -1137,40 +1157,30 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         );
                         return;
                       }
-                      try {
-                        // Optimistic update
-                        setState(() {
-                          final idx = _records.indexWhere(
-                            (r) => r['id'].toString() == sid,
-                          );
-                          if (idx != -1) {
-                            final updated = Map<String, dynamic>.from(
-                              _records[idx],
-                            );
-                            final payments = List<Map<String, dynamic>>.from(
-                              (updated['payments'] as List?) ?? [],
-                            );
-                            final amt = double.tryParse(amtC.text) ?? 0;
-                            payments.add({
-                              'amount_paid': amt,
-                              'payment_mode': mode,
-                            });
-                            updated['payments'] = payments;
-                            _records[idx] = updated;
-                          }
-                        });
+                      if (reasonC.text.trim().isEmpty) {
+                        CPToast.warning(ctx, 'Reason is required for manual adjustments');
+                        return;
+                      }
 
-                        await _adminRepo.recordFeePayment(
+                      final amount = double.tryParse(amtC.text) ?? 0;
+                      if (amount <= 0) {
+                        CPToast.warning(ctx, 'Adjustment amount must be greater than zero');
+                        return;
+                      }
+
+                      try {
+                        await _adminRepo.adjustFeeRecord(
                           feeRecordId: sid!,
-                          amountPaid: double.parse(amtC.text),
-                          paymentMode: mode,
-                          note: nC.text,
+                          adjustmentType: adjustmentType,
+                          amount: amount,
+                          reason: reasonC.text.trim(),
+                          note: noteC.text,
                         );
                         if (ctx.mounted) {
                           Navigator.pop(ctx);
                           CPToast.success(
                             context,
-                            'Payment recorded successfully',
+                            'Adjustment applied successfully',
                           );
                           _loadFeeRecords(silent: true);
                         }
@@ -1178,7 +1188,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         if (ctx.mounted) {
                           CPToast.error(
                             ctx,
-                            'Payment failed. Please try again.',
+                            'Adjustment failed. Please try again.',
                           );
                           _loadFeeRecords(silent: true);
                         }

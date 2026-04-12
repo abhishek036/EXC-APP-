@@ -3,6 +3,7 @@ import { MarkAttendanceInput } from './attendance.validator';
 import { notificationQueue } from '../../jobs/queue';
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
+import { ATTENDANCE_PRESENT_STATUSES, normalizeStatus, summarizeAttendanceFromStatuses } from '../../utils/metrics';
 
 export class AttendanceService {
   private repo: AttendanceRepository;
@@ -10,6 +11,36 @@ export class AttendanceService {
   constructor() {
     this.repo = new AttendanceRepository();
   }
+
+  private buildWeeklyPercentages(
+    rows: Array<{ status: string | null; session: { session_date: Date } | null }>,
+    weekStart: Date,
+  ): number[] {
+    const totals = Array<number>(6).fill(0);
+    const presentTotals = Array<number>(6).fill(0);
+    const weekStartDate = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
+
+    for (const row of rows) {
+      const sessionDateRaw = row.session?.session_date;
+      if (!sessionDateRaw) continue;
+
+      const sessionDate = new Date(sessionDateRaw);
+      const sessionDay = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
+      const dayOffset = Math.floor((sessionDay.getTime() - weekStartDate.getTime()) / (24 * 60 * 60 * 1000));
+
+      if (dayOffset < 0 || dayOffset > 5) continue;
+
+      totals[dayOffset] += 1;
+      if (ATTENDANCE_PRESENT_STATUSES.has(normalizeStatus(row.status))) {
+        presentTotals[dayOffset] += 1;
+      }
+    }
+
+    return totals.map((total, idx) =>
+      total > 0 ? Number(((presentTotals[idx] / total) * 100).toFixed(2)) : 0,
+    );
+  }
+
   async markSession(instituteId: string, userId: string, role: string, data: MarkAttendanceInput) {
     const batch = await prisma.batch.findUnique({
       where: { id: data.batch_id, institute_id: instituteId },
@@ -63,15 +94,16 @@ export class AttendanceService {
 
   async getStudentReport(studentId: string, instituteId: string, batchId?: string, subject?: string) {
       const records = await this.repo.getStudentAttendance(studentId, instituteId, batchId, subject);
-      
-      const total = records.length;
-      const present = records.filter(r => r.status === 'present' || r.status === 'late').length;
-      const percentage = total > 0 ? (present / total) * 100 : 0;
+      const summary = summarizeAttendanceFromStatuses(records.map((record) => record.status));
 
       return {
-          total_sessions: total,
-          present_count: present,
-          percentage: percentage.toFixed(2),
+        total_sessions: summary.total,
+        present_count: summary.present,
+        absent_count: summary.absent,
+        late_count: summary.late,
+        leave_count: summary.leave,
+        percentage: summary.percentage,
+        attendance_percentage: summary.percentage,
           records
       };
   }
@@ -80,15 +112,19 @@ export class AttendanceService {
       const now = new Date();
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      const weekStart = new Date(todayStart);
+      weekStart.setDate(todayStart.getDate() - (todayStart.getDay() === 0 ? 6 : todayStart.getDay() - 1));
 
-      const [todaySessions, monthlyStats] = await Promise.all([
+      const [todaySessions, monthlyStats, weeklyStats] = await Promise.all([
           this.repo.getSessionsInRange(instituteId, todayStart, todayEnd, batchId, subject),
-          this.repo.getAggregateStats(instituteId, new Date(now.getFullYear(), now.getMonth(), 1), todayEnd, batchId, subject)
+        this.repo.getAggregateStats(instituteId, new Date(now.getFullYear(), now.getMonth(), 1), todayEnd, batchId, subject),
+        this.repo.getAggregateStats(instituteId, weekStart, todayEnd, batchId, subject),
       ]);
 
       return {
           today: todaySessions,
-          monthly: monthlyStats
+        monthly: monthlyStats,
+        weekly: this.buildWeeklyPercentages(weeklyStats, weekStart),
       };
   }
 }

@@ -5,6 +5,7 @@ import {
   GenerateMonthlyFeesInput,
   SubmitFeeProofInput,
   ReviewFeePaymentInput,
+  AdjustFeeRecordInput,
 } from './fee.validator';
 import { ApiError } from '../../middleware/error.middleware';
 
@@ -105,5 +106,9 @@ export class FeeService {
       review.rejection_reason,
       review.note,
     );
+  }
+
+  async adjustFeeRecord(instituteId: string, actorUserId: string, data: AdjustFeeRecordInput) {
+    return this.repo.adjustFeeRecord(instituteId, actorUserId, data);
   }
 }

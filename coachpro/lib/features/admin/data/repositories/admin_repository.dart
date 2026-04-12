@@ -1146,7 +1146,7 @@ class AdminRepository {
   Future<Map<String, dynamic>> recordFeePayment({
     required String feeRecordId,
     required num amountPaid,
-    required String paymentMode,
+    String paymentMode = 'manual_qr_admin',
     String? transactionId,
     String? note,
   }) async {
@@ -1167,6 +1167,30 @@ class AdminRepository {
       return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to record fee payment');
+  }
+
+  Future<Map<String, dynamic>> adjustFeeRecord({
+    required String feeRecordId,
+    required String adjustmentType,
+    required num amount,
+    required String reason,
+    String? note,
+  }) async {
+    final response = await _api.dio.post(
+      'fees/adjust',
+      data: {
+        'fee_record_id': feeRecordId,
+        'adjustment_type': adjustmentType,
+        'amount': amount,
+        'reason': reason,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      },
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to adjust fee record');
   }
 
   Future<Map<String, dynamic>> getFeeStructure(String batchId) async {

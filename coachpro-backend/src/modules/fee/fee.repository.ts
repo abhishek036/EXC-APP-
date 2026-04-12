@@ -5,6 +5,7 @@ import {
     RecordFeePaymentInput,
     GenerateMonthlyFeesInput,
     SubmitFeeProofInput,
+    AdjustFeeRecordInput,
 } from './fee.validator';
 import { ApiError } from '../../middleware/error.middleware';
 
@@ -677,6 +678,115 @@ export class FeeRepository {
             return {
                 payment: updatedPayment,
                 fee_record_status: nextStatus,
+            };
+        });
+    }
+
+    async adjustFeeRecord(instituteId: string, actorId: string, data: AdjustFeeRecordInput) {
+        return prisma.$transaction(async (tx) => {
+            const record = await tx.feeRecord.findFirst({
+                where: { id: data.fee_record_id, institute_id: instituteId },
+            });
+
+            if (!record) {
+                throw new ApiError('Fee record not found', 404, 'NOT_FOUND');
+            }
+
+            const amount = Number(data.amount);
+            if (!Number.isFinite(amount) || amount <= 0) {
+                throw new ApiError('Amount must be greater than zero', 400, 'INVALID_AMOUNT');
+            }
+
+            const delta = data.adjustment_type === 'increase' ? amount : -amount;
+            const approvedPaidAmount = await this.getApprovedPaidAmount(tx, instituteId, record.id);
+
+            const currentTotalAmount = Number(record.total_amount);
+            const currentDiscountAmount = Number(record.discount_amount ?? 0);
+            const currentLateFeeAmount = Number(record.late_fee ?? 0);
+
+            let nextDiscountAmount = currentDiscountAmount;
+            let nextLateFeeAmount = currentLateFeeAmount;
+
+            if (delta > 0) {
+                nextLateFeeAmount += delta;
+            } else {
+                nextDiscountAmount += Math.abs(delta);
+            }
+
+            const nextFinalAmount = Math.max(currentTotalAmount - nextDiscountAmount + nextLateFeeAmount, 0);
+            if (nextFinalAmount < approvedPaidAmount) {
+                throw new ApiError(
+                    'Adjustment would make final amount lower than already approved payments',
+                    400,
+                    'INVALID_ADJUSTMENT',
+                );
+            }
+
+            const pendingCount = await this.getPendingPaymentCount(tx, instituteId, record.id);
+            const rejectedCount = await tx.feePayment.count({
+                where: {
+                    institute_id: instituteId,
+                    fee_record_id: record.id,
+                    status: 'rejected',
+                },
+            });
+
+            const nextStatus = this.resolveFeeStatus({
+                paidAmount: approvedPaidAmount,
+                finalAmount: nextFinalAmount,
+                pendingCount,
+                hasRejectedAttempt: rejectedCount > 0,
+            });
+
+            const updatedRecord = await tx.feeRecord.update({
+                where: { id: record.id },
+                data: {
+                    paid_amount: new Prisma.Decimal(approvedPaidAmount),
+                    discount_amount: new Prisma.Decimal(nextDiscountAmount),
+                    late_fee: new Prisma.Decimal(nextLateFeeAmount),
+                    final_amount: new Prisma.Decimal(nextFinalAmount),
+                    status: nextStatus,
+                    approved_by_id: nextStatus === 'paid' ? actorId : null,
+                    approved_at: nextStatus === 'paid' ? new Date() : null,
+                },
+            });
+
+            await this.appendEvent(tx, {
+                instituteId,
+                feeRecordId: record.id,
+                actorId,
+                action: 'manual_fee_adjustment',
+                fromStatus: record.status ?? 'unpaid',
+                toStatus: nextStatus,
+                meta: {
+                    adjustment_type: data.adjustment_type,
+                    amount,
+                    delta,
+                    reason: data.reason,
+                    note: data.note ?? null,
+                    before: {
+                        final_amount: Number(record.final_amount),
+                        paid_amount: Number(record.paid_amount),
+                        discount_amount: currentDiscountAmount,
+                        late_fee: currentLateFeeAmount,
+                    },
+                    after: {
+                        final_amount: nextFinalAmount,
+                        paid_amount: approvedPaidAmount,
+                        discount_amount: nextDiscountAmount,
+                        late_fee: nextLateFeeAmount,
+                    },
+                },
+            });
+
+            return {
+                fee_record: updatedRecord,
+                adjustment: {
+                    type: data.adjustment_type,
+                    amount,
+                    reason: data.reason,
+                    note: data.note ?? null,
+                },
             };
         });
     }

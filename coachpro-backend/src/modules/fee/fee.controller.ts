@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { FeeService } from './fee.service';
 import { sendResponse } from '../../utils/response';
+import { emitBatchSync, emitInstituteDashboardSync } from '../../config/socket';
 
 export class FeeController {
   private service: FeeService;
@@ -41,6 +42,15 @@ export class FeeController {
     try {
       // requires user token to have userId for collected_by mapping
       const data = await this.service.recordPayment(req.instituteId!, req.user!.userId, req.body);
+      const batchId = (data as any)?.batch_id;
+      if (batchId) {
+        emitBatchSync(req.instituteId!, batchId, 'fee_payment_recorded', {
+          fee_record_id: (data as any)?.fee_record_id,
+          payment_id: (data as any)?.id,
+        });
+      } else {
+        emitInstituteDashboardSync(req.instituteId!, 'fee_payment_recorded');
+      }
       return sendResponse({ res, data, message: 'Payment recorded successfully' });
     } catch (e) { next(e); }
   }
@@ -53,6 +63,16 @@ export class FeeController {
         req.body,
         req.user?.role,
       );
+      const payment = (data as any)?.payment;
+      const batchId = payment?.batch_id;
+      if (batchId) {
+        emitBatchSync(req.instituteId!, batchId, 'fee_payment_proof_submitted', {
+          fee_record_id: payment?.fee_record_id,
+          payment_id: payment?.id,
+        });
+      } else {
+        emitInstituteDashboardSync(req.instituteId!, 'fee_payment_proof_submitted');
+      }
       return sendResponse({ res, data, statusCode: 201, message: 'Payment proof submitted for verification' });
     } catch (e) { next(e); }
   }
@@ -91,6 +111,16 @@ export class FeeController {
         req.user!.userId,
         req.body,
       );
+      const payment = (data as any)?.payment;
+      const batchId = payment?.batch_id;
+      if (batchId) {
+        emitBatchSync(req.instituteId!, batchId, 'fee_payment_proof_approved', {
+          fee_record_id: payment?.fee_record_id,
+          payment_id: payment?.id,
+        });
+      } else {
+        emitInstituteDashboardSync(req.instituteId!, 'fee_payment_proof_approved');
+      }
       return sendResponse({ res, data, message: 'Payment proof approved' });
     } catch (e) { next(e); }
   }
@@ -103,7 +133,33 @@ export class FeeController {
         req.user!.userId,
         req.body,
       );
+      const payment = (data as any)?.payment;
+      const batchId = payment?.batch_id;
+      if (batchId) {
+        emitBatchSync(req.instituteId!, batchId, 'fee_payment_proof_rejected', {
+          fee_record_id: payment?.fee_record_id,
+          payment_id: payment?.id,
+        });
+      } else {
+        emitInstituteDashboardSync(req.instituteId!, 'fee_payment_proof_rejected');
+      }
       return sendResponse({ res, data, message: 'Payment proof rejected' });
+    } catch (e) { next(e); }
+  }
+
+  adjustFeeRecord = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.service.adjustFeeRecord(req.instituteId!, req.user!.userId, req.body);
+      const record = (data as any)?.fee_record;
+      const batchId = record?.batch_id;
+      if (batchId) {
+        emitBatchSync(req.instituteId!, batchId, 'fee_record_adjusted', {
+          fee_record_id: record?.id,
+        });
+      } else {
+        emitInstituteDashboardSync(req.instituteId!, 'fee_record_adjusted');
+      }
+      return sendResponse({ res, data, message: 'Fee adjustment applied successfully' });
     } catch (e) { next(e); }
   }
 }

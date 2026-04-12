@@ -4,6 +4,7 @@ import { sendResponse } from '../../utils/response';
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
 import { isLegacyColumnError } from '../../utils/prisma-errors';
+import { calculateFeeAmounts, summarizeAttendanceFromStatuses } from '../../utils/metrics';
 
 export class StudentController {
   private studentService: StudentService;
@@ -202,15 +203,14 @@ export class StudentController {
           actuals.sort((a, b) => a.start_time.localeCompare(b.start_time));
           return actuals;
         })(),
-        // Attendance summary (last 30 days)
-        prisma.attendanceRecord.groupBy({
-          by: ['status'],
+        // Attendance summary rows (last 30 days)
+        prisma.attendanceRecord.findMany({
           where: {
             student_id: studentId,
             institute_id: instituteId,
-            session: { session_date: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }
+            session: { session_date: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
           },
-          _count: { status: true }
+          select: { status: true },
         }),
         // Upcoming exams
         prisma.exam.findMany({
@@ -227,7 +227,7 @@ export class StudentController {
           where: {
             student_id: studentId,
             institute_id: instituteId,
-            status: { in: ['pending', 'partial', 'unpaid', 'pending_verification', 'rejected'] },
+            status: { in: ['pending', 'partial', 'unpaid', 'pending_verification', 'rejected', 'overdue'] },
           },
           orderBy: { due_date: 'asc' },
           take: 3
@@ -244,13 +244,21 @@ export class StudentController {
         })
       ]);
 
-      // Calculate attendance percentage
-      const totalClasses = attendanceStats.reduce((sum, s) => sum + s._count.status, 0);
-      const presentCount = attendanceStats.find(s => s.status === 'present')?._count.status || 0;
-      const attendancePercentage = totalClasses > 0 ? Math.round((presentCount / totalClasses) * 100) : 0;
+      const attendanceSummary = summarizeAttendanceFromStatuses(
+        attendanceStats.map((row) => row.status),
+      );
 
-      // Calculate total pending fee amount
-      const totalPendingFees = pendingFees.reduce((sum, f) => sum + Number(f.final_amount), 0);
+      const normalizedPendingFees = pendingFees.map((record) => {
+        const feeMetrics = calculateFeeAmounts(record.final_amount, record.paid_amount, record.status);
+        return {
+          ...record,
+          ...feeMetrics,
+        };
+      });
+
+      const totalPendingFees = normalizedPendingFees
+        .filter((record) => record.is_pending)
+        .reduce((sum, record) => sum + record.remaining_amount, 0);
 
       return sendResponse({
         res,
@@ -258,15 +266,17 @@ export class StudentController {
           student: { id: student.id, name: student.name, phone: student.phone, photo_url: student.photo_url },
           today_schedule: todayLectures,
           stats: {
-            attendance_percentage: attendancePercentage,
-            total_classes_30d: totalClasses,
-            present_30d: presentCount,
+            attendance_percentage: attendanceSummary.percentage,
+            attendance_summary: attendanceSummary,
+            total_classes_30d: attendanceSummary.total,
+            present_30d: attendanceSummary.present,
             pending_fees_total: totalPendingFees,
+            pending_fee_amount: totalPendingFees,
             pending_doubts: pendingDoubts,
             upcoming_exams_count: upcomingExams.length,
           },
           upcoming_exams: upcomingExams,
-          pending_fees: pendingFees,
+          pending_fees: normalizedPendingFees.filter((record) => record.is_pending),
           announcements: recentAnnouncements,
         },
         message: 'Dashboard data fetched'
@@ -290,20 +300,30 @@ export class StudentController {
         orderBy: [{ year: 'desc' }, { month: 'desc' }]
       });
 
-      const totalPaid = records.reduce((sum, r) => {
-        const paid = r.payments.reduce((s, p) => s + Number(p.amount_paid), 0);
-        return sum + paid;
-      }, 0);
+      const normalizedRecords = records.map((record) => {
+        const metrics = calculateFeeAmounts(record.final_amount, record.paid_amount, record.status);
+        return {
+          ...record,
+          ...metrics,
+        };
+      });
 
-      const totalPending = records
-        .filter(r => ['pending', 'partial', 'unpaid', 'pending_verification', 'rejected'].includes((r.status ?? '').toString()))
-        .reduce((sum, r) => sum + Number(r.final_amount), 0);
+      const totalPaid = normalizedRecords.reduce((sum, record) => sum + record.paid_amount, 0);
+
+      const totalPending = normalizedRecords
+        .filter((record) => record.is_pending)
+        .reduce((sum, record) => sum + record.remaining_amount, 0);
 
       return sendResponse({
         res,
         data: {
-          summary: { total_paid: totalPaid, total_pending: totalPending, total_records: records.length },
-          records
+          summary: {
+            total_paid: totalPaid,
+            total_pending: totalPending,
+            pending_amount: totalPending,
+            total_records: normalizedRecords.length,
+          },
+          records: normalizedRecords
         },
         message: 'Fee records fetched'
       });
@@ -573,14 +593,21 @@ export class StudentController {
               orderBy: { session: { session_date: 'desc' } }
           });
 
-          const total = records.length;
-          const present = records.filter(r => r.status === 'present').length;
-          const percentage = total > 0 ? Math.round((present/total) * 100) : 0;
+              const summary = summarizeAttendanceFromStatuses(records.map((record) => record.status));
 
           return sendResponse({ 
               res, 
               data: {
-                  summary: { total, present, percentage },
+                  summary: {
+                    total: summary.total,
+                    present: summary.present,
+                    present_only: summary.present_only,
+                    late: summary.late,
+                    absent: summary.absent,
+                    leave: summary.leave,
+                    percentage: summary.percentage,
+                    attendance_percentage: summary.percentage,
+                  },
                   history: records 
               }, 
               message: 'Attendance fetched' 

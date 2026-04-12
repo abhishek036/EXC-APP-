@@ -23,7 +23,6 @@ class FeePaymentPage extends StatefulWidget {
 }
 
 class _FeePaymentPageState extends State<FeePaymentPage> {
-  String _selectedMethod = 'UPI';
   final _adminRepo = sl<AdminRepository>();
   final _studentRepo = sl<StudentRepository>();
   final _parentRepo = sl<ParentRepository>();
@@ -320,7 +319,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                     ),
 
                   Text(
-                    'SELECT GATEWAY',
+                    'QR PAYMENT ONLY',
                     style: GoogleFonts.sora(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -329,138 +328,67 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // Payment Methods
-                  _buildPaymentOption(
-                    'UPI',
-                    'VPA / QR SCANNER',
-                    Icons.qr_code_scanner,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildPaymentOption(
-                    'CARD',
-                    'CREDIT / DEBIT',
-                    Icons.credit_card,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildPaymentOption(
-                    'NET BANKING',
-                    'INSTANT BANK TRANSFER',
-                    Icons.account_balance,
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Dynamic Form Area
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: _selectedMethod == 'CARD'
-                        ? Column(
-                            key: const ValueKey('card'),
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'CARD INFORMATION',
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: CT.textS(context),
-                                ),
-                              ).animate().fadeIn(),
-                              const SizedBox(height: 16),
-                              const CustomTextField(
-                                label: 'CARD NUMBER',
-                                hint: '•••• •••• •••• ••••',
-                                keyboardType: TextInputType.number,
+                  Container(
+                    key: const ValueKey('upi_qr_only'),
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: CT.card(context),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: borderColor, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: primary.withValues(alpha: 0.05),
+                          offset: const Offset(4, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: CT.isDark(context)
+                                ? CT.elevated(context).withValues(alpha: 0.05)
+                                : primary.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.asset(
+                              'assets/images/qr.jpeg',
+                              height: 190,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, error, stackTrace) => Icon(
+                                Icons.qr_code_2_rounded,
+                                size: 120,
+                                color: CT.textH(context),
                               ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  const Expanded(
-                                    child: CustomTextField(
-                                      label: 'EXPIRY',
-                                      hint: 'MM/YY',
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  const Expanded(
-                                    child: CustomTextField(
-                                      label: 'CVV',
-                                      hint: '•••',
-                                      obscureText: true,
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          )
-                        : _selectedMethod == 'UPI'
-                        ? Container(
-                            key: const ValueKey('upi'),
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: CT.card(context),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: borderColor, width: 2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: primary.withValues(alpha: 0.05),
-                                  offset: const Offset(4, 4),
-                                ),
-                              ],
                             ),
-                            child: Column(
-                              children: [
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: CT.isDark(context)
-                                        ? CT
-                                              .elevated(context)
-                                              .withValues(alpha: 0.05)
-                                        : primary.withValues(alpha: 0.03),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: Image.asset(
-                                      'assets/images/qr.jpeg',
-                                      height: 190,
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (_, error, stackTrace) => Icon(
-                                        Icons.qr_code_2_rounded,
-                                        size: 120,
-                                        color: CT.textH(context),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                Text(
-                                  'SCAN THIS QR TO PAY',
-                                  style: GoogleFonts.sora(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                    color: CT.textS(context),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Student or parent can pay from any UPI app and submit proof below.',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: CT.textM(context),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ).animate().fadeIn().scaleXY(begin: 0.98)
-                        : const SizedBox(height: 100),
-                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'SCAN THIS QR TO PAY',
+                          style: GoogleFonts.sora(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: CT.textS(context),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Only QR-based payment is accepted. Upload payment screenshot for admin verification.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: CT.textM(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn().scaleXY(begin: 0.98),
 
                   const SizedBox(height: 60),
                 ],
@@ -1063,85 +991,4 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
     );
   }
 
-  Widget _buildPaymentOption(String title, String subtitle, IconData icon) {
-    final isSelected = _selectedMethod == title;
-    final primary = CT.textH(context);
-    final borderColor = CT.border(context);
-    final accent = CT.accent(context);
-
-    return CPPressable(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        setState(() => _selectedMethod = title);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: isSelected ? accent.withValues(alpha: 0.1) : CT.card(context),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? accent : borderColor,
-            width: isSelected ? 2.5 : 1,
-          ),
-          boxShadow: isSelected
-              ? [BoxShadow(color: borderColor, offset: const Offset(3, 3))]
-              : null,
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? accent.withValues(alpha: 0.2)
-                    : primary.withValues(alpha: 0.05),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: isSelected ? accent : CT.textS(context),
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.sora(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: CT.textH(context),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: CT.textM(context),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              Icon(Icons.check_box, color: accent, size: 24)
-            else
-              Icon(
-                Icons.check_box_outline_blank,
-                color: CT.textS(context).withValues(alpha: 0.2),
-                size: 24,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 }

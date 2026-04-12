@@ -3,7 +3,7 @@ import { TeacherService } from './teacher.service';
 import { sendResponse } from '../../utils/response';
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
-import { emitBatchSync } from '../../config/socket';
+import { emitBatchSync, emitInstituteDashboardSync } from '../../config/socket';
 import { TimetableService } from '../timetable/timetable.service';
 
 export class TeacherController {
@@ -81,6 +81,9 @@ export class TeacherController {
   remove = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.teacherService.removeTeacher(req.params.id, req.instituteId!);
+      emitInstituteDashboardSync(req.instituteId!, 'teacher_removed', {
+        teacher_id: req.params.id,
+      });
       return sendResponse({ res, data, message: 'Teacher removed successfully' });
     } catch (error) { next(error); }
   };

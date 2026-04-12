@@ -1,6 +1,7 @@
 import { ParentRepository } from './parent.repository';
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
+import { ATTENDANCE_PRESENT_STATUSES, calculateFeeAmounts, normalizeStatus } from '../../utils/metrics';
 
 type ParentStudentLite = {
   id: string;
@@ -16,8 +17,6 @@ type ParentStudentLite = {
     } | null;
   }>;
 };
-
-const FEE_PENDING_STATUSES = new Set(['unpaid', 'pending_verification', 'rejected']);
 
 export class ParentService {
   private parentRepo: ParentRepository;
@@ -326,7 +325,7 @@ export class ParentService {
     const attendanceSummary = new Map<string, { total: number; present: number }>();
     for (const row of attendanceRows) {
       const current = attendanceSummary.get(row.student_id) ?? { total: 0, present: 0 };
-      const isPresent = (row.status ?? '').toString().toLowerCase() === 'present';
+      const isPresent = ATTENDANCE_PRESENT_STATUSES.has(normalizeStatus(row.status));
       current.total += 1;
       if (isPresent) current.present += 1;
       attendanceSummary.set(row.student_id, current);
@@ -334,8 +333,8 @@ export class ParentService {
 
     const todayAttendance = new Map<string, string>();
     for (const row of todayAttendanceRows) {
-      const status = (row.status ?? '').toString().toLowerCase();
-      if (status === 'present') {
+      const status = normalizeStatus(row.status);
+      if (ATTENDANCE_PRESENT_STATUSES.has(status)) {
         todayAttendance.set(row.student_id, 'present');
       } else if (!todayAttendance.has(row.student_id)) {
         todayAttendance.set(row.student_id, status || 'unknown');
@@ -345,27 +344,21 @@ export class ParentService {
     const pendingFeeByStudent = new Map<string, number>();
     const pendingFees = feeRecords
       .map((record) => {
-        const finalAmount = this.toNumber(record.final_amount);
-        const paidAmount = this.toNumber(record.paid_amount);
-        const remaining = Math.max(finalAmount - paidAmount, 0);
-        const status = (record.status ?? '').toString().toLowerCase();
-        const isPending = remaining > 0 && (FEE_PENDING_STATUSES.has(status) || status !== 'paid');
+        const metrics = calculateFeeAmounts(record.final_amount, record.paid_amount, record.status);
 
-        if (isPending) {
+        if (metrics.is_pending) {
           pendingFeeByStudent.set(
             record.student_id,
-            (pendingFeeByStudent.get(record.student_id) ?? 0) + remaining,
+            (pendingFeeByStudent.get(record.student_id) ?? 0) + metrics.remaining_amount,
           );
         }
 
         return {
           ...record,
-          final_amount: finalAmount,
-          paid_amount: paidAmount,
-          remaining_amount: remaining,
+          ...metrics,
         };
       })
-      .filter((record) => record.remaining_amount > 0)
+      .filter((record) => record.is_pending)
       .slice(0, 20);
 
     const quizScoreByStudent = new Map<string, { sum: number; count: number }>();
@@ -587,14 +580,9 @@ export class ParentService {
     });
 
     return records.map((record) => {
-      const finalAmount = this.toNumber(record.final_amount);
-      const paidAmount = this.toNumber(record.paid_amount);
-      const remainingAmount = Math.max(finalAmount - paidAmount, 0);
       return {
         ...record,
-        final_amount: finalAmount,
-        paid_amount: paidAmount,
-        remaining_amount: remainingAmount,
+        ...calculateFeeAmounts(record.final_amount, record.paid_amount, record.status),
       };
     });
   }
@@ -788,7 +776,7 @@ export class ParentService {
 
     const attendanceCount = attendanceRows.reduce(
       (acc, row) => {
-        const status = (row.status ?? '').toString().toLowerCase();
+        const status = normalizeStatus(row.status);
         acc.total += 1;
         if (status === 'present') acc.present += 1;
         if (status === 'absent') acc.absent += 1;
@@ -804,9 +792,9 @@ export class ParentService {
     );
     const attendanceCount30d = attendanceRows30d.reduce(
       (acc, row) => {
-        const status = (row.status ?? '').toString().toLowerCase();
+        const status = normalizeStatus(row.status);
         acc.total += 1;
-        if (status === 'present') acc.present += 1;
+        if (ATTENDANCE_PRESENT_STATUSES.has(status)) acc.present += 1;
         return acc;
       },
       { total: 0, present: 0 },
@@ -819,7 +807,7 @@ export class ParentService {
       const key = this.toDateKey(date);
       const current = attendanceByDate.get(key) ?? { present: 0, total: 0, date };
       current.total += 1;
-      if ((row.status ?? '').toString().toLowerCase() === 'present') {
+      if (ATTENDANCE_PRESENT_STATUSES.has(normalizeStatus(row.status))) {
         current.present += 1;
       }
       attendanceByDate.set(key, current);
@@ -864,20 +852,13 @@ export class ParentService {
       ? Math.round(mappedExamResults.reduce((sum, item) => sum + item.percentage, 0) / mappedExamResults.length)
       : 0;
 
-    const mappedFees = feeRecords.map((record) => {
-      const finalAmount = this.toNumber(record.final_amount);
-      const paidAmount = this.toNumber(record.paid_amount);
-      const remainingAmount = Math.max(finalAmount - paidAmount, 0);
-      return {
-        ...record,
-        final_amount: finalAmount,
-        paid_amount: paidAmount,
-        remaining_amount: remainingAmount,
-      };
-    });
+    const mappedFees = feeRecords.map((record) => ({
+      ...record,
+      ...calculateFeeAmounts(record.final_amount, record.paid_amount, record.status),
+    }));
 
     const pendingFeeAmount = mappedFees
-      .filter((record) => record.remaining_amount > 0)
+      .filter((record) => record.is_pending)
       .reduce((sum, record) => sum + record.remaining_amount, 0);
 
     const mappedAssignments = assignments.map((assignment) => {

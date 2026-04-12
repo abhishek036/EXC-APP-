@@ -3,6 +3,39 @@ import { CreateTeacherInput, UpdateTeacherInput } from './teacher.validator';
 import { Prisma } from '@prisma/client';
 
 export class TeacherRepository {
+  private pruneTeacherFromBatchMeta(settings: unknown, teacherId: string): Record<string, unknown> {
+    const currentSettings =
+      settings && typeof settings === 'object' && !Array.isArray(settings)
+        ? { ...(settings as Record<string, unknown>) }
+        : {};
+
+    const rawBatchMeta = currentSettings['batch_meta'];
+    if (!rawBatchMeta || typeof rawBatchMeta !== 'object' || Array.isArray(rawBatchMeta)) {
+      return currentSettings;
+    }
+
+    const nextBatchMeta: Record<string, unknown> = {};
+    for (const [batchId, value] of Object.entries(rawBatchMeta as Record<string, unknown>)) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        nextBatchMeta[batchId] = value;
+        continue;
+      }
+
+      const meta = { ...(value as Record<string, unknown>) };
+      if (Array.isArray(meta['teacher_ids'])) {
+        meta['teacher_ids'] = (meta['teacher_ids'] as unknown[]).filter(
+          (id) => String(id) !== teacherId,
+        );
+      }
+      nextBatchMeta[batchId] = meta;
+    }
+
+    return {
+      ...currentSettings,
+      batch_meta: nextBatchMeta,
+    };
+  }
+
   async listTeachers(instituteId: string, filters: { name?: string, phone?: string }, pagination: { skip: number, take: number }) {
     const whereClause: Prisma.TeacherWhereInput = { institute_id: instituteId };
     
@@ -92,10 +125,84 @@ export class TeacherRepository {
     });
   }
 
-  async removeTeacher(teacherId: string) {
-    return prisma.teacher.update({
-      where: { id: teacherId },
-      data: { is_active: false }
+  async removeTeacher(teacherId: string, instituteId: string) {
+    return prisma.$transaction(async (tx) => {
+      const teacher = await tx.teacher.findFirst({
+        where: { id: teacherId, institute_id: instituteId },
+        select: { id: true, user_id: true },
+      });
+
+      if (!teacher) return null;
+
+      await Promise.all([
+        tx.batch.updateMany({
+          where: { institute_id: instituteId, teacher_id: teacherId },
+          data: { teacher_id: null },
+        }),
+        tx.lecture.updateMany({
+          where: { institute_id: instituteId, teacher_id: teacherId },
+          data: { teacher_id: null },
+        }),
+        tx.attendanceSession.updateMany({
+          where: { institute_id: instituteId, teacher_id: teacherId },
+          data: { teacher_id: null },
+        }),
+        tx.quiz.updateMany({
+          where: { institute_id: instituteId, teacher_id: teacherId },
+          data: { teacher_id: null },
+        }),
+        tx.note.updateMany({
+          where: { institute_id: instituteId, teacher_id: teacherId },
+          data: { teacher_id: null },
+        }),
+        tx.assignment.updateMany({
+          where: { institute_id: instituteId, teacher_id: teacherId },
+          data: { teacher_id: null },
+        }),
+        tx.doubt.updateMany({
+          where: { institute_id: instituteId, assigned_to_id: teacherId },
+          data: { assigned_to_id: null },
+        }),
+      ]);
+
+      const institute = await tx.institute.findUnique({
+        where: { id: instituteId },
+        select: { settings: true },
+      });
+
+      const nextSettings = this.pruneTeacherFromBatchMeta(institute?.settings, teacherId);
+      await tx.institute.update({
+        where: { id: instituteId },
+        data: { settings: nextSettings as Prisma.InputJsonValue },
+      });
+
+      if (teacher.user_id) {
+        await Promise.all([
+          tx.refreshToken.deleteMany({ where: { user_id: teacher.user_id } }),
+          tx.userDeviceToken.updateMany({
+            where: { institute_id: instituteId, user_id: teacher.user_id },
+            data: { is_active: false },
+          }),
+          tx.user.updateMany({
+            where: { id: teacher.user_id, institute_id: instituteId },
+            data: {
+              is_active: false,
+              status: 'INACTIVE',
+              last_login_at: new Date(),
+            },
+          }),
+        ]);
+      }
+
+      return tx.teacher.update({
+        where: { id: teacherId },
+        data: {
+          is_active: false,
+          user_id: null,
+          phone: null,
+          email: null,
+        },
+      });
     });
   }
 }

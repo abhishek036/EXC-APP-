@@ -80,6 +80,19 @@ class _FeeHistoryPageState extends State<FeeHistoryPage> {
     }
   }
 
+  double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  double _remainingAmount(Map<String, dynamic> record) {
+    final explicit = _toDouble(record['remaining_amount']);
+    if (explicit > 0) return explicit;
+    final total = _toDouble(record['final_amount']);
+    final paid = _toDouble(record['paid_amount']);
+    return (total - paid).clamp(0, double.infinity).toDouble();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,10 +147,16 @@ class _FeeHistoryPageState extends State<FeeHistoryPage> {
       );
 
   Widget _buildBalanceCard(BuildContext context) {
-    final nextDue = _records.firstWhere(
-      (r) => (r['status'] ?? '') == 'pending',
-      orElse: () => {},
-    );
+    final dueCandidates = _records.where((record) => _remainingAmount(record) > 0).toList()
+      ..sort((a, b) {
+        final aDue = DateTime.tryParse((a['due_date'] ?? '').toString());
+        final bDue = DateTime.tryParse((b['due_date'] ?? '').toString());
+        if (aDue == null && bDue == null) return 0;
+        if (aDue == null) return 1;
+        if (bDue == null) return -1;
+        return aDue.compareTo(bDue);
+      });
+    final nextDue = dueCandidates.isNotEmpty ? dueCandidates.first : <String, dynamic>{};
     final dueDate = nextDue.isNotEmpty ? _formatDate(nextDue['due_date']) : 'No dues';
 
     return Container(
@@ -243,11 +262,12 @@ class _FeeHistoryPageState extends State<FeeHistoryPage> {
   }
 
   Widget _buildTxnCard(BuildContext context, Map<String, dynamic> record, int index) {
-    final status = (record['status'] ?? 'pending').toString();
-    final isPaid = status == 'paid';
+    final remaining = _remainingAmount(record);
+    final status = (record['status'] ?? 'pending').toString().toLowerCase();
+    final isPaid = remaining <= 0 || status == 'paid';
     final color = isPaid ? AppColors.mintGreen : AppColors.moltenAmber;
     final icon = isPaid ? Icons.check_circle : Icons.hourglass_top;
-    final amount = (record['final_amount'] ?? 0).toDouble();
+    final displayAmount = isPaid ? _toDouble(record['final_amount']) : remaining;
     final batchName = record['batch']?['name'] ?? 'General';
     final month = record['month']?.toString() ?? '';
     final year = record['year']?.toString() ?? '';
@@ -291,7 +311,7 @@ class _FeeHistoryPageState extends State<FeeHistoryPage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    _formatCurrency(amount),
+                    _formatCurrency(displayAmount),
                     style: GoogleFonts.jetBrainsMono(
                         fontSize: 14, fontWeight: FontWeight.w700, color: CT.textH(context)),
                   ),

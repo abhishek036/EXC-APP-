@@ -11,6 +11,14 @@ interface JwtPayload {
   iat?: number;
 }
 
+type ActiveUserAuthSnapshot = {
+  id: string;
+  role: string;
+  institute_id: string;
+  phone: string;
+  last_login_at: Date | null;
+};
+
 const JWT_VERIFY_ALGORITHMS: jwt.Algorithm[] = ['HS256'];
 const JWT_CLOCK_TOLERANCE_SECONDS = Number.parseInt(process.env.JWT_CLOCK_TOLERANCE_SECONDS || '300', 10);
 
@@ -49,8 +57,15 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
     
     // Check if user still exists and is active (Optional but recommended)
     const activeUser = await prisma.user.findFirst({
-        where: { id: decoded.userId, is_active: true }
-    });
+      where: { id: decoded.userId, is_active: true },
+      select: {
+        id: true,
+        role: true,
+        institute_id: true,
+        phone: true,
+        last_login_at: true,
+      },
+    }) as ActiveUserAuthSnapshot | null;
 
     if (!activeUser) {
         return next(new ApiError('User no longer exists or is inactive', 401, 'USER_INACTIVE'));
@@ -65,8 +80,13 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
       }
     }
 
-    req.user = decoded;
-    req.instituteId = decoded.instituteId || activeUser.institute_id;
+    req.user = {
+      ...decoded,
+      role: (activeUser.role || decoded.role).toLowerCase(),
+      instituteId: activeUser.institute_id || decoded.instituteId,
+      phone: activeUser.phone || decoded.phone,
+    };
+    req.instituteId = req.user.instituteId;
     next();
   } catch (error: any) {
     if (error?.name === 'TokenExpiredError') {

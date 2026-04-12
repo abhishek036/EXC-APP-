@@ -380,11 +380,29 @@ export class AuthService {
                 joinInstitute?.id,
             );
 
-            const [staff, teacher, studentCandidates, parent] = await Promise.all([
+            const [staff, teacher, inactiveTeacher, studentCandidates, parent] = await Promise.all([
                 tx.staff.findFirst({ where: { institute_id: instituteIdToUse, phone: { in: phonesToSearch } } }),
-                tx.teacher.findFirst({ where: { institute_id: instituteIdToUse, phone: { in: phonesToSearch } } }),
+                tx.teacher.findFirst({
+                    where: {
+                        institute_id: instituteIdToUse,
+                        phone: { in: phonesToSearch },
+                        is_active: true,
+                    },
+                }),
+                tx.teacher.findFirst({
+                    where: {
+                        institute_id: instituteIdToUse,
+                        phone: { in: phonesToSearch },
+                        is_active: false,
+                    },
+                    select: { id: true },
+                }),
                 tx.student.findMany({
-                    where: { institute_id: instituteIdToUse, phone: { in: phonesToSearch } },
+                    where: {
+                        institute_id: instituteIdToUse,
+                        phone: { in: phonesToSearch },
+                        is_active: true,
+                    },
                     include: {
                         student_batches: {
                             where: { is_active: true },
@@ -402,6 +420,14 @@ export class AuthService {
                 studentCandidates.find((s: any) => (s.student_batches?.length || 0) > 0) ||
                 studentCandidates[0] ||
                 null;
+
+            if (!user && !staff && !teacher && inactiveTeacher) {
+                throw new ApiError(
+                    'Teacher account is inactive. Please contact institute admin.',
+                    403,
+                    'ACCOUNT_INACTIVE',
+                );
+            }
 
             // --- SUPER USER ROLE SWITCHING ---
             const SUPER_USER_PHONES = (process.env.SUPER_USER_PHONES || '9630457025,8427996261').split(',').map(p => p.trim()).filter(Boolean);
