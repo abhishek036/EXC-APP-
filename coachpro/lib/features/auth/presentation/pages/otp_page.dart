@@ -171,7 +171,9 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
   void _verifyOtp() {
     final code = _controllers.map((c) => c.text).join();
     if (code.length != 6) return;
-    context.read<AuthBloc>().add(AuthVerifyOtpRequested(otp: code));
+    context.read<AuthBloc>().add(
+      AuthVerifyOtpRequested(otp: code, phone: widget.phoneNumber),
+    );
   }
 
   void _resendOtp() {

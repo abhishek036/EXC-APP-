@@ -68,12 +68,13 @@ class AuthSendOtpRequested extends AuthEvent {
 /// Step 2 of phone auth: verify OTP code.
 class AuthVerifyOtpRequested extends AuthEvent {
   final String otp;
+  final String? phone;
   final String? joinCode;
 
-  const AuthVerifyOtpRequested({required this.otp, this.joinCode});
+  const AuthVerifyOtpRequested({required this.otp, this.phone, this.joinCode});
 
   @override
-  List<Object?> get props => [otp, joinCode];
+  List<Object?> get props => [otp, phone, joinCode];
 }
 
 /// User tapped "Logout".

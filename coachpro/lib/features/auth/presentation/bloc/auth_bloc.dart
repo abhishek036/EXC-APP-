@@ -59,6 +59,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     return placeholders.contains(v);
   }
 
+  String _normalizePhone(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) return value;
+    if (value.startsWith('+')) return value;
+
+    final digitsOnly = value.replaceAll(RegExp(r'\D'), '');
+    if (digitsOnly.length == 10) return '+91$digitsOnly';
+    if (digitsOnly.isNotEmpty) return '+$digitsOnly';
+    return value;
+  }
+
   Future<UserModel?> _readCachedUser() async {
     try {
       final raw = await _storage.getUserJson();
@@ -80,6 +91,43 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         message.contains('FirebaseOptions cannot be null')) {
       return 'Firebase is not configured for this platform. For web, run with FIREBASE_* --dart-define values.';
     }
+
+    if (error is DioException) {
+      final backendMessage = error.error?.toString().trim();
+      if (backendMessage != null && backendMessage.isNotEmpty && backendMessage != 'null') {
+        return backendMessage;
+      }
+
+      final payload = error.response?.data;
+      if (payload is Map) {
+        final errorObj = payload['error'];
+        if (errorObj is Map && errorObj['message'] is String) {
+          final msg = (errorObj['message'] as String).trim();
+          if (msg.isNotEmpty) return msg;
+        }
+        final msg = payload['message'];
+        if (msg is String && msg.trim().isNotEmpty) {
+          return msg.trim();
+        }
+      }
+
+      final status = error.response?.statusCode;
+      if (status == 429) {
+        return 'Too many attempts. Please wait and try again.';
+      }
+
+      if (status != null && status >= 500) {
+        return 'Server is temporarily unavailable. Please try again.';
+      }
+
+      if (error.type == DioExceptionType.connectionError ||
+          error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.sendTimeout) {
+        return 'Unable to reach server. Check internet connection and backend URL.';
+      }
+    }
+
     return fallback;
   }
 
@@ -201,7 +249,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
 
-    final phone = event.phone.startsWith('+') ? event.phone : '+91${event.phone}';
+    final phone = _normalizePhone(event.phone);
     _pendingPhone = phone;
     _pendingJoinCode = event.joinCode;
     _pendingRole = event.role.name;
@@ -230,8 +278,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoading());
 
     try {
+      final verifyPhone = (event.phone?.trim().isNotEmpty ?? false)
+          ? _normalizePhone(event.phone!)
+          : (_pendingPhone?.trim().isNotEmpty ?? false)
+              ? _pendingPhone!.trim()
+              : null;
+
+      if (verifyPhone == null || verifyPhone.isEmpty) {
+        emit(const AuthError('Session expired. Please request OTP again.'));
+        return;
+      }
+
+      _pendingPhone = verifyPhone;
+
       final data = await _apiAuth.verifyOtp(
-        phone: _pendingPhone!,
+        phone: verifyPhone,
         otp: event.otp,
         joinCode: event.joinCode ?? _pendingJoinCode,
         role: _pendingRole,
@@ -265,7 +326,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         }
       }
     } catch (e) {
-      emit(AuthError(_friendlyAuthError(e, fallback: 'Invalid OTP or server unreachable. $e')));
+      emit(AuthError(_friendlyAuthError(e, fallback: 'Failed to verify OTP.')));
     }
   }
 
