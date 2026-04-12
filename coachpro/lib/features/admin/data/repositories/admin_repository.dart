@@ -128,15 +128,19 @@ class AdminRepository {
   Future<List<Map<String, dynamic>>> getStudents({
     String? query,
     String? batchId,
-    bool isActive = true,
+    bool? isActive = true,
   }) async {
+    final normalizedQuery = query?.trim();
+    final normalizedBatchId = batchId?.trim();
     final queryParams = <String, dynamic>{
-      'name': query,
-      'phone': query,
-      'batchId': batchId,
-      'isActive': isActive.toString(),
+      if (normalizedQuery != null && normalizedQuery.isNotEmpty)
+        'name': normalizedQuery,
+      if (normalizedQuery != null && normalizedQuery.isNotEmpty)
+        'phone': normalizedQuery,
+      if (normalizedBatchId != null && normalizedBatchId.isNotEmpty)
+        'batchId': normalizedBatchId,
+      if (isActive != null) 'isActive': isActive.toString(),
     };
-    queryParams.removeWhere((key, value) => value == null || value == 'null');
 
     final response = await _api.dio.get(
       'students',

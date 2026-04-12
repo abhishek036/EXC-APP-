@@ -122,6 +122,7 @@ class _StudentListPageState extends State<StudentListPage> {
         _adminRepo.getStudents(
           batchId: selectedBatchId,
           query: query.isEmpty ? null : query,
+          isActive: null,
         ),
         _adminRepo.getBatches(),
       ]);
