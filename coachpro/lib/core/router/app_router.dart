@@ -6,7 +6,6 @@ import '../../features/auth/domain/entities/user_entity.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
-import '../../features/auth/presentation/pages/onboarding_page.dart';
 import '../../features/auth/presentation/pages/otp_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
@@ -59,7 +58,7 @@ import '../../features/admin/presentation/pages/audit_logs_page.dart';
 import '../../features/admin/presentation/pages/data_export_page.dart';
 import '../../features/admin/presentation/pages/bulk_result_entry_page.dart';
 import '../../features/student/presentation/pages/my_doubts_history_page.dart';
-import '../../features/student/presentation/pages/youtube_player_page.dart';
+// YoutubePlayerPage removed — unified into VideoPlayerPage
 import '../../features/admin/presentation/pages/automated_notifications_page.dart';
 import '../../features/admin/presentation/pages/teacher_list_page.dart';
 import '../../features/admin/presentation/pages/teacher_profile_page.dart';
@@ -124,7 +123,6 @@ class AppRouter {
   // ── Path sets for redirect logic ─────────────────────────────────
   static const _publicPaths = <String>{
     '/splash',
-    '/onboarding',
     '/login',
     '/register',
     '/otp',
@@ -195,7 +193,7 @@ class AppRouter {
                 const SizedBox(height: 24),
                 Text(
                   'Page not found',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
                     color: const Color(0xFF0D1282),
@@ -204,7 +202,7 @@ class AppRouter {
                 const SizedBox(height: 8),
                 Text(
                   'Route: ${state.uri}',
-                  style: GoogleFonts.inter(fontSize: 13, color: Colors.black54),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.black54),
                 ),
                 const Spacer(),
                 SizedBox(
@@ -251,16 +249,14 @@ class AppRouter {
 
       // 3. Unauthenticated: Redirect to onboarding/login
       if (authState is AuthUnauthenticated || authState is AuthError) {
-        if (location == '/splash') return '/onboarding';
+        if (location == '/splash') return '/login';
         return isPublic ? null : '/login';
       }
 
       // 4. Authenticated: Respect deep links if on splash
       if (authState is AuthAuthenticated) {
         // Restore deep link or go to dashboard
-        if (location == '/splash' ||
-            location == '/onboarding' ||
-            location == '/login') {
+        if (location == '/splash' || location == '/login') {
           final from = uri.queryParameters['from'];
           if (from != null && from.isNotEmpty) {
             return Uri.decodeComponent(from);
@@ -293,7 +289,7 @@ class AppRouter {
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
-        pageBuilder: (c, s) => _page(s, const OnboardingPage()),
+        redirect: (_, _) => '/login',
       ),
       GoRoute(
         path: '/login',
@@ -487,9 +483,12 @@ class AppRouter {
                       return _page(
                         s,
                         VideoPlayerPage(
-                          videoUrl: args['videoUrl'],
+                          videoUrl: args['videoUrl'] ?? args['videoId'],
                           title: args['title'],
                           lectureId: args['lectureId'],
+                          summary: args['summary']?.toString(),
+                          teacherName: args['teacherName']?.toString(),
+                          subject: args['subject']?.toString(),
                         ),
                       );
                     },
@@ -498,6 +497,18 @@ class AppRouter {
                     path: 'fee-payment',
                     name: 'admin-fee-payment',
                     pageBuilder: (c, s) => _page(s, const FeePaymentPage()),
+                    routes: [
+                      GoRoute(
+                        path: ':recordId',
+                        name: 'admin-fee-payment-with-id',
+                        pageBuilder: (c, s) => _page(
+                          s,
+                          FeePaymentPage(
+                            recordId: s.pathParameters['recordId'],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'whatsapp-broadcast',
@@ -785,9 +796,12 @@ class AppRouter {
                       return _page(
                         s,
                         VideoPlayerPage(
-                          videoUrl: args['videoUrl'],
+                          videoUrl: args['videoUrl'] ?? args['videoId'],
                           title: args['title'],
                           lectureId: args['lectureId'],
+                          summary: args['summary']?.toString(),
+                          teacherName: args['teacherName']?.toString(),
+                          subject: args['subject']?.toString(),
                         ),
                       );
                     },
@@ -1051,9 +1065,12 @@ class AppRouter {
                       return _page(
                         s,
                         VideoPlayerPage(
-                          videoUrl: args['videoUrl'],
+                          videoUrl: args['videoUrl'] ?? args['videoId'],
                           title: args['title'],
                           lectureId: args['lectureId'],
+                          summary: args['summary']?.toString(),
+                          teacherName: args['teacherName']?.toString(),
+                          subject: args['subject']?.toString(),
                         ),
                       );
                     },
@@ -1065,12 +1082,12 @@ class AppRouter {
                       final args = s.extra as Map<String, dynamic>? ?? {};
                       return _page(
                         s,
-                        YoutubePlayerPage(
-                          videoId: args['videoId'] ?? '',
+                        VideoPlayerPage(
+                          videoUrl: args['videoId'] ?? args['videoUrl'] ?? '',
                           title: args['title'] ?? 'Video',
-                          summary: args['summary']?.toString() ?? '',
-                          teacherName: args['teacherName']?.toString() ?? '',
-                          subject: args['subject']?.toString() ?? '',
+                          summary: args['summary']?.toString(),
+                          teacherName: args['teacherName']?.toString(),
+                          subject: args['subject']?.toString(),
                         ),
                       );
                     },
@@ -1256,9 +1273,12 @@ class AppRouter {
                       return _page(
                         s,
                         VideoPlayerPage(
-                          videoUrl: args['videoUrl'],
+                          videoUrl: args['videoUrl'] ?? args['videoId'],
                           title: args['title'],
                           lectureId: args['lectureId'],
+                          summary: args['summary']?.toString(),
+                          teacherName: args['teacherName']?.toString(),
+                          subject: args['subject']?.toString(),
                         ),
                       );
                     },
@@ -1325,7 +1345,20 @@ class AppRouter {
               GoRoute(
                 path: '/parent/fee-payment',
                 name: 'parent-fee-payment',
-                pageBuilder: (c, s) => _page(s, const FeePaymentPage()),
+                pageBuilder: (c, s) => _page(
+                  s,
+                  const FeePaymentPage(),
+                ),
+                routes: [
+                  GoRoute(
+                    path: ':recordId',
+                    name: 'parent-fee-payment-with-id',
+                    pageBuilder: (c, s) => _page(
+                      s,
+                      FeePaymentPage(recordId: s.pathParameters['recordId']),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

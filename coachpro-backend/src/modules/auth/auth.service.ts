@@ -401,7 +401,6 @@ export class AuthService {
                     where: {
                         institute_id: instituteIdToUse,
                         phone: { in: phonesToSearch },
-                        is_active: true,
                     },
                     include: {
                         student_batches: {
