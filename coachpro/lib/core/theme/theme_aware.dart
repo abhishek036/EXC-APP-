@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../constants/app_dimensions.dart';
 
 /// Mixin for theme-aware color access across ALL pages.
 /// Usage: `with ThemeAware` on State classes, then use `isDark`, `bg`, `card`, etc.
@@ -10,31 +9,34 @@ import '../constants/app_dimensions.dart';
 /// Multi-layer surface system:
 ///   bg → surfaceRecessed → card → surfaceRaised → surfaceOverlay
 mixin ThemeAware<T extends StatefulWidget> on State<T> {
-  static const _deepBlue = Color(0xFF0D1282);
-  static const _deepBlueDark = Color(0xFF090D5C);
-  static const _offWhite = Color(0xFFEEEDED);
-  static const _accentYellow = Color(0xFFF0DE36);
+  static const _deepBlue = Color(0xFF354388);
+  static const _deepBlueDark = Color(0xFF263063);
+  static const _offWhite = Color(0xFFFFFFFF);
+  static const _saharaSand = Color(0xFFF6EA90);
+  static const _accentYellow = Color(0xFFBDAE18);
+  static const _ink = Color(0xFF222222);
   static const _successGreen = Color(0xFF2FAE74);
-  static const _errorRed = Color(0xFFD71313);
-  static const _warningAmber = Color(0xFFE3D465);
+  static const _errorRed = Color(0xFFB6231B);
+  static const _warningAmber = Color(0xFFBDAE18);
 
   bool get isDark => Theme.of(context).brightness == Brightness.dark;
 
   // ── Backgrounds ──
   Color get bg => isDark ? _deepBlueDark : _offWhite;
-  Color get card => isDark ? _deepBlue : _offWhite;
+  Color get card => isDark ? _deepBlue : Colors.white;
   Color get elevated => isDark ? _deepBlue : Colors.white;
 
   // ── Multi-layer surfaces ──
   Color get surfaceRecessed => isDark ? _deepBlueDark : _offWhite;
   Color get surfaceRaised => isDark ? _deepBlue : Colors.white;
   Color get surfaceOverlay => isDark ? _deepBlue : Colors.white;
+  Color get highlightSurface => isDark ? _accentYellow.withValues(alpha: 0.2) : _saharaSand;
 
   // ── Borders ──
-  Color get border => _deepBlue;
+  Color get border => isDark ? Colors.white24 : _deepBlue.withValues(alpha: 0.24);
 
   // ── Text ──
-  Color get textH => isDark ? _offWhite : _deepBlue;
+  Color get textH => isDark ? _offWhite : _ink;
   Color get textS => isDark
       ? _offWhite.withValues(alpha: 0.78)
       : _deepBlue.withValues(alpha: 0.78);
@@ -54,49 +56,67 @@ mixin ThemeAware<T extends StatefulWidget> on State<T> {
   // ── Common UI ──
   Color get shimmer => isDark ? _deepBlue : _offWhite.withValues(alpha: 0.5);
   Color get divider => isDark
-      ? _deepBlue.withValues(alpha: 0.3)
-      : _deepBlue.withValues(alpha: 0.15);
+      ? _offWhite.withValues(alpha: 0.2)
+      : _deepBlue.withValues(alpha: 0.16);
   Color get disabled => isDark
       ? _offWhite.withValues(alpha: 0.38)
       : _deepBlue.withValues(alpha: 0.38);
   Color get inputFill => isDark ? _deepBlueDark : _offWhite;
 
-  // ── Card decoration helper ──
+  // ── Card decoration helper — Neo-Brutalist ──
   BoxDecoration cardDecor({double radius = 16}) => BoxDecoration(
-    color: card,
+    color: isDark ? _deepBlueDark : Colors.white,
     borderRadius: BorderRadius.circular(radius),
-    border: isDark
-        ? Border.all(color: border.withValues(alpha: 0.5))
-        : Border.all(color: border),
-    boxShadow: AppDimensions.shadowSm(isDark),
+    border: Border.all(
+      color: isDark ? Colors.white24 : _deepBlue.withValues(alpha: 0.22),
+      width: isDark ? 1.5 : 1.4,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: isDark ? Colors.black54 : _deepBlue.withValues(alpha: 0.12),
+        blurRadius: 14,
+        offset: const Offset(0, 6),
+      ),
+    ],
   );
 
-  // ── Elevated card decoration — more prominent ──
+  // ── Elevated card decoration — more prominent Neo-Brutalist ──
   BoxDecoration elevatedCardDecor({double radius = 16}) => BoxDecoration(
-    color: surfaceRaised,
+    color: isDark ? _deepBlue : _saharaSand,
     borderRadius: BorderRadius.circular(radius),
-    border: isDark ? Border.all(color: border.withValues(alpha: 0.6)) : null,
-    boxShadow: AppDimensions.shadowMd(isDark),
+    border: Border.all(
+      color: isDark ? Colors.white24 : _deepBlue.withValues(alpha: 0.3),
+      width: isDark ? 1.5 : 1.6,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: isDark ? Colors.black54 : _deepBlue.withValues(alpha: 0.14),
+        blurRadius: 16,
+        offset: const Offset(0, 7),
+      ),
+    ],
   );
 }
 
 /// Stateless version — call these with BuildContext
 class CT {
   CT._();
-  static const _deepBlue = Color(0xFF0D1282);
-  static const _deepBlueDark = Color(0xFF090D5C);
-  static const _offWhite = Color(0xFFEEEDED);
-  static const _accentYellow = Color(0xFFF0DE36);
+  static const _deepBlue = Color(0xFF354388);
+  static const _deepBlueDark = Color(0xFF263063);
+  static const _offWhite = Color(0xFFFFFFFF);
+  static const _saharaSand = Color(0xFFF6EA90);
+  static const _accentYellow = Color(0xFFBDAE18);
+  static const _ink = Color(0xFF222222);
   static const _successGreen = Color(0xFF2FAE74);
-  static const _errorRed = Color(0xFFD71313);
-  static const _warningAmber = Color(0xFFE3D465);
+  static const _errorRed = Color(0xFFB6231B);
+  static const _warningAmber = Color(0xFFBDAE18);
 
   static bool isDark(BuildContext c) =>
       Theme.of(c).brightness == Brightness.dark;
 
   // Backgrounds
   static Color bg(BuildContext c) => isDark(c) ? _deepBlueDark : _offWhite;
-  static Color card(BuildContext c) => isDark(c) ? _deepBlue : _offWhite;
+  static Color card(BuildContext c) => isDark(c) ? _deepBlue : Colors.white;
   static Color elevated(BuildContext c) => isDark(c) ? _deepBlue : Colors.white;
 
   // Multi-layer surfaces
@@ -106,12 +126,15 @@ class CT {
       isDark(c) ? _deepBlue : Colors.white;
   static Color surfaceOverlay(BuildContext c) =>
       isDark(c) ? _deepBlue : Colors.white;
+    static Color highlightSurface(BuildContext c) =>
+      isDark(c) ? _accentYellow.withValues(alpha: 0.2) : _saharaSand;
 
   // Borders
-  static Color border(BuildContext c) => _deepBlue;
+  static Color border(BuildContext c) =>
+      isDark(c) ? Colors.white24 : _deepBlue.withValues(alpha: 0.24);
 
   // Text
-  static Color textH(BuildContext c) => isDark(c) ? _offWhite : _deepBlue;
+  static Color textH(BuildContext c) => isDark(c) ? _offWhite : _ink;
   static Color textS(BuildContext c) => isDark(c)
       ? _offWhite.withValues(alpha: 0.78)
       : _deepBlue.withValues(alpha: 0.78);
@@ -132,35 +155,49 @@ class CT {
   static Color shimmer(BuildContext c) =>
       isDark(c) ? _deepBlue : _offWhite.withValues(alpha: 0.5);
   static Color divider(BuildContext c) => isDark(c)
-      ? _deepBlue.withValues(alpha: 0.3)
-      : _deepBlue.withValues(alpha: 0.15);
+      ? _offWhite.withValues(alpha: 0.2)
+      : _deepBlue.withValues(alpha: 0.16);
   static Color disabled(BuildContext c) => isDark(c)
       ? _offWhite.withValues(alpha: 0.38)
       : _deepBlue.withValues(alpha: 0.38);
   static Color inputFill(BuildContext c) =>
       isDark(c) ? _deepBlueDark : _offWhite;
 
-  // ── Card decoration helper ──
+  // ── Card decoration helper — Neo-Brutalist ──
   static BoxDecoration cardDecor(BuildContext c, {double radius = 16}) =>
       BoxDecoration(
-        color: card(c),
+        color: isDark(c) ? _deepBlueDark : Colors.white,
         borderRadius: BorderRadius.circular(radius),
-        border: isDark(c)
-            ? Border.all(color: border(c).withValues(alpha: 0.5))
-            : Border.all(color: border(c)),
-        boxShadow: AppDimensions.shadowSm(isDark(c)),
+        border: Border.all(
+          color: isDark(c) ? Colors.white24 : _deepBlue.withValues(alpha: 0.22),
+          width: isDark(c) ? 1.5 : 1.4,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark(c) ? Colors.black54 : _deepBlue.withValues(alpha: 0.12),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
       );
 
-  // ── Elevated card decoration ──
+  // ── Elevated card decoration — Neo-Brutalist ──
   static BoxDecoration elevatedCardDecor(
     BuildContext c, {
     double radius = 16,
   }) => BoxDecoration(
-    color: surfaceRaised(c),
+    color: isDark(c) ? _deepBlue : _saharaSand,
     borderRadius: BorderRadius.circular(radius),
-    border: isDark(c)
-        ? Border.all(color: border(c).withValues(alpha: 0.6))
-        : null,
-    boxShadow: AppDimensions.shadowMd(isDark(c)),
+    border: Border.all(
+      color: isDark(c) ? Colors.white24 : _deepBlue.withValues(alpha: 0.3),
+      width: isDark(c) ? 1.5 : 1.6,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: isDark(c) ? Colors.black54 : _deepBlue.withValues(alpha: 0.14),
+        blurRadius: 16,
+        offset: const Offset(0, 7),
+      ),
+    ],
   );
 }

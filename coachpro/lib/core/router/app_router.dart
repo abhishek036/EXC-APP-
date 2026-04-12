@@ -170,7 +170,7 @@ class AppRouter {
     errorPageBuilder: (context, state) => _page(
       state,
       Scaffold(
-        backgroundColor: const Color(0xFFEEEDED),
+        backgroundColor: const Color(0xFFFFFFFF),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -187,7 +187,7 @@ class AppRouter {
                   },
                   icon: const Icon(
                     Icons.arrow_back_ios_new_rounded,
-                    color: Color(0xFF0D1282),
+                    color: Color(0xFF354388),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -196,7 +196,7 @@ class AppRouter {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
-                    color: const Color(0xFF0D1282),
+                    color: const Color(0xFF354388),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -210,7 +210,7 @@ class AppRouter {
                   child: ElevatedButton(
                     onPressed: () => context.go('/login'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0D1282),
+                      backgroundColor: const Color(0xFF354388),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(

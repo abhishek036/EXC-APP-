@@ -60,8 +60,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     return Scaffold(
       backgroundColor: CT.bg(context),
       appBar: AppBar(
-        leading: CPPressable(onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/'); } }, child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context))),
-        title: Text('Change Password', style: GoogleFonts.sora(fontWeight: FontWeight.w700, color: CT.textH(context))),
+        leading: CPPressable(onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/login'); } }, child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context))),
+        title: Text('Change Password', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: CT.textH(context))),
         backgroundColor: CT.bg(context), elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -86,7 +86,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                     Expanded(
                       child: Text(
                         'Use a strong password of at least 8 characters.',
-                        style: GoogleFonts.dmSans(fontSize: 13, color: CT.textM(context)),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 13, color: CT.textM(context)),
                       ),
                     ),
                   ],
@@ -128,7 +128,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       alignment: Alignment.center,
                       child: _isSaving
                           ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                          : Text('Update Password', style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                          : Text('Update Password', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
                     ),
                   ),
                 ),
@@ -140,17 +140,17 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     );
   }
 
-  Widget _label(String text) => Text(text, style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textS(context)));
+  Widget _label(String text) => Text(text, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: CT.textS(context)));
 
   Widget _passField(TextEditingController ctrl, String hint, bool visible, VoidCallback toggle, {required FormFieldValidator<String?> validator}) {
     return TextFormField(
       controller: ctrl,
       obscureText: !visible,
-      style: GoogleFonts.dmSans(color: CT.textH(context)),
+      style: GoogleFonts.plusJakartaSans(color: CT.textH(context)),
       validator: validator,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.dmSans(color: CT.textM(context)),
+        hintStyle: GoogleFonts.plusJakartaSans(color: CT.textM(context)),
         prefixIcon: Icon(Icons.lock_outline, color: CT.textM(context)),
         suffixIcon: IconButton(
           icon: Icon(visible ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: CT.textM(context)),

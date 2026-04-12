@@ -260,8 +260,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
       builder: (context, state) {
         final isLoading = state is AuthLoading;
         return Scaffold(
-          backgroundColor:
-              AppColors.elitePrimary, // Match login page background
+          backgroundColor: Colors.white,
           body: Stack(
             children: [
               // Ambient glows to match login page
@@ -275,7 +274,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.15),
+                        color: AppColors.saharaSand.withValues(alpha: 0.45),
                         blurRadius: 120,
                         spreadRadius: 60,
                       ),
@@ -293,7 +292,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
+                        color: AppColors.elitePrimary.withValues(alpha: 0.08),
                         blurRadius: 90,
                         spreadRadius: 40,
                       ),
@@ -315,21 +314,21 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                             if (context.canPop()) {
                               context.pop();
                             } else {
-                              context.go('/');
+                              context.go('/login');
                             }
                           },
                           child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.06),
+                              color: AppColors.saharaSand,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.1),
+                                color: AppColors.elitePrimary.withValues(alpha: 0.18),
                               ),
                             ),
                             child: const Icon(
                               Icons.arrow_back_ios_new_rounded,
-                              color: Colors.white,
+                              color: AppColors.elitePrimary,
                               size: 18,
                             ),
                           ),
@@ -344,10 +343,10 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                             child: Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.06),
+                                color: AppColors.saharaSand,
                                 borderRadius: BorderRadius.circular(22),
                                 border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.12),
+                                  color: AppColors.elitePrimary.withValues(alpha: 0.18),
                                 ),
                               ),
                               child: Image.asset(
@@ -371,7 +370,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: AppColors.elitePrimary,
                           letterSpacing: -0.8,
                         ),
                       ).animate(delay: 200.ms).fadeIn(),
@@ -383,7 +382,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.55),
+                          color: AppColors.deepNavy.withValues(alpha: 0.64),
                           fontWeight: FontWeight.w500,
                           height: 1.5,
                         ),
@@ -394,15 +393,19 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                       // ── Verification Card ────────────────
                       Container(
                             decoration: BoxDecoration(
-                              color: AppColors.offWhite,
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(24),
                               boxShadow: [
-                                const BoxShadow(
-                                  color: Colors.black,
-                                  offset: Offset(8, 8),
+                                BoxShadow(
+                                  color: AppColors.elitePrimary.withValues(alpha: 0.12),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 8),
                                 ),
                               ],
-                              border: Border.all(color: Colors.black, width: 2),
+                              border: Border.all(
+                                color: AppColors.elitePrimary.withValues(alpha: 0.2),
+                                width: 1.4,
+                              ),
                             ),
                             padding: const EdgeInsets.all(24),
                             child: Column(
@@ -430,9 +433,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                                                   GoogleFonts.plusJakartaSans(
                                                     fontSize: 22,
                                                     fontWeight: FontWeight.w700,
-                                                    color: const Color(
-                                                      0xFF0A0C1E,
-                                                    ),
+                                                      color: AppColors.deepNavy,
                                                   ),
                                               decoration: InputDecoration(
                                                 filled: true,
@@ -455,9 +456,9 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                                                             12,
                                                           ),
                                                       borderSide:
-                                                          const BorderSide(
-                                                            color: Colors.black,
-                                                            width: 1.5,
+                                                          BorderSide(
+                                                            color: AppColors.elitePrimary.withValues(alpha: 0.35),
+                                                            width: 1.4,
                                                           ),
                                                     ),
                                                 focusedBorder:
@@ -468,9 +469,8 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                                                           ),
                                                       borderSide:
                                                           const BorderSide(
-                                                            color: AppColors
-                                                                .accent,
-                                                            width: 3,
+                                                            color: AppColors.elitePrimary,
+                                                            width: 2,
                                                           ),
                                                     ),
                                               ),
@@ -551,7 +551,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                         'Having trouble? Contact support.',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: AppColors.deepNavy.withValues(alpha: 0.34),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -580,12 +580,20 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
         height: 54,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: onTap == null ? AppColors.offWhite : AppColors.accent,
+          color: onTap == null
+              ? AppColors.elitePrimary.withValues(alpha: 0.34)
+              : AppColors.elitePrimary,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.black, width: 2),
+          border: Border.all(color: AppColors.elitePrimary, width: 1.2),
           boxShadow: onTap == null
               ? null
-              : [const BoxShadow(color: Colors.black, offset: Offset(4, 4))],
+              : [
+                  BoxShadow(
+                    color: AppColors.elitePrimary.withValues(alpha: 0.25),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
         ),
         child: Center(
           child: isLoading
@@ -593,7 +601,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                   width: 22,
                   height: 22,
                   child: CircularProgressIndicator(
-                    color: AppColors.elitePrimary,
+                    color: Colors.white,
                     strokeWidth: 2.5,
                   ),
                 )
@@ -606,8 +614,8 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: onTap == null
-                            ? AppColors.elitePrimary.withValues(alpha: 0.3)
-                            : AppColors.elitePrimary,
+                            ? Colors.white.withValues(alpha: 0.62)
+                            : Colors.white,
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -615,8 +623,8 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                     Icon(
                       icon,
                       color: onTap == null
-                          ? AppColors.elitePrimary.withValues(alpha: 0.3)
-                          : AppColors.elitePrimary,
+                          ? Colors.white.withValues(alpha: 0.62)
+                          : Colors.white,
                       size: 20,
                     ),
                   ],

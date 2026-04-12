@@ -4,11 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   AppTheme._();
 
-  static const Color deepBlue = Color(0xFF0D1282);
-  static const Color deepBlueDark = Color(0xFF090D5C);
-  static const Color offWhite = Color(0xFFEEEDED);
-  static const Color accentYellow = Color(0xFFF0DE36);
-  static const Color alertRed = Color(0xFFD71313);
+  static const Color deepBlue = Color(0xFF354388);
+  static const Color deepBlueDark = Color(0xFF263063);
+  static const Color offWhite = Color(0xFFFFFFFF);
+  static const Color saharaSand = Color(0xFFF6EA90);
+  static const Color accentYellow = Color(0xFFBDAE18);
+  static const Color alertRed = Color(0xFFB6231B);
+  static const Color ink = Color(0xFF222222);
 
   static ThemeData get lightTheme => _baseTheme(brightness: Brightness.light);
   static ThemeData get darkTheme => _baseTheme(brightness: Brightness.dark);
@@ -24,10 +26,10 @@ class AppTheme {
     final isDark = brightness == Brightness.dark;
     final bg = isDark ? deepBlueDark : offWhite;
     final surface = isDark ? deepBlue : Colors.white;
-    final textPrimary = isDark ? offWhite : deepBlue;
+    final textPrimary = isDark ? offWhite : ink;
     final textSecondary = isDark
         ? offWhite.withValues(alpha: 0.74)
-        : deepBlue.withValues(alpha: 0.72);
+      : deepBlue.withValues(alpha: 0.76);
 
     final baseText = GoogleFonts.plusJakartaSansTextTheme(
       ThemeData(brightness: brightness).textTheme,
@@ -90,28 +92,28 @@ class AppTheme {
       colorScheme: ColorScheme(
         brightness: brightness,
         primary: deepBlue,
-        onPrimary: offWhite,
-        secondary: accentYellow,
-        onSecondary: deepBlue,
+        onPrimary: Colors.white,
+        secondary: saharaSand,
+        onSecondary: ink,
         error: alertRed,
-        onError: offWhite,
+        onError: Colors.white,
         surface: surface,
         onSurface: textPrimary,
       ),
       textTheme: textTheme,
       dividerColor: deepBlue,
       appBarTheme: AppBarTheme(
-        backgroundColor: deepBlue,
-        foregroundColor: offWhite,
+        backgroundColor: offWhite,
+        foregroundColor: deepBlue,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: textTheme.titleLarge?.copyWith(
           fontSize: 18,
           fontWeight: FontWeight.w800,
-          color: offWhite,
+          color: textPrimary,
         ),
-        iconTheme: const IconThemeData(color: offWhite),
+        iconTheme: const IconThemeData(color: deepBlue),
       ),
       cardTheme: CardThemeData(
         color: surface,
@@ -124,10 +126,10 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: accentYellow,
-          foregroundColor: deepBlue,
+          backgroundColor: deepBlue,
+          foregroundColor: Colors.white,
           elevation: 0,
-          side: _neoBorder(isDark, width: 2.4, color: deepBlue),
+          side: _neoBorder(isDark, width: 2.2, color: deepBlue),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -168,7 +170,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: _neoBorder(isDark, width: isDark ? 2 : 3, color: accentYellow),
+          borderSide: _neoBorder(isDark, width: isDark ? 2 : 2.5, color: deepBlue),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -180,9 +182,9 @@ class AppTheme {
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: surface,
+        backgroundColor: saharaSand,
         selectedColor: accentYellow,
-        labelStyle: textTheme.labelMedium?.copyWith(color: deepBlue),
+        labelStyle: textTheme.labelMedium?.copyWith(color: ink),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
           side: _neoBorder(isDark, width: isDark ? 1.4 : 2, color: deepBlue),
@@ -196,7 +198,7 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: deepBlue,
         contentTextStyle: textTheme.bodyMedium?.copyWith(
-          color: offWhite,
+          color: Colors.white,
           fontWeight: FontWeight.w700,
         ),
         behavior: SnackBarBehavior.floating,
@@ -232,7 +234,7 @@ class AppTheme {
       ),
       tabBarTheme: TabBarThemeData(
         labelColor: deepBlue,
-        unselectedLabelColor: deepBlue.withValues(alpha: 0.5),
+        unselectedLabelColor: deepBlue.withValues(alpha: 0.6),
         labelStyle: textTheme.labelMedium?.copyWith(
           fontWeight: FontWeight.w800,
           fontSize: 13,
@@ -266,36 +268,36 @@ class AppTheme {
         ),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: deepBlue,
-        linearTrackColor: offWhite,
+        color: accentYellow,
+        linearTrackColor: saharaSand,
       ),
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
-            return accentYellow;
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return Colors.white;
           }
           return isDark ? offWhite : deepBlue;
         }),
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return deepBlue;
           }
           return deepBlue.withValues(alpha: 0.3);
         }),
       ),
       checkboxTheme: CheckboxThemeData(
-        fillColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return deepBlue;
           }
           return surface;
         }),
-        checkColor: const MaterialStatePropertyAll(accentYellow),
+        checkColor: const WidgetStatePropertyAll(Colors.white),
         side: _neoBorder(isDark, width: isDark ? 1.4 : 2, color: deepBlue),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       ),
       radioTheme: RadioThemeData(
-        fillColor: const MaterialStatePropertyAll(deepBlue),
+        fillColor: const WidgetStatePropertyAll(deepBlue),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: offWhite,

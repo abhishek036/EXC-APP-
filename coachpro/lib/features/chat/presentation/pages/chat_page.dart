@@ -6,6 +6,7 @@ import '../../../../core/theme/theme_aware.dart';
 import '../../../../features/chat/data/repositories/chat_repository.dart';
 import '../../../../core/di/injection_container.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/widgets/cp_toast.dart';
 
 class ChatPage extends StatefulWidget {
   final String batchId;
@@ -79,17 +80,23 @@ class _ChatPageState extends State<ChatPage> {
             child: const Icon(Icons.group, color: Colors.white, size: 18)),
           const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Physics - Batch A', style: GoogleFonts.sora(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
+            Text('Physics - Batch A', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
             Row(children: [
               Container(width: 7, height: 7, decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle)),
               const SizedBox(width: 4),
-              Text('24 members', style: GoogleFonts.dmSans(fontSize: 11, color: CT.textM(context))),
+              Text('24 members', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textM(context))),
             ]),
           ])),
         ]),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.videocam_outlined, size: 22)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.info_outline, size: 22)),
+          IconButton(
+            onPressed: () => CPToast.info(context, 'Live call integration is coming soon.'),
+            icon: const Icon(Icons.videocam_outlined, size: 22),
+          ),
+          IconButton(
+            onPressed: () => CPToast.info(context, 'Batch info panel will be available soon.'),
+            icon: const Icon(Icons.info_outline, size: 22),
+          ),
         ],
       ),
       body: _isLoading 
@@ -97,7 +104,7 @@ class _ChatPageState extends State<ChatPage> {
         : Column(children: [
             Expanded(
               child: _messages.isEmpty
-                ? Center(child: Text('No messages in this batch yet', style: GoogleFonts.dmSans(color: CT.textM(context))))
+                ? Center(child: Text('No messages in this batch yet', style: GoogleFonts.plusJakartaSans(color: CT.textM(context))))
                 : ListView.builder(
                     reverse: true, // Show newest at bottom
                     padding: const EdgeInsets.all(16),
@@ -120,7 +127,7 @@ class _ChatPageState extends State<ChatPage> {
         children: [
           if (!isTeacher) ...[
             CircleAvatar(radius: 16, backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: Text(msg.sender![0], style: GoogleFonts.sora(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary))),
+              child: Text(msg.sender![0], style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary))),
             const SizedBox(width: 8),
           ],
           Flexible(
@@ -138,19 +145,19 @@ class _ChatPageState extends State<ChatPage> {
                 boxShadow: [BoxShadow(color: CT.textH(context).withValues(alpha: 0.04), blurRadius: 6)],
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                if (!isTeacher) Text(msg.sender!, style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                if (!isTeacher) Text(msg.sender!, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary)),
                 if (!isTeacher) const SizedBox(height: 4),
                 if (isTeacher) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     margin: const EdgeInsets.only(bottom: 6),
                     decoration: BoxDecoration(color: CT.onAccent(context).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-                    child: Text('Teacher', style: GoogleFonts.dmSans(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
+                    child: Text('Teacher', style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
                   ),
                 ],
-                Text(msg.text, style: GoogleFonts.dmSans(fontSize: 14, height: 1.4, color: isTeacher ? Colors.white : CT.textH(context))),
+                Text(msg.text, style: GoogleFonts.plusJakartaSans(fontSize: 14, height: 1.4, color: isTeacher ? Colors.white : CT.textH(context))),
                 const SizedBox(height: 4),
-                Align(alignment: Alignment.bottomRight, child: Text(msg.time, style: GoogleFonts.dmSans(fontSize: 10, color: isTeacher ? Colors.white60 : CT.textM(context)))),
+                Align(alignment: Alignment.bottomRight, child: Text(msg.time, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: isTeacher ? Colors.white60 : CT.textM(context)))),
               ]),
             ),
           ),
@@ -164,16 +171,22 @@ class _ChatPageState extends State<ChatPage> {
     decoration: BoxDecoration(color: CT.card(context), boxShadow: [BoxShadow(color: CT.textH(context).withValues(alpha: 0.05), blurRadius: 10, offset: Offset(0, -2))]),
     child: SafeArea(
       child: Row(children: [
-        IconButton(onPressed: () {}, icon: Icon(Icons.attach_file, color: CT.textM(context), size: 22)),
-        IconButton(onPressed: () {}, icon: Icon(Icons.camera_alt_outlined, color: CT.textM(context), size: 22)),
+        IconButton(
+          onPressed: () => CPToast.info(context, 'Attachment picker is coming soon.'),
+          icon: Icon(Icons.attach_file, color: CT.textM(context), size: 22),
+        ),
+        IconButton(
+          onPressed: () => CPToast.info(context, 'Camera sharing is coming soon.'),
+          icon: Icon(Icons.camera_alt_outlined, color: CT.textM(context), size: 22),
+        ),
         Expanded(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(color: CT.bg(context), borderRadius: BorderRadius.circular(24)),
             child: TextField(
               controller: _msgController,
-              style: GoogleFonts.dmSans(fontSize: 14, color: CT.textH(context)),
-              decoration: InputDecoration(hintText: 'Type a message...', border: InputBorder.none, hintStyle: GoogleFonts.dmSans(color: CT.textM(context))),
+              style: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textH(context)),
+              decoration: InputDecoration(hintText: 'Type a message...', border: InputBorder.none, hintStyle: GoogleFonts.plusJakartaSans(color: CT.textM(context))),
             ),
           ),
         ),

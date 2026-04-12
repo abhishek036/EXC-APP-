@@ -3,6 +3,13 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
+  // Design system anchors
+  static const Color chambrayBlue = Color(0xFF354388);
+  static const Color saharaSand = Color(0xFFF6EA90);
+  static const Color thunderbirdRed = Color(0xFFB6231B);
+  static const Color saharaYellow = Color(0xFFBDAE18);
+  static const Color ink = Color(0xFF222222);
+
   // ═══════════════════════════════════════════════════════
   // 🌑 DARK MODE PALETTE (6 shades — Grey/Slate family)
   // ═══════════════════════════════════════════════════════
@@ -16,41 +23,41 @@ class AppColors {
   // ═══════════════════════════════════════════════════════
   // 🌕 LIGHT MODE PALETTE (4 shades — White/Blue family)
   // ═══════════════════════════════════════════════════════
-  static const Color offWhite      = Color(0xFFEEEDED); // lightest — page background
-  static const Color frostBlue     = Color(0xFFDBE2EF); // light blue-grey — card surface, inputs
-  static const Color steelBlue     = Color(0xFF3F72AF); // primary blue — CTAs, active states
-  static const Color deepNavy      = Color(0xFF112D4E); // darkest — headings, key text
+  static const Color offWhite      = Color(0xFFFFFFFF); // page background
+  static const Color frostBlue     = Color(0xFFF4F6FF); // subtle surface tint
+  static const Color steelBlue     = chambrayBlue; // primary blue — CTAs, active states
+  static const Color deepNavy      = ink; // darkest text
 
   // ═══════════════════════════════════════════════════════
   // PREMIUM SAAS PALETTE (Neo-Brutalist)
   // ═══════════════════════════════════════════════════════
-  static const Color elitePrimary   = Color(0xFF0D1282); // Deep Blue
-  static const Color elitePurple    = Color(0xFF5C3ABF); // Distinct purple accent
-  static const Color eliteDarkBg    = Color(0xFF161640); // Dark navy surface (not same as primary)
-  static const Color eliteLightBg   = Color(0xFFEEEDED); // Off White
+  static const Color elitePrimary   = chambrayBlue;
+  static const Color elitePurple    = Color(0xFF2B356E);
+  static const Color eliteDarkBg    = Color(0xFF263063);
+  static const Color eliteLightBg   = Color(0xFFFFFFFF);
   
-  static const Color glassWhiteCard = Color(0xFFEEEDED); // Off White (No glassmorphism)
-  static const Color glassBorder    = Color(0xFF0D1282); // Deep Blue (No glassmorphism)
+  static const Color glassWhiteCard = Color(0xFFFFFFFF);
+  static const Color glassBorder    = chambrayBlue;
 
   // ═══════════════════════════════════════════════════════
   // ACCENT PALETTE (Shared — Both Modes)
   // ═══════════════════════════════════════════════════════
-  static const Color electricBlue  = Color(0xFF0D1282); // Deep Blue
-  static const Color royalIndigo   = Color(0xFF0D1282); // Deep Blue
-  static const Color neonIndigo    = Color(0xFF0D1282); // Deep Blue
-  static const Color moltenAmber   = Color(0xFFE3D465); // Softer Accent Yellow
-  static const Color softAmber     = Color(0xFFE3D465); // Softer Accent Yellow
-  static const Color coralRed      = Color(0xFFD71313); // Alert Red
+  static const Color electricBlue  = chambrayBlue;
+  static const Color royalIndigo   = chambrayBlue;
+  static const Color neonIndigo    = chambrayBlue;
+  static const Color moltenAmber   = saharaYellow;
+  static const Color softAmber     = saharaYellow;
+  static const Color coralRed      = thunderbirdRed;
   static const Color mintGreen     = Color(0xFF2FAE74); // Success Green
 
 
   // ═══════════════════════════════════════════════════════
   // ROLE COLORS
   // ═══════════════════════════════════════════════════════
-  static const Color adminGold     = Color(0xFFF0DE36);
-  static const Color teacherTeal   = Color(0xFFF0DE36);
-  static const Color studentBlue   = Color(0xFF0D1282);
-  static const Color parentPurple  = Color(0xFF0D1282);
+  static const Color adminGold     = saharaYellow;
+  static const Color teacherTeal   = saharaYellow;
+  static const Color studentBlue   = chambrayBlue;
+  static const Color parentPurple  = chambrayBlue;
 
   // ═══════════════════════════════════════════════════════
   // STATUS COLORS (same in both modes)
@@ -125,7 +132,7 @@ class AppColors {
   static const Color secondary    = moltenAmber;
 
   // Backgrounds (new system)
-  static const Color backgroundLight = offWhite;
+  static const Color backgroundLight = Color(0xFFFFFFFF);
   static const Color backgroundDark  = shadowGrey;
   static const Color surfaceLight    = Color(0xFFFFFFFF);
   static const Color surfaceDark     = gunmetal;
@@ -135,8 +142,8 @@ class AppColors {
   static const Color cardDark  = gunmetal;
 
   // Text — Light Mode
-  static const Color textPrimary   = deepNavy;
-  static const Color textSecondary = steelBlue;
+  static const Color textPrimary   = ink;
+  static const Color textSecondary = chambrayBlue;
   static const Color textTertiary  = Color(0xFF9AACCB);
   static const Color textOnPrimary = Color(0xFFFFFFFF);
 
@@ -149,7 +156,7 @@ class AppColors {
   static const Color darkBorder    = ironGrey;
 
   // Legacy compat
-  static const Color lightBg       = offWhite;
+  static const Color lightBg       = Color(0xFFFFFFFF);
   static const Color lightCard     = Color(0xFFFFFFFF);
   static const Color lightAccent   = steelBlue;
   static const Color lightNavy     = deepNavy;

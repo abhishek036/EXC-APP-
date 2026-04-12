@@ -107,6 +107,12 @@ class _CPToastWidgetState extends State<_CPToastWidget>
 
   @override
   Widget build(BuildContext context) {
+    final isLightBg = widget.color.computeLuminance() > 0.62;
+    final contentColor = isLightBg ? AppColors.ink : Colors.white;
+    final closeColor = isLightBg
+        ? AppColors.ink.withValues(alpha: 0.72)
+        : Colors.white70;
+
     return Positioned(
       bottom: MediaQuery.of(context).padding.bottom + 24,
       left: AppDimensions.pagePaddingH,
@@ -132,15 +138,15 @@ class _CPToastWidgetState extends State<_CPToastWidget>
               ),
               child: Row(
                 children: [
-                  Icon(widget.icon, color: Colors.white, size: 22),
+                  Icon(widget.icon, color: contentColor, size: 22),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       widget.message,
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: contentColor,
                       ),
                     ),
                   ),
@@ -150,7 +156,7 @@ class _CPToastWidgetState extends State<_CPToastWidget>
                         if (mounted) widget.onDismiss();
                       });
                     },
-                    child: const Icon(Icons.close, color: Colors.white70, size: 18),
+                    child: Icon(Icons.close, color: closeColor, size: 18),
                   ),
                 ],
               ),

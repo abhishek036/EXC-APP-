@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/theme_aware.dart';
+import '../constants/app_colors.dart';
 
 class CPBottomNav extends StatelessWidget {
   final int currentIndex;
@@ -21,8 +22,15 @@ class CPBottomNav extends StatelessWidget {
     return Container(
       height: 64, // Base height, safe area added below
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0D1282) : const Color(0xFFEEEDED),
-        border: const Border(top: BorderSide(color: Color(0xFF0D1282), width: 1.2)),
+        color: isDark ? AppColors.eliteDarkBg : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: isDark
+                ? Colors.white24
+                : AppColors.elitePrimary.withValues(alpha: 0.16),
+            width: 1.2,
+          ),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -77,8 +85,10 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
-    final activeColor = isDark ? const Color(0xFFE3D465) : const Color(0xFF0D1282);
-    final inactiveColor = isDark ? const Color(0xFFEEEDED) : const Color(0xFF0D1282);
+    final activeColor = isDark ? AppColors.softAmber : AppColors.elitePrimary;
+    final inactiveColor = isDark
+        ? Colors.white.withValues(alpha: 0.62)
+        : AppColors.elitePrimary.withValues(alpha: 0.56);
 
     return GestureDetector(
       onTap: onTap,
@@ -94,9 +104,16 @@ class _NavItem extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: isActive
-                      ? (isDark ? const Color(0xFFEEEDED).withValues(alpha: 0.18) : activeColor.withValues(alpha: 0.1))
+                      ? (isDark
+                            ? Colors.white.withValues(alpha: 0.14)
+                            : AppColors.saharaSand)
                       : Colors.transparent,
                   shape: BoxShape.circle,
+                  border: isActive && !isDark
+                      ? Border.all(
+                          color: AppColors.elitePrimary.withValues(alpha: 0.18),
+                        )
+                      : null,
                 ),
                 child: Icon(
                   isActive ? item.activeIcon : item.icon,
@@ -107,7 +124,7 @@ class _NavItem extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 item.label,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 10,
                   fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
                   color: isActive ? activeColor : inactiveColor,
@@ -122,7 +139,7 @@ class _NavItem extends StatelessWidget {
                 width: 24,
                 height: 3,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE3D465), // Yellow Indicator
+                  color: AppColors.softAmber,
                   borderRadius: BorderRadius.circular(1.5),
                 ),
               ),

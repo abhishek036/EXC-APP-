@@ -89,20 +89,25 @@ class _CustomButtonState extends State<CustomButton>
           onPressed: widget.isLoading ? null : widget.onPressed,
           style: OutlinedButton.styleFrom(
             side: BorderSide(
-              color: widget.backgroundColor ?? AppColors.primary,
+              color: widget.backgroundColor ?? AppColors.elitePrimary,
               width: 1.5,
             ),
+            backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
             ),
           ),
-          child: _buildChild(widget.backgroundColor ?? AppColors.primary),
+          child: _buildChild(widget.foregroundColor ?? AppColors.elitePrimary),
         ),
       );
     }
 
-    final gradient = widget.gradient ?? AppColors.primaryGradient;
-    final primaryColor = (gradient as LinearGradient).colors.first;
+    final gradient = widget.gradient ?? const LinearGradient(
+      colors: [AppColors.elitePrimary, Color(0xFF2D3A77)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+    final primaryColor = gradient.colors.first;
 
     return Container(
       width: widget.width ?? double.infinity,
@@ -144,7 +149,7 @@ class _CustomButtonState extends State<CustomButton>
       children: [
         Text(
           widget.text,
-          style: GoogleFonts.sora(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: color,

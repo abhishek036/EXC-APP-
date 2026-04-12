@@ -80,7 +80,7 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
         final isLoading = state is AuthLoading;
 
         return Scaffold(
-          backgroundColor: AppColors.elitePrimary,
+          backgroundColor: Colors.white,
           body: Stack(
             children: [
               Positioned(
@@ -93,7 +93,7 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.15),
+                        color: AppColors.saharaSand.withValues(alpha: 0.45),
                         blurRadius: 120,
                         spreadRadius: 60,
                       ),
@@ -111,7 +111,7 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
+                        color: AppColors.elitePrimary.withValues(alpha: 0.08),
                         blurRadius: 90,
                         spreadRadius: 40,
                       ),
@@ -131,20 +131,23 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
                           if (context.canPop()) {
                             context.pop();
                           } else {
-                            context.go('/');
+                            context.go('/login');
                           }
                         },
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: AppColors.saharaSand,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.15),
+                              color: AppColors.elitePrimary.withValues(alpha: 0.2),
                               width: 1.2,
                             ),
                           ),
-                          child: const Icon(Icons.arrow_back, color: Colors.white),
+                          child: const Icon(
+                            Icons.arrow_back,
+                            color: AppColors.elitePrimary,
+                          ),
                         ),
                       ).animate().fadeIn(duration: 350.ms),
                       const SizedBox(height: 20),
@@ -153,7 +156,7 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 30,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: AppColors.elitePrimary,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -161,20 +164,24 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
                         'Register with username, password, and phone number',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
-                          color: Colors.white70,
+                          color: AppColors.deepNavy.withValues(alpha: 0.64),
                         ),
                       ),
                       const SizedBox(height: 22),
                       Container(
                         padding: const EdgeInsets.all(22),
                         decoration: BoxDecoration(
-                          color: AppColors.offWhite,
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(AppDimensions.radiusXL),
-                          border: Border.all(color: AppColors.elitePrimary, width: 2),
-                          boxShadow: const [
+                          border: Border.all(
+                            color: AppColors.elitePrimary.withValues(alpha: 0.2),
+                            width: 1.4,
+                          ),
+                          boxShadow: [
                             BoxShadow(
-                              color: AppColors.elitePrimary,
-                              offset: Offset(6, 6),
+                              color: AppColors.elitePrimary.withValues(alpha: 0.12),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
                             ),
                           ],
                         ),
@@ -231,9 +238,14 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
                                     ),
                                   ),
                                   selected: selected,
-                                  selectedColor: AppColors.moltenAmber,
+                                  selectedColor: AppColors.saharaSand,
                                   backgroundColor: Colors.white,
-                                  side: const BorderSide(color: AppColors.elitePrimary, width: 2),
+                                  side: BorderSide(
+                                    color: selected
+                                        ? AppColors.elitePrimary
+                                        : AppColors.elitePrimary.withValues(alpha: 0.25),
+                                    width: selected ? 1.8 : 1.2,
+                                  ),
                                   onSelected: (_) {
                                     HapticFeedback.selectionClick();
                                     setState(() => _selectedRole = role);
@@ -248,10 +260,10 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
                               child: ElevatedButton(
                                 onPressed: isLoading ? null : _register,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.moltenAmber,
-                                  foregroundColor: AppColors.elitePrimary,
+                                  backgroundColor: AppColors.elitePrimary,
+                                  foregroundColor: Colors.white,
                                   elevation: 0,
-                                  side: const BorderSide(color: AppColors.elitePrimary, width: 2),
+                                  side: const BorderSide(color: AppColors.elitePrimary, width: 1.2),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(14),
                                   ),
@@ -261,7 +273,7 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
                                         width: 22,
                                         height: 22,
                                         child: CircularProgressIndicator(
-                                          color: AppColors.elitePrimary,
+                                          color: Colors.white,
                                           strokeWidth: 2.5,
                                         ),
                                       )
@@ -270,7 +282,7 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w700,
-                                          color: AppColors.elitePrimary,
+                                          color: Colors.white,
                                         ),
                                       ),
                               ),

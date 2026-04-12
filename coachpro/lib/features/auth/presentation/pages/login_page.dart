@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
+import '../../../../core/widgets/cp_toast.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
 import 'otp_page.dart';
@@ -114,19 +115,19 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
       builder: (context, state) {
         final isLoading = state is AuthLoading;
         return Scaffold(
-          backgroundColor: AppColors.elitePrimary, // Deep Blue Base
+          backgroundColor: Colors.white,
           body: Stack(
             children: [
               // Soft Yellow ambient glow — top right
               Positioned(top: -80, right: -80,
                 child: Container(width: 260, height: 260,
                   decoration: BoxDecoration(shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.15), blurRadius: 120, spreadRadius: 60)]))),
+                    boxShadow: [BoxShadow(color: AppColors.saharaSand.withValues(alpha: 0.45), blurRadius: 120, spreadRadius: 60)]))),
               // Deep Blue ambient glow — bottom left
               Positioned(bottom: -40, left: -40,
                 child: Container(width: 200, height: 200,
                   decoration: BoxDecoration(shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 90, spreadRadius: 40)]))),
+                    boxShadow: [BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.08), blurRadius: 90, spreadRadius: 40)]))),
 
               SafeArea(
                 child: SingleChildScrollView(
@@ -141,9 +142,9 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: AppColors.saharaSand,
                             borderRadius: BorderRadius.circular(22),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                            border: Border.all(color: AppColors.elitePrimary.withValues(alpha: 0.22)),
                           ),
                           child: Image.asset('assets/images/logo.png', width: 52, height: 52, fit: BoxFit.contain),
                         ),
@@ -151,11 +152,11 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
 
                       const SizedBox(height: 16),
                       Text('Excellence Academy',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.8),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.elitePrimary, letterSpacing: -0.8),
                       ).animate(delay: 150.ms).fadeIn(),
                       const SizedBox(height: 4),
                       Text('Coaching management, reimagined',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.white.withValues(alpha: 0.55), fontWeight: FontWeight.w500),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.deepNavy.withValues(alpha: 0.66), fontWeight: FontWeight.w500),
                       ).animate(delay: 220.ms).fadeIn(),
 
                       const SizedBox(height: 36),
@@ -163,12 +164,12 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
                       // ── Login Card ───────────────────────
                       Container(
                         decoration: BoxDecoration(
-                          color: AppColors.offWhite,
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
-                            const BoxShadow(color: Colors.black, offset: Offset(8, 8)), // Neo-brutalist shadow
+                            BoxShadow(color: AppColors.elitePrimary.withValues(alpha: 0.12), blurRadius: 18, offset: const Offset(0, 8)),
                           ],
-                          border: Border.all(color: Colors.black, width: 2),
+                          border: Border.all(color: AppColors.elitePrimary.withValues(alpha: 0.2), width: 1.4),
                         ),
                         padding: const EdgeInsets.all(24),
                         child: Column(
@@ -202,11 +203,13 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
                                       margin: EdgeInsets.only(right: role != UserRole.parent ? 8 : 0),
                                       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                                       decoration: BoxDecoration(
-                                        color: isSelected ? AppColors.accent : Colors.white,
+                                        color: isSelected ? AppColors.saharaSand : Colors.white,
                                         borderRadius: BorderRadius.circular(14),
                                         border: Border.all(
-                                          color: Colors.black,
-                                          width: 2,
+                                          color: isSelected
+                                              ? AppColors.elitePrimary
+                                              : AppColors.elitePrimary.withValues(alpha: 0.22),
+                                          width: isSelected ? 1.8 : 1.2,
                                         ),
                                       ),
                                       child: Column(
@@ -318,42 +321,57 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
 
                       // ── OR Divider ───────────────────────
                       Row(children: [
-                        Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.18), thickness: 1)),
+                        Expanded(child: Divider(color: AppColors.elitePrimary.withValues(alpha: 0.18), thickness: 1)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('OR', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white.withValues(alpha: 0.55), fontWeight: FontWeight.w700)),
+                          child: Text('OR', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.deepNavy.withValues(alpha: 0.55), fontWeight: FontWeight.w700)),
                         ),
-                        Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.18), thickness: 1)),
+                        Expanded(child: Divider(color: AppColors.elitePrimary.withValues(alpha: 0.18), thickness: 1)),
                       ]),
 
                       const SizedBox(height: 20),
 
                       // ── Biometrics ───────────────────────
                       CPPressable(
-                        onTap: () {},
+                        onTap: () => CPToast.info(context, 'Biometric login will be enabled soon.'),
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: AppColors.saharaSand,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
+                            border: Border.all(color: AppColors.elitePrimary.withValues(alpha: 0.28), width: 1.2),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.fingerprint_rounded, color: Colors.white, size: 24),
+                              const Icon(Icons.fingerprint_rounded, color: AppColors.elitePrimary, size: 24),
                               const SizedBox(width: 12),
                               Text('Use Biometrics',
-                                style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                                style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.elitePrimary)),
                             ],
                           ),
                         ),
                       ).animate(delay: 500.ms).fadeIn(),
 
+                      const SizedBox(height: 16),
+                      Center(
+                        child: CPPressable(
+                          onTap: () => context.push('/register'),
+                          child: Text(
+                            'New here? Create an account',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.elitePrimary,
+                            ),
+                          ),
+                        ),
+                      ),
+
                       const SizedBox(height: 36),
                       Text('© 2026 Excellence Academy. All Rights Reserved.',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white.withValues(alpha: 0.3), fontWeight: FontWeight.w500)),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: AppColors.deepNavy.withValues(alpha: 0.34), fontWeight: FontWeight.w500)),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -439,20 +457,34 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
         height: 54,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: AppColors.accent,
+          color: AppColors.elitePrimary,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.black, width: 2),
-          boxShadow: [const BoxShadow(color: Colors.black, offset: Offset(4, 4))],
+          border: Border.all(color: AppColors.elitePrimary, width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.elitePrimary.withValues(alpha: 0.25),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Center(
           child: isLoading
-            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: AppColors.elitePrimary, strokeWidth: 2.5))
+            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.elitePrimary, letterSpacing: -0.3)),
+                  Text(
+                    label,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
                   const SizedBox(width: 10),
-                  const Icon(Icons.arrow_forward_rounded, color: AppColors.elitePrimary, size: 20),
+                  Icon(icon, color: Colors.white, size: 20),
                 ],
               ),
         ),
