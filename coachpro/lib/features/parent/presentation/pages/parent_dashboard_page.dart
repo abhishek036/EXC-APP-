@@ -104,6 +104,12 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                   const SizedBox(height: AppDimensions.lg),
                   _buildAttendanceFee(isDark),
                   const SizedBox(height: AppDimensions.lg),
+                  _buildActivitySnapshot(isDark),
+                  const SizedBox(height: AppDimensions.lg),
+                  _buildScoreHighlights(isDark),
+                  const SizedBox(height: AppDimensions.lg),
+                  _buildAssignmentsPreview(isDark),
+                  const SizedBox(height: AppDimensions.lg),
                 ],
                 _buildQuickTools(isDark),
                 const SizedBox(height: AppDimensions.lg),
@@ -259,11 +265,33 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                     ),
                   ),
                   Text(
-                    'Child Profile · Tap for details',
+                    'Child Profile | Tap for details',
                     style: GoogleFonts.dmSans(
                       fontSize: 12,
                       color: CT.textS(context),
                     ),
+                  ),
+                  const SizedBox(height: AppDimensions.sm),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      _miniTag(
+                        icon: Icons.quiz_outlined,
+                        label: 'Quiz ${child['avgQuizScore'] ?? 0}%',
+                        color: AppColors.primary,
+                      ),
+                      _miniTag(
+                        icon: Icons.school_outlined,
+                        label: 'Test ${child['avgTestScore'] ?? 0}%',
+                        color: AppColors.success,
+                      ),
+                      _miniTag(
+                        icon: Icons.assignment_late_outlined,
+                        label: '${child['pendingAssignments'] ?? 0} pending',
+                        color: AppColors.warning,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -272,6 +300,368 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
         ),
       ),
     ).animate(delay: 200.ms).fadeIn(duration: 500.ms);
+  }
+
+  Widget _miniTag({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivitySnapshot(bool isDark) {
+    final child = _children[_selectedChild];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Activity Snapshot',
+          style: GoogleFonts.sora(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: CT.textH(context),
+          ),
+        ),
+        const SizedBox(height: AppDimensions.step),
+        Row(
+          children: [
+            Expanded(
+              child: _snapshotTile(
+                icon: Icons.event_available_rounded,
+                label: 'Today',
+                value: (child['todayAttendance'] ?? 'not_marked')
+                    .toString()
+                    .replaceAll('_', ' ')
+                    .toUpperCase(),
+                color: ((child['todayAttendance'] ?? '').toString().toLowerCase() == 'present')
+                    ? AppColors.success
+                    : AppColors.warning,
+              ),
+            ),
+            const SizedBox(width: AppDimensions.step),
+            Expanded(
+              child: _snapshotTile(
+                icon: Icons.schedule_rounded,
+                label: 'Classes',
+                value: '${child['upcomingClasses'] ?? 0}',
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: AppDimensions.step),
+            Expanded(
+              child: _snapshotTile(
+                icon: Icons.campaign_rounded,
+                label: 'Exams',
+                value: '${child['upcomingExams'] ?? 0}',
+                color: AppColors.warning,
+              ),
+            ),
+          ],
+        ),
+      ],
+    ).animate(delay: 320.ms).fadeIn(duration: 500.ms);
+  }
+
+  Widget _snapshotTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.sm),
+      decoration: CT.cardDecor(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: GoogleFonts.sora(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: CT.textH(context),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 11,
+              color: CT.textS(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreHighlights(bool isDark) {
+    final quiz = (_dashboardData?['quizHighlights'] as List? ?? []).cast<dynamic>();
+    final tests = (_dashboardData?['testHighlights'] as List? ?? []).cast<dynamic>();
+
+    if (quiz.isEmpty && tests.isEmpty) {
+      return _buildEmptyState(
+        context,
+        'No quiz/test scores yet',
+        Icons.bar_chart_rounded,
+      );
+    }
+
+    Widget scoreCard({
+      required String title,
+      required IconData icon,
+      required Color color,
+      required List<dynamic> items,
+      required String dateKey,
+      required String labelKey,
+    }) {
+      return Container(
+        padding: const EdgeInsets.all(AppDimensions.md),
+        decoration: CT.cardDecor(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 6),
+                Text(
+                  title,
+                  style: GoogleFonts.sora(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: CT.textH(context),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.sm),
+            if (items.isEmpty)
+              Text(
+                'No data yet',
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  color: CT.textS(context),
+                ),
+              )
+            else
+              ...items.take(2).map((item) {
+                final pct = (item['percentage'] ?? 0).toString();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              (item[labelKey] ?? item['title'] ?? '').toString(),
+                              style: GoogleFonts.dmSans(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: CT.textH(context),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              _fmtDate(item[dateKey]),
+                              style: GoogleFonts.dmSans(
+                                fontSize: 11,
+                                color: CT.textS(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '$pct%',
+                        style: GoogleFonts.sora(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: color,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Recent Scores',
+          style: GoogleFonts.sora(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: CT.textH(context),
+          ),
+        ),
+        const SizedBox(height: AppDimensions.step),
+        Row(
+          children: [
+            Expanded(
+              child: scoreCard(
+                title: 'Quiz',
+                icon: Icons.quiz_outlined,
+                color: AppColors.primary,
+                items: quiz,
+                dateKey: 'submitted_at',
+                labelKey: 'title',
+              ),
+            ),
+            const SizedBox(width: AppDimensions.step),
+            Expanded(
+              child: scoreCard(
+                title: 'Tests',
+                icon: Icons.menu_book_rounded,
+                color: AppColors.success,
+                items: tests,
+                dateKey: 'exam_date',
+                labelKey: 'title',
+              ),
+            ),
+          ],
+        ),
+      ],
+    ).animate(delay: 340.ms).fadeIn(duration: 500.ms);
+  }
+
+  Widget _buildAssignmentsPreview(bool isDark) {
+    final childId = _children[_selectedChild]['id'];
+    final pendingAssignments = (_dashboardData?['pendingAssignments'] as List? ?? [])
+        .where((item) => (item as Map)['student_id'] == childId)
+        .take(3)
+        .cast<Map>()
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Assignments',
+              style: GoogleFonts.sora(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: CT.textH(context),
+              ),
+            ),
+            const Spacer(),
+            CPPressable(
+              onTap: () => context.go('/parent/weekly-report/$childId'),
+              child: Text(
+                'View all',
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: CT.accent(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppDimensions.step),
+        if (pendingAssignments.isEmpty)
+          _buildEmptyState(
+            context,
+            'No pending assignments',
+            Icons.assignment_turned_in_outlined,
+          )
+        else
+          ...pendingAssignments.map((item) {
+            final due = _fmtDate(item['due_date']);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+              child: Container(
+                padding: const EdgeInsets.all(AppDimensions.md),
+                decoration: CT.cardDecor(context),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.assignment_late_rounded,
+                        size: 16,
+                        color: AppColors.warning,
+                      ),
+                    ),
+                    const SizedBox(width: AppDimensions.step),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            (item['title'] ?? 'Assignment').toString(),
+                            style: GoogleFonts.dmSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: CT.textH(context),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Due: $due',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 11,
+                              color: CT.textS(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+      ],
+    ).animate(delay: 360.ms).fadeIn(duration: 500.ms);
+  }
+
+  String _fmtDate(dynamic value) {
+    if (value == null) return 'N/A';
+    final parsed = DateTime.tryParse(value.toString());
+    if (parsed == null) return value.toString();
+    return '${parsed.day.toString().padLeft(2, '0')}/${parsed.month.toString().padLeft(2, '0')}/${parsed.year}';
   }
 
   Widget _buildAttendanceFee(bool isDark) {
@@ -372,7 +762,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                   ),
                   const SizedBox(height: AppDimensions.sm),
                   Text(
-                    '₹$pendingFee',
+                    'Rs $pendingFee',
                     style: GoogleFonts.sora(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
@@ -548,6 +938,34 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           ),
         ],
       ),
+      const SizedBox(height: AppDimensions.step),
+      Row(
+        children: [
+          Expanded(
+            child: _quickTool(
+              icon: Icons.insights_rounded,
+              title: 'Child Activity',
+              subtitle: 'Quiz, tests, tasks, schedule',
+              color: AppColors.success,
+              onTap: () {
+                if (_children.isNotEmpty) {
+                  context.go('/parent/weekly-report/${_children[_selectedChild]['id']}');
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: AppDimensions.step),
+          Expanded(
+            child: _quickTool(
+              icon: Icons.currency_rupee_rounded,
+              title: 'Pay Fees',
+              subtitle: 'Upload proof and track status',
+              color: AppColors.warning,
+              onTap: () => context.go('/parent/fee-payment'),
+            ),
+          ),
+        ],
+      ),
     ],
   ).animate(delay: 360.ms).fadeIn(duration: 500.ms);
 
@@ -595,13 +1013,12 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
 
   Widget _buildTodaySchedule(bool isDark) {
     final schedules =
-        _dashboardData?['todaySchedule'] as List? ??
-        []; // Changed 'schedule' to 'todaySchedule' and variable name
+        (_dashboardData?['todaySchedule'] as List? ?? []).cast<dynamic>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Schedule",
+          'Upcoming Schedule',
           style: GoogleFonts.sora(
             fontSize: 15,
             fontWeight: FontWeight.w600,
@@ -612,20 +1029,19 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
         if (schedules.isEmpty)
           _buildEmptyState(
             context,
-            "No classes scheduled today",
+            'No classes scheduled',
             Icons.calendar_today_rounded,
           )
         else
           ...schedules
-              .take(3)
+              .take(4)
               .map(
                 (item) => Padding(
-                  // Changed 'schedule' to 'schedules'
                   padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                   child: _schedItem(
-                    'Active',
-                    item['name'] ?? '',
-                    '${item['student_name']} · ${item['teacher_name'] ?? "Teacher"}',
+                    _fmtTime(item['start_time']),
+                    (item['name'] ?? item['subject'] ?? 'Class').toString(),
+                    '${item['batch_name'] ?? 'Batch'} | ${item['teacher_name'] ?? 'Teacher'}',
                     isDark,
                   ),
                 ),
@@ -745,6 +1161,15 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
       ).animate(delay: 600.ms).fadeIn(duration: 500.ms);
     }
     return const SizedBox.shrink();
+  }
+
+  String _fmtTime(dynamic value) {
+    if (value == null) return 'TBA';
+    final parsed = DateTime.tryParse(value.toString());
+    if (parsed == null) return 'TBA';
+    final hour = parsed.hour == 0 ? 12 : (parsed.hour > 12 ? parsed.hour - 12 : parsed.hour);
+    final suffix = parsed.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:${parsed.minute.toString().padLeft(2, '0')} $suffix';
   }
 
   Widget _buildEmptyState(BuildContext context, String message, IconData icon) {
