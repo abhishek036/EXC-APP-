@@ -691,12 +691,15 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFFFFFFF), width: 1.5),
+          border: Border.all(
+            color: const Color(0xFF354388).withValues(alpha: 0.16),
+            width: 1.2,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 0,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),

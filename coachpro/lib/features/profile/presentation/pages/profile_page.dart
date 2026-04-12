@@ -48,7 +48,11 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
     final shellBack = CPRoleShellBack.maybeOf(context);
     if (shellBack != null) {
       shellBack.goBack();
+      return;
     }
+
+    // Final fallback for direct deep-link entry when no local/shell history exists.
+    context.go(context.rolePrefix);
   }
 
   bool _uploadingAvatar = false;
@@ -351,7 +355,7 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
                         ]
                       : [
                           _quickRow(context, Icons.person_outline_rounded, 'Edit Profile', onTap: () => setState(() => _editMode = true)),
-                          _quickRow(context, Icons.settings_rounded, 'Settings', route: role == AppRole.teacher ? '/teacher/profile/settings' : '${context.rolePrefix}/settings'),
+                          _quickRow(context, Icons.settings_rounded, 'Settings', route: '${context.rolePrefix}/settings'),
                           _quickRow(context, Icons.notifications_outlined, 'Notification Settings', route: '${context.rolePrefix}/notification-settings'),
                           _quickRow(context, Icons.lock_reset_rounded, 'Change Password', route: '/change-password'),
                         ],

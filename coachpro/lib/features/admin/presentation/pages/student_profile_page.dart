@@ -361,7 +361,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
     try {
       await _adminRepo.toggleStudentStatus(widget.studentId, false);
       if (mounted) {
-        context.pop();
+        _goBackToStudentsList();
       }
     } catch (_) {
       if (mounted) {
@@ -386,6 +386,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+  }
+
+  void _goBackToStudentsList() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/admin/students');
+    }
   }
 
   Future<void> _removeBatch(Map<String, dynamic> batch) async {
@@ -525,7 +533,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: CPPressable(
-            onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
+            onTap: _goBackToStudentsList,
             child: const Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
@@ -645,7 +653,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: CPPressable(
-            onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
+            onTap: _goBackToStudentsList,
             child: const Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
@@ -744,7 +752,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                     if (_editMode) {
                       setState(() => _editMode = false);
                     } else {
-                      context.pop();
+                      _goBackToStudentsList();
                     }
                   },
                   child: Icon(
