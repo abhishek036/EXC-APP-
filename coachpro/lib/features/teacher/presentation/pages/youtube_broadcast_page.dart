@@ -4,9 +4,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../data/repositories/teacher_repository.dart';
-import '../../../../core/di/injection_container.dart';
-
-class YoutubeBroadcastPage extends StatefulWidget {
+ '../../../../core/theme/theme_aware.dart';
+YoutubeBroadcastPage extends StatefulWidget {
   final String batchId;
 
   const YoutubeBroadcastPage({super.key, required this.batchId});
@@ -15,7 +14,7 @@ class YoutubeBroadcastPage extends StatefulWidget {
   State<YoutubeBroadcastPage> createState() => _YoutubeBroadcastPageState();
 }
 
-class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
+class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> with ThemeAware<YoutubeBroadcastPage> {
   final _teacherRepo = sl<TeacherRepository>();
   ApiVideoLiveStreamController? _controller;
 
@@ -330,3 +329,4 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> {
     );
   }
 }
+

@@ -6,16 +6,15 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/app_update_service.dart';
-import '../bloc/auth_bloc.dart';
-
-class SplashPage extends StatefulWidget {
+ '../../../../core/theme/theme_aware.dart';
+SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
   @override
   State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> {
+class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
   String _appVersion = 'v1.0.0';
 
   @override
@@ -152,3 +151,4 @@ class _SplashPageState extends State<SplashPage> {
     );
   }
 }
+

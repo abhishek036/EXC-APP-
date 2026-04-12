@@ -9,9 +9,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/utils/file_opener.dart';
-import '../../data/repositories/student_repository.dart';
-
-class _DoubtThreadMessage {
+ '../../../../core/theme/theme_aware.dart';
+_DoubtThreadMessage {
   final String label;
   final String text;
   final String? imageUrl;
@@ -152,7 +151,7 @@ class StudentBatchPanelPage extends StatefulWidget {
   State<StudentBatchPanelPage> createState() => _StudentBatchPanelPageState();
 }
 
-class _StudentBatchPanelPageState extends State<StudentBatchPanelPage> {
+class _StudentBatchPanelPageState extends State<StudentBatchPanelPage> with ThemeAware<StudentBatchPanelPage> {
   static const primaryBlue = AppColors.elitePrimary;
   static const surfaceWhite = AppColors.offWhite;
   static const accentYellow = AppColors.moltenAmber;
@@ -514,7 +513,7 @@ class _LecturesPane extends StatefulWidget {
   State<_LecturesPane> createState() => _LecturesPaneState();
 }
 
-class _LecturesPaneState extends State<_LecturesPane> {
+class _LecturesPaneState extends State<_LecturesPane> with ThemeAware<_LecturesPane> {
   final _repo = sl<StudentRepository>();
   late Future<List<Map<String, dynamic>>> _future;
 
@@ -788,7 +787,7 @@ class _NotesPane extends StatefulWidget {
   State<_NotesPane> createState() => _NotesPaneState();
 }
 
-class _NotesPaneState extends State<_NotesPane> {
+class _NotesPaneState extends State<_NotesPane> with ThemeAware<_NotesPane> {
   final _repo = sl<StudentRepository>();
   late Future<List<Map<String, dynamic>>> _future;
 
@@ -976,7 +975,7 @@ class _AssignmentsPane extends StatefulWidget {
   State<_AssignmentsPane> createState() => _AssignmentsPaneState();
 }
 
-class _AssignmentsPaneState extends State<_AssignmentsPane> {
+class _AssignmentsPaneState extends State<_AssignmentsPane> with ThemeAware<_AssignmentsPane> {
   final _repo = sl<StudentRepository>();
   late Future<List<Map<String, dynamic>>> _future;
 
@@ -1095,7 +1094,7 @@ class _QuizPane extends StatefulWidget {
   State<_QuizPane> createState() => _QuizPaneState();
 }
 
-class _QuizPaneState extends State<_QuizPane> {
+class _QuizPaneState extends State<_QuizPane> with ThemeAware<_QuizPane> {
   final _repo = sl<StudentRepository>();
   bool _loading = true;
   String? _error;
@@ -1806,7 +1805,7 @@ class _ScheduleTab extends StatefulWidget {
   State<_ScheduleTab> createState() => _ScheduleTabState();
 }
 
-class _ScheduleTabState extends State<_ScheduleTab> {
+class _ScheduleTabState extends State<_ScheduleTab> with ThemeAware<_ScheduleTab> {
   final _repo = sl<StudentRepository>();
   late Future<List<Map<String, dynamic>>> _future;
 
@@ -1948,7 +1947,7 @@ class _ResultsTab extends StatefulWidget {
   State<_ResultsTab> createState() => _ResultsTabState();
 }
 
-class _ResultsTabState extends State<_ResultsTab> {
+class _ResultsTabState extends State<_ResultsTab> with ThemeAware<_ResultsTab> {
   final _repo = sl<StudentRepository>();
   late Future<List<Map<String, dynamic>>> _future;
   DateTime _selectedMonth = DateTime.now();
@@ -2366,7 +2365,7 @@ class _AttendanceTab extends StatefulWidget {
   State<_AttendanceTab> createState() => _AttendanceTabState();
 }
 
-class _AttendanceTabState extends State<_AttendanceTab> {
+class _AttendanceTabState extends State<_AttendanceTab> with ThemeAware<_AttendanceTab> {
   final _repo = sl<StudentRepository>();
   late Future<Map<String, dynamic>> _future;
   DateTime _selectedMonth = DateTime.now();
@@ -2818,7 +2817,7 @@ class _DoubtsTab extends StatefulWidget {
   State<_DoubtsTab> createState() => _DoubtsTabState();
 }
 
-class _DoubtsTabState extends State<_DoubtsTab> {
+class _DoubtsTabState extends State<_DoubtsTab> with ThemeAware<_DoubtsTab> {
   final _repo = sl<StudentRepository>();
   late Future<List<Map<String, dynamic>>> _future;
   bool _isSendingFollowUp = false;
@@ -3822,7 +3821,7 @@ class _SyllabusPane extends StatefulWidget {
   State<_SyllabusPane> createState() => _SyllabusPaneState();
 }
 
-class _SyllabusPaneState extends State<_SyllabusPane> {
+class _SyllabusPaneState extends State<_SyllabusPane> with ThemeAware<_SyllabusPane> {
   final _repo = sl<StudentRepository>();
   late Future<List<Map<String, dynamic>>> _future;
 
@@ -3922,3 +3921,4 @@ class _SyllabusPaneState extends State<_SyllabusPane> {
     );
   }
 }
+

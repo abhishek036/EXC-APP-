@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
@@ -18,7 +19,7 @@ class RegisterPage extends StatefulWidget {
   State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -68,7 +69,7 @@ class _RegisterPageState extends State<RegisterPage> {
         if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.message, style: GoogleFonts.dmSans(color: Colors.white)),
+              content: Text(state.message, style: GoogleFonts.plusJakartaSans(color: Colors.white)),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
             ),
@@ -79,166 +80,223 @@ class _RegisterPageState extends State<RegisterPage> {
         final isLoading = state is AuthLoading;
 
         return Scaffold(
-          body: Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0F0F1E), Color(0xFF1A1A3E), Color(0xFF0F0F1E)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-            child: SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 24),
-                    CPPressable(
-                      onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/'); } },
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.arrow_back, color: Colors.white),
+          backgroundColor: AppColors.elitePrimary,
+          body: Stack(
+            children: [
+              Positioned(
+                top: -80,
+                right: -80,
+                child: Container(
+                  width: 260,
+                  height: 260,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.15),
+                        blurRadius: 120,
+                        spreadRadius: 60,
                       ),
-                    ).animate().fadeIn(duration: 350.ms),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Create Account',
-                      style: GoogleFonts.sora(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Register with username, password, and phone number',
-                      style: GoogleFonts.dmSans(fontSize: 14, color: Colors.white70),
-                    ),
-                    const SizedBox(height: 22),
-                    Container(
-                      padding: const EdgeInsets.all(22),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E1E3A),
-                        borderRadius: BorderRadius.circular(AppDimensions.radiusXL),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _field(
-                            label: 'USERNAME',
-                            hint: 'john_student',
-                            controller: _usernameController,
-                            icon: Icons.person_outline,
-                            errorText: _usernameError,
-                          ),
-                          const SizedBox(height: 14),
-                          _field(
-                            label: 'PASSWORD',
-                            hint: '••••••••',
-                            controller: _passwordController,
-                            icon: Icons.lock_outline,
-                            obscureText: true,
-                            errorText: _passwordError,
-                          ),
-                          const SizedBox(height: 14),
-                          _field(
-                            label: 'PHONE NUMBER',
-                            hint: '9876543210',
-                            controller: _phoneController,
-                            icon: Icons.phone_outlined,
-                            keyboardType: TextInputType.phone,
-                            errorText: _phoneError,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'SELECT ROLE',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white60,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: AppRole.values.map((role) {
-                              final selected = _selectedRole == role;
-                              return ChoiceChip(
-                                label: Text(role.name[0].toUpperCase() + role.name.substring(1)),
-                                selected: selected,
-                                onSelected: (_) {
-                                  HapticFeedback.selectionClick();
-                                  setState(() => _selectedRole = role);
-                                },
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 18),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: isLoading ? null : _register,
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              ),
-                              child: Ink(
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(colors: [Color(0xFF3D5AF1), Color(0xFF8B5CF6)]),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Container(
-                                  alignment: Alignment.center,
-                                  child: isLoading
-                                      ? const SizedBox(
-                                          width: 22,
-                                          height: 22,
-                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                                        )
-                                      : Text(
-                                          'Register',
-                                          style: GoogleFonts.sora(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Center(
-                            child: CPPressable(
-                              onTap: () => context.go('/login'),
-                              child: Text(
-                                'Already have an account? Login',
-                                style: GoogleFonts.dmSans(
-                                  color: const Color(0xFF7C8EFF),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ).animate(delay: 150.ms).fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
-                    const SizedBox(height: 24),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+              Positioned(
+                bottom: -40,
+                left: -40,
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 90,
+                        spreadRadius: 40,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 24),
+                      CPPressable(
+                        onTap: () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/');
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: const Icon(Icons.arrow_back, color: Colors.white),
+                        ),
+                      ).animate().fadeIn(duration: 350.ms),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Create Account',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Register with username, password, and phone number',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      Container(
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          color: AppColors.offWhite,
+                          borderRadius: BorderRadius.circular(AppDimensions.radiusXL),
+                          border: Border.all(color: AppColors.elitePrimary, width: 2),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: AppColors.elitePrimary,
+                              offset: Offset(6, 6),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _field(
+                              label: 'USERNAME',
+                              hint: 'john_student',
+                              controller: _usernameController,
+                              icon: Icons.person_outline,
+                              errorText: _usernameError,
+                            ),
+                            const SizedBox(height: 14),
+                            _field(
+                              label: 'PASSWORD',
+                              hint: '••••••••',
+                              controller: _passwordController,
+                              icon: Icons.lock_outline,
+                              obscureText: true,
+                              errorText: _passwordError,
+                            ),
+                            const SizedBox(height: 14),
+                            _field(
+                              label: 'PHONE NUMBER',
+                              hint: '9876543210',
+                              controller: _phoneController,
+                              icon: Icons.phone_outlined,
+                              keyboardType: TextInputType.phone,
+                              errorText: _phoneError,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'SELECT ROLE',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.elitePrimary,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: AppRole.values.map((role) {
+                                final selected = _selectedRole == role;
+                                return ChoiceChip(
+                                  label: Text(
+                                    role.name[0].toUpperCase() + role.name.substring(1),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.elitePrimary,
+                                    ),
+                                  ),
+                                  selected: selected,
+                                  selectedColor: AppColors.moltenAmber,
+                                  backgroundColor: Colors.white,
+                                  side: const BorderSide(color: AppColors.elitePrimary, width: 2),
+                                  onSelected: (_) {
+                                    HapticFeedback.selectionClick();
+                                    setState(() => _selectedRole = role);
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 18),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: ElevatedButton(
+                                onPressed: isLoading ? null : _register,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.moltenAmber,
+                                  foregroundColor: AppColors.elitePrimary,
+                                  elevation: 0,
+                                  side: const BorderSide(color: AppColors.elitePrimary, width: 2),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: isLoading
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          color: AppColors.elitePrimary,
+                                          strokeWidth: 2.5,
+                                        ),
+                                      )
+                                    : Text(
+                                        'Register',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.elitePrimary,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Center(
+                              child: CPPressable(
+                                onTap: () => context.go('/login'),
+                                child: Text(
+                                  'Already have an account? Login',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: AppColors.elitePrimary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ).animate(delay: 150.ms).fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -257,13 +315,24 @@ class _RegisterPageState extends State<RegisterPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white60, letterSpacing: 1)),
+        Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppColors.elitePrimary.withValues(alpha: 0.75),
+            letterSpacing: 1,
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: errorText != null ? AppColors.error : Colors.grey.shade300),
+            border: Border.all(
+              color: errorText != null ? AppColors.error : AppColors.elitePrimary,
+              width: 1.8,
+            ),
           ),
           child: TextField(
             controller: controller,
@@ -272,11 +341,11 @@ class _RegisterPageState extends State<RegisterPage> {
             inputFormatters: keyboardType == TextInputType.phone
                 ? [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)]
                 : null,
-            style: GoogleFonts.dmSans(fontSize: 15, color: Colors.black),
+            style: GoogleFonts.plusJakartaSans(fontSize: 15, color: AppColors.elitePrimary, fontWeight: FontWeight.w600),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: GoogleFonts.dmSans(fontSize: 15, color: Colors.grey),
-              prefixIcon: Icon(icon, size: 18, color: Colors.grey.shade600),
+              hintStyle: GoogleFonts.plusJakartaSans(fontSize: 15, color: AppColors.elitePrimary.withValues(alpha: 0.5)),
+              prefixIcon: Icon(icon, size: 18, color: AppColors.elitePrimary.withValues(alpha: 0.7)),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
@@ -285,7 +354,7 @@ class _RegisterPageState extends State<RegisterPage> {
         if (errorText != null)
           Padding(
             padding: const EdgeInsets.only(top: 4, left: 4),
-            child: Text(errorText, style: GoogleFonts.dmSans(fontSize: 11, color: AppColors.error)),
+            child: Text(errorText, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: AppColors.error)),
           ),
       ],
     );

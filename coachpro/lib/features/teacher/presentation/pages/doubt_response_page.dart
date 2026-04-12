@@ -3,9 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/di/injection_container.dart';
-import '../../../../features/teacher/data/repositories/teacher_repository.dart';
-
-class _ThreadMessage {
+ '../../../../core/theme/theme_aware.dart';
+_ThreadMessage {
   final String label;
   final String text;
   final String? imageUrl;
@@ -46,7 +45,7 @@ class DoubtResponsePage extends StatefulWidget {
   State<DoubtResponsePage> createState() => _DoubtResponsePageState();
 }
 
-class _DoubtResponsePageState extends State<DoubtResponsePage> {
+class _DoubtResponsePageState extends State<DoubtResponsePage> with ThemeAware<DoubtResponsePage> {
   final _teacherRepo = sl<TeacherRepository>();
   final _answerController = TextEditingController();
   bool _isSubmitting = false;
@@ -628,3 +627,4 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> {
     );
   }
 }
+

@@ -9,16 +9,15 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/widgets/cp_pressable.dart';
-import '../../../../core/widgets/cp_shimmer.dart';
-
-class StudentListPage extends StatefulWidget {
+ '../../../../core/theme/theme_aware.dart';
+StudentListPage extends StatefulWidget {
   const StudentListPage({super.key});
 
   @override
   State<StudentListPage> createState() => _StudentListPageState();
 }
 
-class _StudentListPageState extends State<StudentListPage> {
+class _StudentListPageState extends State<StudentListPage> with ThemeAware<StudentListPage> {
   final _adminRepo = sl<AdminRepository>();
   final _realtime = sl<RealtimeSyncService>();
   StreamSubscription<Map<String, dynamic>>? _syncSub;
@@ -1571,3 +1570,4 @@ class _BatchPickerSheet extends StatelessWidget {
     );
   }
 }
+

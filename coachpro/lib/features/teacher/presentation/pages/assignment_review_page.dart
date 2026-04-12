@@ -4,9 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/utils/file_opener.dart';
 import '../../../../core/di/injection_container.dart';
-import '../../data/repositories/teacher_repository.dart';
-
-class AssignmentReviewPage extends StatefulWidget {
+ '../../../../core/theme/theme_aware.dart';
+AssignmentReviewPage extends StatefulWidget {
   final String batchId;
   final String? initialAssignmentId;
   final String? initialAssignmentTitle;
@@ -22,7 +21,7 @@ class AssignmentReviewPage extends StatefulWidget {
   State<AssignmentReviewPage> createState() => _AssignmentReviewPageState();
 }
 
-class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
+class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeAware<AssignmentReviewPage> {
   final _repo = sl<TeacherRepository>();
 
   final _marksCtrl = TextEditingController();
@@ -466,3 +465,4 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> {
     );
   }
 }
+

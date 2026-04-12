@@ -5,9 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
-import '../../data/repositories/teacher_repository.dart';
-
-class QuizResultsPage extends StatefulWidget {
+ '../../../../core/theme/theme_aware.dart';
+QuizResultsPage extends StatefulWidget {
   final String quizId;
   final String? fallbackTitle;
 
@@ -17,7 +16,7 @@ class QuizResultsPage extends StatefulWidget {
   State<QuizResultsPage> createState() => _QuizResultsPageState();
 }
 
-class _QuizResultsPageState extends State<QuizResultsPage> {
+class _QuizResultsPageState extends State<QuizResultsPage> with ThemeAware<QuizResultsPage> {
   final _repo = sl<TeacherRepository>();
 
   bool _loading = true;
@@ -838,3 +837,4 @@ class _QuizResultsPageState extends State<QuizResultsPage> {
     );
   }
 }
+

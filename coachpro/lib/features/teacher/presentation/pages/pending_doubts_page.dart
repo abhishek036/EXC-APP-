@@ -5,16 +5,15 @@ import 'package:go_router/go_router.dart';
 import '../../../../features/teacher/data/repositories/teacher_repository.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/secure_storage_service.dart';
-import '../../../../core/widgets/cp_role_shell.dart';
-
-class PendingDoubtsPage extends StatefulWidget {
+ '../../../../core/theme/theme_aware.dart';
+PendingDoubtsPage extends StatefulWidget {
   const PendingDoubtsPage({super.key});
 
   @override
   State<PendingDoubtsPage> createState() => _PendingDoubtsPageState();
 }
 
-class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
+class _PendingDoubtsPageState extends State<PendingDoubtsPage> with ThemeAware<PendingDoubtsPage> {
   final _teacherRepo = sl<TeacherRepository>();
   List<Map<String, dynamic>> _doubts = [];
   bool _isLoading = true;
@@ -485,3 +484,4 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> {
     ),
   );
 }
+

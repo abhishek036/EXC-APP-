@@ -7,9 +7,11 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/services/api_auth_service.dart';
+import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_role_shell.dart';
 import '../../../../core/utils/role_prefix.dart';
@@ -24,7 +26,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> {
   bool _editMode = false;
   bool _saving = false;
 
@@ -228,7 +230,7 @@ class _ProfilePageState extends State<ProfilePage> {
             : displayName.trim().split(' ').where((s) => s.isNotEmpty).map((w) => w[0]).take(2).join().toUpperCase();
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF4F5FA),
+          backgroundColor: bg,
           body: CustomScrollView(
             slivers: [
               // ── Sliver App Bar / Hero Header ───────────────
@@ -366,17 +368,41 @@ class _ProfilePageState extends State<ProfilePage> {
                         height: 54,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0D1282),
+                          color: AppColors.moltenAmber,
                           borderRadius: BorderRadius.circular(14),
-                          boxShadow: [BoxShadow(color: const Color(0xFF0D1282).withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 6))],
+                          border: Border.all(color: AppColors.elitePrimary, width: 2),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: AppColors.elitePrimary,
+                              offset: Offset(4, 4),
+                            ),
+                          ],
                         ),
                         child: Center(
                           child: _saving
-                            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  color: AppColors.elitePrimary,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
                             : Row(mainAxisSize: MainAxisSize.min, children: [
-                                const Icon(Icons.check_rounded, color: Colors.white, size: 20),
+                                const Icon(
+                                  Icons.check_rounded,
+                                  color: AppColors.elitePrimary,
+                                  size: 20,
+                                ),
                                 const SizedBox(width: 10),
-                                Text('Save Changes', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                                Text(
+                                  'Save Changes',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.elitePrimary,
+                                  ),
+                                ),
                               ]),
                         ),
                       ),
@@ -400,13 +426,23 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _section(String title, List<Widget> children) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 20),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF0A0C1E))),
+      Text(
+        title,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 15,
+          fontWeight: FontWeight.w800,
+          color: AppColors.deepNavy,
+        ),
+      ),
       const SizedBox(height: 12),
       Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 3))],
+          border: Border.all(color: AppColors.elitePrimary, width: 2.2),
+          boxShadow: const [
+            BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
+          ],
         ),
         child: Column(children: children),
       ),
@@ -424,28 +460,56 @@ class _ProfilePageState extends State<ProfilePage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(children: [
-        Icon(icon, size: 20, color: const Color(0xFF8F97B8)),
+        Icon(icon, size: 20, color: AppColors.elitePrimary.withValues(alpha: 0.65)),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF8F97B8), fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              color: AppColors.elitePrimary.withValues(alpha: 0.65),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 2),
           (editing && editable)
             ? TextField(
                 controller: controller,
                 keyboardType: type,
                 onChanged: (_) => setState(() {}),
-                style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E)),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.deepNavy,
+                ),
                 decoration: InputDecoration(
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                  border: UnderlineInputBorder(borderSide: BorderSide(color: const Color(0xFF0D1282).withValues(alpha: 0.4))),
-                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF0D1282), width: 1.5)),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: const Color(0xFF0D1282).withValues(alpha: 0.25))),
+                  border: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: AppColors.elitePrimary.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  focusedBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: AppColors.elitePrimary,
+                      width: 1.8,
+                    ),
+                  ),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: AppColors.elitePrimary.withValues(alpha: 0.25),
+                    ),
+                  ),
                 ),
               )
             : Text(
                 controller.text.isEmpty ? '—' : controller.text,
-                style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E)),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.deepNavy,
+                ),
               ),
         ])),
       ]),
@@ -469,12 +533,28 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Row(children: [
         Container(
           width: 36, height: 36,
-          decoration: BoxDecoration(color: const Color(0xFF0D1282).withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
-          child: Icon(icon, size: 18, color: const Color(0xFF0D1282)),
+          decoration: BoxDecoration(
+            color: AppColors.elitePrimary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 18, color: AppColors.elitePrimary),
         ),
         const SizedBox(width: 14),
-        Expanded(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0A0C1E)))),
-        const Icon(Icons.chevron_right_rounded, color: Color(0xFF8F97B8), size: 20),
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.deepNavy,
+            ),
+          ),
+        ),
+        Icon(
+          Icons.chevron_right_rounded,
+          color: AppColors.elitePrimary.withValues(alpha: 0.6),
+          size: 20,
+        ),
       ]),
     ),
   );

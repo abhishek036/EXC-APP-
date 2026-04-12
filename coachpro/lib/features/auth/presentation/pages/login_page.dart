@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
@@ -31,7 +32,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
   UserRole _selectedRole = UserRole.student;
   LoginMethod _loginMethod = LoginMethod.otp;
   final _phoneController = TextEditingController();
@@ -459,3 +460,4 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+

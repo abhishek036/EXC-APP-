@@ -6,9 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../features/teacher/data/repositories/teacher_repository.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
-
-class AttendanceMarkingPage extends StatefulWidget {
+ '../../../../core/theme/theme_aware.dart';
+AttendanceMarkingPage extends StatefulWidget {
   final String? initialBatchId;
   final DateTime? initialDate;
   final String? initialSubject;
@@ -24,7 +23,7 @@ class AttendanceMarkingPage extends StatefulWidget {
   State<AttendanceMarkingPage> createState() => _AttendanceMarkingPageState();
 }
 
-class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> {
+class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> with ThemeAware<AttendanceMarkingPage> {
   final TeacherRepository _teacherRepo = sl<TeacherRepository>();
 
   bool _notifyParents = true;
@@ -921,3 +920,4 @@ class _AttStudent {
     );
   }
 }
+

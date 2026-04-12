@@ -8,9 +8,8 @@ import 'package:file_picker/file_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/cloud_storage_service.dart';
-import '../../data/repositories/teacher_repository.dart';
-
-class CreateQuizPage extends StatefulWidget {
+ '../../../../core/theme/theme_aware.dart';
+CreateQuizPage extends StatefulWidget {
   final String? initialBatchId;
   final String? initialSubject;
   final String? quizId;
@@ -28,7 +27,7 @@ class CreateQuizPage extends StatefulWidget {
   State<CreateQuizPage> createState() => _CreateQuizPageState();
 }
 
-class _CreateQuizPageState extends State<CreateQuizPage> {
+class _CreateQuizPageState extends State<CreateQuizPage> with ThemeAware<CreateQuizPage> {
   final _repo = sl<TeacherRepository>();
   final _storage = sl<CloudStorageService>();
 
@@ -1207,3 +1206,4 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
     ),
   );
 }
+

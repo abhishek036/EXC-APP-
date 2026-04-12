@@ -14,9 +14,8 @@ import 'create_quiz_page.dart';
 import 'doubt_response_page.dart';
 import 'quiz_results_page.dart';
 import 'upload_material_page.dart';
-import 'youtube_broadcast_page.dart';
-
-class TeacherBatchPanelPage extends StatefulWidget {
+ '../../../../core/theme/theme_aware.dart';
+TeacherBatchPanelPage extends StatefulWidget {
   final String batchId;
   final int initialTabIndex;
 
@@ -30,7 +29,7 @@ class TeacherBatchPanelPage extends StatefulWidget {
   State<TeacherBatchPanelPage> createState() => _TeacherBatchPanelPageState();
 }
 
-class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> {
+class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with ThemeAware<TeacherBatchPanelPage> {
   final _teacherRepo = sl<TeacherRepository>();
 
   bool _loading = true;
@@ -3369,3 +3368,4 @@ class _ActionBtn extends StatelessWidget {
     );
   }
 }
+

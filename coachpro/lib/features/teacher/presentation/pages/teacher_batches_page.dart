@@ -8,16 +8,15 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/widgets/cp_role_shell.dart';
-import '../../data/repositories/teacher_repository.dart';
-
-class TeacherBatchesPage extends StatefulWidget {
+ '../../../../core/theme/theme_aware.dart';
+TeacherBatchesPage extends StatefulWidget {
   const TeacherBatchesPage({super.key});
 
   @override
   State<TeacherBatchesPage> createState() => _TeacherBatchesPageState();
 }
 
-class _TeacherBatchesPageState extends State<TeacherBatchesPage> {
+class _TeacherBatchesPageState extends State<TeacherBatchesPage> with ThemeAware<TeacherBatchesPage> {
   final _teacherRepo = sl<TeacherRepository>();
   final _realtime = sl<RealtimeSyncService>();
   StreamSubscription<Map<String, dynamic>>? _syncSub;
@@ -577,3 +576,4 @@ class _ActionBtn extends StatelessWidget {
     );
   }
 }
+

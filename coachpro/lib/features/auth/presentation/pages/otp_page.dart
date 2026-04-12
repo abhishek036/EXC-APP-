@@ -7,9 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../domain/entities/user_entity.dart';
-import '../bloc/auth_bloc.dart';
-
-class OtpRouteArgs {
+ '../../../../core/theme/theme_aware.dart';
+OtpRouteArgs {
   final String phoneNumber;
   final AppRole role;
   final String? infoMessage;
@@ -41,7 +40,7 @@ class OtpPage extends StatefulWidget {
   State<OtpPage> createState() => _OtpPageState();
 }
 
-class _OtpPageState extends State<OtpPage> {
+class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
   final List<TextEditingController> _controllers = List.generate(
     6,
     (_) => TextEditingController(),
@@ -626,3 +625,4 @@ class _OtpPageState extends State<OtpPage> {
     );
   }
 }
+

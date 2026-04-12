@@ -8,9 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/admin_repository.dart';
-import '../../../../core/widgets/cp_pressable.dart';
-
-class StudentProfilePage extends StatefulWidget {
+ '../../../../core/theme/theme_aware.dart';
+StudentProfilePage extends StatefulWidget {
   final String studentId;
   const StudentProfilePage({super.key, required this.studentId});
 
@@ -18,8 +17,7 @@ class StudentProfilePage extends StatefulWidget {
   State<StudentProfilePage> createState() => _StudentProfilePageState();
 }
 
-class _StudentProfilePageState extends State<StudentProfilePage>
-    with SingleTickerProviderStateMixin {
+class _StudentProfilePageState extends State<StudentProfilePage> with SingleTickerProviderStateMixin, ThemeAware<StudentProfilePage> {
   final _adminRepo = sl<AdminRepository>();
 
   Map<String, dynamic>? _student;
@@ -2041,3 +2039,4 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
     );
   }
 }
+

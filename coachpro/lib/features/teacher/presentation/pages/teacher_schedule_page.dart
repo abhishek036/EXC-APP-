@@ -12,16 +12,15 @@ import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_toast.dart';
 import '../../data/repositories/teacher_repository.dart';
-import 'package:go_router/go_router.dart';
-
-class TeacherSchedulePage extends StatefulWidget {
+ '../../../../core/theme/theme_aware.dart';
+TeacherSchedulePage extends StatefulWidget {
   const TeacherSchedulePage({super.key});
 
   @override
   State<TeacherSchedulePage> createState() => _TeacherSchedulePageState();
 }
 
-class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
+class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAware<TeacherSchedulePage> {
   final _repo = sl<TeacherRepository>();
   final _realtime = sl<RealtimeSyncService>();
 
@@ -1353,3 +1352,4 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
     }
   }
 }
+
