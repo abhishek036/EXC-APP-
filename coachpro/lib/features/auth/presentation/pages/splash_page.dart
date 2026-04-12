@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/app_update_service.dart';
+import '../bloc/auth_bloc.dart';
 import '../../../../core/theme/theme_aware.dart';
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -86,7 +87,7 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
     }
 
     if (mounted) {
-      context.read<AuthBloc>().add(const AuthCheckRequested());
+      context.read<AuthBloc>().add(AuthCheckRequested());
     }
   }
 

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../data/repositories/teacher_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 class QuizResultsPage extends StatefulWidget {
   final String quizId;
@@ -38,7 +39,7 @@ class _QuizResultsPageState extends State<QuizResultsPage> with ThemeAware<QuizR
     });
 
     try {
-      final results = await Future.wait([
+      final results = await Future.wait<dynamic>([
         _repo.getQuizReport(widget.quizId),
         _repo.getQuizResults(widget.quizId),
       ]);

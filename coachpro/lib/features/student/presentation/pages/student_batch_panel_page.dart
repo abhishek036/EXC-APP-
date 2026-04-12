@@ -9,6 +9,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/utils/file_opener.dart';
+import '../../data/repositories/student_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 class _DoubtThreadMessage {
   final String label;

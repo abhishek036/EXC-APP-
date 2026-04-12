@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/widgets/cp_pressable.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 class StudentProfilePage extends StatefulWidget {

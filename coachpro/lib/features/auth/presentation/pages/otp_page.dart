@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../domain/entities/user_entity.dart';
+import '../bloc/auth_bloc.dart';
 import '../../../../core/theme/theme_aware.dart';
 class OtpRouteArgs {
   final String phoneNumber;

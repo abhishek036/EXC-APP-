@@ -13,6 +13,7 @@ import 'attendance_marking_page.dart';
 import 'create_quiz_page.dart';
 import 'doubt_response_page.dart';
 import 'quiz_results_page.dart';
+import 'youtube_broadcast_page.dart';
 import 'upload_material_page.dart';
 import '../../../../core/theme/theme_aware.dart';
 class TeacherBatchPanelPage extends StatefulWidget {
@@ -1747,7 +1748,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const AppColors.offWhite,
+        backgroundColor: AppColors.offWhite,
         title: Text(
           'STUDENT PROFILE',
           style: GoogleFonts.plusJakartaSans(

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../../../features/teacher/data/repositories/teacher_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 class AttendanceMarkingPage extends StatefulWidget {
@@ -257,10 +258,10 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> with Them
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: const AppColors.elitePrimary,
+              primary: AppColors.elitePrimary,
               onPrimary: Colors.white,
-              surface: const AppColors.offWhite,
-              onSurface: const AppColors.elitePrimary,
+              surface: AppColors.offWhite,
+              onSurface: AppColors.elitePrimary,
             ),
           ),
           child: child!,

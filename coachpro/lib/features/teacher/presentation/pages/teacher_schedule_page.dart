@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
@@ -786,7 +787,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
                               child: Container(
                                 height: 56,
                                 decoration: BoxDecoration(
-                                  color: const AppColors.coralRed,
+                                  color: AppColors.coralRed,
                                   border: Border.all(color: blue, width: 2),
                                   boxShadow: const [
                                     BoxShadow(
@@ -863,7 +864,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const AppColors.offWhite,
+        backgroundColor: AppColors.offWhite,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: blue, width: 3),
@@ -899,7 +900,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
               'CLEAR',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w900,
-                color: const AppColors.coralRed,
+                color: AppColors.coralRed,
               ),
             ),
           ),
@@ -932,7 +933,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const AppColors.offWhite,
+        backgroundColor: AppColors.offWhite,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: blue, width: 3),
@@ -968,7 +969,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
               'DELETE',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w900,
-                color: const AppColors.coralRed,
+                color: AppColors.coralRed,
               ),
             ),
           ),
@@ -982,7 +983,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
     style: GoogleFonts.plusJakartaSans(
       fontSize: 10,
       fontWeight: FontWeight.w900,
-      color: const AppColors.elitePrimary,
+      color: AppColors.elitePrimary,
       letterSpacing: 0.5,
     ),
   );

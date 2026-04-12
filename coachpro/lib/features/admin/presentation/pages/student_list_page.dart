@@ -9,6 +9,7 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/widgets/cp_pressable.dart';
+import '../../../../core/widgets/cp_shimmer.dart';
 import '../../../../core/theme/theme_aware.dart';
 class StudentListPage extends StatefulWidget {
   const StudentListPage({super.key});
