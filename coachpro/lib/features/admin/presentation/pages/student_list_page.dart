@@ -321,7 +321,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
     final overdue = _students.where((s) => s.feeStatus == 'OVERDUE').length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: Colors.white,
       floatingActionButton: _selectMode
           ? null
           : FloatingActionButton(
@@ -410,7 +410,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
   Widget _buildAppBar(List<_Student> filtered) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 16, 8),
-      color: const Color(0xFFFFFFFF),
+      color: Colors.white,
       child: Row(
         children: [
           CPPressable(
@@ -426,7 +426,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               height: 40,
               margin: const EdgeInsets.only(right: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFF354388), width: 1.5),
               ),
@@ -471,7 +471,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               decoration: BoxDecoration(
                 color: _selectMode
                     ? const Color(0xFFBDAE18)
-                    : const Color(0xFFFFFFFF),
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFF354388), width: 1.5),
               ),
@@ -1089,7 +1089,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                     ? const Color(0xFF354388)
                     : isOverdue
                     ? const Color(0xFFB6231B).withValues(alpha: 0.2)
-                    : const Color(0xFFFFFFFF),
+                    : Colors.white,
                 width: 1.5,
               ),
               boxShadow: [
@@ -1268,7 +1268,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                           width: 38,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFFFFF),
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(2),
                           ),
                           child: FractionallySizedBox(
@@ -1443,7 +1443,7 @@ class _BatchPickerSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(top: 8, bottom: 20),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1474,7 +1474,7 @@ class _BatchPickerSheet extends StatelessWidget {
               shrinkWrap: true,
               itemCount: availableBatches.length,
               separatorBuilder: (_, _) =>
-                  const Divider(height: 1, color: Color(0xFFFFFFFF)),
+                  const Divider(height: 1, color: Colors.white),
               itemBuilder: (ctx, i) {
                 final batch = availableBatches[i];
                 final name = (batch['name'] ?? 'Batch').toString();
@@ -1557,7 +1557,7 @@ class _BatchPickerSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: Color(0xFFFFFFFF)),
+                  side: const BorderSide(color: Colors.white),
                 ),
               ),
               child: Text(

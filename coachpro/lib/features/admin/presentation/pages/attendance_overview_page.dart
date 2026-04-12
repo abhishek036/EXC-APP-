@@ -307,7 +307,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
+          color: Colors.white,
           border: Border.all(color: const Color(0xFF354388), width: 2),
           boxShadow: const [
             BoxShadow(
@@ -393,7 +393,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFFFFFFFF),
+                color: Colors.white,
                 letterSpacing: -1,
               ),
             ),
@@ -457,7 +457,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
             decoration: BoxDecoration(
               color: _selectedBatch == i
                   ? const Color(0xFFBDAE18)
-                  : const Color(0xFFFFFFFF),
+                  : Colors.white,
               border: Border.all(color: const Color(0xFF354388), width: 2),
               boxShadow: _selectedBatch == i
                   ? const [
@@ -607,7 +607,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                             backDrawRodData: BackgroundBarChartRodData(
                               show: true,
                               toY: 100,
-                              color: const Color(0xFFFFFFFF),
+                              color: Colors.white,
                             ),
                           ),
                         ],
@@ -698,7 +698,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFFFFF),
+                    color: Colors.white,
                     border: Border.all(color: AppColors.coralRed, width: 2),
                     boxShadow: const [
                       BoxShadow(
@@ -751,7 +751,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFFFFF),
+                      color: Colors.white,
                       border: Border.all(
                         color: const Color(0xFF354388),
                         width: 2,

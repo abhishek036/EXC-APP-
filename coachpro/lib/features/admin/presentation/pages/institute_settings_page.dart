@@ -156,7 +156,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFFFFF),
+                            color: Colors.white,
                             border: Border.all(
                               color: const Color(0xFF354388),
                               width: 2,
@@ -494,7 +494,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFFFF),
+              color: Colors.white,
               border: Border.all(color: accentColor, width: 2),
               boxShadow: [
                 BoxShadow(color: accentColor, offset: const Offset(2, 2)),

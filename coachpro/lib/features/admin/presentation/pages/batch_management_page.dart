@@ -337,7 +337,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFFFFF),
+                            color: Colors.white,
                             border: Border.all(color: badgeColor, width: 2),
                             boxShadow: [
                               BoxShadow(
@@ -457,7 +457,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFFFF),
+            color: Colors.white,
             border: Border.all(color: const Color(0xFF354388), width: 2),
             boxShadow: const [
               BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
@@ -614,7 +614,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
           builder: (ctx, setS) {
             return Container(
               decoration: const BoxDecoration(
-                color: Color(0xFFFFFFFF),
+                color: Colors.white,
                 border: Border(
                   top: BorderSide(color: Color(0xFF354388), width: 3),
                   left: BorderSide(color: Color(0xFF354388), width: 3),
@@ -730,7 +730,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
 
             return Container(
               decoration: const BoxDecoration(
-                color: Color(0xFFFFFFFF),
+                color: Colors.white,
                 border: Border(
                   top: BorderSide(color: Color(0xFF354388), width: 3),
                   left: BorderSide(color: Color(0xFF354388), width: 3),

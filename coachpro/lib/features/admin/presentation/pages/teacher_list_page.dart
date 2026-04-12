@@ -205,7 +205,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: primary ? const Color(0xFF354388) : const Color(0xFFFFFFFF),
+          color: primary ? const Color(0xFF354388) : Colors.white,
           border: Border.all(color: const Color(0xFF354388), width: 2),
           boxShadow: const [
             BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
@@ -363,7 +363,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFFFFF),
+                    color: Colors.white,
                     border: Border.all(
                       color: const Color(0xFF354388),
                       width: 2,
@@ -454,7 +454,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFFFFF),
+                    color: Colors.white,
                     border: Border.all(
                       color: const Color(0xFF354388),
                       width: 2,

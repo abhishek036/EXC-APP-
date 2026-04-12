@@ -191,7 +191,13 @@ class _ExamResultsPageState extends State<ExamResultsPage> {
         child: Row(
           children: [
             CPPressable(
-              onTap: () => context.pop(),
+              onTap: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/student');
+                }
+              },
               child: Container(
                 padding: const EdgeInsets.all(AppDimensions.step),
                 decoration: CT.cardDecor(context, radius: AppDimensions.radiusSM),

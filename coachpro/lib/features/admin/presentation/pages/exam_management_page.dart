@@ -155,7 +155,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                         height: 48,
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFFFFF),
+                          color: Colors.white,
                           border: Border.all(
                             color: const Color(0xFF354388),
                             width: 2,
@@ -254,7 +254,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                 Container(
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFFFFF),
+                    color: Colors.white,
                     border: Border.all(
                       color: const Color(0xFF354388),
                       width: 3,
@@ -332,7 +332,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                   width: 50,
                   height: 70,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFFFFF),
+                    color: Colors.white,
                     border: Border.all(
                       color: const Color(0xFF354388),
                       width: 2,
@@ -557,7 +557,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                 Container(
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFFFFF),
+                    color: Colors.white,
                     border: Border.all(
                       color: const Color(0xFF354388),
                       width: 3,
@@ -620,7 +620,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFFFFF),
+                      color: Colors.white,
                       border: Border.all(
                         color: const Color(0xFF354388),
                         width: 2,
@@ -751,7 +751,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark
             ? AppColors.eliteDarkBg
-            : const Color(0xFFFFFFFF),
+            : Colors.white,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.zero,
           side: BorderSide(color: Color(0xFF354388), width: 3),
@@ -1083,7 +1083,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFFFFF),
+                      color: Colors.white,
                       border: Border.all(
                         color: const Color(0xFF354388),
                         width: 2,

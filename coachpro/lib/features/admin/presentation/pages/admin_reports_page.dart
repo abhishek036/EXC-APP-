@@ -231,7 +231,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                         height: 48,
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFFFFF),
+                          color: Colors.white,
                           border: Border.all(
                             color: const Color(0xFF354388),
                             width: 2,
@@ -862,7 +862,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFFFF),
+              color: Colors.white,
               border: Border.all(color: const Color(0xFF354388), width: 2),
               boxShadow: const [
                 BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
@@ -1028,7 +1028,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                     show: true,
                     getDotPainter: (s, d, bar, i) => FlDotCirclePainter(
                       radius: 4,
-                      color: const Color(0xFFFFFFFF),
+                      color: Colors.white,
                       strokeWidth: 2,
                       strokeColor: const Color(0xFF354388),
                     ),

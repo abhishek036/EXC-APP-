@@ -147,7 +147,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
+        color: Colors.white,
         border: Border.all(color: const Color(0xFF354388), width: 2),
         boxShadow: const [
           BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
@@ -174,7 +174,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: active ? const Color(0xFFBDAE18) : const Color(0xFFFFFFFF),
+            color: active ? const Color(0xFFBDAE18) : Colors.white,
             border: active
                 ? Border.all(color: const Color(0xFF354388), width: 2)
                 : Border.all(color: Colors.transparent, width: 2),
@@ -231,7 +231,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFFFFF),
+                      color: Colors.white,
                       border: Border.all(color: AppColors.coralRed, width: 2),
                       boxShadow: const [
                         BoxShadow(
@@ -337,7 +337,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFFFF),
+                  color: Colors.white,
                   border: Border.all(color: const Color(0xFF354388), width: 2),
                   boxShadow: const [
                     BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),

@@ -290,7 +290,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                   children: [
                     const Icon(
                       Icons.add_rounded,
-                      color: Color(0xFFFFFFFF),
+                      color: Colors.white,
                       size: 24,
                     ),
                     const SizedBox(width: 8),
@@ -298,7 +298,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                       'ADJUST FEE',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFFFFFFFF),
+                        color: Colors.white,
                         fontSize: 13,
                         letterSpacing: 0.5,
                       ),
@@ -469,7 +469,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
             decoration: BoxDecoration(
               color: _selectedStatus == i
                   ? const Color(0xFFBDAE18)
-                  : const Color(0xFFFFFFFF),
+                  : Colors.white,
               border: Border.all(color: const Color(0xFF354388), width: 2),
               boxShadow: _selectedStatus == i
                   ? const [
@@ -498,7 +498,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
+        color: Colors.white,
         border: Border.all(color: const Color(0xFF354388), width: 2),
         boxShadow: const [
           BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
@@ -654,7 +654,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFFFFF),
+                        color: Colors.white,
                         border: Border.all(color: sColor, width: 2),
                         boxShadow: [
                           BoxShadow(color: sColor, offset: const Offset(2, 2)),

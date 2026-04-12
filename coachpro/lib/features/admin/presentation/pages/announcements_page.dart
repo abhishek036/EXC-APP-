@@ -116,7 +116,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFFFFF),
+                            color: Colors.white,
                             border: Border.all(
                               color: const Color(0xFF354388),
                               width: 2,
@@ -218,7 +218,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                           decoration: BoxDecoration(
                             color: isActive
                                 ? _filterColors[i]
-                                : const Color(0xFFFFFFFF),
+                                : Colors.white,
                             border: Border.all(
                               color: const Color(0xFF354388),
                               width: 2,
@@ -780,7 +780,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.zero,
               ),
-              backgroundColor: const Color(0xFFFFFFFF),
+              backgroundColor: Colors.white,
             ),
             child: Text(
               'CANCEL',
@@ -845,7 +845,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
             ),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFFFF),
+              color: Colors.white,
               border: Border.all(color: const Color(0xFF354388), width: 4),
             ),
             child: SingleChildScrollView(
@@ -1063,7 +1063,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                           decoration: BoxDecoration(
                             color: pin
                                 ? const Color(0xFFBDAE18)
-                                : const Color(0xFFFFFFFF),
+                                : Colors.white,
                             border: Border.all(
                               color: const Color(0xFF354388),
                               width: 2,

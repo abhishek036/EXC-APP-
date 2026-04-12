@@ -140,7 +140,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                   children: [
                     const Icon(
                       Icons.add_rounded,
-                      color: Color(0xFFFFFFFF),
+                      color: Colors.white,
                       size: 24,
                     ),
                     const SizedBox(width: 8),
@@ -148,7 +148,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       _tabIndex == 0 ? 'ONBOARD STAFF' : 'RECORD PAYOUT',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFFFFFFFF),
+                        color: Colors.white,
                         fontSize: 13,
                         letterSpacing: 0.5,
                       ),
@@ -206,7 +206,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
+          color: Colors.white,
           border: Border.all(color: const Color(0xFF354388), width: 2),
           boxShadow: const [
             BoxShadow(
@@ -320,7 +320,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: active ? const Color(0xFFBDAE18) : const Color(0xFFFFFFFF),
+            color: active ? const Color(0xFFBDAE18) : Colors.white,
             border: Border.all(color: const Color(0xFF354388), width: 2),
             boxShadow: active
                 ? const [
@@ -426,7 +426,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFFFFF),
+                      color: Colors.white,
                       border: Border.all(
                         color: AppColors.elitePrimary,
                         width: 2,
@@ -454,7 +454,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFFFFF),
+                        color: Colors.white,
                         border: Border.all(
                           color: const Color(0xFFB6231B),
                           width: 2,
@@ -566,7 +566,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFFFF),
+                  color: Colors.white,
                   border: Border.all(color: AppColors.mintGreen, width: 2),
                   boxShadow: const [
                     BoxShadow(color: AppColors.mintGreen, offset: Offset(2, 2)),
@@ -991,7 +991,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                             decoration: BoxDecoration(
                               color: type == opt
                                   ? const Color(0xFFBDAE18)
-                                  : const Color(0xFFFFFFFF),
+                                  : Colors.white,
                               border: Border.all(
                                 color: const Color(0xFF354388),
                                 width: 2,

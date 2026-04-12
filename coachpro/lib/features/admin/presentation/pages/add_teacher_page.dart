@@ -337,11 +337,11 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
             fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFFFFFFFF), width: 2),
+              borderSide: const BorderSide(color: Colors.white, width: 2),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFFFFFFFF), width: 2),
+              borderSide: const BorderSide(color: Colors.white, width: 2),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),

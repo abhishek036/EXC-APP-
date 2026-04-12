@@ -353,7 +353,13 @@ class _StudentBatchPanelPageState extends State<StudentBatchPanelPage> with Them
             color: Colors.white,
             size: 20,
           ),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/student');
+            }
+          },
         ),
         title: Text(
           'SELECT SUBJECT',

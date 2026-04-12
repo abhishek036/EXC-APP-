@@ -519,7 +519,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF),
+        backgroundColor: Colors.white,
         body: const Center(
           child: CircularProgressIndicator(color: Color(0xFF354388)),
         ),
@@ -528,7 +528,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
 
     if (_loadFailed) {
       return Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF),
+        backgroundColor: Colors.white,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -577,7 +577,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFFFFFFF)),
+                      border: Border.all(color: Colors.white),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -648,7 +648,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
 
     if (_student == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF),
+        backgroundColor: Colors.white,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -737,7 +737,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
         : const Color(0xFFBDAE18);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           NestedScrollView(
@@ -1615,7 +1615,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                           child: LinearProgressIndicator(
                             value: pct.clamp(0.0, 1.0),
                             minHeight: 6,
-                            backgroundColor: const Color(0xFFFFFFFF),
+                            backgroundColor: Colors.white,
                             valueColor: AlwaysStoppedAnimation(perfColor),
                           ),
                         ),
@@ -1657,7 +1657,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
   );
 
   Widget _dividerLine() =>
-      const Divider(height: 1, indent: 56, color: Color(0xFFFFFFFF));
+      const Divider(height: 1, indent: 56, color: Colors.white);
 
   Widget _field({
     required String label,
@@ -1910,7 +1910,7 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(top: 8, bottom: 20),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1940,7 +1940,7 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
               shrinkWrap: true,
               itemCount: batches.length,
               separatorBuilder: (_, _) =>
-                  const Divider(height: 1, color: Color(0xFFFFFFFF)),
+                  const Divider(height: 1, color: Colors.white),
               itemBuilder: (ctx, i) {
                 final batch = batches[i];
                 final name = (batch['name'] ?? 'Batch').toString();
@@ -2031,7 +2031,7 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: Color(0xFFFFFFFF)),
+                  side: const BorderSide(color: Colors.white),
                 ),
               ),
               child: Text(

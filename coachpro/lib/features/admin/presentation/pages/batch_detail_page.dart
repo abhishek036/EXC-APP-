@@ -505,7 +505,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       ),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
+        color: Colors.white,
         border: Border.all(color: const Color(0xFF354388), width: 2.5),
         boxShadow: const [
           BoxShadow(
@@ -1036,7 +1036,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     fontWeight: FontWeight.w800,
                     fontSize: 12,
                     color: selected
-                        ? const Color(0xFFFFFFFF)
+                        ? Colors.white
                         : const Color(0xFF354388),
                   ),
                 ),
@@ -1221,7 +1221,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFFFFF),
+                            color: Colors.white,
                             border: Border.all(
                               color: const Color(0xFF354388),
                               width: 1.2,
@@ -1815,7 +1815,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                         });
                       },
                       leading: CircleAvatar(
-                        backgroundColor: const Color(0xFFFFFFFF),
+                        backgroundColor: Colors.white,
                         child: Text(
                           ((student['name'] ?? 'S').toString())
                               .substring(0, 1)
@@ -2298,7 +2298,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFFFFF),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: const Color(0xFF354388),
@@ -2343,7 +2343,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
           heroTag: '${widget.batchId}_fab_menu',
           onPressed: () => setState(() => _fabExpanded = !_fabExpanded),
           backgroundColor: const Color(0xFF354388),
-          foregroundColor: const Color(0xFFFFFFFF),
+          foregroundColor: Colors.white,
           icon: Icon(
             _fabExpanded ? Icons.close_rounded : Icons.add_rounded,
             size: 18,
@@ -2545,7 +2545,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             return Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
-                color: Color(0xFFFFFFFF),
+                color: Colors.white,
                 border: Border(
                   top: BorderSide(color: Color(0xFF354388), width: 3),
                   left: BorderSide(color: Color(0xFF354388), width: 3),
@@ -2657,7 +2657,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                 MediaQuery.of(ctx).viewInsets.bottom + 20,
               ),
               decoration: const BoxDecoration(
-                color: Color(0xFFFFFFFF),
+                color: Colors.white,
                 border: Border(
                   top: BorderSide(color: Color(0xFF354388), width: 3),
                   left: BorderSide(color: Color(0xFF354388), width: 3),
