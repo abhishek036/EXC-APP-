@@ -305,9 +305,8 @@ export class AuthService {
         // Validate account disambiguation early so OTP is not sent to ambiguous identities.
         this._selectUserForInstitute(users, joinInstitute?.id);
 
-        if (users.length === 0) {
-            await this._resolveInstituteId(prisma, phonesToSearch, null, joinInstitute?.id);
-        }
+        // Do not block OTP sending on institute resolution.
+        // Institute is resolved during verify/login flow.
 
         const otp = generateOTP();
 

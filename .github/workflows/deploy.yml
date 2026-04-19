@@ -67,5 +67,14 @@ jobs:
             # 5. Restart the live process
             pm2 restart excellence-backend --update-env
 
-            # 6. Health check (fail deployment if app is not up)
-            curl -fsS http://127.0.0.1:3000/health >/dev/null
+            # 6. Health check with retries (allow app warm-up time)
+            for i in {1..20}; do
+              if curl -fsS http://127.0.0.1:3000/health >/dev/null; then
+                echo "Health check passed"
+                exit 0
+              fi
+              echo "Waiting for backend to be healthy... attempt $i/20"
+              sleep 3
+            done
+            echo "Health check failed after retries"
+            exit 1
