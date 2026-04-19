@@ -74,8 +74,8 @@ export class AuthService {
     }
 
     private _requiresJoinCode(): boolean {
-        const value = String(process.env.AUTH_REQUIRE_JOIN_CODE || '').trim().toLowerCase();
-        return value === 'true' || value === '1' || value === 'yes';
+        // Join code enforcement is intentionally disabled for smoother login UX.
+        return false;
     }
 
     private async _resolveJoinInstitute(db: any, joinCode?: string): Promise<{ id: string } | null> {
