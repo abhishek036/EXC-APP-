@@ -2,6 +2,11 @@
 .idea/
 .vscode/
 *.log
+*.pid
+*.tsbuildinfo
+hs_err_pid*.log
+replay_pid*.log
+tmp_flutter/
 
 testsprite_tests/
 tools/
