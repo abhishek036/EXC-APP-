@@ -1,7 +1,30 @@
 import multer from 'multer';
 import path from 'path';
+import { randomUUID } from 'crypto';
+import { existsSync, mkdirSync } from 'fs';
 
-const storage = multer.memoryStorage();
+const tempUploadDir = path.resolve(process.cwd(), process.env.UPLOAD_TMP_DIR || 'tmp/uploads/_incoming');
+
+const ensureTempUploadDir = () => {
+    if (!existsSync(tempUploadDir)) {
+        mkdirSync(tempUploadDir, { recursive: true });
+    }
+};
+
+const storage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+        try {
+            ensureTempUploadDir();
+            cb(null, tempUploadDir);
+        } catch (error) {
+            cb(error as Error, tempUploadDir);
+        }
+    },
+    filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, `${Date.now()}-${randomUUID()}${ext}`);
+    },
+});
 
 const blockedExtensions = new Set([
     '.apk', '.bat', '.cmd', '.com', '.cpl', '.dll', '.exe', '.hta', '.jar', '.js', '.jse', '.lnk', '.msi',

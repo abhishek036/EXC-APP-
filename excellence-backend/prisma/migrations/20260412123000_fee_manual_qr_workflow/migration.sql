@@ -15,7 +15,6 @@ SET paid_amount = COALESCE(p.total_paid, 0)
 FROM (
   SELECT fee_record_id, SUM(amount_paid)::NUMERIC(10,2) AS total_paid
   FROM fee_payments
-  WHERE COALESCE(status, 'approved') IN ('approved', 'paid')
   GROUP BY fee_record_id
 ) p
 WHERE fr.id = p.fee_record_id;

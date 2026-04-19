@@ -84,11 +84,43 @@ export class UploadController {
       .slice(0, 180);
   }
 
-  private assertMagicBytes(file: Express.Multer.File): void {
-    const buffer = file.buffer;
+  private getUploadedFilePath(file: Express.Multer.File): string {
+    const filePath = String((file as any)?.path || '').trim();
+    if (!filePath) {
+      throw new ApiError('Uploaded file is not available on disk', 500, 'UPLOAD_PATH_MISSING');
+    }
+    return filePath;
+  }
+
+  private async readFileHead(filePath: string, maxBytes: number): Promise<Buffer> {
+    const handle = await fsp.open(filePath, 'r');
+    try {
+      const buffer = Buffer.alloc(maxBytes);
+      const { bytesRead } = await handle.read(buffer, 0, maxBytes, 0);
+      return buffer.subarray(0, bytesRead);
+    } finally {
+      await handle.close();
+    }
+  }
+
+  private async cleanupUploadedFile(file: Express.Multer.File): Promise<void> {
+    const filePath = String((file as any)?.path || '').trim();
+    if (!filePath) return;
+
+    try {
+      await fsp.unlink(filePath);
+    } catch {
+      // best-effort cleanup for temp multer files
+    }
+  }
+
+  private async assertMagicBytes(file: Express.Multer.File): Promise<void> {
+    const filePath = this.getUploadedFilePath(file);
+    const header = await this.readFileHead(filePath, 16);
     const extension = extname(file.originalname).toLowerCase();
 
-    const startsWith = (hexPrefix: string): boolean => buffer.toString('hex', 0, Math.ceil(hexPrefix.length / 2)).startsWith(hexPrefix);
+    const startsWith = (hexPrefix: string): boolean =>
+      header.toString('hex', 0, Math.ceil(hexPrefix.length / 2)).startsWith(hexPrefix);
 
     const checks: Record<string, () => boolean> = {
       '.png': () => startsWith('89504e470d0a1a0a'),
@@ -100,7 +132,7 @@ export class UploadController {
       '.docx': () => startsWith('504b0304') || startsWith('504b0506') || startsWith('504b0708'),
       '.xlsx': () => startsWith('504b0304') || startsWith('504b0506') || startsWith('504b0708'),
       '.pptx': () => startsWith('504b0304') || startsWith('504b0506') || startsWith('504b0708'),
-      '.mp4': () => buffer.length > 12 && buffer.toString('ascii', 4, 8) === 'ftyp',
+      '.mp4': () => header.length > 12 && header.toString('ascii', 4, 8) === 'ftyp',
     };
 
     const check = checks[extension];
@@ -109,12 +141,18 @@ export class UploadController {
     }
   }
 
-  private assertUploadSafety(file: Express.Multer.File): void {
-    if (!file || !file.buffer || file.buffer.length === 0) {
+  private async assertUploadSafety(file: Express.Multer.File): Promise<void> {
+    if (!file || Number(file.size || 0) <= 0) {
       throw new ApiError('Uploaded file is empty', 400, 'EMPTY_FILE');
     }
 
-    this.assertMagicBytes(file);
+    const filePath = this.getUploadedFilePath(file);
+    const stat = await fsp.stat(filePath).catch(() => null);
+    if (!stat || !stat.isFile() || stat.size <= 0) {
+      throw new ApiError('Uploaded file is empty', 400, 'EMPTY_FILE');
+    }
+
+    await this.assertMagicBytes(file);
   }
 
   private normalizeDestination(destinationRaw: unknown): string {
@@ -188,7 +226,10 @@ export class UploadController {
           resolve(result);
         },
       );
-      stream.end(file.buffer);
+
+      const input = createReadStream(this.getUploadedFilePath(file));
+      input.on('error', reject);
+      input.pipe(stream);
     });
 
     return {
@@ -209,10 +250,11 @@ export class UploadController {
     const bucket = process.env.SUPABASE_DOCS_BUCKET || 'study-materials';
     const ext = extname(file.originalname).toLowerCase();
     const key = `${destination}/${uuidv4()}${ext}`;
+    const fileBuffer = await fsp.readFile(this.getUploadedFilePath(file));
 
     const uploaded = await supabaseClient.storage
       .from(bucket)
-      .upload(key, file.buffer, {
+      .upload(key, fileBuffer, {
         contentType: file.mimetype || this.contentTypeFromExt(file.originalname),
         upsert: false,
       });
@@ -245,7 +287,7 @@ export class UploadController {
       params: {
         Bucket: bucketName,
         Key: key,
-        Body: file.buffer,
+        Body: createReadStream(this.getUploadedFilePath(file)),
         ContentType: file.mimetype || this.contentTypeFromExt(file.originalname),
       },
     });
@@ -268,7 +310,7 @@ export class UploadController {
     const absolutePath = this.localAbsolutePathFromKey(key);
 
     await fsp.mkdir(dirname(absolutePath), { recursive: true });
-    await fsp.writeFile(absolutePath, file.buffer);
+    await fsp.copyFile(this.getUploadedFilePath(file), absolutePath);
 
     return {
       provider: 'local',
@@ -319,23 +361,27 @@ export class UploadController {
     fileMimeType: string;
     fileSizeKb: number;
   }> {
-    this.assertUploadSafety(params.file);
+    await this.assertUploadSafety(params.file);
     params.file.originalname = this.sanitizeFileName(params.file.originalname);
 
     const destination = this.normalizeDestination(params.destination);
-    const stored = await this.resolveStorageRef(params.file, destination);
-    const fileKey = this.encodeRef(stored);
-    const fileUrl = `${params.origin}/api/upload/file/${encodeURIComponent(fileKey)}`;
+    try {
+      const stored = await this.resolveStorageRef(params.file, destination);
+      const fileKey = this.encodeRef(stored);
+      const fileUrl = `${params.origin}/api/upload/file/${encodeURIComponent(fileKey)}`;
 
-    return {
-      fileUrl,
-      storageProvider: stored.provider,
-      storageKey: stored.key,
-      storageBucket: stored.bucket ?? null,
-      fileName: stored.fileName ?? params.file.originalname,
-      fileMimeType: stored.mimeType ?? params.file.mimetype,
-      fileSizeKb: stored.sizeKb ?? Math.ceil(params.file.size / 1024),
-    };
+      return {
+        fileUrl,
+        storageProvider: stored.provider,
+        storageKey: stored.key,
+        storageBucket: stored.bucket ?? null,
+        fileName: stored.fileName ?? params.file.originalname,
+        fileMimeType: stored.mimeType ?? params.file.mimetype,
+        fileSizeKb: stored.sizeKb ?? Math.ceil(params.file.size / 1024),
+      };
+    } finally {
+      await this.cleanupUploadedFile(params.file);
+    }
   }
 
   private async streamFromRef(ref: StorageRef): Promise<{ stream: NodeJS.ReadableStream; contentType?: string; contentLength?: number; fileName?: string }> {

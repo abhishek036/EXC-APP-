@@ -6,6 +6,7 @@ import { ApiError } from '../../middleware/error.middleware';
 import { isLegacyColumnError } from '../../utils/prisma-errors';
 import { calculateFeeAmounts, summarizeAttendanceFromStatuses } from '../../utils/metrics';
 import { FeeRepository } from '../fee/fee.repository';
+import { promises as fsp } from 'fs';
 
 export class StudentController {
   private studentService: StudentService;
@@ -751,8 +752,19 @@ export class StudentController {
     try {
       if (!req.file) throw new ApiError('No file uploaded', 400, 'NO_FILE');
       const { batchId } = req.body;
-      const result = await this.studentService.importExcel(req.instituteId!, req.file.buffer, batchId);
-      return sendResponse({ res, data: result, message: 'Import process completed' });
+
+      const filePath = String((req.file as any)?.path || '').trim();
+      if (!filePath) {
+        throw new ApiError('Uploaded file path missing', 500, 'UPLOAD_PATH_MISSING');
+      }
+
+      try {
+        const fileBuffer = await fsp.readFile(filePath);
+        const result = await this.studentService.importExcel(req.instituteId!, fileBuffer, batchId);
+        return sendResponse({ res, data: result, message: 'Import process completed' });
+      } finally {
+        await fsp.unlink(filePath).catch(() => undefined);
+      }
     } catch (error) { next(error); }
   };
 
