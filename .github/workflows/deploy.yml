@@ -35,7 +35,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: excellence-backend/backend-release.tgz
-          target: ~/EXC-APP-/excellence-backend
+          target: ~/EXC-APP-/excellence-backend/
+          strip_components: 1
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
