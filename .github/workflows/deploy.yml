@@ -15,7 +15,10 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script_stop: true
           script: |
+            set -euo pipefail
+
             # 1. Navigate to project folder
             cd ~/EXC-APP-/excellence-backend
             
@@ -23,11 +26,14 @@ jobs:
             git pull origin main
             
             # 3. Clean install and sync database schema
-            npm install --production
+            npm ci
             npx prisma generate
             
             # 4. Build with Memory Protection (Important for 2GB Droplet)
-            NODE_OPTIONS="--max-old-space-size=1536" npm run build
+            NODE_OPTIONS="--max-old-space-size=1792" npm run build
+
+            # 5. Trim dev dependencies for runtime footprint
+            npm prune --omit=dev
             
-            # 5. Restart the live process
-            pm2 restart excellence-backend
+            # 6. Restart the live process
+            pm2 restart excellence-backend --update-env
