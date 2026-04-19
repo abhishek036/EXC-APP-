@@ -8,6 +8,35 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: excellence-backend/package-lock.json
+
+      - name: Build backend artifact on runner
+        run: |
+          set -euo pipefail
+          cd excellence-backend
+          npm ci
+          npx prisma generate
+          npm run build
+          tar -czf backend-release.tgz dist prisma package.json package-lock.json
+
+      - name: Upload release artifact to droplet
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          source: excellence-backend/backend-release.tgz
+          target: ~/EXC-APP-/excellence-backend
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -24,16 +53,18 @@ jobs:
             
             # 2. Pull latest code from GitHub
             git pull origin main
-            
-            # 3. Clean install and sync database schema
-            npm ci
-            npx prisma generate
-            
-            # 4. Build with Memory Protection (Important for 2GB Droplet)
-            NODE_OPTIONS="--max-old-space-size=1792" npm run build
 
-            # 5. Trim dev dependencies for runtime footprint
-            npm prune --omit=dev
+            # 3. Apply built artifact from CI runner
+            tar -xzf backend-release.tgz
+            rm -f backend-release.tgz
             
-            # 6. Restart the live process
+            # 4. Install runtime dependencies and sync database schema
+            npm ci --omit=dev --no-audit --no-fund
+            npx prisma generate
+            npx prisma migrate deploy
+            
+            # 5. Restart the live process
             pm2 restart excellence-backend --update-env
+
+            # 6. Health check (fail deployment if app is not up)
+            curl -fsS http://127.0.0.1:3000/health >/dev/null
