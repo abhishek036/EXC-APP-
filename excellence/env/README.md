@@ -9,12 +9,14 @@ Use the same profile for both Chrome and APK to avoid account/data mismatch.
 - Build APK:
   flutter build apk --release --dart-define-from-file=env/cloudflare.json
 
-## Production Azure backend
+## Production droplet backend
 
 - Run Chrome:
   flutter run -d chrome --dart-define-from-file=env/production.json
 - Build APK:
   flutter build apk --release --dart-define-from-file=env/production.json
+
+This profile targets `https://api.excellenceacademy.site/api/`.
 
 ## Important
 

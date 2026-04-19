@@ -20,7 +20,7 @@ class ApiClient {
     const configuredApiUrl = String.fromEnvironment('API_URL', defaultValue: '');
     final baseUrl = configuredApiUrl.trim().isNotEmpty
         ? configuredApiUrl.trim()
-        : 'https://abc-appxyz-hvfchqhagycbfcbp.centralindia-01.azurewebsites.net/api/';
+        : 'https://api.excellenceacademy.site/api/';
 
     if (kDebugMode) {
       debugPrint('[ApiClient] Active API base URL: $baseUrl');
