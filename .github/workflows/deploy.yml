@@ -1,0 +1,32 @@
+name: Deploy Excellence Backend
+
+on:
+  push:
+    branches: [ main ] # This triggers whenever you push to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # 1. Navigate to project folder
+            cd ~/EXC-APP-/excellence-backend
+            
+            # 2. Pull latest code from GitHub
+            git pull origin main
+            
+            # 3. Clean install and sync database schema
+            npm install --production
+            npx prisma generate
+            
+            # 4. Build with Memory Protection (Important for 2GB Droplet)
+            NODE_OPTIONS="--max-old-space-size=1536" npm run build
+            
+            # 5. Restart the live process
+            pm2 restart excellence-backend
