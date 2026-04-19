@@ -73,6 +73,11 @@ export class AuthService {
         return normalized === 'admin' || normalized === 'super_admin' || normalized === 'sub_admin';
     }
 
+    private _requiresJoinCode(): boolean {
+        const value = String(process.env.AUTH_REQUIRE_JOIN_CODE || '').trim().toLowerCase();
+        return value === 'true' || value === '1' || value === 'yes';
+    }
+
     private async _resolveJoinInstitute(db: any, joinCode?: string): Promise<{ id: string } | null> {
         const normalizedJoinCode = this._normalizeJoinCode(joinCode);
         if (!normalizedJoinCode) return null;
@@ -210,11 +215,16 @@ export class AuthService {
         }
 
         if (users.length > 1) {
-            throw new ApiError(
-                'Multiple accounts found for this phone. Please provide institute join code.',
-                409,
-                'AMBIGUOUS_ACCOUNT',
-            );
+            if (this._requiresJoinCode()) {
+                throw new ApiError(
+                    'Multiple accounts found for this phone. Please provide institute join code.',
+                    409,
+                    'AMBIGUOUS_ACCOUNT',
+                );
+            }
+
+            // Non-strict mode: pick deterministic first account (ordered by created_at asc).
+            return users[0] || null;
         }
 
         return users[0] || null;
@@ -250,24 +260,34 @@ export class AuthService {
         if (profileInstituteIds.length === 1) return profileInstituteIds[0];
 
         if (profileInstituteIds.length > 1) {
-            throw new ApiError(
-                'Multiple institutes found for this phone. Please provide institute join code.',
-                409,
-                'AMBIGUOUS_ACCOUNT',
-            );
+            if (this._requiresJoinCode()) {
+                throw new ApiError(
+                    'Multiple institutes found for this phone. Please provide institute join code.',
+                    409,
+                    'AMBIGUOUS_ACCOUNT',
+                );
+            }
+
+            // Non-strict mode: fall back to first discovered institute.
+            return profileInstituteIds[0];
         }
 
         const instituteCount = await db.institute.count();
-        if (instituteCount === 1) {
-            const onlyInstitute = await db.institute.findFirst({ select: { id: true } });
-            if (onlyInstitute?.id) return onlyInstitute.id;
+
+        if (instituteCount > 1 && this._requiresJoinCode()) {
+            throw new ApiError(
+                'Institute join code is required for this phone number.',
+                400,
+                'JOIN_CODE_REQUIRED',
+            );
         }
 
-        throw new ApiError(
-            'Institute join code is required for this phone number.',
-            400,
-            'JOIN_CODE_REQUIRED',
-        );
+        if (instituteCount >= 1) {
+            const fallbackInstitute = await db.institute.findFirst({ select: { id: true } });
+            if (fallbackInstitute?.id) return fallbackInstitute.id;
+        }
+
+        throw new ApiError('No institute is configured. Please contact support.', 500, 'INSTITUTE_NOT_FOUND');
     }
 
     async sendOtp(phone: string, purpose: string, joinCode?: string) {
