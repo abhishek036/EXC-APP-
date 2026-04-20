@@ -7,6 +7,8 @@ import { ApiError } from '../../middleware/error.middleware';
 import { prisma } from '../../server';
 import { buildPhoneVariants, normalizeIndianPhone } from '../../utils/phone';
 
+const DUMMY_PASSWORD_HASH = '$2b$12$C6UzMDM.H6dfI/f/IKcEe.6P7w7qYgFWxW4J8nQ1fD9x3v4n6QvQW';
+
 export class AuthService {
     private authRepository: AuthRepository;
 
@@ -50,10 +52,13 @@ export class AuthService {
     }
 
     private _refreshExpiryMs(): number {
-        // Keep DB expiry in sync with JWT_REFRESH_EXPIRES_IN.
-        // Default: 30d.
+        // Keep DB expiry in sync with JWT_REFRESH_EXPIRES_IN with strict bounds.
+        // Allowed: 7d to 30d.
         const env = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
-        return this._durationToMs(env, 30 * 24 * 60 * 60 * 1000);
+        const parsed = this._durationToMs(env, 14 * 24 * 60 * 60 * 1000);
+        const minMs = 7 * 24 * 60 * 60 * 1000;
+        const maxMs = 30 * 24 * 60 * 60 * 1000;
+        return Math.max(minMs, Math.min(maxMs, parsed));
     }
 
     private _normalizeJoinCode(joinCode?: string): string | undefined {
@@ -581,7 +586,8 @@ export class AuthService {
         let user: any = this._selectUserForInstitute(users, joinInstitute?.id);
 
         if (!user) {
-            throw new ApiError('Invalid credentials or user not found', 401, 'INVALID_CREDENTIALS');
+            await bcrypt.compare(String(password || ''), DUMMY_PASSWORD_HASH);
+            throw new ApiError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
         }
 
         if (user.status === 'BLOCKED') {
@@ -592,7 +598,8 @@ export class AuthService {
         }
 
         if (!user.password_hash) {
-            throw new ApiError('Password not set for this account. Please login via OTP.', 400, 'PASSWORD_NOT_SET');
+            await bcrypt.compare(String(password || ''), DUMMY_PASSWORD_HASH);
+            throw new ApiError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
         }
 
         const isMatch = await bcrypt.compare(password, user.password_hash);

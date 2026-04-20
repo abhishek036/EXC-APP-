@@ -11,7 +11,11 @@ export class ExamController {
 
   list = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.service.list(req.instituteId!, req.query.status as string | undefined);
+      const data = await this.service.list(
+        req.instituteId!,
+        req.query.status as string | undefined,
+        { role: req.user?.role, userId: req.user?.userId },
+      );
       return sendResponse({ res, data, message: 'Exams fetched successfully' });
     } catch (error) {
       next(error);
@@ -47,7 +51,10 @@ export class ExamController {
 
   results = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.service.listResults(req.instituteId!);
+      const data = await this.service.listResults(req.instituteId!, {
+        role: req.user?.role,
+        userId: req.user?.userId,
+      });
       return sendResponse({ res, data, message: 'Exam results fetched successfully' });
     } catch (error) {
       next(error);
@@ -56,7 +63,10 @@ export class ExamController {
 
   saveResult = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.service.saveResult(req.instituteId!, req.body);
+      const data = await this.service.saveResult(req.instituteId!, req.body, {
+        role: req.user?.role,
+        userId: req.user?.userId,
+      });
       return sendResponse({ res, data, statusCode: 201, message: 'Exam result saved successfully' });
     } catch (error) {
       next(error);

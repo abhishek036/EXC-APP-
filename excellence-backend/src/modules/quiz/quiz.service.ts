@@ -2,6 +2,7 @@ import { QuizRepository } from './quiz.repository';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
+import { resolveTeacherScope } from '../../utils/teacher-scope';
 
 export class QuizService {
   private static getRetryAllowedFlag(quiz: any): boolean {
@@ -318,11 +319,36 @@ export class QuizService {
     return QuizRepository.createQuiz(quizData, formattedQuestions);
   }
 
-  static async listQuizzes(instituteId: string, batchId?: string, assessmentType?: string) {
-    const filter = {
+  static async listQuizzes(
+    instituteId: string,
+    batchId?: string,
+    assessmentType?: string,
+    actor?: { role?: string; userId?: string },
+  ) {
+    const filter: Record<string, unknown> = {
       ...(batchId ? { batch_id: batchId } : {}),
       ...(assessmentType ? { assessment_type: assessmentType.toUpperCase() } : {}),
     };
+
+    const normalizedRole = (actor?.role ?? '').trim().toLowerCase();
+    if (normalizedRole === 'teacher') {
+      if (!actor?.userId) {
+        throw new ApiError('Unauthorized teacher access', 401, 'UNAUTHORIZED');
+      }
+
+      const teacherScope = await resolveTeacherScope(instituteId, actor.userId);
+
+      if (batchId && !teacherScope.batchIds.includes(batchId)) {
+        throw new ApiError('You can only access quizzes from your assigned batches', 403, 'FORBIDDEN');
+      }
+
+      if (teacherScope.batchIds.length === 0) {
+        return [];
+      }
+
+      filter.batch_id = batchId ? batchId : { in: teacherScope.batchIds };
+    }
+
     return QuizRepository.listQuizzes(instituteId, filter);
   }
 

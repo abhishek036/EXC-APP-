@@ -492,9 +492,18 @@ export class FeeRepository {
             if (remainingAmount <= 0) {
                 throw new ApiError('Fee is already fully paid', 400, 'ALREADY_PAID');
             }
-            if (data.amount > remainingAmount) {
+
+            const requestedAmount = Number(data.amount ?? remainingAmount);
+            if (!Number.isFinite(requestedAmount) || requestedAmount <= 0) {
+                throw new ApiError('Submitted amount must be greater than zero', 400, 'INVALID_AMOUNT');
+            }
+
+            const allowPartialProofPayments = (process.env.ALLOW_PARTIAL_QR_PROOF || 'false').toLowerCase() === 'true';
+            if (allowPartialProofPayments && requestedAmount > remainingAmount) {
                 throw new ApiError('Submitted amount exceeds remaining amount', 400, 'AMOUNT_EXCEEDS_DUE');
             }
+
+            const effectiveAmount = allowPartialProofPayments ? requestedAmount : remainingAmount;
 
             const fromStatus = record.status ?? 'unpaid';
             const now = new Date();
@@ -505,7 +514,7 @@ export class FeeRepository {
                     fee_record_id: record.id,
                     student_id: record.student_id,
                     batch_id: record.batch_id,
-                    amount_paid: new Prisma.Decimal(data.amount),
+                    amount_paid: new Prisma.Decimal(effectiveAmount),
                     payment_mode: 'upi_qr_manual',
                     payment_channel: 'manual_qr',
                     screenshot_url: data.screenshot_url,
@@ -529,7 +538,9 @@ export class FeeRepository {
                 fromStatus,
                 toStatus: 'pending_verification',
                 meta: {
-                    amount: Number(data.amount),
+                    amount: effectiveAmount,
+                    requested_amount: requestedAmount,
+                    partial_allowed: allowPartialProofPayments,
                     whatsapp_notified: data.whatsapp_notified === true,
                 },
             });

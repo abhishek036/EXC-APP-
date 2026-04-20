@@ -2,6 +2,7 @@ import { BatchRepository } from './batch.repository';
 import { CreateBatchInput, UpdateBatchInput, UpdateBatchMetaInput, MigrateBatchStudentsInput } from './batch.validator';
 import { ApiError } from '../../middleware/error.middleware';
 import { prisma } from '../../server';
+import { resolveTeacherScope } from '../../utils/teacher-scope';
 
 export class BatchService {
   private batchRepository: BatchRepository;
@@ -80,8 +81,34 @@ export class BatchService {
     return Array.from(ids);
   }
 
-  async listBatches(instituteId: string, query: { subject?: string, teacherId?: string }) {
-    const batches = await this.batchRepository.listBatches(instituteId, query.subject, query.teacherId);
+  async listBatches(
+    instituteId: string,
+    query: { subject?: string; teacherId?: string },
+    actor?: { role?: string; userId?: string },
+  ) {
+    const normalizedRole = (actor?.role ?? '').trim().toLowerCase();
+    let teacherFilter = query.teacherId;
+    let scopedBatchIds: string[] | undefined;
+
+    if (normalizedRole === 'teacher') {
+      if (!actor?.userId) {
+        throw new ApiError('Unauthorized teacher access', 401, 'UNAUTHORIZED');
+      }
+
+      const teacherScope = await resolveTeacherScope(instituteId, actor.userId);
+      if (teacherFilter && teacherFilter !== teacherScope.teacherId) {
+        throw new ApiError('You can only access your own assigned batches', 403, 'FORBIDDEN');
+      }
+
+      teacherFilter = undefined;
+      scopedBatchIds = teacherScope.batchIds;
+
+      if (scopedBatchIds.length === 0) {
+        return [];
+      }
+    }
+
+    const batches = await this.batchRepository.listBatches(instituteId, query.subject, teacherFilter, scopedBatchIds);
     const batchMetaMap = await this.getBatchMetaMap(instituteId);
 
     const allTeacherIds = new Set<string>();
@@ -123,7 +150,15 @@ export class BatchService {
     });
   }
 
-  async getBatchDetails(batchId: string, instituteId: string) {
+  async getBatchDetails(batchId: string, instituteId: string, actor?: { role?: string; userId?: string }) {
+    const normalizedRole = (actor?.role ?? '').trim().toLowerCase();
+    if (normalizedRole === 'teacher') {
+      if (!actor?.userId) {
+        throw new ApiError('Unauthorized teacher access', 401, 'UNAUTHORIZED');
+      }
+      await this.ensureTeacherBatchAccess(instituteId, actor.userId, batchId);
+    }
+
     const batch = await this.batchRepository.findBatchById(batchId, instituteId);
     if (!batch) {
         throw new ApiError('Batch not found', 404, 'NOT_FOUND');
@@ -276,7 +311,15 @@ export class BatchService {
     return { success: true };
   }
 
-  async getBatchMeta(batchId: string, instituteId: string) {
+  async getBatchMeta(batchId: string, instituteId: string, actor?: { role?: string; userId?: string }) {
+    const normalizedRole = (actor?.role ?? '').trim().toLowerCase();
+    if (normalizedRole === 'teacher') {
+      if (!actor?.userId) {
+        throw new ApiError('Unauthorized teacher access', 401, 'UNAUTHORIZED');
+      }
+      await this.ensureTeacherBatchAccess(instituteId, actor.userId, batchId);
+    }
+
     const batch = await this.batchRepository.findBatchById(batchId, instituteId);
     if (!batch) throw new ApiError('Batch not found', 404, 'NOT_FOUND');
 
@@ -295,6 +338,13 @@ export class BatchService {
       teacher_ids: mergedTeacherIds,
       assigned_teachers,
     };
+  }
+
+  async ensureTeacherBatchAccess(instituteId: string, userId: string, batchId: string) {
+    const teacherScope = await resolveTeacherScope(instituteId, userId);
+    if (!teacherScope.batchIds.includes(batchId)) {
+      throw new ApiError('You can only access your assigned batches', 403, 'FORBIDDEN');
+    }
   }
 
   async updateBatchMeta(batchId: string, instituteId: string, data: UpdateBatchMetaInput) {

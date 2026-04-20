@@ -6,8 +6,7 @@ const router = Router();
 const controller = new YoutubeController();
 
 // 1. Generate Auth URL
-// TEMPORARY: Removed requireAuth so you can easily click it in your browser for initial setup.
-router.get('/auth', controller.getAuthUrl);
+router.get('/auth', authenticateJWT, requireRole('admin'), controller.getAuthUrl);
 
 // 2. The Google Callback
 // Notice: We don't use requireAuth here because Google hits it directly.

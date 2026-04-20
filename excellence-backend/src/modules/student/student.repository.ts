@@ -5,7 +5,17 @@ import { ApiError } from '../../middleware/error.middleware';
 import { buildPhoneVariants, normalizeIndianPhone } from '../../utils/phone';
 
 export class StudentRepository {
-  async listStudents(instituteId: string, filters: { name?: string, phone?: string, batchId?: string, isActive?: boolean }, pagination: { skip: number, take: number }) {
+  async listStudents(
+    instituteId: string,
+    filters: {
+      name?: string;
+      phone?: string;
+      batchId?: string;
+      batchIds?: string[];
+      isActive?: boolean;
+    },
+    pagination: { skip: number; take: number },
+  ) {
     const whereClause: Prisma.StudentWhereInput = { institute_id: instituteId };
     
     if (filters.name) whereClause.name = { contains: filters.name, mode: 'insensitive' };
@@ -17,6 +27,13 @@ export class StudentRepository {
           batch_id: filters.batchId,
           is_active: true
         }
+      };
+    } else if ((filters.batchIds ?? []).length > 0) {
+      whereClause.student_batches = {
+        some: {
+          batch_id: { in: filters.batchIds },
+          is_active: true,
+        },
       };
     }
 

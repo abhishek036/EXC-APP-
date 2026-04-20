@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
+import { randomUUID } from 'crypto';
 import { errorHandler, ApiError } from './middleware/error.middleware';
 
 import authRoutes from './modules/auth/auth.routes';
@@ -77,15 +78,24 @@ const extractClientIp = (req: Request): string => {
   return normalizeAddress(forwarded || socketIp);
 };
 
-const defaultRateLimitHandler = (_req: Request, res: Response) => {
+const defaultRateLimitHandler = (req: Request, res: Response) => {
   res.status(429).json({
     success: false,
     error: {
       code: 'RATE_LIMITED',
       message: 'Too many requests. Please try again later.',
+      ref: req.requestId,
     },
   });
 };
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const incomingRequestId = String(req.headers['x-request-id'] || '').trim();
+  const requestId = incomingRequestId || randomUUID();
+  req.requestId = requestId;
+  res.setHeader('X-Request-Id', requestId);
+  next();
+});
 
 const globalApiLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -108,6 +118,16 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
   validate: false,
   skipSuccessfulRequests: true,
+  keyGenerator: extractClientIp,
+  handler: defaultRateLimitHandler,
+});
+
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number.parseInt(process.env.REFRESH_RATE_LIMIT || '30', 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
   keyGenerator: extractClientIp,
   handler: defaultRateLimitHandler,
 });
@@ -217,11 +237,12 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'X-Request-Id'],
 }));
 
 app.use('/api', globalApiLimiter);
 app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth/refresh', refreshLimiter);
 app.use('/api/auth/otp/send', otpSendLimiter);
 app.use('/api/auth/otp/verify', otpVerifyLimiter);
 

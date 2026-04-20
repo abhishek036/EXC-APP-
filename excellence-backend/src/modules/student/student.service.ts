@@ -3,6 +3,7 @@ import { CreateStudentInput, UpdateStudentInput } from './student.validator';
 import { ApiError } from '../../middleware/error.middleware';
 import { prisma } from '../../server';
 import { normalizeIndianPhone } from '../../utils/phone';
+import { resolveTeacherScope } from '../../utils/teacher-scope';
 
 export class StudentService {
   private studentRepository: StudentRepository;
@@ -72,14 +73,53 @@ export class StudentService {
     }
   }
 
-  async listStudents(instituteId: string, query: { name?: string, phone?: string, batchId?: string, isActive?: boolean, page?: number, perPage?: number }) {
+  async listStudents(
+    instituteId: string,
+    query: { name?: string; phone?: string; batchId?: string; isActive?: boolean; page?: number; perPage?: number },
+    actor?: { role?: string; userId?: string },
+  ) {
     const page = parseInt(query.page as any) || 1;
     const perPage = parseInt(query.perPage as any) || 20;
     const skip = (page - 1) * perPage;
 
+    const normalizedRole = (actor?.role ?? '').trim().toLowerCase();
+    let scopedBatchIds: string[] | undefined;
+
+    if (normalizedRole === 'teacher') {
+      if (!actor?.userId) {
+        throw new ApiError('Unauthorized teacher access', 401, 'UNAUTHORIZED');
+      }
+
+      const teacherScope = await resolveTeacherScope(instituteId, actor.userId);
+
+      if (query.batchId && !teacherScope.batchIds.includes(query.batchId)) {
+        throw new ApiError('You can only access students from your assigned batches', 403, 'FORBIDDEN');
+      }
+
+      scopedBatchIds = query.batchId ? [query.batchId] : teacherScope.batchIds;
+
+      if (scopedBatchIds.length === 0) {
+        return {
+          data: [],
+          meta: {
+            page,
+            perPage,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+    }
+
     const { students, total } = await this.studentRepository.listStudents(
         instituteId, 
-        { name: query.name, phone: query.phone, batchId: query.batchId, isActive: query.isActive }, 
+        {
+          name: query.name,
+          phone: query.phone,
+          batchId: query.batchId,
+          batchIds: scopedBatchIds,
+          isActive: query.isActive,
+        }, 
         { skip, take: perPage }
     );
     
@@ -105,10 +145,30 @@ export class StudentService {
     };
   }
 
-  async getStudentDetails(studentId: string, instituteId: string) {
+  async getStudentDetails(studentId: string, instituteId: string, actor?: { role?: string; userId?: string }) {
     const student = await this.studentRepository.findStudentById(studentId, instituteId);
     if (!student) {
         throw new ApiError('Student not found', 404, 'NOT_FOUND');
+    }
+
+    const normalizedRole = (actor?.role ?? '').trim().toLowerCase();
+    if (normalizedRole === 'teacher') {
+      if (!actor?.userId) {
+        throw new ApiError('Unauthorized teacher access', 401, 'UNAUTHORIZED');
+      }
+
+      const teacherScope = await resolveTeacherScope(instituteId, actor.userId);
+      const studentBatchIds = (student as any).student_batches
+        ?.map((entry: any) => String(entry?.batch_id || entry?.batch?.id || ''))
+        .filter((value: string) => value.length > 0) || [];
+
+      const hasAllowedBatch = studentBatchIds.some((batchId: string) =>
+        teacherScope.batchIds.includes(batchId),
+      );
+
+      if (!hasAllowedBatch) {
+        throw new ApiError('You can only access students from your assigned batches', 403, 'FORBIDDEN');
+      }
     }
     
     // Format output

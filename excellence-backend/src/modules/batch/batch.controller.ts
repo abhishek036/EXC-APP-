@@ -79,6 +79,9 @@ export class BatchController {
       const data = await this.batchService.listBatches(req.instituteId!, { 
           subject: subject as string, 
           teacherId: teacherId as string 
+      }, {
+        role: req.user?.role,
+        userId: req.user?.userId,
       });
       return sendResponse({ res, data, message: 'Batches fetched successfully' });
     } catch (error) { next(error); }
@@ -93,7 +96,10 @@ export class BatchController {
 
   getById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.batchService.getBatchDetails(req.params.id, req.instituteId!);
+      const data = await this.batchService.getBatchDetails(req.params.id, req.instituteId!, {
+        role: req.user?.role,
+        userId: req.user?.userId,
+      });
       const safeData = this.isTeacherRequest(req) && data && typeof data === 'object'
         ? this.sanitizeBatchDetailsForTeacher(data as Record<string, unknown>)
         : data;
@@ -125,7 +131,10 @@ export class BatchController {
 
   getMeta = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.batchService.getBatchMeta(req.params.id, req.instituteId!);
+      const data = await this.batchService.getBatchMeta(req.params.id, req.instituteId!, {
+        role: req.user?.role,
+        userId: req.user?.userId,
+      });
       return sendResponse({ res, data, message: 'Batch metadata fetched successfully' });
     } catch (error) { next(error); }
   };
@@ -168,6 +177,9 @@ export class BatchController {
       try {
           const { id } = req.params;
         const isTeacher = this.isTeacherRequest(req);
+          if (isTeacher) {
+            await this.batchService.ensureTeacherBatchAccess(req.instituteId!, req.user!.userId, id);
+          }
           const studentsInBatch = await import('../../server').then(m => m.prisma.studentBatch.findMany({
               where: {
                   batch_id: id,

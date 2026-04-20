@@ -32,11 +32,12 @@ export class BatchRepository {
     return normalized;
   }
 
-  async listBatches(instituteId: string, subject?: string, teacherId?: string) {
+  async listBatches(instituteId: string, subject?: string, teacherId?: string, batchIds?: string[]) {
     const whereClause: any = { institute_id: instituteId };
     
     if (subject) whereClause.subject = { contains: subject, mode: 'insensitive' };
     if (teacherId) whereClause.teacher_id = teacherId;
+    if ((batchIds ?? []).length > 0) whereClause.id = { in: batchIds };
 
     return prisma.batch.findMany({
       where: whereClause,

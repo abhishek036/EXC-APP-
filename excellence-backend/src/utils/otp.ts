@@ -67,7 +67,10 @@ export const generateTokens = (payload: { userId: string, role: string, institut
     const refreshExpiresIn = normalizeRefreshExpiry(process.env.JWT_REFRESH_EXPIRES_IN) as jwt.SignOptions['expiresIn'];
 
     const accessToken = jwt.sign(
-        payload,
+        {
+            ...payload,
+            jti: crypto.randomUUID(),
+        },
         jwtSecret,
         {
             algorithm: 'HS256',
@@ -76,7 +79,11 @@ export const generateTokens = (payload: { userId: string, role: string, institut
     );
 
     const refreshToken = jwt.sign(
-        { userId: payload.userId, version: 1 }, // version could track manual revocations
+        {
+            userId: payload.userId,
+            version: 1,
+            jti: crypto.randomUUID(),
+        }, // version could track manual revocations
         jwtSecret,
         {
             algorithm: 'HS256',

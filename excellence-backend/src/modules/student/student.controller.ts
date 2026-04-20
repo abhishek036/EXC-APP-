@@ -73,6 +73,9 @@ export class StudentController {
           isActive: isActive !== undefined ? isActive === 'true' : undefined,
           page: Number(page),
           perPage: Number(perPage)
+      }, {
+        role: req.user?.role,
+        userId: req.user?.userId,
       });
       const data = this.isTeacherRequest(req)
         ? this.sanitizeStudentsPayloadForTeacher(result.data)
@@ -90,7 +93,10 @@ export class StudentController {
 
   getById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = await this.studentService.getStudentDetails(req.params.id, req.instituteId!);
+      const data = await this.studentService.getStudentDetails(req.params.id, req.instituteId!, {
+        role: req.user?.role,
+        userId: req.user?.userId,
+      });
       const safeData = this.isTeacherRequest(req)
         ? this.sanitizeStudentsPayloadForTeacher(data)
         : data;

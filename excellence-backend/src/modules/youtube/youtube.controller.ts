@@ -12,8 +12,12 @@ export class YoutubeController {
   // 1. Generate OAuth Auth URL
   getAuthUrl = (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Pass a dummy institute ID for this setup phase
-      const url = this.service.getAuthUrl('test_institute_id');
+      const instituteId = req.instituteId;
+      if (!instituteId) {
+        return res.status(401).send('Institute context missing');
+      }
+
+      const url = this.service.getAuthUrl(instituteId);
       return res.redirect(url);
     } catch (error) {
            next(error);
@@ -24,23 +28,28 @@ export class YoutubeController {
   handleCallback = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const code = req.query.code as string;
+      const state = req.query.state as string;
 
       if (!code) {
         return res.status(400).send('Authorization code missing');
       }
 
-      const tokens = await this.service.handleCallback(code);
+      if (!state || state.trim().length < 4) {
+        return res.status(400).send('Invalid OAuth state');
+      }
 
-      // Ideally, save the refresh_token to the institute settings via Prisma here
-      // const refreshToken = tokens.refresh_token; 
+      const tokens = await this.service.handleCallback(code);
+      const tokenStoredHint = tokens.refresh_token
+        ? 'Refresh token received successfully. Store it in secure server-side institute settings.'
+        : 'No new refresh token was returned by Google (this can happen on re-consent).';
 
       return res.status(200).send(`
         <html>
           <body style="font-family: Arial; padding: 2rem; text-align: center;">
             <h1 style="color: green;">YouTube Authentication Successful!</h1>
             <p>You may close this window and return to the Excellence Dashboard.</p>
-            <p><strong>Refresh Token:</strong> <br><br><code>${tokens.refresh_token}</code></p>
-            <p style="font-size: 12px; color: gray;">(Copy this and paste into your backend .env file as YOUTUBE_REFRESH_TOKEN for now)</p>
+            <p style="font-size: 14px; color: #333;">${tokenStoredHint}</p>
+            <p style="font-size: 12px; color: gray;">For security, sensitive OAuth tokens are never shown in browser responses.</p>
           </body>
         </html>
       `);

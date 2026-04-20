@@ -2,6 +2,8 @@ import { ExamRepository } from './exam.repository';
 import { CreateExamInput, SaveExamResultInput } from './exam.validator';
 import { NotificationService } from '../notification/notification.service';
 import { prisma } from '../../server';
+import { ApiError } from '../../middleware/error.middleware';
+import { resolveTeacherScope } from '../../utils/teacher-scope';
 
 export class ExamService {
   private repo: ExamRepository;
@@ -10,9 +12,24 @@ export class ExamService {
     this.repo = new ExamRepository();
   }
 
-  async list(instituteId: string, status?: string) {
+  async list(instituteId: string, status?: string, actor?: { role?: string; userId?: string }) {
     const now = new Date();
-    const exams = await this.repo.list(instituteId);
+    const normalizedRole = (actor?.role ?? '').trim().toLowerCase();
+
+    let exams: any[] = [];
+    if (normalizedRole === 'teacher') {
+      if (!actor?.userId) {
+        throw new ApiError('Unauthorized teacher access', 401, 'UNAUTHORIZED');
+      }
+
+      const scope = await resolveTeacherScope(instituteId, actor.userId);
+      if (scope.batchIds.length === 0) {
+        return [];
+      }
+      exams = await this.repo.list(instituteId, scope.batchIds);
+    } else {
+      exams = await this.repo.list(instituteId);
+    }
 
     return exams
       .map((exam) => {
@@ -44,8 +61,23 @@ export class ExamService {
     return this.repo.remove(instituteId, examId);
   }
 
-  async listResults(instituteId: string) {
-    const results = await this.repo.listResults(instituteId);
+  async listResults(instituteId: string, actor?: { role?: string; userId?: string }) {
+    const normalizedRole = (actor?.role ?? '').trim().toLowerCase();
+
+    let results: any[] = [];
+    if (normalizedRole === 'teacher') {
+      if (!actor?.userId) {
+        throw new ApiError('Unauthorized teacher access', 401, 'UNAUTHORIZED');
+      }
+
+      const scope = await resolveTeacherScope(instituteId, actor.userId);
+      if (scope.batchIds.length === 0) {
+        return [];
+      }
+      results = await this.repo.listResults(instituteId, scope.batchIds);
+    } else {
+      results = await this.repo.listResults(instituteId);
+    }
 
     return results.map((result) => {
       const totalMarks = result.exam.total_marks;
@@ -63,7 +95,40 @@ export class ExamService {
     });
   }
 
-  async saveResult(instituteId: string, data: SaveExamResultInput) {
+  async saveResult(
+    instituteId: string,
+    data: SaveExamResultInput,
+    actor?: { role?: string; userId?: string },
+  ) {
+    const normalizedRole = (actor?.role ?? '').trim().toLowerCase();
+    if (normalizedRole === 'teacher') {
+      if (!actor?.userId) {
+        throw new ApiError('Unauthorized teacher access', 401, 'UNAUTHORIZED');
+      }
+
+      const scope = await resolveTeacherScope(instituteId, actor.userId);
+      if (scope.batchIds.length === 0) {
+        throw new ApiError('You are not assigned to any batches', 403, 'FORBIDDEN');
+      }
+
+      const examInScope = await prisma.exam.findFirst({
+        where: {
+          id: data.examId,
+          institute_id: instituteId,
+          batches: {
+            some: {
+              batch_id: { in: scope.batchIds },
+            },
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!examInScope) {
+        throw new ApiError('You can only publish results for your assigned batches', 403, 'FORBIDDEN');
+      }
+    }
+
     const result = await this.repo.saveResult(instituteId, data);
 
     const studentProfile = await prisma.student.findFirst({

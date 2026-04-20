@@ -34,7 +34,7 @@ export const generateMonthlyFeesSchema = z.object({
 export const submitFeeProofSchema = z.object({
   body: z.object({
     fee_record_id: z.string().uuid(),
-    amount: z.number().min(1),
+    amount: z.number().min(1).optional(),
     screenshot_url: z.string().min(10),
     note: z.string().max(1000).optional(),
     whatsapp_notified: z.boolean().optional(),

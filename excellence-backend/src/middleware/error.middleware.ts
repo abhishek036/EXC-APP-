@@ -33,6 +33,9 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ) => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const requestRef = req.requestId || 'unknown';
+
   let statusCode = 500;
   let code = 'INTERNAL_ERROR';
   let message = 'An unexpected error occurred';
@@ -58,13 +61,12 @@ export const errorHandler = (
     code = err.code;
     message = err.message;
     fields = err.fields;
-  } else if (err?.message) {
-    // Preserve non-operational error message so debugging is possible from client logs.
+  } else if (isDevelopment && err?.message) {
     message = err.message;
   }
 
   console.error(
-    `[ERROR] ${req.method} ${req.originalUrl} -> ${statusCode} ${code}: ${message}`,
+    `[ERROR] [${requestRef}] ${req.method} ${req.originalUrl} -> ${statusCode} ${code}: ${message}`,
     err,
   );
 
@@ -73,8 +75,9 @@ export const errorHandler = (
     error: {
       code,
       message,
+      ref: requestRef,
       ...(fields && { fields }),
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+      ...(isDevelopment && { stack: err.stack })
     }
   });
 };

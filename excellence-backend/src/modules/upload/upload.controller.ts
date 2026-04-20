@@ -482,10 +482,14 @@ export class UploadController {
 
   // GET /api/upload/file/:key(*)
   async downloadFile(req: Request, res: Response) {
-    const fileKey = req.params.key || req.params[0];
+    const fileKey = String(req.params.key || req.params[0] || '').trim();
     const dispositionRaw = String(req.query?.disposition || 'inline').toLowerCase();
     const disposition = dispositionRaw === 'attachment' ? 'attachment' : 'inline';
     try {
+      if (!fileKey || fileKey.length > 2048 || fileKey.includes('\u0000')) {
+        throw new ApiError('Invalid file key', 400, 'INVALID_FILE_KEY');
+      }
+
       const parsed = this.decodeRef(fileKey);
 
       if (!parsed) {
@@ -498,10 +502,11 @@ export class UploadController {
         const data = await s3.send(command);
         if (data.ContentType) res.setHeader('Content-Type', data.ContentType);
         if (data.ContentLength) res.setHeader('Content-Length', data.ContentLength);
+        res.setHeader('X-Content-Type-Options', 'nosniff');
         if (disposition === 'attachment') {
           res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(basename(fileKey))}`);
         }
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.setHeader('Cache-Control', 'private, no-store');
 
         // @ts-ignore
         data.Body?.pipe(res);
@@ -511,6 +516,7 @@ export class UploadController {
       const streamed = await this.streamFromRef(parsed);
       if (streamed.contentType) res.setHeader('Content-Type', streamed.contentType);
       if (streamed.contentLength) res.setHeader('Content-Length', streamed.contentLength.toString());
+      res.setHeader('X-Content-Type-Options', 'nosniff');
       if (streamed.fileName) {
         res.setHeader('Content-Disposition', `${disposition}; filename*=UTF-8''${encodeURIComponent(streamed.fileName)}`);
       }

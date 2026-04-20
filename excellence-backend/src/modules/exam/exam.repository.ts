@@ -2,9 +2,18 @@ import { prisma } from '../../server';
 import { CreateExamInput, SaveExamResultInput } from './exam.validator';
 
 export class ExamRepository {
-  async list(instituteId: string) {
+  async list(instituteId: string, batchIds?: string[]) {
+    const where: any = { institute_id: instituteId };
+    if ((batchIds ?? []).length > 0) {
+      where.batches = {
+        some: {
+          batch_id: { in: batchIds },
+        },
+      };
+    }
+
     return prisma.exam.findMany({
-      where: { institute_id: instituteId },
+      where,
       include: {
         batches: {
           include: {
@@ -64,9 +73,20 @@ export class ExamRepository {
     return { success: true };
   }
 
-  async listResults(instituteId: string) {
+  async listResults(instituteId: string, batchIds?: string[]) {
+    const where: any = { institute_id: instituteId };
+    if ((batchIds ?? []).length > 0) {
+      where.exam = {
+        batches: {
+          some: {
+            batch_id: { in: batchIds },
+          },
+        },
+      };
+    }
+
     return prisma.examResult.findMany({
-      where: { institute_id: instituteId },
+      where,
       include: {
         student: { select: { id: true, name: true } },
         exam: { select: { id: true, title: true, subject: true, total_marks: true, exam_date: true } },

@@ -7,7 +7,12 @@ export class QuizController {
   static async listQuizzes(req: Request, res: Response, next: NextFunction) {
     try {
       const { batch_id, assessment_type } = req.query;
-      const quizzes = await QuizService.listQuizzes(req.instituteId!, batch_id as string, assessment_type as string);
+      const quizzes = await QuizService.listQuizzes(
+        req.instituteId!,
+        batch_id as string,
+        assessment_type as string,
+        { role: req.user?.role, userId: req.user?.userId },
+      );
       return sendResponse({ res, data: quizzes });
     } catch (error) {
       next(error);

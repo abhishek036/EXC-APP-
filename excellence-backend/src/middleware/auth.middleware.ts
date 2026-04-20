@@ -8,6 +8,7 @@ interface JwtPayload {
   role: string;
   instituteId: string;
   phone: string;
+  jti?: string;
   iat?: number;
 }
 
@@ -27,6 +28,7 @@ declare global {
     interface Request {
       user?: JwtPayload;
       instituteId?: string;
+      requestId?: string;
     }
   }
 }
