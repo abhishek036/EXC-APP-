@@ -22,34 +22,67 @@ type StorageRef = {
   sizeKb?: number;
 };
 
-const s3 = new S3Client({
-  region: process.env.B2_REGION || 'us-east-005',
-  endpoint: process.env.B2_ENDPOINT || 'https://s3.us-east-005.backblazeb2.com',
-  credentials: {
-    accessKeyId: process.env.B2_KEY_ID!,
-    secretAccessKey: process.env.B2_APP_KEY!,
-  },
-});
+const env = (key: string): string => String(process.env[key] || '').trim();
 
-const hasCloudinary = !!(
-  process.env.CLOUDINARY_CLOUD_NAME &&
-  process.env.CLOUDINARY_API_KEY &&
-  process.env.CLOUDINARY_API_SECRET
-);
+let cachedB2Client: S3Client | null = null;
+let cachedB2ClientSignature = '';
+const getB2Client = (): S3Client => {
+  const accessKeyId = env('B2_KEY_ID');
+  const secretAccessKey = env('B2_APP_KEY');
+  if (!accessKeyId || !secretAccessKey) {
+    throw new ApiError('B2 credentials are not configured', 500, 'STORAGE_NOT_CONFIGURED');
+  }
 
-if (hasCloudinary) {
+  const region = env('B2_REGION') || 'us-east-005';
+  const endpoint = env('B2_ENDPOINT') || 'https://s3.us-east-005.backblazeb2.com';
+  const signature = `${region}|${endpoint}|${accessKeyId}|${secretAccessKey}`;
+
+  if (cachedB2Client && cachedB2ClientSignature === signature) {
+    return cachedB2Client;
+  }
+
+  cachedB2ClientSignature = signature;
+  cachedB2Client = new S3Client({
+    region,
+    endpoint,
+    credentials: { accessKeyId, secretAccessKey },
+  });
+  return cachedB2Client;
+};
+
+const hasCloudinaryConfig = (): boolean =>
+  !!(env('CLOUDINARY_CLOUD_NAME') && env('CLOUDINARY_API_KEY') && env('CLOUDINARY_API_SECRET'));
+
+let cloudinaryConfigured = false;
+const ensureCloudinaryConfigured = (): void => {
+  if (!hasCloudinaryConfig()) {
+    throw new ApiError('Cloudinary storage is not configured', 500, 'STORAGE_NOT_CONFIGURED');
+  }
+
+  if (cloudinaryConfigured) {
+    return;
+  }
+
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: env('CLOUDINARY_CLOUD_NAME'),
+    api_key: env('CLOUDINARY_API_KEY'),
+    api_secret: env('CLOUDINARY_API_SECRET'),
     secure: true,
   });
-}
+  cloudinaryConfigured = true;
+};
 
-const hasSupabase = !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-const supabaseClient: SupabaseClient | null = hasSupabase
-  ? createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-  : null;
+let cachedSupabaseClient: SupabaseClient | null | undefined;
+const getSupabaseClient = (): SupabaseClient | null => {
+  if (cachedSupabaseClient !== undefined) {
+    return cachedSupabaseClient;
+  }
+
+  const url = env('SUPABASE_URL');
+  const serviceRoleKey = env('SUPABASE_SERVICE_ROLE_KEY');
+  cachedSupabaseClient = url && serviceRoleKey ? createClient(url, serviceRoleKey) : null;
+  return cachedSupabaseClient;
+};
 
 export class UploadController {
   private useLocalStorage(): boolean {
@@ -195,9 +228,7 @@ export class UploadController {
   }
 
   private async uploadToCloudinary(file: Express.Multer.File, destination: string): Promise<StorageRef> {
-    if (!hasCloudinary) {
-      throw new ApiError('Cloudinary storage is not configured', 500, 'STORAGE_NOT_CONFIGURED');
-    }
+    ensureCloudinaryConfigured();
 
     const resourceType = file.mimetype.startsWith('video/')
       ? 'video'
@@ -243,6 +274,7 @@ export class UploadController {
   }
 
   private async uploadToSupabase(file: Express.Multer.File, destination: string): Promise<StorageRef> {
+    const supabaseClient = getSupabaseClient();
     if (!supabaseClient) {
       throw new ApiError('Supabase storage is not configured', 500, 'STORAGE_NOT_CONFIGURED');
     }
@@ -274,10 +306,12 @@ export class UploadController {
   }
 
   private async uploadToB2(file: Express.Multer.File, destination: string): Promise<StorageRef> {
-    const bucketName = process.env.B2_BUCKET_NAME;
+    const bucketName = env('B2_BUCKET_NAME');
     if (!bucketName) {
       throw new ApiError('B2 storage is not configured', 500, 'STORAGE_NOT_CONFIGURED');
     }
+
+    const s3 = getB2Client();
 
     const ext = extname(file.originalname) || '';
     const key = `${destination}/${uuidv4()}${ext}`;
@@ -324,8 +358,9 @@ export class UploadController {
   private async resolveStorageRef(file: Express.Multer.File, destination: string): Promise<StorageRef> {
     const isMedia = file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/');
     const isDocument = !isMedia;
+    const supabaseClient = getSupabaseClient();
 
-    if (isMedia && hasCloudinary) {
+    if (isMedia && hasCloudinaryConfig()) {
       return this.uploadToCloudinary(file, destination);
     }
 
@@ -333,7 +368,7 @@ export class UploadController {
       return this.uploadToSupabase(file, destination);
     }
 
-    if (hasCloudinary) {
+    if (hasCloudinaryConfig()) {
       return this.uploadToCloudinary(file, destination);
     }
 
@@ -386,8 +421,14 @@ export class UploadController {
 
   private async streamFromRef(ref: StorageRef): Promise<{ stream: NodeJS.ReadableStream; contentType?: string; contentLength?: number; fileName?: string }> {
     if (ref.provider === 'b2') {
+      const bucketName = ref.bucket || env('B2_BUCKET_NAME');
+      if (!bucketName) {
+        throw new ApiError('B2 storage is not configured', 500, 'STORAGE_NOT_CONFIGURED');
+      }
+
+      const s3 = getB2Client();
       const command = new GetObjectCommand({
-        Bucket: ref.bucket || process.env.B2_BUCKET_NAME!,
+        Bucket: bucketName,
         Key: ref.key,
       });
       const data = await s3.send(command);
@@ -402,6 +443,7 @@ export class UploadController {
     }
 
     if (ref.provider === 'supabase') {
+      const supabaseClient = getSupabaseClient();
       if (!supabaseClient || !ref.bucket) {
         throw new ApiError('Supabase storage is not configured', 500, 'STORAGE_NOT_CONFIGURED');
       }
@@ -424,9 +466,11 @@ export class UploadController {
     }
 
     if (ref.provider === 'cloudinary') {
-      if (!hasCloudinary) {
+      if (!hasCloudinaryConfig()) {
         throw new ApiError('Cloudinary storage is not configured', 500, 'STORAGE_NOT_CONFIGURED');
       }
+
+      ensureCloudinaryConfigured();
 
       const url = cloudinary.url(ref.key, {
         secure: true,
@@ -493,7 +537,12 @@ export class UploadController {
       const parsed = this.decodeRef(fileKey);
 
       if (!parsed) {
-        const bucketName = process.env.B2_BUCKET_NAME!;
+        const bucketName = env('B2_BUCKET_NAME');
+        if (!bucketName) {
+          throw new ApiError('B2 storage is not configured', 500, 'STORAGE_NOT_CONFIGURED');
+        }
+
+        const s3 = getB2Client();
         const command = new GetObjectCommand({
           Bucket: bucketName,
           Key: fileKey,

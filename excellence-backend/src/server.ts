@@ -1,11 +1,9 @@
+import 'dotenv/config';
 import app from './app';
-import dotenv from 'dotenv';
 import http from 'http';
 import { initSocket } from './config/socket';
 import { initializeFirebaseAdmin } from './config/firebase-admin';
 import { prisma } from './config/prisma';
-
-dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 export { prisma };
