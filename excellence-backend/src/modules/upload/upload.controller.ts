@@ -22,7 +22,20 @@ type StorageRef = {
   sizeKb?: number;
 };
 
-const env = (key: string): string => String(process.env[key] || '').trim();
+const unwrapEnvValue = (raw: string): string => {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+
+  const first = value[0];
+  const last = value[value.length - 1];
+  if ((first === '"' && last === '"') || (first === '\'' && last === '\'')) {
+    return value.slice(1, -1).trim();
+  }
+
+  return value;
+};
+
+const env = (key: string): string => unwrapEnvValue(String(process.env[key] || ''));
 
 const awsErrorCode = (error: unknown): string => {
   if (!error || typeof error !== 'object') return '';
@@ -42,6 +55,14 @@ const isBucketAlreadyExistsError = (error: unknown): boolean => {
   return /^BucketAlreadyOwnedByYou$/i.test(code) || /^BucketAlreadyExists$/i.test(code);
 };
 
+const isInvalidB2CredentialError = (error: unknown): boolean => {
+  const code = awsErrorCode(error);
+  if (/^(InvalidAccessKeyId|SignatureDoesNotMatch|InvalidSecurity)$/i.test(code)) return true;
+
+  const message = error instanceof Error ? error.message : String((error as any)?.message || '');
+  return /InvalidAccessKeyId|Malformed Access Key Id|SignatureDoesNotMatch|Invalid security token/i.test(message);
+};
+
 let cachedB2Client: S3Client | null = null;
 let cachedB2ClientSignature = '';
 const getB2Client = (): S3Client => {
@@ -51,8 +72,12 @@ const getB2Client = (): S3Client => {
     throw new ApiError('B2 credentials are not configured', 500, 'STORAGE_NOT_CONFIGURED');
   }
 
+  if (/\s/.test(accessKeyId) || /\s/.test(secretAccessKey)) {
+    throw new ApiError('B2 credentials are malformed (unexpected whitespace)', 500, 'STORAGE_NOT_CONFIGURED');
+  }
+
   const region = env('B2_REGION') || 'us-east-005';
-  const endpoint = env('B2_ENDPOINT') || 'https://s3.us-east-005.backblazeb2.com';
+  const endpoint = (env('B2_ENDPOINT') || 'https://s3.us-east-005.backblazeb2.com').replace(/\/+$/, '');
   const signature = `${region}|${endpoint}|${accessKeyId}|${secretAccessKey}`;
 
   if (cachedB2Client && cachedB2ClientSignature === signature) {
@@ -351,6 +376,14 @@ export class UploadController {
     try {
       await uploadOnce();
     } catch (error) {
+      if (isInvalidB2CredentialError(error)) {
+        throw new ApiError(
+          'B2 credentials are invalid. Verify B2_KEY_ID and B2_APP_KEY in runtime environment.',
+          500,
+          'STORAGE_NOT_CONFIGURED',
+        );
+      }
+
       if (!isNoSuchBucketError(error)) {
         throw error;
       }

@@ -28,6 +28,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   late final StudentRepository _studentRepo;
   final _realtime = sl<RealtimeSyncService>();
   StreamSubscription? _syncSub;
+  Timer? _realtimeRefreshDebounce;
+  bool _isFetching = false;
 
   // Getter to choose repo based on current role prefix - must be called after build
   dynamic get _repo {
@@ -67,6 +69,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   void dispose() {
     _syncSub?.cancel();
+    _realtimeRefreshDebounce?.cancel();
     super.dispose();
   }
 
@@ -81,18 +84,39 @@ class _NotificationsPageState extends State<NotificationsPage> {
       if (type == 'notification' ||
           type == 'broadcast' ||
           type == 'notification_deleted' ||
-          type == 'unread_count_update' ||
           reason.contains('notification') ||
           reason.contains('announcement')) {
-        _fetchNotifications(reset: true);
+        _scheduleRealtimeRefresh();
       }
     });
   }
 
+  void _scheduleRealtimeRefresh() {
+    _realtimeRefreshDebounce?.cancel();
+    _realtimeRefreshDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      _fetchNotifications(reset: true);
+    });
+  }
+
+  Future<void> _syncUnreadCount() async {
+    try {
+      final unreadCount = await _repo
+          .getUnreadCount()
+          .timeout(const Duration(seconds: 8));
+      _realtime.updateUnreadCount(unreadCount);
+    } catch (_) {
+      // Keep UI responsive even if unread count endpoint is slow/unavailable.
+    }
+  }
+
   Future<void> _fetchNotifications({required bool reset}) async {
+    if (_isFetching) return;
+
     if (reset) {
       setState(() {
-        _isLoading = true;
+        // Keep previously loaded list visible during background refreshes.
+        _isLoading = _notifications.isEmpty;
         _page = 1;
         _hasMore = true;
       });
@@ -101,19 +125,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
       setState(() => _isLoadingMore = true);
     }
 
+    _isFetching = true;
     try {
-      final data = await _repo.getNotifications(
+      final data = await _repo
+          .getNotifications(
         page: _page,
         perPage: _perPage,
         type: _selectedType == 'all' ? null : _selectedType,
         readStatus: 'all',
-      );
+      )
+          .timeout(const Duration(seconds: 15));
 
       if (reset) {
-        try {
-          final unreadCount = await _repo.getUnreadCount();
-          _realtime.updateUnreadCount(unreadCount);
-        } catch (_) {}
+        unawaited(_syncUnreadCount());
       }
 
       setState(() {
@@ -136,6 +160,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         });
       }
     } finally {
+      _isFetching = false;
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -877,6 +902,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       padding: const EdgeInsets.only(right: 10),
       child: CPPressable(
         onTap: () {
+          if (_selectedType == value) return;
           HapticFeedback.selectionClick();
           setState(() => _selectedType = value);
           _fetchNotifications(reset: true);
