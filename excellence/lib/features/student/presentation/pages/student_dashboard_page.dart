@@ -15,6 +15,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../../../core/widgets/cp_user_avatar.dart';
 import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
 
 class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
@@ -24,6 +25,12 @@ class StudentDashboardPage extends StatefulWidget {
 }
 
 class _StudentDashboardPageState extends State<StudentDashboardPage> {
+  static const String _youtubeUrl =
+      'https://www.youtube.com/@Excellence-academy-mp';
+  static const String _instagramUrl =
+      'https://www.instagram.com/excellence.academy.gwalior?igsh=MXNneTV6c2s3ZzdxYQ==';
+  static const String _websiteUrl = 'https://excellenceacademy.site';
+
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _studentRepo = sl<StudentRepository>();
   final _realtime = sl<RealtimeSyncService>();
@@ -1509,14 +1516,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     bool isDark,
   ) => Expanded(
     child: CPPressable(
-      onTap: () {
-        ScaffoldMessenger.of(ctx).showSnackBar(
-          SnackBar(
-            content: Text('$label link not configured yet'),
-            duration: const Duration(seconds: 1),
-          ),
-        );
-      },
+      onTap: () => _openSocialLink(ctx, label),
       child: Column(
         children: [
           Container(
@@ -1541,4 +1541,53 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       ),
     ),
   );
+
+  Future<void> _openSocialLink(BuildContext ctx, String label) async {
+    String? target;
+    switch (label.toLowerCase()) {
+      case 'youtube':
+        target = _youtubeUrl;
+        break;
+      case 'instagram':
+        target = _instagramUrl;
+        break;
+      case 'website':
+        target = _websiteUrl;
+        break;
+      default:
+        target = null;
+    }
+
+    if (target == null) {
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(
+          content: Text('$label link not configured yet'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
+
+    final uri = Uri.tryParse(target);
+    if (uri == null) {
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid link configuration'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
+
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) {
+      if (!ctx.mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open link'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+  }
 }
