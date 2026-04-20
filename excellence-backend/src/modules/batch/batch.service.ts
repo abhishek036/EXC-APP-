@@ -53,13 +53,77 @@ export class BatchService {
     return {};
   }
 
-  private async resolveAssignedTeachers(instituteId: string, ids: string[]) {
-    if (ids.length === 0) return [];
+  private normalizeIdList(values: unknown[]): string[] {
+    return Array.from(new Set(
+      values
+        .map((value) => String(value ?? '').trim())
+        .filter((value) => value.length > 0),
+    ));
+  }
 
-    return prisma.teacher.findMany({
+  private normalizeTeacherIds(data: { teacher_id?: string; teacher_ids?: string[] }): string[] {
+    return this.normalizeIdList([data.teacher_id, ...(data.teacher_ids ?? [])]);
+  }
+
+  private async buildTeacherIdMap(instituteId: string, rawIds: string[]): Promise<Map<string, string>> {
+    const normalizedRawIds = this.normalizeIdList(rawIds);
+    const result = new Map<string, string>();
+    if (normalizedRawIds.length === 0) return result;
+
+    const teachers = await prisma.teacher.findMany({
       where: {
         institute_id: instituteId,
-        id: { in: ids },
+        OR: [
+          { id: { in: normalizedRawIds } },
+          { user_id: { in: normalizedRawIds } },
+        ],
+      },
+      select: { id: true, user_id: true },
+    });
+
+    for (const teacher of teachers) {
+      result.set(teacher.id, teacher.id);
+      if (teacher.user_id) result.set(teacher.user_id, teacher.id);
+    }
+
+    return result;
+  }
+
+  private mapTeacherIds(rawIds: string[], idMap: Map<string, string>): string[] {
+    const resolved = new Set<string>();
+    for (const rawId of this.normalizeIdList(rawIds)) {
+      const canonicalId = idMap.get(rawId);
+      if (canonicalId) resolved.add(canonicalId);
+    }
+    return Array.from(resolved);
+  }
+
+  private async resolveTeacherProfileIds(
+    instituteId: string,
+    rawIds: string[],
+    strict = false,
+  ): Promise<string[]> {
+    const normalizedRawIds = this.normalizeIdList(rawIds);
+    if (normalizedRawIds.length === 0) return [];
+
+    const idMap = await this.buildTeacherIdMap(instituteId, normalizedRawIds);
+    const resolvedIds = this.mapTeacherIds(normalizedRawIds, idMap);
+
+    if (strict && resolvedIds.length !== normalizedRawIds.length) {
+      throw new ApiError('One or more selected teachers are invalid for this institute', 400, 'INVALID_TEACHER');
+    }
+
+    return resolvedIds;
+  }
+
+  private async resolveAssignedTeachers(instituteId: string, ids: string[]) {
+    const resolvedIds = await this.resolveTeacherProfileIds(instituteId, ids);
+    if (resolvedIds.length === 0) return [];
+
+    const teachers = await prisma.teacher.findMany({
+      where: {
+        institute_id: instituteId,
+        id: { in: resolvedIds },
       },
       select: {
         id: true,
@@ -68,17 +132,13 @@ export class BatchService {
         email: true,
         photo_url: true,
       },
-      orderBy: { name: 'asc' },
     });
-  }
 
-  private normalizeTeacherIds(data: { teacher_id?: string; teacher_ids?: string[] }): string[] {
-    const ids = new Set<string>();
-    if (data.teacher_id) ids.add(data.teacher_id);
-    for (const id of data.teacher_ids ?? []) {
-      if (id) ids.add(id);
-    }
-    return Array.from(ids);
+    const teacherMap = new Map(teachers.map((teacher) => [teacher.id, teacher]));
+    const isDefined = <T>(value: T | undefined): value is T => value !== undefined;
+    return resolvedIds
+      .map((id) => teacherMap.get(id))
+      .filter(isDefined);
   }
 
   async listBatches(
@@ -121,19 +181,20 @@ export class BatchService {
       if (batch.teacher_id) allTeacherIds.add(batch.teacher_id);
     }
 
-    const teachers = await this.resolveAssignedTeachers(instituteId, Array.from(allTeacherIds));
+    const teacherIdMap = await this.buildTeacherIdMap(instituteId, Array.from(allTeacherIds));
+    const canonicalTeacherIds = Array.from(new Set(Array.from(teacherIdMap.values())));
+    const teachers = await this.resolveAssignedTeachers(instituteId, canonicalTeacherIds);
     const teacherMap = new Map(teachers.map((t) => [t.id, t]));
 
     return batches.map((b) => {
       const meta = (batchMetaMap[b.id] ?? {}) as Record<string, any>;
-      const rawIds = Array.isArray(meta.teacher_ids) ? meta.teacher_ids : [];
-      const mergedIds = new Set<string>();
-      if (b.teacher_id) mergedIds.add(b.teacher_id);
-      for (const id of rawIds) {
-        if (typeof id === 'string' && id.length > 0) mergedIds.add(id);
-      }
+      const mergedRawTeacherIds = this.normalizeTeacherIds({
+        teacher_id: b.teacher_id ?? undefined,
+        teacher_ids: Array.isArray(meta.teacher_ids) ? meta.teacher_ids : undefined,
+      });
+      const mergedTeacherIds = this.mapTeacherIds(mergedRawTeacherIds, teacherIdMap);
 
-      const assigned_teachers = Array.from(mergedIds)
+      const assigned_teachers = mergedTeacherIds
         .map((id) => teacherMap.get(id))
         .filter(Boolean);
 
@@ -144,7 +205,7 @@ export class BatchService {
         cover_image_url: typeof meta.cover_image_url === 'string' ? meta.cover_image_url : null,
         faqs: Array.isArray(meta.faqs) ? meta.faqs : [],
         subjects: Array.isArray(meta.subjects) ? meta.subjects : [],
-        teacher_ids: Array.from(mergedIds),
+        teacher_ids: mergedTeacherIds,
         assigned_teachers,
       };
     });
@@ -171,10 +232,11 @@ export class BatchService {
     }));
 
     const meta = await this.getStoredBatchMeta(instituteId, batchId);
-    const mergedTeacherIds = this.normalizeTeacherIds({
+    const mergedRawTeacherIds = this.normalizeTeacherIds({
       teacher_id: batch.teacher_id ?? undefined,
       teacher_ids: Array.isArray(meta.teacher_ids) ? meta.teacher_ids : undefined,
     });
+    const mergedTeacherIds = await this.resolveTeacherProfileIds(instituteId, mergedRawTeacherIds);
     const assigned_teachers = await this.resolveAssignedTeachers(instituteId, mergedTeacherIds);
 
     return {
@@ -192,7 +254,15 @@ export class BatchService {
 
   async createBatch(instituteId: string, data: CreateBatchInput) {
     const { teacher_ids, description, cover_image_url, faqs, subjects, ...batchData } = data;
-    const primaryTeacher = batchData.teacher_id ?? teacher_ids?.[0];
+    const resolvedTeacherIds = await this.resolveTeacherProfileIds(
+      instituteId,
+      this.normalizeTeacherIds({
+        teacher_id: batchData.teacher_id,
+        teacher_ids,
+      }),
+      true,
+    );
+    const primaryTeacher = resolvedTeacherIds[0];
 
     // Optional logic: Check if teacher exists and belongs to institute
     const created = await this.batchRepository.createBatch(instituteId, {
@@ -200,10 +270,7 @@ export class BatchService {
       teacher_id: primaryTeacher,
     });
 
-    const normalizedTeacherIds = this.normalizeTeacherIds({
-      teacher_id: primaryTeacher,
-      teacher_ids,
-    });
+    const normalizedTeacherIds = resolvedTeacherIds;
 
     if (normalizedTeacherIds.length > 0 || description || cover_image_url || (faqs?.length ?? 0) > 0 || (subjects?.length ?? 0) > 0) {
       await this.updateBatchMeta(created.id, instituteId, {
@@ -231,8 +298,34 @@ export class BatchService {
       ...coreData
     } = data as UpdateBatchInput & UpdateBatchMetaInput;
 
-    if (teacher_ids && teacher_ids.length > 0 && !coreData.teacher_id) {
-      coreData.teacher_id = teacher_ids[0];
+    let normalizedTeacherIds: string[] | undefined;
+
+    if (teacher_ids !== undefined) {
+      normalizedTeacherIds = await this.resolveTeacherProfileIds(
+        instituteId,
+        this.normalizeTeacherIds({
+          teacher_id: coreData.teacher_id,
+          teacher_ids,
+        }),
+        true,
+      );
+
+      if (!coreData.teacher_id && normalizedTeacherIds.length > 0) {
+        coreData.teacher_id = normalizedTeacherIds[0];
+      }
+    }
+
+    if (coreData.teacher_id) {
+      const [resolvedPrimaryTeacherId] = await this.resolveTeacherProfileIds(
+        instituteId,
+        [coreData.teacher_id],
+        true,
+      );
+      coreData.teacher_id = resolvedPrimaryTeacherId;
+
+      if (normalizedTeacherIds && resolvedPrimaryTeacherId && !normalizedTeacherIds.includes(resolvedPrimaryTeacherId)) {
+        normalizedTeacherIds = [resolvedPrimaryTeacherId, ...normalizedTeacherIds];
+      }
     }
 
     await this.batchRepository.updateBatch(batchId, instituteId, coreData);
@@ -245,10 +338,14 @@ export class BatchService {
       subjects !== undefined
     ) {
       const existingMeta = await this.getStoredBatchMeta(instituteId, batchId);
-      const mergedTeacherIds = teacher_ids ?? this.normalizeTeacherIds({
-        teacher_id: coreData.teacher_id ?? batch.teacher_id ?? undefined,
-        teacher_ids: Array.isArray(existingMeta.teacher_ids) ? existingMeta.teacher_ids : undefined,
-      });
+      const mergedTeacherIds = normalizedTeacherIds
+        ?? await this.resolveTeacherProfileIds(
+          instituteId,
+          this.normalizeTeacherIds({
+            teacher_id: coreData.teacher_id ?? batch.teacher_id ?? undefined,
+            teacher_ids: Array.isArray(existingMeta.teacher_ids) ? existingMeta.teacher_ids : undefined,
+          }),
+        );
       await this.updateBatchMeta(batchId, instituteId, {
         teacher_ids: mergedTeacherIds,
         description,
@@ -324,10 +421,11 @@ export class BatchService {
     if (!batch) throw new ApiError('Batch not found', 404, 'NOT_FOUND');
 
     const meta = await this.getStoredBatchMeta(instituteId, batchId);
-    const mergedTeacherIds = this.normalizeTeacherIds({
+    const mergedRawTeacherIds = this.normalizeTeacherIds({
       teacher_id: batch.teacher_id ?? undefined,
       teacher_ids: Array.isArray(meta.teacher_ids) ? meta.teacher_ids : undefined,
     });
+    const mergedTeacherIds = await this.resolveTeacherProfileIds(instituteId, mergedRawTeacherIds);
     const assigned_teachers = await this.resolveAssignedTeachers(instituteId, mergedTeacherIds);
 
     return {
@@ -354,12 +452,34 @@ export class BatchService {
     const map = await this.getBatchMetaMap(instituteId);
     const existingMeta = (map[batchId] ?? {}) as Record<string, any>;
 
-    const teacher_ids = data.teacher_ids ?? existingMeta.teacher_ids ?? (batch.teacher_id ? [batch.teacher_id] : []);
-    const normalizedTeacherIds = Array.from(new Set((teacher_ids ?? []).filter((id: unknown) => typeof id === 'string' && id.length > 0)));
+    const hasExplicitTeacherIds = data.teacher_ids !== undefined;
+    const teacher_ids = data.teacher_ids
+      ?? this.normalizeTeacherIds({
+        teacher_id: batch.teacher_id ?? undefined,
+        teacher_ids: Array.isArray(existingMeta.teacher_ids) ? existingMeta.teacher_ids : undefined,
+      });
+    const normalizedTeacherIds = await this.resolveTeacherProfileIds(
+      instituteId,
+      Array.isArray(teacher_ids) ? teacher_ids : [],
+      hasExplicitTeacherIds,
+    );
     const description = data.description ?? existingMeta.description ?? null;
     const cover_image_url = data.cover_image_url ?? existingMeta.cover_image_url ?? null;
     const faqs = data.faqs ?? existingMeta.faqs ?? [];
     const subjects = data.subjects ?? existingMeta.subjects ?? [];
+
+    const primaryTeacherId = normalizedTeacherIds[0] ?? null;
+    if (batch.teacher_id !== primaryTeacherId) {
+      await prisma.batch.updateMany({
+        where: {
+          id: batchId,
+          institute_id: instituteId,
+        },
+        data: {
+          teacher_id: primaryTeacherId,
+        },
+      });
+    }
 
     map[batchId] = {
       teacher_ids: normalizedTeacherIds,

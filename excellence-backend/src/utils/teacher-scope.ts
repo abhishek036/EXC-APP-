@@ -24,7 +24,7 @@ export const resolveTeacherScope = async (
       institute_id: instituteId,
       is_active: true,
     },
-    select: { id: true },
+    select: { id: true, user_id: true },
   });
 
   if (!teacher) {
@@ -53,7 +53,10 @@ export const resolveTeacherScope = async (
     for (const [batchId, metaValue] of Object.entries(batchMeta as Record<string, unknown>)) {
       const meta = (metaValue ?? {}) as Record<string, unknown>;
       const assignedTeacherIds = normalizeTeacherIds(meta.teacher_ids);
-      if (assignedTeacherIds.includes(teacher.id)) {
+      if (
+        assignedTeacherIds.includes(teacher.id)
+        || (!!teacher.user_id && assignedTeacherIds.includes(teacher.user_id))
+      ) {
         batchIds.add(batchId);
       }
     }

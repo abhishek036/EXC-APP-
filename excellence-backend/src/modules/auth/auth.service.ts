@@ -479,10 +479,6 @@ export class AuthService {
             const inferredRole = staff ? 'admin' : (teacher ? 'teacher' : (student ? 'student' : (parent ? 'parent' : 'student')));
             let assignedRole = user?.role || inferredRole;
 
-            if (!user && requestedRole) {
-                assignedRole = requestedRole;
-            }
-
             if (isSuperUser && requestedRole) {
                 assignedRole = requestedRole;
                 console.log(`[AUTH] Super User Switch: ${phone} -> ${assignedRole}`);
