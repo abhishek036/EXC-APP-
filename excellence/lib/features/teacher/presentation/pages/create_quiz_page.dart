@@ -546,226 +546,202 @@ class _CreateQuizPageState extends State<CreateQuizPage> with ThemeAware<CreateQ
           _textField(_titleCtrl, 'e.g. WEEKLY TEST #4', blue),
           const SizedBox(height: 24),
           _inputLabel('MODE', blue),
-          Row(
-            children: [
-              Expanded(
-                child: _modeChip(
-                  label: 'QUIZ (PRACTICE)',
-                  value: 'QUIZ',
-                  selected: _assessmentType == 'QUIZ',
-                  blue: blue,
-                  yellow: yellow,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _modeChip(
-                  label: 'TEST (EXAM)',
-                  value: 'TEST',
-                  selected: _assessmentType == 'TEST',
-                  blue: blue,
-                  yellow: yellow,
-                ),
-              ),
-            ],
+          _adaptiveTwoColumn(
+            spacing: 12,
+            left: _modeChip(
+              label: 'QUIZ (PRACTICE)',
+              value: 'QUIZ',
+              selected: _assessmentType == 'QUIZ',
+              blue: blue,
+              yellow: yellow,
+            ),
+            right: _modeChip(
+              label: 'TEST (EXAM)',
+              value: 'TEST',
+              selected: _assessmentType == 'TEST',
+              blue: blue,
+              yellow: yellow,
+            ),
           ),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _inputLabel(
-                      _assessmentType == 'TEST'
-                          ? 'STRICT TIMER (MINS)'
-                          : 'OPTIONAL TIMER (MINS)',
-                      blue,
-                    ),
-                    _textField(
-                      _durationCtrl,
-                      _assessmentType == 'TEST' ? '60' : '0',
-                      blue,
-                      isNum: true,
-                    ),
-                  ],
+          _adaptiveTwoColumn(
+            left: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _inputLabel(
+                  _assessmentType == 'TEST'
+                      ? 'STRICT TIMER (MINS)'
+                      : 'OPTIONAL TIMER (MINS)',
+                  blue,
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _inputLabel('BATCH', blue),
-                    _buildBatchDropdown(blue),
-                  ],
+                _textField(
+                  _durationCtrl,
+                  _assessmentType == 'TEST' ? '60' : '0',
+                  blue,
+                  isNum: true,
                 ),
-              ),
-            ],
+              ],
+            ),
+            right: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _inputLabel('BATCH', blue),
+                _buildBatchDropdown(blue),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _inputLabel('DEFAULT MARKS / QUESTION', blue),
-                    _textField(
-                      _defaultQuestionMarksCtrl,
-                      _assessmentType == 'TEST' ? '1' : '4',
-                      blue,
-                      isNum: true,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _inputLabel('APPLY DEFAULT', blue),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: _applyDefaultMarksToAllQuestions,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: yellow,
-                          foregroundColor: blue,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            side: BorderSide(color: blue, width: 2),
-                          ),
-                        ),
-                        child: Text(
-                          'APPLY TO ALL',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (_assessmentType == 'TEST') ...[
-            const SizedBox(height: 20),
-            Row(
+          _adaptiveTwoColumn(
+            left: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _inputLabel('NEGATIVE MARKING (OPTIONAL)', blue),
-                      _textField(
-                        _negativeMarkingCtrl,
-                        '0.25',
-                        blue,
-                        isNum: true,
-                      ),
-                    ],
-                  ),
+                _inputLabel('DEFAULT MARKS / QUESTION', blue),
+                _textField(
+                  _defaultQuestionMarksCtrl,
+                  _assessmentType == 'TEST' ? '1' : '4',
+                  blue,
+                  isNum: true,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _inputLabel('SCHEDULE (OPTIONAL)', blue),
-                      OutlinedButton(
-                        onPressed: () async {
-                          final date = await showDatePicker(
-                            context: context,
-                            initialDate: _scheduledAt ?? DateTime.now(),
-                            firstDate: DateTime.now().subtract(
-                              const Duration(days: 1),
-                            ),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 365),
-                            ),
-                          );
-                          if (date == null || !mounted) return;
-                          final time = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.fromDateTime(
-                              _scheduledAt ?? DateTime.now(),
-                            ),
-                          );
-                          if (time == null || !mounted) return;
-                          setState(() {
-                            _scheduledAt = DateTime(
-                              date.year,
-                              date.month,
-                              date.day,
-                              time.hour,
-                              time.minute,
-                            );
-                          });
-                        },
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 52),
-                          side: BorderSide(color: blue, width: 2),
-                          backgroundColor: Colors.white,
-                        ),
-                        child: Text(
-                          _scheduledAt == null
-                              ? 'SET DATE & TIME'
-                              : '${_scheduledAt!.day.toString().padLeft(2, '0')}/${_scheduledAt!.month.toString().padLeft(2, '0')} ${_scheduledAt!.hour.toString().padLeft(2, '0')}:${_scheduledAt!.minute.toString().padLeft(2, '0')}',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w800,
-                            color: blue,
-                          ),
-                        ),
+              ],
+            ),
+            right: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _inputLabel('APPLY DEFAULT', blue),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _applyDefaultMarksToAllQuestions,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: yellow,
+                      foregroundColor: blue,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(color: blue, width: 2),
                       ),
-                    ],
+                    ),
+                    child: Text(
+                      'APPLY TO ALL',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
+          ),
+          if (_assessmentType == 'TEST') ...[
+            const SizedBox(height: 20),
+            _adaptiveTwoColumn(
+              left: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _inputLabel('NEGATIVE MARKING (OPTIONAL)', blue),
+                  _textField(
+                    _negativeMarkingCtrl,
+                    '0.25',
+                    blue,
+                    isNum: true,
+                  ),
+                ],
+              ),
+              right: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _inputLabel('SCHEDULE (OPTIONAL)', blue),
+                  OutlinedButton(
+                    onPressed: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _scheduledAt ?? DateTime.now(),
+                        firstDate: DateTime.now().subtract(
+                          const Duration(days: 1),
+                        ),
+                        lastDate: DateTime.now().add(
+                          const Duration(days: 365),
+                        ),
+                      );
+                      if (date == null || !mounted) return;
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.fromDateTime(
+                          _scheduledAt ?? DateTime.now(),
+                        ),
+                      );
+                      if (time == null || !mounted) return;
+                      setState(() {
+                        _scheduledAt = DateTime(
+                          date.year,
+                          date.month,
+                          date.day,
+                          time.hour,
+                          time.minute,
+                        );
+                      });
+                    },
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 52),
+                      side: BorderSide(color: blue, width: 2),
+                      backgroundColor: Colors.white,
+                    ),
+                    child: Text(
+                      _scheduledAt == null
+                          ? 'SET DATE & TIME'
+                          : '${_scheduledAt!.day.toString().padLeft(2, '0')}/${_scheduledAt!.month.toString().padLeft(2, '0')} ${_scheduledAt!.hour.toString().padLeft(2, '0')}:${_scheduledAt!.minute.toString().padLeft(2, '0')}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w800,
+                        color: blue,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
           const SizedBox(height: 16),
           if (_assessmentType == 'QUIZ')
-            Row(
-              children: [
-                Expanded(
-                  child: SwitchListTile(
-                    value: _allowRetry,
-                    onChanged: (v) => setState(() => _allowRetry = v),
-                    title: Text(
-                      'ALLOW RETRY',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                        color: blue,
-                      ),
-                    ),
-                    dense: true,
-                    activeThumbColor: yellow,
+            _adaptiveTwoColumn(
+              spacing: 8,
+              left: SwitchListTile(
+                value: _allowRetry,
+                onChanged: (v) => setState(() => _allowRetry = v),
+                title: Text(
+                  'ALLOW RETRY',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    color: blue,
                   ),
                 ),
-                Expanded(
-                  child: SwitchListTile(
-                    value: _showInstantResult,
-                    onChanged: (v) => setState(() => _showInstantResult = v),
-                    title: Text(
-                      'INSTANT RESULT',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                        color: blue,
-                      ),
-                    ),
-                    dense: true,
-                    activeThumbColor: yellow,
+                dense: true,
+                activeThumbColor: yellow,
+              ),
+              right: SwitchListTile(
+                value: _showInstantResult,
+                onChanged: (v) => setState(() => _showInstantResult = v),
+                title: Text(
+                  'INSTANT RESULT',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    color: blue,
                   ),
                 ),
-              ],
+                dense: true,
+                activeThumbColor: yellow,
+              ),
             )
           else
             Text(
@@ -813,6 +789,9 @@ class _CreateQuizPageState extends State<CreateQuizPage> with ThemeAware<CreateQ
           child: Text(
             label,
             textAlign: TextAlign.center,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.w900,
               fontSize: 11,
@@ -828,6 +807,8 @@ class _CreateQuizPageState extends State<CreateQuizPage> with ThemeAware<CreateQ
     padding: const EdgeInsets.only(bottom: 8),
     child: Text(
       label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: GoogleFonts.plusJakartaSans(
         fontSize: 11,
         fontWeight: FontWeight.w900,
@@ -1173,6 +1154,36 @@ class _CreateQuizPageState extends State<CreateQuizPage> with ThemeAware<CreateQ
           ),
         ),
       );
+
+  Widget _adaptiveTwoColumn({
+    required Widget left,
+    required Widget right,
+    double spacing = 16,
+    double breakpoint = 760,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < breakpoint) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              left,
+              SizedBox(height: spacing),
+              right,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: left),
+            SizedBox(width: spacing),
+            Expanded(child: right),
+          ],
+        );
+      },
+    );
+  }
 
   Widget _buildBottomBar(Color blue, Color surface, Color yellow) => Container(
     padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),

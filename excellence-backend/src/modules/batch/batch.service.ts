@@ -264,9 +264,50 @@ export class BatchService {
     );
     const primaryTeacher = resolvedTeacherIds[0];
 
-    // Optional logic: Check if teacher exists and belongs to institute
+    const normalizeDate = (value?: string) => {
+      if (!value) return null;
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    const normalizedName = batchData.name.trim();
+    const normalizedSubject = batchData.subject?.trim() || null;
+    const normalizedRoom = batchData.room?.trim() || null;
+    const normalizedDaysOfWeek = Array.from(
+      new Set((batchData.days_of_week ?? []).map((day) => Number(day))),
+    ).sort((a, b) => a - b);
+    const normalizedStartDate = normalizeDate(batchData.start_date);
+    const normalizedEndDate = normalizeDate(batchData.end_date);
+
+    // Guard against accidental duplicate submits from rapid taps/retries.
+    // If an identical batch payload was created very recently, reuse it.
+    const recentDuplicate = await prisma.batch.findFirst({
+      where: {
+        institute_id: instituteId,
+        name: normalizedName,
+        subject: normalizedSubject,
+        room: normalizedRoom,
+        teacher_id: primaryTeacher ?? null,
+        days_of_week: { equals: normalizedDaysOfWeek },
+        start_date: normalizedStartDate,
+        end_date: normalizedEndDate,
+        capacity: batchData.capacity ?? null,
+        created_at: { gte: new Date(Date.now() - 60 * 1000) },
+      },
+      orderBy: { created_at: 'desc' },
+      select: { id: true },
+    });
+
+    if (recentDuplicate) {
+      return this.getBatchDetails(recentDuplicate.id, instituteId);
+    }
+
     const created = await this.batchRepository.createBatch(instituteId, {
       ...batchData,
+      name: normalizedName,
+      subject: normalizedSubject ?? undefined,
+      room: normalizedRoom ?? undefined,
+      days_of_week: normalizedDaysOfWeek,
       teacher_id: primaryTeacher,
     });
 

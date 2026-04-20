@@ -7,6 +7,9 @@
 hs_err_pid*.log
 replay_pid*.log
 tmp_flutter/
+google-services.json
+**/google-services.json
+**/GoogleService-Info.plist
 
 testsprite_tests/
 tools/

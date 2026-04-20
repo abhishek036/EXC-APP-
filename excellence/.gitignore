@@ -44,6 +44,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Firebase service config files (keep local only)
+/android/app/google-services.json
+/ios/Runner/GoogleService-Info.plist
+
 # Release signing
 **/android/key.properties
 **/*.jks

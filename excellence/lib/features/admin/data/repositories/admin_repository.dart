@@ -573,18 +573,9 @@ class AdminRepository {
   }
 
   Future<void> deleteTeacher(String teacherId) async {
-    try {
-      final response = await _api.dio.delete('teachers/$teacherId');
-      if (response.statusCode == 200 || response.statusCode == 204) return;
-      throw Exception(response.data['message'] ?? 'Failed to delete teacher');
-    } on DioException catch (e) {
-      final code = e.response?.statusCode;
-      if (code == 404 || code == 405) {
-        await toggleTeacherStatus(teacherId, false);
-        return;
-      }
-      rethrow;
-    }
+    final response = await _api.dio.delete('teachers/$teacherId');
+    if (response.statusCode == 200 || response.statusCode == 204) return;
+    throw Exception(response.data['message'] ?? 'Failed to delete teacher');
   }
 
   Future<Map<String, dynamic>> getInstituteConfig() async {
@@ -707,6 +698,19 @@ class AdminRepository {
       return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to send notification');
+  }
+
+  Future<int> getUnreadCount() async {
+    try {
+      final response = await _api.dio.get('notifications/unread-count');
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data is Map) {
+          return (data['unread_count'] as num?)?.toInt() ?? 0;
+        }
+      }
+    } catch (_) {}
+    return 0;
   }
 
   Future<void> triggerFeeReminders() async {

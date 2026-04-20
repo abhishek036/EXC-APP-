@@ -273,9 +273,15 @@ class StudentRepository {
   }
 
   // ── Quizzes ──────────────────────────────────────────────
-  Future<List<Map<String, dynamic>>> getAvailableQuizzes({String? subject}) async {
+  Future<List<Map<String, dynamic>>> getAvailableQuizzes({
+    String? subject,
+    String? batchId,
+  }) async {
+    final normalizedSubject = subject?.trim();
+    final normalizedBatchId = batchId?.trim();
     final response = await _api.dio.get('quizzes/available', queryParameters: {
-      if (subject != null && subject.isNotEmpty) 'subject': subject,
+      if (normalizedSubject?.isNotEmpty ?? false) 'subject': normalizedSubject,
+      if (normalizedBatchId?.isNotEmpty ?? false) 'batch_id': normalizedBatchId,
     });
     if (response.statusCode == 200) {
       return _extractList(response.data);

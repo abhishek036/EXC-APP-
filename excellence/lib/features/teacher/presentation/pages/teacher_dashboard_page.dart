@@ -218,7 +218,10 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                     const SizedBox(height: 32),
                     _buildQuickActions(),
                     const SizedBox(height: 48),
-                    _buildSectionHeader("Command Center", () {}),
+                    _buildSectionHeader(
+                      "Command Center",
+                      () => context.push('/teacher/batches'),
+                    ),
                     const SizedBox(height: 16),
                     _buildManagementHub(),
                     const SizedBox(height: 40),
@@ -247,6 +250,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   }
 
   Widget _buildAppBar() {
+    final isDark = CT.isDark(context);
     final authState = context.read<AuthBloc>().state;
     String userName =
         _dashboardData?['teacher']?['name']?.toString() ??
@@ -290,7 +294,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black54,
+                  color: isDark ? Colors.white54 : Colors.black54,
                 ),
               ),
               Text(
@@ -298,7 +302,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.deepNavy,
+                  color: isDark ? Colors.white : AppColors.deepNavy,
                   letterSpacing: -0.5,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -308,7 +312,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         ),
         _appBarAction(Icons.search_rounded, () {
           HapticFeedback.mediumImpact();
-          context.go('/teacher/batches');
+          context.push('/teacher/batches');
         }),
         const SizedBox(width: 8),
         _appBarAction(Icons.notifications_none_rounded, () async {
@@ -460,11 +464,12 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   }
 
   Widget _glassStat(String label, String value, Color color, IconData icon) {
+    final isDark = CT.isDark(context);
     return Container(
       width: 160,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.eliteDarkBg : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.elitePrimary, width: 3),
         boxShadow: const [
@@ -484,7 +489,9 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.elitePrimary.withValues(alpha: 0.65),
+                    color: isDark
+                        ? Colors.white70
+                        : AppColors.elitePrimary.withValues(alpha: 0.65),
                     letterSpacing: 0.5,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -500,7 +507,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 28,
               fontWeight: FontWeight.w800,
-              color: AppColors.elitePrimary,
+              color: isDark ? Colors.white : AppColors.elitePrimary,
               letterSpacing: -0.5,
             ),
           ),
@@ -827,7 +834,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       child: CPPressable(
         onTap: batchId.isEmpty
             ? null
-            : () => context.go('/teacher/batches/$batchId'),
+            : () => context.push('/teacher/batches/$batchId'),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -932,7 +939,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                   .toString();
           final qText = (d['question_text'] ?? d['question'] ?? '').toString();
           return InkWell(
-            onTap: () => context.go('/teacher/doubts'),
+            onTap: () => context.push('/teacher/doubts'),
             child: Container(
               width: 240,
               margin: const EdgeInsets.only(right: 14),
@@ -1103,7 +1110,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               AppColors.elitePrimary,
               () {
                 Navigator.pop(context);
-                context.go('/teacher/schedule');
+                context.push('/teacher/schedule');
               },
             ),
             _drawerTile(
@@ -1112,7 +1119,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               AppColors.elitePrimary,
               () {
                 Navigator.pop(context);
-                context.go('/teacher/batches');
+                context.push('/teacher/batches');
               },
             ),
             _drawerTile(
@@ -1121,7 +1128,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               AppColors.elitePrimary,
               () {
                 Navigator.pop(context);
-                context.go('/teacher/notifications');
+                context.push('/teacher/notifications');
               },
             ),
             _drawerTile(
@@ -1130,7 +1137,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               AppColors.elitePrimary,
               () {
                 Navigator.pop(context);
-                context.go('/teacher/profile');
+                context.push('/teacher/profile');
               },
             ),
             const Spacer(),

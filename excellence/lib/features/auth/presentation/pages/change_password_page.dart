@@ -26,6 +26,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   bool _isSaving = false;
   bool _showOld = false;
   bool _showNew = false;
+  bool _showConfirm = false;
 
   @override
   void dispose() {
@@ -107,7 +108,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               const SizedBox(height: 20),
               _label('CONFIRM NEW PASSWORD'),
               const SizedBox(height: 8),
-              _passField(_confirmCtrl, 'Re-enter new password', _showNew, () {},
+              _passField(_confirmCtrl, 'Re-enter new password', _showConfirm, () => setState(() => _showConfirm = !_showConfirm),
                 validator: (v) => v != _newPassCtrl.text ? 'Passwords do not match' : null,
               ),
               const SizedBox(height: 40),

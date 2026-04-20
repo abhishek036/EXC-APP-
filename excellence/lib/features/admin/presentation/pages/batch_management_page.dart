@@ -703,6 +703,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
     DateTime? endDate;
     final selectedTeacherIds = <String>{};
     final selectedDays = <int>{1, 3, 5};
+    bool isSubmitting = false;
 
     await showModalBottomSheet(
       context: context,
@@ -883,7 +884,11 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                     const SizedBox(height: 16),
                     CustomButton(
                       text: 'Create Batch',
-                      onPressed: () async {
+                      isLoading: isSubmitting,
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              if (isSubmitting) return;
                         if (nameCtrl.text.trim().isEmpty) {
                           CPToast.warning(ctx, 'Batch name is required');
                           return;
@@ -892,6 +897,8 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                           CPToast.warning(ctx, 'Class/Subject is required');
                           return;
                         }
+
+                        setSheet(() => isSubmitting = true);
 
                         try {
                     final teacherIds = selectedTeacherIds.toList();
@@ -953,6 +960,10 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                         } catch (e) {
                           if (ctx.mounted) {
                             CPToast.error(ctx, 'Create failed: $e');
+                          }
+                        } finally {
+                          if (ctx.mounted) {
+                            setSheet(() => isSubmitting = false);
                           }
                         }
                       },

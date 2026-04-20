@@ -1106,6 +1106,7 @@ class _QuizPaneState extends State<_QuizPane> with ThemeAware<_QuizPane> {
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _newQuizzes = [];
+  List<Map<String, dynamic>> _resultQuizzes = [];
   List<Map<String, dynamic>> _oldQuizzes = [];
 
   @override
@@ -1122,21 +1123,34 @@ class _QuizPaneState extends State<_QuizPane> with ThemeAware<_QuizPane> {
     });
 
     try {
+      String extractBatchId(Map<String, dynamic> quiz) {
+        final batch = quiz['batch'];
+        final nestedBatchId = batch is Map ? batch['id'] : null;
+        return (quiz['batch_id'] ?? quiz['batchId'] ?? nestedBatchId ?? '')
+            .toString();
+      }
+
       List<Map<String, dynamic>> byBatch(List<Map<String, dynamic>> list) {
         if (widget.batchId.isEmpty) return list;
-        return list
-            .where((q) => (q['batch_id'] ?? '').toString() == widget.batchId)
-            .toList();
+        return list.where((q) => extractBatchId(q) == widget.batchId).toList();
       }
 
       final selected = widget.selectedSubject?.trim();
-      var filtered = byBatch(await _repo.getAvailableQuizzes(subject: selected));
+      var filtered = byBatch(
+        await _repo.getAvailableQuizzes(
+          subject: selected,
+          batchId: widget.batchId,
+        ),
+      );
 
       if ((selected ?? '').isNotEmpty && filtered.isEmpty) {
-        filtered = byBatch(await _repo.getAvailableQuizzes());
+        filtered = byBatch(
+          await _repo.getAvailableQuizzes(batchId: widget.batchId),
+        );
       }
 
       final newQuizzes = <Map<String, dynamic>>[];
+      final resultQuizzes = <Map<String, dynamic>>[];
       final oldQuizzes = <Map<String, dynamic>>[];
 
       for (final rawQuiz in filtered.whereType<Map>()) {
@@ -1147,6 +1161,7 @@ class _QuizPaneState extends State<_QuizPane> with ThemeAware<_QuizPane> {
             newQuizzes.add(quiz);
             break;
           case _QuizBucket.resultReady:
+            resultQuizzes.add(quiz);
             break;
           case _QuizBucket.oldQuiz:
             oldQuizzes.add(quiz);
@@ -1157,6 +1172,7 @@ class _QuizPaneState extends State<_QuizPane> with ThemeAware<_QuizPane> {
       if (!mounted) return;
       setState(() {
         _newQuizzes = newQuizzes;
+        _resultQuizzes = resultQuizzes;
         _oldQuizzes = oldQuizzes;
         _loading = false;
       });
@@ -1224,7 +1240,7 @@ class _QuizPaneState extends State<_QuizPane> with ThemeAware<_QuizPane> {
     }
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(
         children: [
           Padding(
@@ -1245,6 +1261,7 @@ class _QuizPaneState extends State<_QuizPane> with ThemeAware<_QuizPane> {
               ),
               tabs: [
                 Tab(text: 'NEW (${_newQuizzes.length})'),
+                Tab(text: 'RESULT (${_resultQuizzes.length})'),
                 Tab(text: 'OLD (${_oldQuizzes.length})'),
               ],
             ),
@@ -1257,6 +1274,12 @@ class _QuizPaneState extends State<_QuizPane> with ThemeAware<_QuizPane> {
                   _newQuizzes,
                   emptyTitle: 'NO NEW QUIZZES',
                   emptySubtitle: 'Fresh quizzes will show here.',
+                ),
+                _buildCategoryList(
+                  context,
+                  _resultQuizzes,
+                  emptyTitle: 'NO RELEASED RESULTS',
+                  emptySubtitle: 'Submitted quizzes with released results will show here.',
                 ),
                 _buildCategoryList(
                   context,
@@ -1975,15 +1998,25 @@ class _ResultsTabState extends State<_ResultsTab> with ThemeAware<_ResultsTab> {
         subject: selected,
       );
 
-      var availableQuizzes = await _repo.getAvailableQuizzes(subject: selected);
+      var availableQuizzes = await _repo.getAvailableQuizzes(
+        subject: selected,
+        batchId: widget.batchId,
+      );
       if ((selected ?? '').isNotEmpty && availableQuizzes.isEmpty) {
-        availableQuizzes = await _repo.getAvailableQuizzes();
+        availableQuizzes = await _repo.getAvailableQuizzes(
+          batchId: widget.batchId,
+        );
       }
 
       final releasedQuizResults = <Map<String, dynamic>>[];
       for (final rawQuiz in availableQuizzes.whereType<Map>()) {
         final quiz = Map<String, dynamic>.from(rawQuiz);
-        if ((quiz['batch_id'] ?? '').toString() != widget.batchId) continue;
+        final batch = quiz['batch'];
+        final nestedBatchId = batch is Map ? batch['id'] : null;
+        final quizBatchId =
+          (quiz['batch_id'] ?? quiz['batchId'] ?? nestedBatchId ?? '')
+            .toString();
+        if (quizBatchId != widget.batchId) continue;
 
         final state = _QuizStateView.fromQuiz(quiz);
         if (!state.resultReleased) continue;

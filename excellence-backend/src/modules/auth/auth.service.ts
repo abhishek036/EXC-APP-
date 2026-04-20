@@ -6,6 +6,7 @@ import { generateOTP, generateTokens } from '../../utils/otp';
 import { ApiError } from '../../middleware/error.middleware';
 import { prisma } from '../../server';
 import { buildPhoneVariants, normalizeIndianPhone } from '../../utils/phone';
+import { Logger } from '../../utils/logger';
 
 const DUMMY_PASSWORD_HASH = '$2b$12$C6UzMDM.H6dfI/f/IKcEe.6P7w7qYgFWxW4J8nQ1fD9x3v4n6QvQW';
 
@@ -18,6 +19,22 @@ export class AuthService {
 
     private _isValidOtpFormat(otp: string): boolean {
         return /^\d{6}$/.test(String(otp || '').trim());
+    }
+
+    private _isTestOtpEnabled(): boolean {
+        const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
+        if (nodeEnv === 'production') return false;
+
+        const envOverride = String(process.env.ENABLE_TEST_OTP || '').toLowerCase();
+        if (envOverride === 'true') return true;
+
+        return nodeEnv === 'development';
+    }
+
+    private _maskedPhone(phone: string): string {
+        const normalized = String(phone || '').trim();
+        if (normalized.length <= 4) return '****';
+        return `${'*'.repeat(Math.max(0, normalized.length - 4))}${normalized.slice(-4)}`;
     }
 
     private _assertStrongPassword(password: string): void {
@@ -335,11 +352,10 @@ export class AuthService {
 
         await this.authRepository.saveOtp(normalizedPhone, otp, purpose, expiresAt);
 
-        const testOtpEnabled =
-            process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_OTP === 'true';
+        const testOtpEnabled = this._isTestOtpEnabled();
 
         if (testOtpEnabled) {
-            console.log(`[DEV OTP]: Sent ${otp} to ${normalizedPhone} for ${purpose}`);
+            Logger.info(`[AUTH] Test OTP mode active for ${this._maskedPhone(normalizedPhone)} (${purpose})`);
         }
 
         const whatsappOtpEnabled = (process.env.ENABLE_WHATSAPP_OTP ?? 'true').toLowerCase() === 'true';
@@ -351,20 +367,22 @@ export class AuthService {
                 const { RenflairOtpService } = await import('../whatsapp/renflair-otp.service');
                 const sent = await RenflairOtpService.sendOTP(normalizedPhone, otp);
                 if (sent) {
-                    console.log(`[AUTH] ✅ WhatsApp OTP sent via Renflair to ${normalizedPhone}`);
+                    Logger.info(`[AUTH] WhatsApp OTP sent via Renflair to ${this._maskedPhone(normalizedPhone)}`);
                     delivered = true;
                     deliveryChannel = 'whatsapp';
                 } else {
-                    console.warn(`[AUTH] ⚠️ Renflair send failed for ${normalizedPhone} — OTP was saved to DB, user can check console in dev`);
+                    Logger.error(`[AUTH] Renflair send failed for ${this._maskedPhone(normalizedPhone)} — OTP saved to DB`);
                 }
             } catch (e: any) {
-                console.error(`[AUTH] Renflair OTP delivery error:`, e.message);
+                Logger.error('[AUTH] Renflair OTP delivery error', e);
             }
         } else {
-            console.log(`[AUTH] WhatsApp OTP delivery disabled via ENABLE_WHATSAPP_OTP=false`);
+            Logger.info('[AUTH] WhatsApp OTP delivery disabled via ENABLE_WHATSAPP_OTP=false');
         }
 
-        const debugOtp = testOtpEnabled ? (process.env.TEST_OTP || '123456') : undefined;
+        const debugOtp = process.env.NODE_ENV === 'development' && testOtpEnabled
+            ? (process.env.TEST_OTP || '123456')
+            : undefined;
 
         return {
             success: true,
@@ -388,17 +406,16 @@ export class AuthService {
         }
 
         // --- 1. OTP CHECK (Outside main transaction to avoid locking OTP table long-term) ---
-        const isDevBypass = (process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_OTP === 'true') && 
-                            otp === (process.env.TEST_OTP || '123456');
+        const isDevBypass = this._isTestOtpEnabled() && otp === (process.env.TEST_OTP || '123456');
 
         if (!isDevBypass) {
             const validOtp = await this.authRepository.verifyOtp(normalizedPhone, otp, purpose);
             if (!validOtp) {
-                console.log(`[AUTH] Invalid OTP attempt for ${normalizedPhone}: received "${otp}"`);
+                Logger.info(`[AUTH] Invalid OTP attempt for ${this._maskedPhone(normalizedPhone)}`);
                 throw new ApiError('Invalid or expired OTP', 400, 'INVALID_OTP');
             }
         } else {
-            console.log(`[AUTH] Master OTP used for ${normalizedPhone}`);
+            Logger.info(`[AUTH] Test OTP used for ${this._maskedPhone(normalizedPhone)}`);
         }
 
         // --- 2. RUN REGISTRATION/LOGIN LOGIC IN TRANSACTION ---
@@ -481,7 +498,7 @@ export class AuthService {
 
             if (isSuperUser && requestedRole) {
                 assignedRole = requestedRole;
-                console.log(`[AUTH] Super User Switch: ${phone} -> ${assignedRole}`);
+                Logger.info(`[AUTH] Super User Switch: ${this._maskedPhone(phone)} -> ${assignedRole}`);
                 
                 if (user && user.role !== assignedRole) {
                     user = await tx.user.update({

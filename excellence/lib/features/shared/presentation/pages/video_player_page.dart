@@ -45,17 +45,21 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
   bool _isYoutube = false;
   bool _isInitializing = true;
   bool _hasError = false;
+  bool _forceExternalFallback = false;
   bool _isMuted = true;
   bool _isPlaying = false;
   bool _showControls = true;
   bool _isDraggingSeek = false;
   bool _isBuffering = false;
+  String? _fallbackReason;
+  String? _youtubeVideoId;
 
   double _positionSeconds = 0;
   double _durationSeconds = 0;
   double _playbackRate = 1.0;
 
   Timer? _controlsHideTimer;
+  Timer? _embedHealthTimer;
   late AnimationController _controlsFadeController;
 
   static const List<double> _speedOptions = [
@@ -109,6 +113,83 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
     return null;
   }
 
+  Uri? _externalVideoUri() {
+    final ytId = _youtubeVideoId?.trim();
+    if (ytId != null && ytId.isNotEmpty) {
+      return Uri.tryParse('https://www.youtube.com/watch?v=$ytId');
+    }
+
+    final raw = (widget.videoUrl ?? '').trim();
+    if (raw.isEmpty) return null;
+    return Uri.tryParse(raw);
+  }
+
+  Future<void> _openExternally() async {
+    final uri = _externalVideoUri();
+    if (uri == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Video link is not available.')),
+      );
+      return;
+    }
+
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open external player.')),
+      );
+    }
+  }
+
+  void _switchToExternalFallback(String reason) {
+    if (!mounted || _forceExternalFallback) return;
+    setState(() {
+      _forceExternalFallback = true;
+      _fallbackReason = reason;
+      _isInitializing = false;
+      _hasError = false;
+    });
+  }
+
+  // Whether we have already retried with the nocookie domain.
+  bool _retriedWithNocookie = false;
+
+  void _startEmbedHealthWatchdog() {
+    _embedHealthTimer?.cancel();
+    // Use 15 s window to avoid false positives on slow networks/devices.
+    _embedHealthTimer = Timer(const Duration(seconds: 15), () async {
+      if (!mounted || !_isYoutube || _forceExternalFallback) return;
+
+      final noDuration = _durationSeconds <= 0.5;
+      final noProgress = _positionSeconds <= 0.5;
+      final stalled = !_isPlaying && !_isBuffering && noDuration && noProgress;
+
+      if (!stalled) return;
+
+      // First stall → try reloading via youtube-nocookie.com (bypasses some
+      // embedding restrictions) before giving up entirely.
+      if (!_retriedWithNocookie && _youtubeVideoId != null) {
+        _retriedWithNocookie = true;
+        debugPrint('[VideoPlayer] Embed stalled – retrying with nocookie domain.');
+        try {
+          await _ytController?.loadVideoById(
+            videoId: _youtubeVideoId!,
+            startSeconds: 0,
+          );
+          // Give it another 10 s after the retry.
+          _startEmbedHealthWatchdog();
+          return;
+        } catch (_) {}
+      }
+
+      _switchToExternalFallback(
+        'YouTube has blocked in-app playback for this video (Error 150/152). '
+        'Tap below to watch it directly in YouTube.',
+      );
+    });
+  }
+
   // ── Lifecycle ────────────────────────────────────────────
 
   @override
@@ -128,6 +209,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
 
     if (videoId != null) {
       _isYoutube = true;
+      _youtubeVideoId = videoId;
       await _initYoutubePlayer(videoId, url);
     } else if (url.trim().isNotEmpty) {
       // Non-YouTube direct link — show fallback (open externally)
@@ -183,6 +265,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
         _ytController = controller;
         _isInitializing = false;
         _hasError = false;
+        _forceExternalFallback = false;
+        _fallbackReason = null;
       });
 
       // Load after widget mounts the scaffold
@@ -190,11 +274,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
     } catch (e) {
       debugPrint('YouTube init failed: $e');
       if (!mounted) return;
-      setState(() {
-        _ytController = null;
-        _isInitializing = false;
-        _hasError = true;
-      });
+      _switchToExternalFallback(
+        'Embedded player initialization failed. Open this lecture in YouTube.',
+      );
     }
   }
 
@@ -205,8 +287,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
     try {
       await Future<void>.delayed(const Duration(milliseconds: 16));
       await controller.loadVideoById(videoId: videoId);
+      _startEmbedHealthWatchdog();
     } catch (e) {
       debugPrint('Post-mount setup failed: $e');
+      _switchToExternalFallback(
+        'Video could not be embedded. Open this lecture in YouTube.',
+      );
     }
   }
 
@@ -375,6 +461,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
   @override
   void dispose() {
     _controlsHideTimer?.cancel();
+    _embedHealthTimer?.cancel();
     _controlsFadeController.dispose();
     _valueSub?.cancel();
     _videoStateSub?.cancel();
@@ -387,6 +474,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     if (_isInitializing) return _buildLoadingScreen();
+    if (_forceExternalFallback) {
+      return _buildFallback(
+        helperMessage: _fallbackReason,
+        actionLabel: 'OPEN IN YOUTUBE',
+      );
+    }
     if (_hasError) return _buildErrorScreen();
     if (!_isYoutube) return _buildFallback();
     if (_ytController == null) return _buildErrorScreen();
@@ -1065,6 +1158,32 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
                   height: 1.5,
                 ),
               ),
+              const SizedBox(height: 24),
+              if (_externalVideoUri() != null)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _openExternally,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.moltenAmber,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: const BorderSide(color: Colors.black, width: 2),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'OPEN IN YOUTUBE',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -1072,7 +1191,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
     );
   }
 
-  Widget _buildFallback() {
+  Widget _buildFallback({
+    String? helperMessage,
+    String actionLabel = 'OPEN EXTERNALLY',
+  }) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0F),
       appBar: AppBar(
@@ -1131,7 +1253,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
             ),
             const SizedBox(height: 12),
             Text(
-              'This content is hosted externally.\nTap below to open it in your browser.',
+              helperMessage ??
+                  'This content is hosted externally.\nTap below to open it in your browser.',
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 color: Colors.white54,
@@ -1143,12 +1266,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () async {
-                  final uri = Uri.tryParse(widget.videoUrl ?? '');
-                  if (uri != null && await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                },
+                onPressed: _openExternally,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.moltenAmber,
                   foregroundColor: Colors.black,
@@ -1160,7 +1278,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
                   elevation: 0,
                 ),
                 child: Text(
-                  'OPEN EXTERNALLY',
+                  actionLabel,
                   style: GoogleFonts.jetBrainsMono(
                     fontWeight: FontWeight.w900,
                     fontSize: 13,

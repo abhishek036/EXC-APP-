@@ -30,6 +30,7 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> with ThemeA
   String? _broadcastId;
   String? _streamKey;
   String? _streamUrl;
+  bool _isBroadcastPersisted = false;
 
   @override
   void initState() {
@@ -115,40 +116,72 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> with ThemeA
     setState(() => _isLoading = true);
 
     try {
-      // 1. Ask Node.js to spin up a YouTube Live Stream
+      // 1. Ask backend to spin up a YouTube Live Stream (30 s timeout)
       final result = await _teacherRepo.createYoutubeLiveStream(
         title: _titleController.text.trim(),
         description: _descController.text.trim(),
-        privacyStatus: 'unlisted', // Make it unlisted for students only
+        privacyStatus: 'unlisted',
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception(
+          'YouTube API timed out. Check your internet connection and try again.',
+        ),
       );
 
       _broadcastId = result['broadcastId'];
-      _streamKey = result['streamKey'];
-      // Fallback RTMP if Node.js doesn't provide
-      _streamUrl = result['streamUrl'] ?? 'rtmp://a.rtmp.youtube.com/live2';
+      _streamKey  = result['streamKey'];
+      _streamUrl  = result['streamUrl'] ?? 'rtmp://a.rtmp.youtube.com/live2';
 
       if (_streamKey == null) {
-        throw Exception('Stream Key was not returned from YouTube API.');
+        throw Exception('Stream Key was not returned from the YouTube API.');
       }
 
-      // 2. Start pushing the camera feed to the URL
+      await _persistBroadcastForBatch();
+
+      // 2. Start pushing the camera feed to the RTMP URL.
+      // NOTE: _isLoading stays true until onConnectionSuccess/onConnectionFailed fires.
       await _controller!.startStreaming(
         streamKey: _streamKey!,
         url: _streamUrl!,
       );
-
-      // Now we could also automatically save `_broadcastId` to the Database
-      // so the students can instantly see the live video on the Dashboard!
     } catch (e) {
+      // Always reset loading on any failure so the button is usable again.
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text('Error: ${e.toString().replaceFirst("Exception: ", "")}'),
             backgroundColor: AppColors.coralRed,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
+    }
+  }
+
+  Future<void> _persistBroadcastForBatch() async {
+    if (_isBroadcastPersisted) return;
+
+    final id = _broadcastId?.trim();
+    if (id == null || id.isEmpty) return;
+
+    final title = _titleController.text.trim();
+    final description = _descController.text.trim();
+    final streamLink = 'https://www.youtube.com/watch?v=$id';
+
+    try {
+      await _teacherRepo.uploadMaterial(
+        title: title,
+        subject: '',
+        type: 'video',
+        batchId: widget.batchId,
+        fileUrl: streamLink,
+        description: description.isEmpty ? 'Live class stream' : description,
+        youtubeVisibility: 'unlisted',
+      );
+      _isBroadcastPersisted = true;
+    } catch (e) {
+      debugPrint('Failed to persist broadcast link for batch: $e');
     }
   }
 

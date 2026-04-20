@@ -68,7 +68,6 @@ class _CPPressableState extends State<CPPressable>
 
   void _onTapUp(TapUpDetails _) {
     _controller.reverse();
-    widget.onTap?.call();
   }
 
   void _onTapCancel() {
@@ -80,6 +79,7 @@ class _CPPressableState extends State<CPPressable>
     return GestureDetector(
       onTapDown: widget.onTap != null ? _onTapDown : null,
       onTapUp: widget.onTap != null ? _onTapUp : null,
+      onTap: widget.onTap,
       onTapCancel: widget.onTap != null ? _onTapCancel : null,
       onLongPress: widget.onLongPress,
       child: ScaleTransition(scale: _scale, child: widget.child),

@@ -54,9 +54,18 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
     if (subjects.isEmpty) return null;
     final selected = _selectedSubject?.trim();
     if (selected == null || selected.isEmpty) {
-      return subjects.first;
+      // Default to "all subjects" to avoid accidentally filtering out
+      // quizzes/assignments/schedules when batch meta has multiple subjects.
+      return null;
     }
-    return subjects.contains(selected) ? selected : subjects.first;
+
+    for (final subject in subjects) {
+      if (subject.toLowerCase() == selected.toLowerCase()) {
+        return subject;
+      }
+    }
+
+    return null;
   }
 
   @override
@@ -495,7 +504,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              ..._subjects.map((sub) {
+              ...<String?>[null, ..._subjects].map((sub) {
                 final isSel = _selectedSubject == sub;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -527,7 +536,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            sub.toUpperCase(),
+                            (sub ?? 'All Subjects').toUpperCase(),
                             style: GoogleFonts.plusJakartaSans(
                               fontWeight: FontWeight.w800,
                               fontSize: 14,
@@ -578,7 +587,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
             onPressed: () => Navigator.pop(context),
           ),
           title: GestureDetector(
-            onTap: _subjects.length > 1
+            onTap: _subjects.isNotEmpty
                 ? () {
                     // Show subject bottom sheet or menu
                     _showSubjectPicker(
@@ -601,19 +610,19 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                     letterSpacing: 1.0,
                   ),
                 ),
-                if (_selectedSubject != null)
+                if (_subjects.isNotEmpty)
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _selectedSubject!.toUpperCase(),
+                        (_selectedSubject ?? 'All Subjects').toUpperCase(),
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
                           color: accentYellow,
                         ),
                       ),
-                      if (_subjects.length > 1)
+                      if (_subjects.isNotEmpty)
                         const Icon(
                           Icons.arrow_drop_down,
                           color: accentYellow,
@@ -3179,30 +3188,43 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                 border: Border.all(color: blue, width: 2),
               ),
               child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
+                child: DropdownButton<String?>(
                   value: _selectedSubject,
                   isExpanded: true,
                   dropdownColor: Colors.white,
                   icon: Icon(Icons.arrow_drop_down_circle_rounded, color: blue),
-                  items: _subjects.map((s) {
-                    return DropdownMenuItem(
-                      value: s,
+                  items: [
+                    DropdownMenuItem<String?>(
+                      value: null,
                       child: Text(
-                        s.toUpperCase(),
+                        'ALL SUBJECTS',
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w800,
                           fontSize: 13,
                           color: blue,
                         ),
                       ),
-                    );
-                  }).toList(),
+                    ),
+                    ..._subjects.map((s) {
+                      return DropdownMenuItem<String?>(
+                        value: s,
+                        child: Text(
+                          s.toUpperCase(),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: blue,
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
                   onChanged: (val) {
-                    if (val != null) {
+                    if (_selectedSubject != val) {
                       setState(() {
                         _selectedSubject = val;
-                        _load();
                       });
+                      _load();
                     }
                   },
                 ),

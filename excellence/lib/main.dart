@@ -30,8 +30,8 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (e) {
-    debugPrint("Firebase init error: $e");
+  } catch (e, st) {
+    debugPrint('[main] Firebase init failed: $e\n$st');
   }
 
   // Initialise dependency injection
@@ -40,14 +40,18 @@ Future<void> main() async {
   // Initialize Firebase push notifications (best effort)
   try {
     await sl<PushNotificationService>().initialize();
-  } catch (_) {}
+  } catch (e, st) {
+    debugPrint('[main] Push notification init failed: $e\n$st');
+  }
 
   // Restore theme preference
   try {
     final prefs = await SharedPreferences.getInstance();
     final isDark = prefs.getBool('isDarkMode') ?? false;
     themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
-  } catch (_) {}
+  } catch (e, st) {
+    debugPrint('[main] Theme preference restore failed: $e\n$st');
+  }
 
   // Restore saved language preference
   await AppLocalizations.loadSavedLocale();
@@ -57,7 +61,9 @@ Future<void> main() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isDarkMode', themeNotifier.value == ThemeMode.dark);
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('[main] Theme preference save failed: $e\n$st');
+    }
   });
 
   await SystemChrome.setPreferredOrientations([

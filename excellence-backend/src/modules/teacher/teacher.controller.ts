@@ -5,6 +5,7 @@ import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
 import { emitBatchSync, emitInstituteDashboardSync } from '../../config/socket';
 import { TimetableService } from '../timetable/timetable.service';
+import { resolveTeacherScope } from '../../utils/teacher-scope';
 
 export class TeacherController {
   private teacherService: TeacherService;
@@ -116,6 +117,31 @@ export class TeacherController {
 
       const instituteId = req.instituteId!;
       const teacherId = teacher.id;
+      const teacherScope = await resolveTeacherScope(instituteId, req.user!.userId);
+      const scopedBatchIds = teacherScope.batchIds;
+
+      const batchesPromise = scopedBatchIds.length > 0
+        ? prisma.batch.findMany({
+            where: {
+              id: { in: scopedBatchIds },
+              institute_id: instituteId,
+              is_active: true,
+            },
+            include: { _count: { select: { student_batches: { where: { is_active: true } } } } },
+          })
+        : Promise.resolve([]);
+
+      const upcomingExamsPromise = scopedBatchIds.length > 0
+        ? prisma.exam.findMany({
+            where: {
+              institute_id: instituteId,
+              exam_date: { gte: new Date() },
+              batches: { some: { batch_id: { in: scopedBatchIds } } },
+            },
+            orderBy: { exam_date: 'asc' },
+            take: 3,
+          })
+        : Promise.resolve([]);
 
       const [
         batches,
@@ -127,11 +153,8 @@ export class TeacherController {
         recentQuizzes,
         todaySchedules
       ] = await Promise.all([
-        // My batches
-        prisma.batch.findMany({
-          where: { teacher_id: teacherId, institute_id: instituteId, is_active: true },
-          include: { _count: { select: { student_batches: { where: { is_active: true } } } } }
-        }),
+        // My batches (primary assignment + batch_meta teacher_ids)
+        batchesPromise,
         // Pending doubts assigned to me
         prisma.doubt.count({
           where: { 
@@ -139,7 +162,7 @@ export class TeacherController {
             status: 'pending',
             OR: [
               { assigned_to_id: teacherId },
-              { batch: { teacher_id: teacherId } }
+              ...(scopedBatchIds.length > 0 ? [{ batch_id: { in: scopedBatchIds } }] : []),
             ]
           }
         }),
@@ -171,15 +194,7 @@ export class TeacherController {
             }
           }
         }),
-        prisma.exam.findMany({
-          where: {
-            institute_id: instituteId,
-            exam_date: { gte: new Date() },
-            batches: { some: { batch: { teacher_id: teacherId } } }
-          },
-          orderBy: { exam_date: 'asc' },
-          take: 3
-        }),
+        upcomingExamsPromise,
         prisma.quiz.findMany({
           where: {
             institute_id: instituteId,
@@ -263,12 +278,16 @@ export class TeacherController {
       const batchId = req.params.batchId;
       const instituteId = req.instituteId!;
       const subject = req.query.subject as string | undefined;
+      const teacherScope = await resolveTeacherScope(instituteId, req.user!.userId);
+
+      if (!teacherScope.batchIds.includes(batchId)) {
+        throw new ApiError('Batch not found for this teacher', 404, 'NOT_FOUND');
+      }
 
       const batch = await prisma.batch.findFirst({
         where: {
           id: batchId,
           institute_id: instituteId,
-          teacher_id: teacher.id,
           is_active: true,
         },
         include: {
@@ -558,6 +577,18 @@ export class TeacherController {
 
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const instituteId = req.instituteId!;
+      const teacherScope = await resolveTeacherScope(instituteId, req.user!.userId);
+      const scopedBatchIds = teacherScope.batchIds;
+
+      const totalScheduledPromise = scopedBatchIds.length > 0
+        ? prisma.batch.count({
+            where: {
+              id: { in: scopedBatchIds },
+              institute_id: instituteId,
+              is_active: true,
+            },
+          })
+        : Promise.resolve(0);
 
       const [classesTaken, doubtsResolved, totalScheduled] = await Promise.all([
         prisma.attendanceSession.count({
@@ -567,9 +598,7 @@ export class TeacherController {
           where: { assigned_to_id: teacher.id, institute_id: instituteId, status: 'resolved', resolved_at: { gte: weekAgo } }
         }),
         // Total scheduled = batches * days active this week (simplified)
-        prisma.batch.count({
-          where: { teacher_id: teacher.id, institute_id: instituteId, is_active: true }
-        })
+        totalScheduledPromise,
       ]);
 
       return sendResponse({
@@ -591,8 +620,21 @@ export class TeacherController {
       });
       if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
+      const teacherScope = await resolveTeacherScope(req.instituteId!, req.user!.userId);
+      if (teacherScope.batchIds.length === 0) {
+        return sendResponse({
+          res,
+          data: [],
+          message: 'Batches fetched',
+        });
+      }
+
       const batches = await prisma.batch.findMany({
-        where: { teacher_id: teacher.id, institute_id: req.instituteId!, is_active: true },
+        where: {
+          id: { in: teacherScope.batchIds },
+          institute_id: req.instituteId!,
+          is_active: true,
+        },
         include: { _count: { select: { student_batches: { where: { is_active: true } } } } }
       });
 
@@ -626,6 +668,9 @@ export class TeacherController {
         });
         if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
+        const teacherScope = await resolveTeacherScope(req.instituteId!, req.user!.userId);
+        const scopedBatchIds = teacherScope.batchIds;
+
         const now = new Date();
         // Standardize IST Day: 1=Mon, 7=Sun
         const istDate = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
@@ -633,14 +678,16 @@ export class TeacherController {
         const dayMapping = dayIndex === 0 ? 7 : dayIndex;
         
         // 1. Recurring schedules
-        const recurringBatches = await prisma.batch.findMany({
-            where: {
-                teacher_id: teacher.id,
+        const recurringBatches = scopedBatchIds.length > 0
+          ? await prisma.batch.findMany({
+              where: {
+                id: { in: scopedBatchIds },
                 institute_id: req.instituteId!,
                 is_active: true,
-                days_of_week: { has: dayMapping }
-            }
-        });
+                days_of_week: { has: dayMapping },
+              },
+            })
+          : [];
 
         // Use standard time formatting
         const formatRawTime = (date: Date | null) => {
@@ -723,10 +770,15 @@ export class TeacherController {
       const { batchId, topicId } = req.params;
       const { is_completed } = req.body;
       const instituteId = req.instituteId!;
+      const teacherScope = await resolveTeacherScope(instituteId, req.user!.userId);
+
+      if (!teacherScope.batchIds.includes(batchId)) {
+        throw new ApiError('Batch not found or unauthorized', 404, 'NOT_FOUND');
+      }
 
       // 1. Verify batch belongs to teacher
       const batch = await prisma.batch.findFirst({
-        where: { id: batchId, teacher_id: teacher.id, institute_id: instituteId }
+        where: { id: batchId, institute_id: instituteId }
       });
       if (!batch) throw new ApiError('Batch not found or unauthorized', 404, 'NOT_FOUND');
 

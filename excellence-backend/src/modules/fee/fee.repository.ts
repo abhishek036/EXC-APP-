@@ -8,6 +8,7 @@ import {
     AdjustFeeRecordInput,
 } from './fee.validator';
 import { ApiError } from '../../middleware/error.middleware';
+import { Logger } from '../../utils/logger';
 
 type FeeStatus = 'unpaid' | 'pending_verification' | 'paid' | 'rejected';
 type PaymentStatus = 'pending_verification' | 'approved' | 'rejected' | 'paid';
@@ -249,8 +250,11 @@ export class FeeRepository {
             if (query.studentId) {
                 try {
                     await this.autoSyncStudentFees(instituteId, query.studentId);
-                } catch (_e) {
-                    // Ignore auto-sync errors
+                } catch (error) {
+                    Logger.error(
+                        `[FeeRepository] autoSyncStudentFees failed for student ${query.studentId} in institute ${instituteId}`,
+                        error,
+                    );
                 }
             } else if (query.batchId) {
                 try {
@@ -260,10 +264,18 @@ export class FeeRepository {
                     for (const sb of studentBatches) {
                         try {
                             await this.autoSyncStudentFees(instituteId, sb.student_id);
-                        } catch (_e) {} // skip failure for single student
+                        } catch (error) {
+                            Logger.error(
+                                `[FeeRepository] autoSyncStudentFees failed for student ${sb.student_id} in batch ${query.batchId}`,
+                                error,
+                            );
+                        }
                     }
-                } catch (_e) {
-                    // Ignore auto-sync errors
+                } catch (error) {
+                    Logger.error(
+                        `[FeeRepository] autoSyncStudentFees failed while iterating batch ${query.batchId}`,
+                        error,
+                    );
                 }
             }
       const where: Prisma.FeeRecordWhereInput = { institute_id: instituteId };

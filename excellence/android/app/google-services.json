@@ -29,6 +29,13 @@
             {
               "client_id": "100598842137-jl0dju99g63i2c11g6mpeis8bkde7sv4.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "100598842137-cb4j9h11gl6qk7jmgi2lppjho0r3mak3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.coachpro"
+              }
             }
           ]
         }

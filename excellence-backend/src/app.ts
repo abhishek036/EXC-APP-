@@ -200,7 +200,7 @@ app.use(express.urlencoded({
   extended: true,
   limit: process.env.MAX_JSON_BODY_SIZE || '1mb',
 }));
-app.use(morgan('dev'));
+app.use(morgan(isProduction ? 'combined' : 'dev'));
 
 app.use((req: Request, _res: Response, next: NextFunction) => {
   if (!mutatingMethods.has(req.method.toUpperCase())) return next();

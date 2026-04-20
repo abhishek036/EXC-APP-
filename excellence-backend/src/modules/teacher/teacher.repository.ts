@@ -194,14 +194,8 @@ export class TeacherRepository {
         ]);
       }
 
-      return tx.teacher.update({
+      return tx.teacher.delete({
         where: { id: teacherId },
-        data: {
-          is_active: false,
-          user_id: null,
-          phone: null,
-          email: null,
-        },
       });
     });
   }

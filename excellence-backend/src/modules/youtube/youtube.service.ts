@@ -15,11 +15,13 @@ export class YoutubeService {
 
   // Set the stored refresh token from DB for the specific institute
   async setCredentials(_instituteId: string) {
-    // Currently, if there is a global token in .env for now:
-    const token = process.env.YOUTUBE_REFRESH_TOKEN;
-    if (token) {
-       this.oauth2Client.setCredentials({ refresh_token: token });
+    const token = process.env.YOUTUBE_REFRESH_TOKEN?.trim();
+    if (!token) {
+      throw new Error(
+        'YouTube is not connected yet. Please authenticate via Settings → YouTube Integration first.',
+      );
     }
+    this.oauth2Client.setCredentials({ refresh_token: token });
   }
 
   getAuthUrl(instituteId: string) {
@@ -62,6 +64,8 @@ export class YoutubeService {
         contentDetails: {
           enableAutoStart: true,
           enableAutoStop: true,
+          enableEmbed: true,
+          enableDvr: true,
           closedCaptionsType: 'closedCaptionsDisabled',
         }
       },

@@ -36,7 +36,7 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
 
     setState(() {
       _usernameError = username.length < 3 ? 'Username must be at least 3 characters' : null;
-      _passwordError = password.length < 4 ? 'Password must be at least 4 characters' : null;
+      _passwordError = password.length < 8 ? 'Password must be at least 8 characters' : null;
       _phoneError = phone.length < 10 ? 'Enter valid 10-digit number' : null;
     });
 

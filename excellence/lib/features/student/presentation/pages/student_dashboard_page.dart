@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_animated_ring.dart';
+import '../../../../core/widgets/cp_shimmer.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../features/student/data/repositories/student_repository.dart';
 import '../../../../core/di/injection_container.dart';
@@ -246,7 +247,11 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       const SizedBox(height: 16),
                       _buildExamCountdown(context, isDark),
                       const SizedBox(height: 32),
-                      _buildSectionHeader("Academic Flow", () {}, isDark),
+                      _buildSectionHeader(
+                        "Academic Flow",
+                        () => context.push('/student/batches'),
+                        isDark,
+                      ),
                       const SizedBox(height: 16),
                       _buildExploreMore(context, isDark),
                       const SizedBox(height: 48),
@@ -268,7 +273,11 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       const SizedBox(height: 16),
                       _buildAnnouncements(context, isDark),
                       const SizedBox(height: 40),
-                      _buildSectionHeader("Connect", () {}, isDark),
+                      _buildSectionHeader(
+                        "Connect",
+                        () => context.push('/student/profile'),
+                        isDark,
+                      ),
                       const SizedBox(height: 16),
                       _buildConnectWithUs(context, isDark),
                       const SizedBox(height: 100),
@@ -281,8 +290,66 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   }
 
   Widget _buildLoadingState(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(color: AppColors.elitePrimary),
+    final isDark = CT.isDark(context);
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      children: [
+        Row(
+          children: [
+            const CPShimmer(width: 44, height: 44, borderRadius: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  CPShimmer(width: 110, height: 12, borderRadius: 6),
+                  SizedBox(height: 8),
+                  CPShimmer(width: 160, height: 18, borderRadius: 8),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            const CPShimmer(width: 44, height: 44, borderRadius: 22),
+          ],
+        ),
+        const SizedBox(height: 28),
+        Row(
+          children: const [
+            Expanded(
+              child: CPShimmer(width: double.infinity, height: 92, borderRadius: 16),
+            ),
+            SizedBox(width: 10),
+            Expanded(
+              child: CPShimmer(width: double.infinity, height: 92, borderRadius: 16),
+            ),
+            SizedBox(width: 10),
+            Expanded(
+              child: CPShimmer(width: double.infinity, height: 92, borderRadius: 16),
+            ),
+            SizedBox(width: 10),
+            Expanded(
+              child: CPShimmer(width: double.infinity, height: 92, borderRadius: 16),
+            ),
+          ],
+        ),
+        const SizedBox(height: 28),
+        const CPShimmer(width: 140, height: 20, borderRadius: 8),
+        const SizedBox(height: 14),
+        const CPShimmer(width: double.infinity, height: 120, borderRadius: 16),
+        const SizedBox(height: 24),
+        const CPShimmer(width: 140, height: 20, borderRadius: 8),
+        const SizedBox(height: 14),
+        const CPShimmer(width: double.infinity, height: 140, borderRadius: 16),
+        const SizedBox(height: 24),
+        Container(
+          height: 48,
+          alignment: Alignment.center,
+          child: CircularProgressIndicator(
+            color: isDark ? Colors.white70 : AppColors.elitePrimary,
+          ),
+        ),
+      ],
     );
   }
 
@@ -403,7 +470,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.go('/student/materials');
+                      context.push('/student/materials');
                     },
                   ),
                   _drawerTile(
@@ -412,7 +479,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.go('/student/video-lectures');
+                      context.push('/student/video-lectures');
                     },
                   ),
                   _drawerTile(
@@ -421,7 +488,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.go('/student/exam-calendar');
+                      context.push('/student/exam-calendar');
                     },
                   ),
                   _drawerTile(
@@ -430,7 +497,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.go('/student/fee-history');
+                      context.push('/student/fee-history');
                     },
                   ),
                   _drawerTile(
@@ -439,7 +506,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.go('/student/profile');
+                      context.push('/student/profile');
                     },
                   ),
                   _drawerTile(
@@ -448,7 +515,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.go('/student/settings');
+                      context.push('/student/settings');
                     },
                   ),
                 ],
@@ -530,7 +597,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           ),
         ),
         CPPressable(
-          onTap: () => context.go('/student/profile'),
+          onTap: () => context.push('/student/profile'),
           child: CpUserAvatar(
             name: name,
             avatarUrl: avatarUrl,
@@ -944,7 +1011,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     final diff = diffRaw.abs();
 
     return CPPressable(
-          onTap: () => context.go('/student/exam-calendar'),
+          onTap: () => context.push('/student/exam-calendar'),
           child: _neoContainer(
             isDark: isDark,
             bgColor: AppColors.elitePrimary,
@@ -1111,7 +1178,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       itemBuilder: (context, index) {
         final item = items[index];
         return CPPressable(
-              onTap: () => context.go(item['route'] as String),
+            onTap: () => context.push(item['route'] as String),
               child: _neoContainer(
                 isDark: isDark,
                 padding: const EdgeInsets.all(8),
@@ -1156,6 +1223,12 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   Widget _buildStatsRow(BuildContext context, bool isDark) {
     final stats = _dashboardData?['stats'] ?? {};
     final attPct = (stats['attendance_percentage'] ?? 0) / 100.0;
+    final pendingDoubts =
+        (stats['pending_doubts'] as num?)?.toDouble() ?? 0.0;
+    final totalDoubts = (stats['total_doubts'] as num?)?.toDouble();
+    final doubtsProgress = totalDoubts != null && totalDoubts > 0
+        ? (pendingDoubts / totalDoubts).clamp(0.0, 1.0)
+        : (pendingDoubts / 10.0).clamp(0.0, 1.0);
 
     return Row(
       children: [
@@ -1170,16 +1243,16 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         const SizedBox(width: 12),
         _statCircle(
           context,
-          '${stats['pending_doubts'] ?? 0}',
+          '${pendingDoubts.toInt()}',
           'Open Doubts',
-          0.5,
+          doubtsProgress,
           AppColors.moltenAmber,
           isDark,
         ),
         const SizedBox(width: 12),
         Expanded(
           child: CPPressable(
-            onTap: () => context.go('/student/results'),
+            onTap: () => context.push('/student/results'),
             child: _neoContainer(
               isDark: isDark,
               padding: const EdgeInsets.all(12),
@@ -1280,7 +1353,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     final totalVal = _dashboardData?['stats']?['pending_fees_total'] ?? 0;
 
     return CPPressable(
-      onTap: () => context.go('/student/fee-history'),
+      onTap: () => context.push('/student/fee-history'),
       child: _neoContainer(
         isDark: isDark,
         bgColor: AppColors.coralRed,
@@ -1475,14 +1548,6 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                 Icons.play_circle_filled_rounded,
                 'YouTube',
                 const Color(0xFFFF0000),
-                isDark,
-              ),
-              const SizedBox(width: 12),
-              _socialBtn(
-                context,
-                Icons.facebook_rounded,
-                'Facebook',
-                const Color(0xFF1877F2),
                 isDark,
               ),
               const SizedBox(width: 12),

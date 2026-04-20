@@ -54,8 +54,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   void initState() {
     super.initState();
-    _fetchNotifications(reset: true);
-    _initRealtime();
+    _teacherRepo = sl<TeacherRepository>();
+    _studentRepo = sl<StudentRepository>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _fetchNotifications(reset: true);
+      _initRealtime();
+    });
   }
 
   @override
@@ -257,6 +263,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final bodyCtrl = TextEditingController();
     String selectedType = 'system';
     String selectedRole = context.rolePrefix == '/teacher' ? 'student' : 'all';
+    bool isSubmitting = false;
 
     await showModalBottomSheet(
       context: context,
@@ -425,11 +432,22 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   const SizedBox(height: 24),
                   CPPressable(
                     onTap: () async {
+                      if (isSubmitting) return;
+
                       final title = titleCtrl.text.trim();
                       final body = bodyCtrl.text.trim();
-                      if (title.isEmpty || body.isEmpty) return;
+                      if (title.isEmpty || body.isEmpty) {
+                        if (!ctx.mounted) return;
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter title and message body.'),
+                          ),
+                        );
+                        return;
+                      }
 
                       HapticFeedback.mediumImpact();
+                      setSheetState(() => isSubmitting = true);
                       try {
                         await _repo.sendManualNotification(
                           title: title,
@@ -440,7 +458,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         if (!ctx.mounted) return;
                         Navigator.pop(ctx);
                         _fetchNotifications(reset: true);
-                      } catch (_) {}
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Broadcast emitted successfully.')),
+                        );
+                      } catch (e) {
+                        if (!ctx.mounted) return;
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(content: Text('Broadcast failed: $e')),
+                        );
+                      } finally {
+                        if (ctx.mounted) {
+                          setSheetState(() => isSubmitting = false);
+                        }
+                      }
                     },
                     child: Container(
                       height: 56,
@@ -458,7 +488,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       ),
                       child: Center(
                         child: Text(
-                          'EMIT BROADCAST',
+                          isSubmitting ? 'EMITTING...' : 'EMIT BROADCAST',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,

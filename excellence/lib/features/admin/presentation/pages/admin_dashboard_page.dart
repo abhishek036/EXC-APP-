@@ -35,7 +35,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   StreamSubscription<Map<String, dynamic>>? _syncSub;
   bool _loading = true;
   String _error = '';
-  final int _unreadNotifications = 0;
+  int _unreadNotifications = 0;
 
   Map<String, dynamic> _stats = const {
     'students': 0,
@@ -75,6 +75,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     _syncSub = _realtime.updates.listen((event) {
       if (!mounted) return;
       final type = (event['type'] ?? '').toString();
+      if (type == 'unread_count_update') {
+        final count = event['unread_count'];
+        setState(() {
+          _unreadNotifications = count is num
+              ? count.toInt()
+              : int.tryParse(count?.toString() ?? '') ?? 0;
+        });
+        return;
+      }
       if (type == 'dashboard_sync' || type == 'batch_sync') {
         _loadDashboard();
       }
@@ -186,6 +195,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       });
 
       final pendingQueue = await _adminRepo.getFeeVerificationQueue(status: 'pending');
+      final unreadCount = await _adminRepo.getUnreadCount();
 
       if (!mounted) return;
       setState(() {
@@ -204,6 +214,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         _absentToday = absentToday;
         _auditLogs = auditLogs;
         _revenueTrend = trend;
+        _unreadNotifications = unreadCount;
         _loading = false;
       });
     } catch (e) {
@@ -370,7 +381,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     const SizedBox(height: 32),
                     _buildQuickActions(isDark),
                     const SizedBox(height: 48),
-                    _buildSectionHeader("Management Hub", () {}, isDark),
+                    _buildSectionHeader(
+                      "Management Hub",
+                      () => context.push('/admin/students'),
+                      isDark,
+                    ),
                     const SizedBox(height: 16),
                     _buildManagementHub(isDark),
                     const SizedBox(height: 40),
@@ -484,13 +499,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
             ),
             const Divider(color: AppColors.elitePrimary, height: 1),
-            _drawerItem(Icons.sync_rounded, 'Global Syncing', () {
+            _drawerItem(Icons.sync_rounded, 'Global Syncing', () async {
               HapticFeedback.lightImpact();
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
+              await _loadDashboard();
+              if (!mounted) return;
+              messenger.showSnackBar(
                 SnackBar(
                   content: Text(
-                    'Syncing all data...',
+                    'Dashboard synced successfully.',
                     style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -501,7 +519,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  duration: const Duration(seconds: 2),
+                  duration: const Duration(seconds: 1),
                 ),
               );
             }),
@@ -509,7 +527,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               Navigator.pop(context);
               context.push('/admin/settings');
             }),
-            _drawerItem(Icons.headset_mic_rounded, 'Support & Help', () {
+            _drawerItem(Icons.notifications_rounded, 'Notifications', () {
               Navigator.pop(context);
               context.push('/admin/notifications');
             }),
@@ -643,6 +661,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     bool isDark, {
     bool badge = false,
   }) {
+    final iconColor = isDark ? Colors.white : AppColors.elitePrimary;
     return CPPressable(
       onTap: onTap,
       child: Container(
@@ -659,7 +678,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Icon(icon, size: 21, color: AppColors.elitePrimary),
+            Icon(icon, size: 21, color: iconColor),
             if (badge)
               const Positioned(
                 top: 8,
@@ -899,7 +918,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               child: CPPressable(
                 onTap: () => context.push('/admin/add-student'),
                 child: Container(
-                  height: 88,
+                  height: 96,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: const Color(0xFF354388),
@@ -931,6 +950,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           children: [
                             Text(
                               'Add Student',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -940,6 +961,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                             const SizedBox(height: 2),
                             Text(
                               'Enroll new student',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
@@ -960,7 +983,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               child: CPPressable(
                 onTap: () => context.push('/admin/fees'),
                 child: Container(
-                  height: 88,
+                  height: 96,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.eliteDarkBg : Colors.white,
@@ -979,9 +1002,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         size: 22,
                         color: Color(0xFF354388),
                       ),
-                      const Spacer(),
+                      const SizedBox(height: 10),
                       Text(
                         'Collect Fee',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -1003,7 +1028,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               child: CPPressable(
                 onTap: () => context.push('/admin/attendance'),
                 child: Container(
-                  height: 88,
+                  height: 96,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.eliteDarkBg : Colors.white,
@@ -1022,9 +1047,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         size: 22,
                         color: Color(0xFFB6231B),
                       ),
-                      const Spacer(),
+                      const SizedBox(height: 10),
                       Text(
                         'Attendance',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -1042,7 +1069,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               child: CPPressable(
                 onTap: () => context.push('/admin/announcements'),
                 child: Container(
-                  height: 88,
+                  height: 96,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.eliteDarkBg : Colors.white,
@@ -1074,6 +1101,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           children: [
                             Text(
                               'Announce',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -1083,6 +1112,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                             const SizedBox(height: 2),
                             Text(
                               'Broadcast message',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
@@ -1113,7 +1144,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         'color': AppColors.elitePrimary,
         'route': '/admin/teachers',
         'desc': 'Faculty Management',
-        'stat': '${_stats['teachers']} Active',
+        'stat': '${_stats['teachers']} active',
       },
       {
         'label': 'Courses & Doubts',
@@ -1121,7 +1152,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         'color': AppColors.elitePrimary,
         'route': '/admin/academics',
         'desc': 'Manage materials',
-        'stat': '8 active',
+        'stat': '${_stats['batches']} active',
       },
       {
         'label': 'Human Capital',
@@ -1129,7 +1160,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         'color': AppColors.moltenAmber,
         'route': '/admin/staff',
         'desc': 'Staff & Payroll',
-        'stat': '3 departments',
+        'stat': '${_stats['teachers']} team',
       },
       {
         'label': 'Certificate Studio',
@@ -1137,7 +1168,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         'color': AppColors.elitePrimary,
         'route': '/admin/certificates',
         'desc': 'Mint Documents',
-        'stat': '110 minted',
+        'stat': 'Live',
       },
       {
         'label': 'Security IAM',
@@ -1145,7 +1176,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         'color': AppColors.coralRed,
         'route': '/admin/users',
         'desc': 'Role Control',
-        'stat': '2 layers',
+        'stat': 'Role based',
       },
       {
         'label': 'Opportunity Pipeline',
@@ -1153,7 +1184,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         'color': AppColors.elitePrimary,
         'route': '/admin/leads',
         'desc': 'Lead Tracking',
-        'stat': '23 open',
+        'stat': '--',
       },
     ];
 
@@ -1164,7 +1195,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 1.15, // Adjusted to be shorter
+        mainAxisExtent: 182,
       ),
       itemCount: modules.length,
       itemBuilder: (ctx, i) {
@@ -1173,7 +1204,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         return CPPressable(
           onTap: () => context.push(m['route'] as String),
           child: Container(
-            padding: const EdgeInsets.all(14), // Reduced from 16
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: isDark ? AppColors.eliteDarkBg : Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -1184,8 +1215,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment:
-                  MainAxisAlignment.center, // Vertically centered
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1206,9 +1235,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   m['label'] as String,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -1226,9 +1257,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                const Spacer(),
                 Text(
                   m['stat'] as String,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -1688,7 +1721,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader("Critical Absences", () {}, isDark),
+        _buildSectionHeader(
+          "Critical Absences",
+          () => context.push('/admin/attendance'),
+          isDark,
+        ),
         const SizedBox(height: 16),
         ..._absentToday
             .take(3)
