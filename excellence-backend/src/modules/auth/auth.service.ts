@@ -22,12 +22,14 @@ export class AuthService {
     }
 
     private _isTestOtpEnabled(): boolean {
-        const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
-        if (nodeEnv === 'production') return false;
-
+        // Explicit env override always wins — even in production.
+        // Set ENABLE_TEST_OTP=true on the server to allow master OTP (123456).
         const envOverride = String(process.env.ENABLE_TEST_OTP || '').toLowerCase();
         if (envOverride === 'true') return true;
+        if (envOverride === 'false') return false;
 
+        // Default: only allow in development, never in production.
+        const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
         return nodeEnv === 'development';
     }
 
