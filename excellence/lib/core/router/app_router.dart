@@ -22,6 +22,9 @@ import '../../features/admin/presentation/pages/student_import_page.dart';
 import '../../features/teacher/presentation/pages/upload_material_page.dart';
 import '../../features/teacher/presentation/pages/create_quiz_page.dart';
 import '../../features/teacher/presentation/pages/attendance_marking_page.dart';
+import '../../features/teacher/presentation/pages/assignment_review_page.dart';
+import '../../features/teacher/presentation/pages/quiz_results_page.dart';
+import '../../features/teacher/presentation/pages/youtube_broadcast_page.dart';
 import '../../features/teacher/presentation/pages/pending_doubts_page.dart';
 import '../../features/teacher/presentation/pages/doubt_response_page.dart';
 import '../../features/student/presentation/pages/quiz_taking_page.dart';
@@ -285,11 +288,6 @@ class AppRouter {
         path: '/splash',
         name: 'splash',
         pageBuilder: (c, s) => _page(s, const SplashPage()),
-      ),
-      GoRoute(
-        path: '/onboarding',
-        name: 'onboarding',
-        redirect: (_, _) => '/login',
       ),
       GoRoute(
         path: '/login',
@@ -862,6 +860,118 @@ class AppRouter {
                         ),
                       );
                     },
+                    routes: [
+                      GoRoute(
+                        path: 'assignment-review',
+                        name: 'teacher-batch-assignment-review',
+                        pageBuilder: (c, s) {
+                          final extra = s.extra;
+                          final args = extra is Map<String, dynamic>
+                              ? extra
+                              : <String, dynamic>{};
+                          return _page(
+                            s,
+                            AssignmentReviewPage(
+                              batchId: s.pathParameters['id'] ?? '',
+                              initialAssignmentId:
+                                  args['initialAssignmentId']?.toString(),
+                              initialAssignmentTitle:
+                                  args['initialAssignmentTitle']?.toString(),
+                            ),
+                          );
+                        },
+                      ),
+                      GoRoute(
+                        path: 'youtube-live',
+                        name: 'teacher-batch-youtube-live',
+                        pageBuilder: (c, s) => _page(
+                          s,
+                          YoutubeBroadcastPage(
+                            batchId: s.pathParameters['id'] ?? '',
+                          ),
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'upload-material',
+                        name: 'teacher-batch-upload-material',
+                        pageBuilder: (c, s) {
+                          final extra = s.extra;
+                          final args = extra is Map<String, dynamic>
+                              ? extra
+                              : <String, dynamic>{};
+                          final rawItem = args['initialItem'];
+                          return _page(
+                            s,
+                            UploadMaterialPage.withInitials(
+                              initialBatchId: s.pathParameters['id'],
+                              initialType: args['initialType']?.toString(),
+                              initialSubject:
+                                  args['initialSubject']?.toString(),
+                              initialItem: rawItem is Map
+                                  ? Map<String, dynamic>.from(rawItem)
+                                  : null,
+                            ),
+                          );
+                        },
+                      ),
+                      GoRoute(
+                        path: 'create-quiz',
+                        name: 'teacher-batch-create-quiz',
+                        pageBuilder: (c, s) {
+                          final extra = s.extra;
+                          final args = extra is Map<String, dynamic>
+                              ? extra
+                              : <String, dynamic>{};
+                          return _page(
+                            s,
+                            CreateQuizPage(
+                              initialBatchId: s.pathParameters['id'],
+                              initialSubject:
+                                  args['initialSubject']?.toString(),
+                              quizId: args['quizId']?.toString(),
+                              initialAssessmentType:
+                                  args['initialAssessmentType']?.toString(),
+                            ),
+                          );
+                        },
+                      ),
+                      GoRoute(
+                        path: 'quiz-results/:quizId',
+                        name: 'teacher-batch-quiz-results',
+                        pageBuilder: (c, s) => _page(
+                          s,
+                          QuizResultsPage(
+                            quizId: s.pathParameters['quizId'] ?? '',
+                            fallbackTitle: s.uri.queryParameters['title'],
+                          ),
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'attendance',
+                        name: 'teacher-batch-attendance',
+                        pageBuilder: (c, s) {
+                          final extra = s.extra;
+                          final args = extra is Map<String, dynamic>
+                              ? extra
+                              : <String, dynamic>{};
+                          final rawDate = args['initialDate'];
+                          final initialDate = rawDate is DateTime
+                              ? rawDate
+                              : DateTime.tryParse(
+                                  rawDate?.toString() ?? '',
+                                );
+                          return _page(
+                            s,
+                            AttendanceMarkingPage(
+                              initialBatchId: s.pathParameters['id'],
+                              initialDate: initialDate,
+                              initialSubject:
+                                  args['initialSubject']?.toString(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -906,6 +1016,10 @@ class AppRouter {
           StatefulShellBranch(
             navigatorKey: _tch4,
             routes: [
+              GoRoute(
+                path: '/teacher/settings',
+                pageBuilder: (c, s) => _page(s, const SettingsPage()),
+              ),
               GoRoute(
                 path: '/teacher/profile',
                 name: 'teacher-profile-self',

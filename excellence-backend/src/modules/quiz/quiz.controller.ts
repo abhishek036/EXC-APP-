@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import { QuizService } from './quiz.service';
 import { sendResponse } from '../../utils/response';
 import { isLegacyColumnError } from '../../utils/prisma-errors';
@@ -125,12 +126,21 @@ export class QuizController {
             return sendResponse({ res, data: [] });
           }
 
+          const requestedBatchId = String(req.query.batch_id ?? '').trim();
+          const effectiveBatchIds = requestedBatchId
+            ? batchIds.filter((id: string) => id === requestedBatchId)
+            : batchIds;
+
+          if (effectiveBatchIds.length === 0) {
+            return sendResponse({ res, data: [] });
+          }
+
           const { subject } = req.query;
           try {
             const puzzles = await prisma.quiz.findMany({
                 where: {
                     institute_id: req.instituteId!,
-                    batch_id: { in: batchIds },
+                    batch_id: { in: effectiveBatchIds },
                     is_published: true,
                     OR: [
                       { scheduled_at: null },
@@ -158,23 +168,22 @@ export class QuizController {
             return sendResponse({ res, data: puzzles, message: 'Available quizzes fetched' });
           } catch (error) {
              if (!isLegacyColumnError(error, 'subject')) throw error;
-             
-             let query = `SELECT q.*, b.name as batch_name 
-                          FROM quizzes q 
-                          LEFT JOIN batches b ON q.batch_id = b.id 
-                          WHERE q.institute_id::text = $1::text 
-                            AND q.batch_id::text IN (${batchIds.map((_batchId: string, i: number) => `$${i + 2}`).join(',')})
-                            AND COALESCE(q.is_published, false) = true
-                            AND (q.scheduled_at IS NULL OR q.scheduled_at <= NOW())`;
-             const params = [req.instituteId, ...batchIds];
 
-             if (subject) {
-               query += ` AND LOWER(COALESCE(q.subject, '')) = LOWER($${params.length + 1}::text)`;
-               params.push(String(subject));
-             }
-             
-             query += ` ORDER BY q.created_at DESC`;
-             const rawPuzzles = await prisma.$queryRawUnsafe<any[]>(query, ...params);
+             const subjectPredicate = subject
+               ? Prisma.sql`AND LOWER(COALESCE(q.subject, '')) = LOWER(${String(subject)}::text)`
+               : Prisma.empty;
+
+             const rawPuzzles = await prisma.$queryRaw<any[]>(Prisma.sql`
+               SELECT q.*, b.name as batch_name
+               FROM quizzes q
+               LEFT JOIN batches b ON q.batch_id = b.id
+               WHERE q.institute_id::text = ${req.instituteId}::text
+                 AND q.batch_id::text IN (${Prisma.join(effectiveBatchIds)})
+                 AND COALESCE(q.is_published, false) = true
+                 AND (q.scheduled_at IS NULL OR q.scheduled_at <= NOW())
+                 ${subjectPredicate}
+               ORDER BY q.created_at DESC
+             `);
              
              const puzzles = rawPuzzles.map(p => ({
                  ...p,

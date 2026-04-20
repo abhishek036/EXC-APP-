@@ -402,18 +402,16 @@ export class StudentController {
         return sendResponse({ res, data: doubts, message: 'Doubts fetched' });
       } catch (error) {
         if (!isLegacyColumnError(error, 'subject')) throw error;
-        
-        let query = `SELECT * FROM doubts WHERE student_id = $1 AND institute_id = $2`;
-        const params: any[] = [student.id, req.instituteId!];
-        
-        if (batchId) {
-          query += ` AND batch_id = $${params.length + 1}`;
-          params.push(batchId);
-        }
-        
-        query += ` ORDER BY created_at DESC`;
-        
-        const rawDoubts = await prisma.$queryRawUnsafe<any[]>(query, ...params);
+
+        const batchIdParam = batchId ? String(batchId) : null;
+        const rawDoubts = await prisma.$queryRaw<any[]>`
+          SELECT *
+          FROM doubts
+          WHERE student_id::text = ${student.id}::text
+            AND institute_id::text = ${req.instituteId!}::text
+            AND (${batchIdParam}::text IS NULL OR batch_id::text = ${batchIdParam}::text)
+          ORDER BY created_at DESC
+        `;
         return sendResponse({ res, data: rawDoubts, message: 'Doubts fetched (legacy fallback)' });
       }
     } catch (error) { next(error); }

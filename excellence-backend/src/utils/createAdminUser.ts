@@ -20,7 +20,7 @@ async function main() {
     });
   }
 
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE "users" CASCADE');
+  await prisma.$executeRaw`TRUNCATE TABLE "users" CASCADE`;
 
   await prisma.user.create({
     data: {

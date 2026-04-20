@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../server';
 import {
     CreateNoteInput,
@@ -481,27 +482,26 @@ export class ContentRepository {
 
     private async listNotesLegacy(instituteId: string, filter: { batchId?: string, subject?: string, chapterTitle?: string, includeDeleted?: boolean }) {
             // Fallback for older schemas missing note files and chapter columns.
-            const rows = await prisma.$queryRawUnsafe<any[]>(
-                    `SELECT id::text,
-                                    title,
-                                    NULL::text as description,
-                                    'General'::text as subject,
-                                    'General'::text as chapter_title,
-                                    0 as chapter_order,
-                                    file_url,
-                                    COALESCE(file_type, 'other') as file_type,
-                                    file_size_kb,
-                                    created_at,
-                                    batch_id::text,
-                                    institute_id::text,
-                                    teacher_id::text
-                     FROM notes
-                     WHERE institute_id::text = $1::text
-                         AND ($2::text IS NULL OR batch_id::text = $2::text)
-                     ORDER BY created_at DESC`,
-                    instituteId,
-                    filter.batchId ?? null,
-            );
+            const batchIdParam = filter.batchId ?? null;
+            const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+                SELECT id::text,
+                   title,
+                   NULL::text as description,
+                   'General'::text as subject,
+                   'General'::text as chapter_title,
+                   0 as chapter_order,
+                   file_url,
+                   COALESCE(file_type, 'other') as file_type,
+                   file_size_kb,
+                   created_at,
+                   batch_id::text,
+                   institute_id::text,
+                   teacher_id::text
+                FROM notes
+                WHERE institute_id::text = ${instituteId}::text
+                  AND (${batchIdParam}::text IS NULL OR batch_id::text = ${batchIdParam}::text)
+                ORDER BY created_at DESC
+            `);
 
             return rows.map((row) => this.mapNoteRow(row));
     }
@@ -720,26 +720,24 @@ export class ContentRepository {
                     });
                 }
 
-                const rows = await prisma.$queryRawUnsafe<any[]>(
-                    `SELECT id::text,
-                                    title,
-                                    COALESCE(description, '') as description,
-                                    COALESCE(subject, 'General') as subject,
-                                    COALESCE(chapter_title, 'General') as chapter_title,
-                                    COALESCE(chapter_order, 0) as chapter_order,
-                                    file_url,
-                                    COALESCE(file_type, 'other') as file_type,
-                                    file_size_kb,
-                                    created_at,
-                                    batch_id::text,
-                                    institute_id::text,
-                                    teacher_id::text
-                     FROM notes
-                     WHERE id::text = $1::text
-                       AND institute_id::text = $2::text`,
-                    noteId,
-                    instituteId,
-                );
+                                const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+                                        SELECT id::text,
+                                                     title,
+                                                     COALESCE(description, '') as description,
+                                                     COALESCE(subject, 'General') as subject,
+                                                     COALESCE(chapter_title, 'General') as chapter_title,
+                                                     COALESCE(chapter_order, 0) as chapter_order,
+                                                     file_url,
+                                                     COALESCE(file_type, 'other') as file_type,
+                                                     file_size_kb,
+                                                     created_at,
+                                                     batch_id::text,
+                                                     institute_id::text,
+                                                     teacher_id::text
+                                        FROM notes
+                                        WHERE id::text = ${noteId}::text
+                                            AND institute_id::text = ${instituteId}::text
+                                `);
 
                 if (!rows.length) {
                     throw new ApiError('Note not found', 404, 'NOT_FOUND');
@@ -1092,13 +1090,11 @@ export class ContentRepository {
   }
 
   private async updateAssignmentLegacy(instituteId: string, assignmentId: string, data: UpdateAssignmentInput) {
-      const currentRows = await prisma.$queryRawUnsafe<any[]>(
-          `SELECT id::text, title, description, due_date, file_url, created_at, batch_id::text
-           FROM assignments
-           WHERE id::text = $1::text AND institute_id::text = $2::text`,
-          assignmentId,
-          instituteId,
-      );
+      const currentRows = await prisma.$queryRaw<any[]>(Prisma.sql`
+          SELECT id::text, title, description, due_date, file_url, created_at, batch_id::text
+          FROM assignments
+          WHERE id::text = ${assignmentId}::text AND institute_id::text = ${instituteId}::text
+      `);
 
       if (!currentRows.length) {
           throw new ApiError('Assignment not found', 404, 'NOT_FOUND');
@@ -1110,30 +1106,22 @@ export class ContentRepository {
       const nextDueDate = data.due_date ? new Date(data.due_date).toISOString() : current.due_date;
       const nextFileUrl = this.trimOrNull((data as any).question_file_url) ?? this.trimOrNull(data.file_url) ?? current.file_url;
 
-      await prisma.$executeRawUnsafe(
-          `UPDATE assignments
-           SET title = $3,
-               description = $4,
-               due_date = $5::timestamp,
-               file_url = $6,
-               updated_at = NOW()
-           WHERE id::text = $1::text
-             AND institute_id::text = $2::text`,
-          assignmentId,
-          instituteId,
-          nextTitle,
-          nextDescription,
-          nextDueDate,
-          nextFileUrl,
-      );
+      await prisma.$executeRaw(Prisma.sql`
+          UPDATE assignments
+          SET title = ${nextTitle},
+              description = ${nextDescription},
+              due_date = ${nextDueDate}::timestamp,
+              file_url = ${nextFileUrl},
+              updated_at = NOW()
+          WHERE id::text = ${assignmentId}::text
+            AND institute_id::text = ${instituteId}::text
+      `);
 
-      const rows = await prisma.$queryRawUnsafe<any[]>(
-          `SELECT id::text, title, description, due_date, file_url, created_at, batch_id::text
-           FROM assignments
-           WHERE id::text = $1::text AND institute_id::text = $2::text`,
-          assignmentId,
-          instituteId,
-      );
+      const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+          SELECT id::text, title, description, due_date, file_url, created_at, batch_id::text
+          FROM assignments
+          WHERE id::text = ${assignmentId}::text AND institute_id::text = ${instituteId}::text
+      `);
 
       return this.mapAssignmentRow(rows[0]);
   }
@@ -1156,18 +1144,10 @@ export class ContentRepository {
       const dueDate = data.due_date ? new Date(data.due_date).toISOString() : null;
       const fileUrl = this.trimOrNull((data as any).question_file_url) ?? this.trimOrNull(data.file_url);
       
-      await prisma.$executeRawUnsafe(
-          `INSERT INTO assignments (id, institute_id, teacher_id, batch_id, title, description, file_url, due_date, created_at)
-           VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8::timestamp, NOW())`,
-          id,
-          instituteId,
-          teacherId,
-          data.batch_id,
-          data.title,
-          this.trimOrNull(data.description),
-          fileUrl,
-          dueDate
-      );
+      await prisma.$executeRaw(Prisma.sql`
+          INSERT INTO assignments (id, institute_id, teacher_id, batch_id, title, description, file_url, due_date, created_at)
+          VALUES (${id}::uuid, ${instituteId}::uuid, ${teacherId}::uuid, ${data.batch_id}::uuid, ${data.title}, ${this.trimOrNull(data.description)}, ${fileUrl}, ${dueDate}::timestamp, NOW())
+      `);
       
       return {
         id,
@@ -1186,16 +1166,15 @@ export class ContentRepository {
   }
 
   private async listAssignmentsLegacy(instituteId: string, filter: { batchId?: string, teacherId?: string, subject?: string }) {
-      const rows = await prisma.$queryRawUnsafe<any[]>(
-          `SELECT id::text, title, description, due_date, file_url, created_at, batch_id::text
-           FROM assignments
-           WHERE institute_id::text = $1::text
-             AND ($2::text IS NULL OR batch_id::text = $2::text)
-             AND ($3::text IS NULL OR teacher_id::text = $3::text)`,
-          instituteId,
-          filter.batchId ?? null,
-          filter.teacherId ?? null
-      );
+      const batchIdParam = filter.batchId ?? null;
+      const teacherIdParam = filter.teacherId ?? null;
+      const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+          SELECT id::text, title, description, due_date, file_url, created_at, batch_id::text
+          FROM assignments
+          WHERE institute_id::text = ${instituteId}::text
+            AND (${batchIdParam}::text IS NULL OR batch_id::text = ${batchIdParam}::text)
+            AND (${teacherIdParam}::text IS NULL OR teacher_id::text = ${teacherIdParam}::text)
+      `);
       return rows.map((row) => this.mapAssignmentRow(row));
   }
 
@@ -1737,25 +1716,24 @@ export class ContentRepository {
   }
 
   private async listDoubtsLegacy(instituteId: string, filters: { batch_id?: string, student_id?: string, status?: string, subject?: string }) {
-       const rows = await prisma.$queryRawUnsafe<any[]>(
-          `SELECT d.id::text, 
-                  d.title, 
-                  d.description, 
-                  d.status, 
-                  d.created_at, 
-                  d.student_id::text,
-                  s.name as student_name
-           FROM doubts d
-           LEFT JOIN students s ON d.student_id = s.id
-           WHERE d.institute_id::text = $1::text
-             AND ($2::text IS NULL OR d.batch_id::text = $2::text)
-             AND ($3::text IS NULL OR d.student_id::text = $3::text)
-             AND ($4::text IS NULL OR d.status = $4::text)`,
-          instituteId,
-          filters.batch_id ?? null,
-          filters.student_id ?? null,
-          filters.status ?? null
-      );
+    const batchIdParam = filters.batch_id ?? null;
+    const studentIdParam = filters.student_id ?? null;
+    const statusParam = filters.status ?? null;
+    const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+       SELECT d.id::text,
+           d.title,
+           d.description,
+           d.status,
+           d.created_at,
+           d.student_id::text,
+           s.name as student_name
+       FROM doubts d
+       LEFT JOIN students s ON d.student_id = s.id
+       WHERE d.institute_id::text = ${instituteId}::text
+         AND (${batchIdParam}::text IS NULL OR d.batch_id::text = ${batchIdParam}::text)
+         AND (${studentIdParam}::text IS NULL OR d.student_id::text = ${studentIdParam}::text)
+         AND (${statusParam}::text IS NULL OR d.status = ${statusParam}::text)
+      `);
       return rows.map(r => ({
           ...r,
           student: { name: r.student_name },

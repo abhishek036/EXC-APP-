@@ -44,137 +44,121 @@ export class DoubtRepository {
   }
 
   private static async createLegacy(data: Prisma.DoubtUncheckedCreateInput) {
-    const rows = await prisma.$queryRawUnsafe<any[]>(
-      `INSERT INTO doubts (
-          batch_id,
-          student_id,
-          institute_id,
-          assigned_to,
-          question_text,
-          question_img,
-          answer_text,
-          answer_img,
-          status,
-          resolved_at
-       ) VALUES (
-          $1::uuid,
-          $2::uuid,
-          $3::uuid,
-          $4::uuid,
-          $5,
-          $6,
-          $7,
-          $8,
-          $9,
-          $10
-       )
-       RETURNING id::text, batch_id::text, student_id::text, institute_id::text, assigned_to::text as assigned_to_id,
-                 question_text, question_img, answer_text, answer_img, status, created_at, resolved_at`,
-      data.batch_id,
-      data.student_id,
-      data.institute_id,
-      data.assigned_to_id ?? null,
-      data.question_text,
-      data.question_img ?? null,
-      data.answer_text ?? null,
-      data.answer_img ?? null,
-      data.status ?? 'pending',
-      data.resolved_at ?? null,
-    );
+    const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+      INSERT INTO doubts (
+        batch_id,
+        student_id,
+        institute_id,
+        assigned_to,
+        question_text,
+        question_img,
+        answer_text,
+        answer_img,
+        status,
+        resolved_at
+      ) VALUES (
+        ${data.batch_id}::uuid,
+        ${data.student_id}::uuid,
+        ${data.institute_id}::uuid,
+        ${data.assigned_to_id ?? null}::uuid,
+        ${data.question_text},
+        ${data.question_img ?? null},
+        ${data.answer_text ?? null},
+        ${data.answer_img ?? null},
+        ${data.status ?? 'pending'},
+        ${data.resolved_at ?? null}
+      )
+      RETURNING id::text, batch_id::text, student_id::text, institute_id::text, assigned_to::text as assigned_to_id,
+                question_text, question_img, answer_text, answer_img, status, created_at, resolved_at
+    `);
 
     return this.mapDoubtRow(rows[0]);
   }
 
   private static async listForStudentLegacy(studentId: string, instituteId: string) {
-    const rows = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT d.id::text,
-              d.batch_id::text,
-              d.student_id::text,
-              d.institute_id::text,
-              d.assigned_to::text as assigned_to_id,
-              d.question_text,
-              d.question_img,
-              d.answer_text,
-              d.answer_img,
-              d.status,
-              d.created_at,
-              d.resolved_at,
-              b.name as batch_name,
-              t.name as assigned_teacher_name,
-              t.photo_url as assigned_teacher_photo_url
-       FROM doubts d
-       LEFT JOIN batches b ON b.id = d.batch_id
-       LEFT JOIN teachers t ON t.id = d.assigned_to
-       WHERE d.student_id::text = $1::text
-         AND d.institute_id::text = $2::text
-       ORDER BY d.created_at DESC`,
-      studentId,
-      instituteId,
-    );
+    const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+      SELECT d.id::text,
+             d.batch_id::text,
+             d.student_id::text,
+             d.institute_id::text,
+             d.assigned_to::text as assigned_to_id,
+             d.question_text,
+             d.question_img,
+             d.answer_text,
+             d.answer_img,
+             d.status,
+             d.created_at,
+             d.resolved_at,
+             b.name as batch_name,
+             t.name as assigned_teacher_name,
+             t.photo_url as assigned_teacher_photo_url
+      FROM doubts d
+      LEFT JOIN batches b ON b.id = d.batch_id
+      LEFT JOIN teachers t ON t.id = d.assigned_to
+      WHERE d.student_id::text = ${studentId}::text
+        AND d.institute_id::text = ${instituteId}::text
+      ORDER BY d.created_at DESC
+    `);
 
     return rows.map((row) => this.mapDoubtRow(row));
   }
 
   private static async listForTeacherLegacy(teacherId: string, instituteId: string, status?: string) {
-    const rows = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT d.id::text,
-              d.batch_id::text,
-              d.student_id::text,
-              d.institute_id::text,
-              d.assigned_to::text as assigned_to_id,
-              d.question_text,
-              d.question_img,
-              d.answer_text,
-              d.answer_img,
-              d.status,
-              d.created_at,
-              d.resolved_at,
-              b.name as batch_name,
-              s.name as student_name,
-              s.photo_url as student_photo_url
-       FROM doubts d
-       LEFT JOIN batches b ON b.id = d.batch_id
-       LEFT JOIN students s ON s.id = d.student_id
-       WHERE d.institute_id::text = $1::text
-         AND ($2::text IS NULL OR d.status = $2)
-         AND (
-           d.assigned_to::text = $3::text
-           OR b.teacher_id::text = $3::text
-         )
-       ORDER BY d.status ASC, d.created_at ASC`,
-      instituteId,
-      status ?? null,
-      teacherId,
-    );
+    const statusParam = status ?? null;
+    const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+      SELECT d.id::text,
+             d.batch_id::text,
+             d.student_id::text,
+             d.institute_id::text,
+             d.assigned_to::text as assigned_to_id,
+             d.question_text,
+             d.question_img,
+             d.answer_text,
+             d.answer_img,
+             d.status,
+             d.created_at,
+             d.resolved_at,
+             b.name as batch_name,
+             s.name as student_name,
+             s.photo_url as student_photo_url
+      FROM doubts d
+      LEFT JOIN batches b ON b.id = d.batch_id
+      LEFT JOIN students s ON s.id = d.student_id
+      WHERE d.institute_id::text = ${instituteId}::text
+        AND (${statusParam}::text IS NULL OR d.status = ${statusParam})
+        AND (
+          d.assigned_to::text = ${teacherId}::text
+          OR b.teacher_id::text = ${teacherId}::text
+        )
+      ORDER BY d.status ASC, d.created_at ASC
+    `);
 
     return rows.map((row) => this.mapDoubtRow(row));
   }
 
   private static async listAllPendingLegacy(instituteId: string, status?: string) {
-    const rows = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT d.id::text,
-              d.batch_id::text,
-              d.student_id::text,
-              d.institute_id::text,
-              d.assigned_to::text as assigned_to_id,
-              d.question_text,
-              d.question_img,
-              d.answer_text,
-              d.answer_img,
-              d.status,
-              d.created_at,
-              d.resolved_at,
-              b.name as batch_name,
-              b.teacher_id::text as batch_teacher_id,
-              s.name as student_name
-       FROM doubts d
-       LEFT JOIN batches b ON b.id = d.batch_id
-       LEFT JOIN students s ON s.id = d.student_id
-       WHERE d.institute_id::text = $1::text
-         AND d.status = COALESCE($2::text, 'pending')`,
-      instituteId,
-      status ?? null,
-    );
+    const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+      SELECT d.id::text,
+             d.batch_id::text,
+             d.student_id::text,
+             d.institute_id::text,
+             d.assigned_to::text as assigned_to_id,
+             d.question_text,
+             d.question_img,
+             d.answer_text,
+             d.answer_img,
+             d.status,
+             d.created_at,
+             d.resolved_at,
+             b.name as batch_name,
+             b.teacher_id::text as batch_teacher_id,
+             s.name as student_name
+      FROM doubts d
+      LEFT JOIN batches b ON b.id = d.batch_id
+      LEFT JOIN students s ON s.id = d.student_id
+      WHERE d.institute_id::text = ${instituteId}::text
+        AND d.status = COALESCE(${status ?? null}::text, 'pending')
+    `);
 
     return rows.map((row) => this.mapDoubtRow(row));
   }
@@ -261,26 +245,24 @@ export class DoubtRepository {
     } catch (error) {
       if (!this.isLegacyDoubtSubjectColumnError(error)) throw error;
 
-      const rows = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT id::text,
-                batch_id::text,
-                student_id::text,
-                institute_id::text,
-                assigned_to::text as assigned_to_id,
-                question_text,
-                question_img,
-                answer_text,
-                answer_img,
-                status,
-                created_at,
-                resolved_at
-         FROM doubts
-         WHERE id::text = $1::text
-           AND institute_id::text = $2::text
-         LIMIT 1`,
-        id,
-        instituteId,
-      );
+      const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+        SELECT id::text,
+               batch_id::text,
+               student_id::text,
+               institute_id::text,
+               assigned_to::text as assigned_to_id,
+               question_text,
+               question_img,
+               answer_text,
+               answer_img,
+               status,
+               created_at,
+               resolved_at
+        FROM doubts
+        WHERE id::text = ${id}::text
+          AND institute_id::text = ${instituteId}::text
+        LIMIT 1
+      `);
 
       if (!rows[0]) return null;
       return this.mapDoubtRow(rows[0]);
@@ -298,31 +280,21 @@ export class DoubtRepository {
 
       const normalizedData = data as any;
       const clearResolvedAt = Object.prototype.hasOwnProperty.call(normalizedData, 'resolved_at') && normalizedData.resolved_at === null;
-      const result = await prisma.$executeRawUnsafe(
-        `UPDATE doubts
-         SET assigned_to = COALESCE($1::uuid, assigned_to),
-             answer_text = COALESCE($2, answer_text),
-             answer_img = COALESCE($3, answer_img),
-             question_text = COALESCE($4, question_text),
-             question_img = COALESCE($5, question_img),
-             status = COALESCE($6, status),
-             resolved_at = CASE
-               WHEN $7::boolean THEN NULL
-               ELSE COALESCE($8::timestamptz, resolved_at)
-             END
-         WHERE id::text = $9::text
-           AND institute_id::text = $10::text`,
-        normalizedData.assigned_to_id ?? null,
-        normalizedData.answer_text ?? null,
-        normalizedData.answer_img ?? null,
-        normalizedData.question_text ?? null,
-        normalizedData.question_img ?? null,
-        normalizedData.status ?? null,
-        clearResolvedAt,
-        normalizedData.resolved_at ?? null,
-        id,
-        instituteId,
-      );
+      const result = await prisma.$executeRaw(Prisma.sql`
+        UPDATE doubts
+        SET assigned_to = COALESCE(${normalizedData.assigned_to_id ?? null}::uuid, assigned_to),
+            answer_text = COALESCE(${normalizedData.answer_text ?? null}, answer_text),
+            answer_img = COALESCE(${normalizedData.answer_img ?? null}, answer_img),
+            question_text = COALESCE(${normalizedData.question_text ?? null}, question_text),
+            question_img = COALESCE(${normalizedData.question_img ?? null}, question_img),
+            status = COALESCE(${normalizedData.status ?? null}, status),
+            resolved_at = CASE
+              WHEN ${clearResolvedAt}::boolean THEN NULL
+              ELSE COALESCE(${normalizedData.resolved_at ?? null}::timestamptz, resolved_at)
+            END
+        WHERE id::text = ${id}::text
+          AND institute_id::text = ${instituteId}::text
+      `);
 
       return { count: Number(result) };
     }

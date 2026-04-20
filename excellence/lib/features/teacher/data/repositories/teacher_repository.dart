@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/network/api_client.dart';
 import '../../../../core/di/injection_container.dart';
 
@@ -883,7 +885,9 @@ class TeacherRepository {
         final data = response.data['data'];
         if (data is Map) return (data['unread_count'] as num?)?.toInt() ?? 0;
       }
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('[TeacherRepository] getUnreadCount failed: $e\n$st');
+    }
     return 0;
   }
 

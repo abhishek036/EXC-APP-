@@ -1,24 +1,22 @@
 /* eslint-disable no-console */
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
 const UUID_REGEX = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$';
 const APPLY = process.argv.includes('--apply') || process.env.APPLY_LECTURE_UUID_CLEANUP === 'true';
 
-function whereInvalidClause(alias = 'l') {
-  return `
-    ${alias}.id::text !~* '${UUID_REGEX}'
-    OR ${alias}.teacher_id::text !~* '${UUID_REGEX}'
-    OR ${alias}.batch_id::text !~* '${UUID_REGEX}'
-  `;
-}
+const invalidLecturePredicate = Prisma.sql`
+  l.id::text !~* ${UUID_REGEX}
+  OR l.teacher_id::text !~* ${UUID_REGEX}
+  OR l.batch_id::text !~* ${UUID_REGEX}
+`;
 
 async function run() {
   console.log('[lecture-uuid-cleanup] starting');
 
-  const malformedRows = await prisma.$queryRawUnsafe(
-    `SELECT COUNT(*)::int AS count FROM lectures l WHERE ${whereInvalidClause('l')}`,
+  const malformedRows = await prisma.$queryRaw(
+    Prisma.sql`SELECT COUNT(*)::int AS count FROM lectures l WHERE ${invalidLecturePredicate}`,
   );
   const malformedCount = Number(malformedRows?.[0]?.count ?? 0);
 
@@ -35,29 +33,29 @@ async function run() {
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    await tx.$executeRawUnsafe(`
+    await tx.$executeRaw`
       CREATE TABLE IF NOT EXISTS lectures_bad_uuid_backup AS
       SELECT * FROM lectures WHERE FALSE
-    `);
+    `;
 
-    const backedUp = await tx.$executeRawUnsafe(
-      `
+    const backedUp = await tx.$executeRaw(
+      Prisma.sql`
       INSERT INTO lectures_bad_uuid_backup
       SELECT *
       FROM lectures l
-      WHERE ${whereInvalidClause('l')}
+      WHERE ${invalidLecturePredicate}
       `,
     );
 
-    const deleted = await tx.$executeRawUnsafe(
-      `
+    const deleted = await tx.$executeRaw(
+      Prisma.sql`
       DELETE FROM lectures l
-      WHERE ${whereInvalidClause('l')}
+      WHERE ${invalidLecturePredicate}
       `,
     );
 
-    const remainingRows = await tx.$queryRawUnsafe(
-      `SELECT COUNT(*)::int AS count FROM lectures l WHERE ${whereInvalidClause('l')}`,
+    const remainingRows = await tx.$queryRaw(
+      Prisma.sql`SELECT COUNT(*)::int AS count FROM lectures l WHERE ${invalidLecturePredicate}`,
     );
     const remaining = Number(remainingRows?.[0]?.count ?? 0);
 

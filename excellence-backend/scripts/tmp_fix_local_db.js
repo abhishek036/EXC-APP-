@@ -11,17 +11,17 @@ async function main() {
   const beforeDrop = await prisma.parentStudent.count({ where: { parent_id: DROP_ID } });
 
   await prisma.$transaction(async (tx) => {
-    await tx.$executeRawUnsafe(`
+    await tx.$executeRaw`
       UPDATE parent_students ps
-      SET parent_id = '${KEEP_ID}'
-      WHERE ps.parent_id = '${DROP_ID}'
+      SET parent_id = ${KEEP_ID}
+      WHERE ps.parent_id = ${DROP_ID}
         AND NOT EXISTS (
           SELECT 1
           FROM parent_students existing
-          WHERE existing.parent_id = '${KEEP_ID}'
+          WHERE existing.parent_id = ${KEEP_ID}
             AND existing.student_id = ps.student_id
         )
-    `);
+    `;
 
     await tx.parentStudent.deleteMany({ where: { parent_id: DROP_ID } });
     await tx.parent.deleteMany({ where: { id: DROP_ID } });
@@ -30,13 +30,13 @@ async function main() {
   const afterKeep = await prisma.parentStudent.count({ where: { parent_id: KEEP_ID } });
   const afterDrop = await prisma.parentStudent.count({ where: { parent_id: DROP_ID } });
 
-  const duplicateGroups = await prisma.$queryRawUnsafe(`
+  const duplicateGroups = await prisma.$queryRaw`
     SELECT institute_id, phone, COUNT(*)::int AS count
     FROM parents
     WHERE phone IS NOT NULL
     GROUP BY institute_id, phone
     HAVING COUNT(*) > 1
-  `);
+  `;
 
   console.log(
     JSON.stringify(

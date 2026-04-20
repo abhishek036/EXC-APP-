@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
@@ -8,7 +8,8 @@ async function main() {
     
     for (const table of tables) {
         try {
-            const result = await prisma.$queryRawUnsafe(`SELECT count(*) as count FROM "${table}"`);
+            const tableSql = Prisma.raw(`"${table.replace(/"/g, '""')}"`);
+            const result = await prisma.$queryRaw(Prisma.sql`SELECT count(*) as count FROM ${tableSql}`);
             console.log(`[OK] ${table.padEnd(12)}: Found ${JSON.stringify(result[0])} rows.`);
         } catch (e) {
             console.error(`[FAIL] ${table.padEnd(12)}: ${e.message}`);
@@ -16,7 +17,11 @@ async function main() {
     }
 
     try {
-        const colCheck = await prisma.$queryRawUnsafe(`SELECT column_name FROM information_schema.columns WHERE table_name = 'quizzes' AND column_name = 'subject'`);
+        const colCheck = await prisma.$queryRaw`
+          SELECT column_name
+          FROM information_schema.columns
+          WHERE table_name = 'quizzes' AND column_name = 'subject'
+        `;
         if (Array.isArray(colCheck) && colCheck.length > 0) {
             console.log('[INFO] Quizzes table has "subject" column (no fallback needed)');
         } else {

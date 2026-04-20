@@ -8,13 +8,6 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/utils/file_opener.dart';
 import '../../data/repositories/teacher_repository.dart';
-import 'assignment_review_page.dart';
-import 'attendance_marking_page.dart';
-import 'create_quiz_page.dart';
-import 'doubt_response_page.dart';
-import 'quiz_results_page.dart';
-import 'youtube_broadcast_page.dart';
-import 'upload_material_page.dart';
 import '../../../../core/theme/theme_aware.dart';
 class TeacherBatchPanelPage extends StatefulWidget {
   final String batchId;
@@ -86,16 +79,16 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
   }
 
   void _openAssignmentReview({String? assignmentId, String? assignmentTitle}) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AssignmentReviewPage(
-          batchId: widget.batchId,
-          initialAssignmentId: assignmentId,
-          initialAssignmentTitle: assignmentTitle,
-        ),
-      ),
-    ).then((_) => _load());
+    context
+        .pushNamed(
+          'teacher-batch-assignment-review',
+          pathParameters: {'id': widget.batchId},
+          extra: {
+            'initialAssignmentId': assignmentId,
+            'initialAssignmentTitle': assignmentTitle,
+          },
+        )
+        .then((_) => _load());
   }
 
   Future<void> _openPendingAssignmentReview(int pendingCount) async {
@@ -773,12 +766,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          YoutubeBroadcastPage(batchId: widget.batchId),
-                    ),
+                  onPressed: () => context.pushNamed(
+                    'teacher-batch-youtube-live',
+                    pathParameters: {'id': widget.batchId},
                   ),
                   icon: const Icon(Icons.videocam, color: Colors.black),
                   label: Text(
@@ -1051,16 +1041,19 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                     icon: Icons.add,
                     blue: blue,
                     yellow: yellow,
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => UploadMaterialPage.withInitials(
-                          initialBatchId: widget.batchId,
-                          initialType: contentType,
-                          initialSubject: (_batch?['subject'] ?? '').toString(),
-                        ),
-                      ),
-                    ).then((_) => _load()),
+                    onPressed: () => context
+                        .pushNamed(
+                          'teacher-batch-upload-material',
+                          pathParameters: {'id': widget.batchId},
+                          extra: {
+                            'initialType': contentType,
+                            'initialSubject': (
+                              _batch?['subject'] ??
+                              ''
+                            ).toString(),
+                          },
+                        )
+                        .then((_) => _load()),
                   ),
                 ],
               ),
@@ -1229,16 +1222,19 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                     icon: Icons.add,
                     blue: blue,
                     yellow: yellow,
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => UploadMaterialPage.withInitials(
-                          initialBatchId: widget.batchId,
-                          initialType: 'assignment',
-                          initialSubject: (_batch?['subject'] ?? '').toString(),
-                        ),
-                      ),
-                    ).then((_) => _load()),
+                    onPressed: () => context
+                        .pushNamed(
+                          'teacher-batch-upload-material',
+                          pathParameters: {'id': widget.batchId},
+                          extra: {
+                            'initialType': 'assignment',
+                            'initialSubject': (
+                              _batch?['subject'] ??
+                              ''
+                            ).toString(),
+                          },
+                        )
+                        .then((_) => _load()),
                   ),
                 ],
               ),
@@ -1673,16 +1669,14 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
     Map<String, dynamic> item, {
     required String type,
   }) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => UploadMaterialPage.withInitials(
-          initialBatchId: widget.batchId,
-          initialType: type,
-          initialSubject: (_batch?['subject'] ?? '').toString(),
-          initialItem: item,
-        ),
-      ),
+    await context.pushNamed(
+      'teacher-batch-upload-material',
+      pathParameters: {'id': widget.batchId},
+      extra: {
+        'initialType': type,
+        'initialSubject': (_batch?['subject'] ?? '').toString(),
+        'initialItem': item,
+      },
     );
     await _load();
   }
@@ -2036,14 +2030,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                       );
                       return;
                     }
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => QuizResultsPage(
-                          quizId: targetId,
-                          fallbackTitle: 'BATCH ANALYTICS',
-                        ),
-                      ),
+                    context.pushNamed(
+                      'teacher-batch-quiz-results',
+                      pathParameters: {
+                        'id': widget.batchId,
+                        'quizId': targetId,
+                      },
+                      queryParameters: const {'title': 'BATCH ANALYTICS'},
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -2090,15 +2083,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
               blue: blue,
               yellow: yellow,
               onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CreateQuizPage(
-                      initialBatchId: widget.batchId,
-                      initialSubject: (_batch?['subject'] ?? '').toString(),
-                      initialAssessmentType: 'QUIZ',
-                    ),
-                  ),
+                await context.pushNamed(
+                  'teacher-batch-create-quiz',
+                  pathParameters: {'id': widget.batchId},
+                  extra: {
+                    'initialSubject': (_batch?['subject'] ?? '').toString(),
+                    'initialAssessmentType': 'QUIZ',
+                  },
                 );
                 await _load();
               },
@@ -2200,14 +2191,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                         child: ElevatedButton(
                           onPressed: quizId.isEmpty
                               ? null
-                              : () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => QuizResultsPage(
-                                      quizId: quizId,
-                                      fallbackTitle: title,
-                                    ),
-                                  ),
+                              : () => context.pushNamed(
+                                  'teacher-batch-quiz-results',
+                                  pathParameters: {
+                                    'id': widget.batchId,
+                                    'quizId': quizId,
+                                  },
+                                  queryParameters: {'title': title},
                                 ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: blue,
@@ -2232,18 +2222,15 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                           onPressed: quizId.isEmpty
                               ? null
                               : () async {
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => CreateQuizPage(
-                                        initialBatchId: widget.batchId,
-                                        initialSubject:
-                                            (_batch?['subject'] ?? '')
-                                                .toString(),
-                                        quizId: quizId,
-                                        initialAssessmentType: 'QUIZ',
-                                      ),
-                                    ),
+                                  await context.pushNamed(
+                                    'teacher-batch-create-quiz',
+                                    pathParameters: {'id': widget.batchId},
+                                    extra: {
+                                      'initialSubject': (_batch?['subject'] ?? '')
+                                          .toString(),
+                                      'quizId': quizId,
+                                      'initialAssessmentType': 'QUIZ',
+                                    },
                                   );
                                   await _load();
                                 },
@@ -2403,15 +2390,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
               blue: blue,
               yellow: yellow,
               onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CreateQuizPage(
-                      initialBatchId: widget.batchId,
-                      initialSubject: (_batch?['subject'] ?? '').toString(),
-                      initialAssessmentType: 'TEST',
-                    ),
-                  ),
+                await context.pushNamed(
+                  'teacher-batch-create-quiz',
+                  pathParameters: {'id': widget.batchId},
+                  extra: {
+                    'initialSubject': (_batch?['subject'] ?? '').toString(),
+                    'initialAssessmentType': 'TEST',
+                  },
                 );
                 await _load();
               },
@@ -2513,14 +2498,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                         child: ElevatedButton(
                           onPressed: testId.isEmpty
                               ? null
-                              : () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => QuizResultsPage(
-                                      quizId: testId,
-                                      fallbackTitle: title,
-                                    ),
-                                  ),
+                              : () => context.pushNamed(
+                                  'teacher-batch-quiz-results',
+                                  pathParameters: {
+                                    'id': widget.batchId,
+                                    'quizId': testId,
+                                  },
+                                  queryParameters: {'title': title},
                                 ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: blue,
@@ -2545,18 +2529,15 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                           onPressed: testId.isEmpty
                               ? null
                               : () async {
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => CreateQuizPage(
-                                        initialBatchId: widget.batchId,
-                                        initialSubject:
-                                            (_batch?['subject'] ?? '')
-                                                .toString(),
-                                        quizId: testId,
-                                        initialAssessmentType: 'TEST',
-                                      ),
-                                    ),
+                                  await context.pushNamed(
+                                    'teacher-batch-create-quiz',
+                                    pathParameters: {'id': widget.batchId},
+                                    extra: {
+                                      'initialSubject': (_batch?['subject'] ?? '')
+                                          .toString(),
+                                      'quizId': testId,
+                                      'initialAssessmentType': 'TEST',
+                                    },
                                   );
                                   await _load();
                                 },
@@ -2794,15 +2775,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AttendanceMarkingPage(
-                          initialBatchId: widget.batchId,
-                          initialDate: _selectedAttendanceDate,
-                          initialSubject: _selectedSubject,
-                        ),
-                      ),
+                    await context.pushNamed(
+                      'teacher-batch-attendance',
+                      pathParameters: {'id': widget.batchId},
+                      extra: {
+                        'initialDate': _selectedAttendanceDate,
+                        'initialSubject': _selectedSubject,
+                      },
                     );
                     _load();
                   },
@@ -3086,9 +3065,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
   }
 
   Future<void> _openDoubtChat(Map<String, dynamic> doubt) async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (_) => DoubtResponsePage(doubt: doubt)),
+    final result = await context.pushNamed<bool>(
+      'doubt-response',
+      extra: doubt,
     );
     if (!mounted) return;
     if (result == true) {

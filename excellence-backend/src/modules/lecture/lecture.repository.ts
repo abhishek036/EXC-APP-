@@ -45,12 +45,25 @@ export class LectureRepository {
       });
     } catch (error) {
       if (!isLegacyColumnError(error)) throw error;
-      
-      const query = `SELECT id::text, title, scheduled_at, duration_minutes, created_at, teacher_id::text, batch_id::text, is_active, subject, link, lecture_type 
-                     FROM lectures 
-                     WHERE batch_id::uuid = $1::uuid AND institute_id::uuid = $2::uuid AND is_active = true
-                     ORDER BY created_at DESC`;
-      return prisma.$queryRawUnsafe<any[]>(query, batch_id, institute_id);
+
+      return prisma.$queryRaw<any[]>(Prisma.sql`
+        SELECT id::text,
+               title,
+               scheduled_at,
+               duration_minutes,
+               created_at,
+               teacher_id::text,
+               batch_id::text,
+               is_active,
+               subject,
+               link,
+               lecture_type
+        FROM lectures
+        WHERE batch_id::uuid = ${batch_id}::uuid
+          AND institute_id::uuid = ${institute_id}::uuid
+          AND is_active = true
+        ORDER BY created_at DESC
+      `);
     }
   }
 

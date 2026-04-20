@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 import { NotificationService } from '../notification/notification.service';
@@ -17,13 +18,13 @@ export class TimetableService {
     if (TimetableService.isSchemaEnsured) return;
     try {
       this.logger.log('[TimetableService] running schema repair check...');
-      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS subject VARCHAR(100);`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS link TEXT;`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS class_room VARCHAR(100);`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS description TEXT;`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS lecture_type VARCHAR(20);`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS duration_minutes INTEGER DEFAULT 60;`);
+      await prisma.$executeRaw(Prisma.sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS subject VARCHAR(100)`);
+      await prisma.$executeRaw(Prisma.sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS link TEXT`);
+      await prisma.$executeRaw(Prisma.sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS class_room VARCHAR(100)`);
+      await prisma.$executeRaw(Prisma.sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS description TEXT`);
+      await prisma.$executeRaw(Prisma.sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS lecture_type VARCHAR(20)`);
+      await prisma.$executeRaw(Prisma.sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true`);
+      await prisma.$executeRaw(Prisma.sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS duration_minutes INTEGER DEFAULT 60`);
       TimetableService.isSchemaEnsured = true;
       this.logger.log('[TimetableService] schema repair finished');
     } catch (e) {
@@ -86,21 +87,11 @@ export class TimetableService {
     link?: string,
     classRoom?: string,
   ) {
-    const rows = await prisma.$queryRawUnsafe<any[]>(
-      `INSERT INTO lectures (institute_id, batch_id, teacher_id, title, scheduled_at, is_active, duration_minutes, subject, link, class_room)
-       VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING id::text, title, scheduled_at, batch_id::text, duration_minutes, subject, link, class_room`,
-      instituteId,
-      batchId,
-      teacherId,
-      title,
-      scheduledAt,
-      true,
-      duration,
-      subject || null,
-      link || null,
-      classRoom || null,
-    );
+    const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+      INSERT INTO lectures (institute_id, batch_id, teacher_id, title, scheduled_at, is_active, duration_minutes, subject, link, class_room)
+      VALUES (${instituteId}::uuid, ${batchId}::uuid, ${teacherId}::uuid, ${title}, ${scheduledAt}, ${true}, ${duration}, ${subject || null}, ${link || null}, ${classRoom || null})
+      RETURNING id::text, title, scheduled_at, batch_id::text, duration_minutes, subject, link, class_room
+    `);
     const row = rows[0];
     return {
       id: row.id,
@@ -125,20 +116,18 @@ export class TimetableService {
     link?: string,
     classRoom?: string,
   ) {
-    const rows = await prisma.$queryRawUnsafe<any[]>(
-      `UPDATE lectures 
-       SET batch_id = $1::uuid, title = $2, scheduled_at = $3, duration_minutes = $4, subject = $5, link = $6, class_room = $7
-       WHERE id = $8::uuid
-       RETURNING id::text, title, scheduled_at, batch_id::text, duration_minutes, subject, link, class_room`,
-      batchId,
-      title || '',
-      scheduledAt,
-      duration,
-      subject || null,
-      link || null,
-      classRoom || null,
-      lectureId,
-    );
+    const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+      UPDATE lectures
+      SET batch_id = ${batchId}::uuid,
+          title = ${title || ''},
+          scheduled_at = ${scheduledAt},
+          duration_minutes = ${duration},
+          subject = ${subject || null},
+          link = ${link || null},
+          class_room = ${classRoom || null}
+      WHERE id = ${lectureId}::uuid
+      RETURNING id::text, title, scheduled_at, batch_id::text, duration_minutes, subject, link, class_room
+    `);
     const row = rows[0];
     return {
       id: row.id,
@@ -188,20 +177,13 @@ export class TimetableService {
       batch_subject: string | null;
     };
 
-    const baseWhere = `
-      l.institute_id::text = $1
-      AND l.teacher_id::text = $2
-      AND COALESCE(l.is_active, true) = true
-      AND l.id::text ~* '${TimetableService.UUID_REGEX}'
-      AND l.batch_id::text ~* '${TimetableService.UUID_REGEX}'
-    `;
-
-    const durationSelect = includeDuration ? 'l.duration_minutes,' : 'NULL::int AS duration_minutes,';
+    const durationSelect = includeDuration
+      ? Prisma.sql`l.duration_minutes,`
+      : Prisma.sql`NULL::int AS duration_minutes,`;
 
     let rows: Row[] = [];
     if (start && end) {
-      rows = await prisma.$queryRawUnsafe<Row[]>(
-        `
+      rows = await prisma.$queryRaw<Row[]>(Prisma.sql`
         SELECT
           l.id::text AS id,
           l.title,
@@ -217,19 +199,17 @@ export class TimetableService {
         LEFT JOIN batches b
           ON b.id::text = l.batch_id::text
          AND b.institute_id::text = l.institute_id::text
-        WHERE ${baseWhere}
-          AND l.scheduled_at >= $3
-          AND l.scheduled_at <= $4
+        WHERE l.institute_id::text = ${instituteId}
+          AND l.teacher_id::text = ${teacherId}
+          AND COALESCE(l.is_active, true) = true
+          AND l.id::text ~* ${TimetableService.UUID_REGEX}
+          AND l.batch_id::text ~* ${TimetableService.UUID_REGEX}
+          AND l.scheduled_at >= ${start}
+          AND l.scheduled_at <= ${end}
         ORDER BY l.scheduled_at ASC
-        `,
-        instituteId,
-        teacherId,
-        start,
-        end,
-      );
+      `);
     } else {
-      rows = await prisma.$queryRawUnsafe<Row[]>(
-        `
+      rows = await prisma.$queryRaw<Row[]>(Prisma.sql`
         SELECT
           l.id::text AS id,
           l.title,
@@ -245,12 +225,13 @@ export class TimetableService {
         LEFT JOIN batches b
           ON b.id::text = l.batch_id::text
          AND b.institute_id::text = l.institute_id::text
-        WHERE ${baseWhere}
+        WHERE l.institute_id::text = ${instituteId}
+          AND l.teacher_id::text = ${teacherId}
+          AND COALESCE(l.is_active, true) = true
+          AND l.id::text ~* ${TimetableService.UUID_REGEX}
+          AND l.batch_id::text ~* ${TimetableService.UUID_REGEX}
         ORDER BY l.scheduled_at ASC
-        `,
-        instituteId,
-        teacherId,
-      );
+      `);
     }
 
     return rows.map((row) => ({
@@ -284,10 +265,11 @@ export class TimetableService {
       teacher_name: string | null;
     };
 
-    const durationSelect = includeDuration ? 'l.duration_minutes,' : 'NULL::int AS duration_minutes,';
+    const durationSelect = includeDuration
+      ? Prisma.sql`l.duration_minutes,`
+      : Prisma.sql`NULL::int AS duration_minutes,`;
 
-    const rows = await prisma.$queryRawUnsafe<Row[]>(
-      `
+    const rows = await prisma.$queryRaw<Row[]>(Prisma.sql`
       SELECT
         l.id::text AS id,
         l.title,
@@ -300,16 +282,13 @@ export class TimetableService {
       LEFT JOIN teachers t
         ON t.id::text = l.teacher_id::text
        AND t.institute_id::text = l.institute_id::text
-      WHERE l.institute_id::text = $1
-        AND l.batch_id::text = $2
-        AND l.id::text ~* '${TimetableService.UUID_REGEX}'
-        AND l.batch_id::text ~* '${TimetableService.UUID_REGEX}'
-        AND l.teacher_id::text ~* '${TimetableService.UUID_REGEX}'
+      WHERE l.institute_id::text = ${instituteId}
+        AND l.batch_id::text = ${batchId}
+        AND l.id::text ~* ${TimetableService.UUID_REGEX}
+        AND l.batch_id::text ~* ${TimetableService.UUID_REGEX}
+        AND l.teacher_id::text ~* ${TimetableService.UUID_REGEX}
       ORDER BY l.scheduled_at ASC
-      `,
-      instituteId,
-      batchId,
-    );
+    `);
 
     return rows.map((row) => ({
       id: row.id,
@@ -337,10 +316,11 @@ export class TimetableService {
       batch_name: string | null;
     };
 
-    const durationSelect = includeDuration ? 'l.duration_minutes,' : 'NULL::int AS duration_minutes,';
+    const durationSelect = includeDuration
+      ? Prisma.sql`l.duration_minutes,`
+      : Prisma.sql`NULL::int AS duration_minutes,`;
 
-    const rows = await prisma.$queryRawUnsafe<Row[]>(
-      `
+    const rows = await prisma.$queryRaw<Row[]>(Prisma.sql`
       SELECT
         l.id::text AS id,
         l.title,
@@ -353,16 +333,13 @@ export class TimetableService {
       LEFT JOIN batches b
         ON b.id::text = l.batch_id::text
        AND b.institute_id::text = l.institute_id::text
-      WHERE l.institute_id::text = $1
-        AND l.teacher_id::text = $2
-        AND l.id::text ~* '${TimetableService.UUID_REGEX}'
-        AND l.batch_id::text ~* '${TimetableService.UUID_REGEX}'
-        AND l.teacher_id::text ~* '${TimetableService.UUID_REGEX}'
+      WHERE l.institute_id::text = ${instituteId}
+        AND l.teacher_id::text = ${teacherId}
+        AND l.id::text ~* ${TimetableService.UUID_REGEX}
+        AND l.batch_id::text ~* ${TimetableService.UUID_REGEX}
+        AND l.teacher_id::text ~* ${TimetableService.UUID_REGEX}
       ORDER BY l.scheduled_at ASC
-      `,
-      instituteId,
-      teacherId,
-    );
+    `);
 
     return rows.map((row) => ({
       id: row.id,

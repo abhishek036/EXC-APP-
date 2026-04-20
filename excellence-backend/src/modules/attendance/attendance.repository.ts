@@ -56,44 +56,39 @@ export class AttendanceRepository {
     }
 
     private async listSessionsLegacy(instituteId: string, startDate: Date, endDate: Date, filter: { batchId?: string }) {
-        const rows = await prisma.$queryRawUnsafe<any[]>(
-            `SELECT id::text,
-                    batch_id::text,
-                    institute_id::text,
-                    teacher_id::text,
-                    session_date,
-                    submitted_at,
-                    is_corrected
-             FROM attendance_sessions
-             WHERE institute_id::text = $1::text
-               AND session_date >= $2::date
-               AND session_date <= $3::date
-               AND ($4::text IS NULL OR batch_id::text = $4::text)
-             ORDER BY session_date ASC`,
-            instituteId,
-            startDate,
-            endDate,
-            filter.batchId ?? null,
-        );
+                const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+                        SELECT id::text,
+                                     batch_id::text,
+                                     institute_id::text,
+                                     teacher_id::text,
+                                     session_date,
+                                     submitted_at,
+                                     is_corrected
+                        FROM attendance_sessions
+                        WHERE institute_id::text = ${instituteId}::text
+                            AND session_date >= ${startDate}::date
+                            AND session_date <= ${endDate}::date
+                            AND (${filter.batchId ?? null}::text IS NULL OR batch_id::text = ${filter.batchId ?? null}::text)
+                        ORDER BY session_date ASC
+                `);
 
         return rows.map((row) => this.mapLegacySessionRow(row));
     }
 
     private async listSessionRecordsLegacy(sessionId: string) {
-        const rows = await prisma.$queryRawUnsafe<any[]>(
-            `SELECT ar.id::text,
-                    ar.session_id::text,
-                    ar.student_id::text,
-                    ar.institute_id::text,
-                    ar.status,
-                    ar.correction_note,
-                    ar.corrected_by::text as corrected_by_id,
-                    s.name as student_name
-             FROM attendance_records ar
-             LEFT JOIN students s ON s.id = ar.student_id
-             WHERE ar.session_id::text = $1::text`,
-            sessionId,
-        );
+        const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+            SELECT ar.id::text,
+                   ar.session_id::text,
+                   ar.student_id::text,
+                   ar.institute_id::text,
+                   ar.status,
+                   ar.correction_note,
+                   ar.corrected_by::text as corrected_by_id,
+                   s.name as student_name
+            FROM attendance_records ar
+            LEFT JOIN students s ON s.id = ar.student_id
+            WHERE ar.session_id::text = ${sessionId}::text
+        `);
 
         return rows.map((row) => this.mapLegacyRecordRow(row));
     }
@@ -120,40 +115,31 @@ export class AttendanceRepository {
         data: MarkAttendanceInput,
     ) {
         const sessionDate = new Date(data.session_date);
-        const existingRows = await tx.$queryRawUnsafe<any[]>(
-            `SELECT id::text
-             FROM attendance_sessions
-             WHERE institute_id::text = $1::text
-               AND batch_id::text = $2::text
-               AND session_date = $3::date
-             ORDER BY submitted_at DESC NULLS LAST, id DESC
-             LIMIT 1`,
-            instituteId,
-            data.batch_id,
-            sessionDate,
-        );
+                const existingRows = await tx.$queryRaw<any[]>(Prisma.sql`
+                        SELECT id::text
+                        FROM attendance_sessions
+                        WHERE institute_id::text = ${instituteId}::text
+                            AND batch_id::text = ${data.batch_id}::text
+                            AND session_date = ${sessionDate}::date
+                        ORDER BY submitted_at DESC NULLS LAST, id DESC
+                        LIMIT 1
+                `);
 
         let sessionId: string;
         if (existingRows.length > 0) {
             sessionId = existingRows[0].id;
-            await tx.$executeRawUnsafe(
-                `UPDATE attendance_sessions
-                 SET submitted_at = NOW(),
-                     teacher_id = COALESCE($1::uuid, teacher_id)
-                 WHERE id::text = $2::text`,
-                teacherProfileId,
-                sessionId,
-            );
+            await tx.$executeRaw(Prisma.sql`
+                UPDATE attendance_sessions
+                SET submitted_at = NOW(),
+                    teacher_id = COALESCE(${teacherProfileId}::uuid, teacher_id)
+                WHERE id::text = ${sessionId}::text
+            `);
         } else {
-            const insertedRows = await tx.$queryRawUnsafe<any[]>(
-                `INSERT INTO attendance_sessions (institute_id, batch_id, session_date, submitted_at, teacher_id)
-                 VALUES ($1::uuid, $2::uuid, $3::date, NOW(), $4::uuid)
-                 RETURNING id::text`,
-                instituteId,
-                data.batch_id,
-                sessionDate,
-                teacherProfileId,
-            );
+            const insertedRows = await tx.$queryRaw<any[]>(Prisma.sql`
+                INSERT INTO attendance_sessions (institute_id, batch_id, session_date, submitted_at, teacher_id)
+                VALUES (${instituteId}::uuid, ${data.batch_id}::uuid, ${sessionDate}::date, NOW(), ${teacherProfileId}::uuid)
+                RETURNING id::text
+            `);
             sessionId = insertedRows[0].id;
         }
 
