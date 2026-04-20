@@ -821,7 +821,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   }
 
   Widget _classItem(Map<String, dynamic> c) {
-    final batchId = (c['id'] ?? '').toString();
+    final batchId = (c['batch_id'] ?? c['batchId'] ?? '').toString();
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: CPPressable(

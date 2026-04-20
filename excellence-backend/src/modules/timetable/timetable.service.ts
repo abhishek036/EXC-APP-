@@ -532,9 +532,12 @@ export class TimetableService {
     const duration = data.duration_minutes && data.duration_minutes > 0 ? data.duration_minutes : 60;
     
     const results = [];
+    let attemptedCount = 0;
+    let conflictCount = 0;
     for (const dateStr of dates) {
         const scheduledAt = new Date(dateStr);
         if (isNaN(scheduledAt.getTime())) continue;
+      attemptedCount += 1;
 
         try {
             await this.assertBatchOwnedByTeacher(data.batch_id, instituteId, teacher.id);
@@ -555,8 +558,25 @@ export class TimetableService {
             results.push(lecture);
             this.notifyNewLecture(lecture, null, scheduledAt, instituteId, data.batch_id, data.title);
         } catch (error) {
-            this.logger.error(`[TimetableService] Failed to create lecture for ${dateStr}:`, error);
+            if (error instanceof ApiError && error.code === 'CONFLICT') {
+              conflictCount += 1;
+              continue;
+            }
+            throw error;
         }
+    }
+
+    if (conflictCount > 0) {
+      this.logger.warn(
+        `[TimetableService] Skipped ${conflictCount} conflicting slot(s) while creating teacher schedule.`,
+      );
+    }
+
+    if (results.length === 0) {
+      if (attemptedCount === 0) {
+        throw new ApiError('No valid schedule date provided', 400, 'VALIDATION_ERROR');
+      }
+      throw new ApiError('Teacher is already busy during this time slot', 400, 'CONFLICT');
     }
 
     return results.length > 0 ? results[0] : null;

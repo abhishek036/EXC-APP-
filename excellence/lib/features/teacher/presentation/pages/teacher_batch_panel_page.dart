@@ -50,6 +50,15 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
   DateTime _selectedQuizMonth = DateTime.now();
   StreamSubscription? _syncSub;
 
+  String? _resolveSubjectForBatch(List<String> subjects) {
+    if (subjects.isEmpty) return null;
+    final selected = _selectedSubject?.trim();
+    if (selected == null || selected.isEmpty) {
+      return subjects.first;
+    }
+    return subjects.contains(selected) ? selected : subjects.first;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -158,40 +167,38 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
       _loading = true;
     });
     try {
-      final batchesFuture = _teacherRepo.getMyBatches();
-      final studentsFuture = _teacherRepo.getBatchStudents(widget.batchId);
-      final executionFuture = _teacherRepo.getBatchExecutionSummary(
-        widget.batchId,
-        subject: _selectedSubject,
-      );
-      final practiceQuizzesFuture = _teacherRepo.getBatchQuizzes(
-        widget.batchId,
-        assessmentType: 'QUIZ',
-        subject: _selectedSubject,
-      );
-      final scheduledTestsFuture = _teacherRepo.getBatchQuizzes(
-        widget.batchId,
-        assessmentType: 'TEST',
-        subject: _selectedSubject,
-      );
-      final notesFuture = _teacherRepo.getBatchNotes(
-        widget.batchId,
-        subject: _selectedSubject,
-      );
-      final assignmentsFuture = _teacherRepo.getAssignments(
-        batchId: widget.batchId,
-        subject: _selectedSubject,
-      );
-      final pendingDoubtsFuture = _loadBatchPendingDoubts();
-      final allDoubtsFuture = _loadBatchDoubts();
-
-      final batches = await batchesFuture;
+      final batches = await _teacherRepo.getMyBatches();
       final selected = batches
           .where((b) => (b['id'] ?? '').toString() == widget.batchId)
           .toList();
-      final batchData = selected.isNotEmpty
-          ? selected.first
-          : <String, dynamic>{};
+      if (selected.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _batch = null;
+          _execution = {};
+          _students = [];
+          _doubts = [];
+          _allBatchDoubts = [];
+          _practiceQuizzes = [];
+          _scheduledTests = [];
+          _notes = [];
+          _assignments = [];
+          _loading = false;
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('This batch is no longer assigned to you.'),
+            ),
+          );
+          context.go('/teacher/batches');
+        });
+        return;
+      }
+
+      final batchData = selected.first;
 
       // Parse subjects from meta
       final meta = batchData['meta'] ?? {};
@@ -206,6 +213,35 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
             .where((e) => e.isNotEmpty)
             .toList();
       }
+
+      final resolvedSubject = _resolveSubjectForBatch(subjects);
+      _selectedSubject = resolvedSubject;
+
+      final studentsFuture = _teacherRepo.getBatchStudents(widget.batchId);
+      final executionFuture = _teacherRepo.getBatchExecutionSummary(
+        widget.batchId,
+        subject: resolvedSubject,
+      );
+      final practiceQuizzesFuture = _teacherRepo.getBatchQuizzes(
+        widget.batchId,
+        assessmentType: 'QUIZ',
+        subject: resolvedSubject,
+      );
+      final scheduledTestsFuture = _teacherRepo.getBatchQuizzes(
+        widget.batchId,
+        assessmentType: 'TEST',
+        subject: resolvedSubject,
+      );
+      final notesFuture = _teacherRepo.getBatchNotes(
+        widget.batchId,
+        subject: resolvedSubject,
+      );
+      final assignmentsFuture = _teacherRepo.getAssignments(
+        batchId: widget.batchId,
+        subject: resolvedSubject,
+      );
+      final pendingDoubtsFuture = _loadBatchPendingDoubts();
+      final allDoubtsFuture = _loadBatchDoubts();
 
       final execution = await executionFuture;
       final students = await studentsFuture;
@@ -246,12 +282,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
       setState(() {
         _batch = batchData;
         _subjects = subjects;
-        if (_selectedSubject == null && subjects.isNotEmpty) {
-          _selectedSubject = subjects.first;
-        } else if (_selectedSubject != null && !subjects.contains(_selectedSubject)) {
-          // Subject list changed (admin edit) — reset to first available
-          _selectedSubject = subjects.isNotEmpty ? subjects.first : null;
-        }
+        _selectedSubject = resolvedSubject;
         _execution = execution;
         _students = students;
         _doubts = pendingDoubts;
