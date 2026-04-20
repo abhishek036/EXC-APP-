@@ -103,7 +103,10 @@ export class AuthService {
         return db.user.findMany({
             where: {
                 phone: { in: phonesToSearch },
-                is_active: true,
+                OR: [
+                    { is_active: true },
+                    { is_active: null },
+                ],
             },
             orderBy: { created_at: 'asc' },
         });
@@ -250,6 +253,16 @@ export class AuthService {
         for (const entry of parents) instituteIds.add(entry.institute_id);
 
         return Array.from(instituteIds);
+    }
+
+    private async _findUserByInstituteAndPhone(db: any, instituteId: string, phonesToSearch: string[]): Promise<any | null> {
+        return db.user.findFirst({
+            where: {
+                institute_id: instituteId,
+                phone: { in: phonesToSearch },
+            },
+            orderBy: { created_at: 'asc' },
+        });
     }
 
     private async _resolveInstituteId(
@@ -404,6 +417,12 @@ export class AuthService {
                 joinInstitute?.id,
             );
 
+            // Safety net: if a legacy user row exists (e.g., is_active is null/false), reuse it
+            // instead of attempting duplicate creation on (institute_id, phone).
+            if (!user) {
+                user = await this._findUserByInstituteAndPhone(tx, instituteIdToUse, phonesToSearch);
+            }
+
             const [staff, teacher, inactiveTeacher, studentCandidates, parent] = await Promise.all([
                 tx.staff.findFirst({ where: { institute_id: instituteIdToUse, phone: { in: phonesToSearch } } }),
                 tx.teacher.findFirst({
@@ -478,30 +497,71 @@ export class AuthService {
 
             // --- CREATE USER IF NOT EXISTS ---
             if (!user) {
-                user = await tx.user.create({
-                    data: {
-                        phone: normalizedPhone,
-                        institute_id: instituteIdToUse,
-                        role: assignedRole,
-                        status: assignedRole === 'parent' ? 'INACTIVE' : 'ACTIVE'
-                    }
-                });
-                isNewUser = true;
-            } else {
-                if (user.status === 'BLOCKED') throw new ApiError('Blocked.', 403, 'BLOCKED');
-                if (user.status === 'PENDING') {
-                    user = await tx.user.update({
-                        where: { id: user.id },
-                        data: { status: user.role === 'parent' ? 'INACTIVE' : 'ACTIVE' },
+                try {
+                    user = await tx.user.create({
+                        data: {
+                            phone: normalizedPhone,
+                            institute_id: instituteIdToUse,
+                            role: assignedRole,
+                            status: assignedRole === 'parent' ? 'INACTIVE' : 'ACTIVE'
+                        }
                     });
+                    isNewUser = true;
+                } catch (error: any) {
+                    // Concurrent verify requests can race. If unique pair already exists,
+                    // load and continue with the existing user.
+                    if (error?.code === 'P2002') {
+                        const existing = await this._findUserByInstituteAndPhone(tx, instituteIdToUse, phonesToSearch);
+
+                        if (existing) {
+                            user = existing;
+                            isNewUser = false;
+                        } else {
+                            throw error;
+                        }
+                    } else {
+                        throw error;
+                    }
                 }
+            }
+
+            // Normalize recovered/existing users for OTP login flow.
+            if (user.status === 'BLOCKED') throw new ApiError('Blocked.', 403, 'BLOCKED');
+
+            const userPatch: Record<string, unknown> = {};
+            if (user.status === 'PENDING') {
+                userPatch.status = user.role === 'parent' ? 'INACTIVE' : 'ACTIVE';
+            }
+            if (user.is_active !== true) {
+                userPatch.is_active = true;
+            }
+
+            if (Object.keys(userPatch).length > 0) {
+                user = await tx.user.update({
+                    where: { id: user.id },
+                    data: userPatch,
+                });
             }
 
             // --- ENSURE PROFILE MATCHES ROLE AND SYNC user_id ---
             if (assignedRole === 'teacher' && !teacher) {
-                await tx.teacher.create({
-                    data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Faculty Member', phone: user.phone, is_active: true }
+                const existingTeacher = await tx.teacher.findFirst({
+                    where: {
+                        institute_id: instituteIdToUse,
+                        phone: { in: phonesToSearch },
+                    },
                 });
+
+                if (existingTeacher) {
+                    await tx.teacher.update({
+                        where: { id: existingTeacher.id },
+                        data: { user_id: user.id, is_active: true },
+                    });
+                } else {
+                    await tx.teacher.create({
+                        data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Faculty Member', phone: user.phone, is_active: true }
+                    });
+                }
             } else if (assignedRole === 'student' && !student) {
                 await tx.student.create({
                     data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Student Profile', phone: user.phone, is_active: true }
