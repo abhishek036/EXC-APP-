@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, GetObjectCommand, CreateBucketCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { v2 as cloudinary } from 'cloudinary';
@@ -23,6 +23,24 @@ type StorageRef = {
 };
 
 const env = (key: string): string => String(process.env[key] || '').trim();
+
+const awsErrorCode = (error: unknown): string => {
+  if (!error || typeof error !== 'object') return '';
+  const raw = (error as any).Code ?? (error as any).code ?? (error as any).name;
+  return typeof raw === 'string' ? raw : '';
+};
+
+const isNoSuchBucketError = (error: unknown): boolean => {
+  const code = awsErrorCode(error);
+  if (/^NoSuchBucket$/i.test(code)) return true;
+  const message = error instanceof Error ? error.message : String((error as any)?.message || '');
+  return /NoSuchBucket/i.test(message);
+};
+
+const isBucketAlreadyExistsError = (error: unknown): boolean => {
+  const code = awsErrorCode(error);
+  return /^BucketAlreadyOwnedByYou$/i.test(code) || /^BucketAlreadyExists$/i.test(code);
+};
 
 let cachedB2Client: S3Client | null = null;
 let cachedB2ClientSignature = '';
@@ -316,17 +334,50 @@ export class UploadController {
     const ext = extname(file.originalname) || '';
     const key = `${destination}/${uuidv4()}${ext}`;
 
-    const uploader = new Upload({
-      client: s3,
-      params: {
-        Bucket: bucketName,
-        Key: key,
-        Body: createReadStream(this.getUploadedFilePath(file)),
-        ContentType: file.mimetype || this.contentTypeFromExt(file.originalname),
-      },
-    });
+    const uploadOnce = async (): Promise<void> => {
+      const uploader = new Upload({
+        client: s3,
+        params: {
+          Bucket: bucketName,
+          Key: key,
+          Body: createReadStream(this.getUploadedFilePath(file)),
+          ContentType: file.mimetype || this.contentTypeFromExt(file.originalname),
+        },
+      });
 
-    await uploader.done();
+      await uploader.done();
+    };
+
+    try {
+      await uploadOnce();
+    } catch (error) {
+      if (!isNoSuchBucketError(error)) {
+        throw error;
+      }
+
+      console.warn(`[Upload] B2 bucket "${bucketName}" not found. Attempting one-time bucket creation.`);
+      try {
+        await s3.send(new CreateBucketCommand({ Bucket: bucketName }));
+      } catch (createError) {
+        if (!isBucketAlreadyExistsError(createError)) {
+          throw new ApiError(
+            `Configured B2 bucket "${bucketName}" does not exist, and automatic creation failed. Create the bucket in Backblaze or update B2_BUCKET_NAME.`,
+            500,
+            'STORAGE_NOT_CONFIGURED',
+          );
+        }
+      }
+
+      try {
+        await uploadOnce();
+      } catch {
+        throw new ApiError(
+          `Configured B2 bucket "${bucketName}" does not exist or is inaccessible. Create the bucket in Backblaze or update B2_BUCKET_NAME.`,
+          500,
+          'STORAGE_NOT_CONFIGURED',
+        );
+      }
+    }
 
     return {
       provider: 'b2',
