@@ -173,8 +173,21 @@ void main() {
       test('calculates summary correctly', () async {
         final bytes = await service.generateFeeReport(
           fees: [
-            {'student': 'A', 'batch': 'B1', 'amount': 5000, 'status': 'Paid', 'dueDate': '01 Jan', 'paidDate': '01 Jan'},
-            {'student': 'B', 'batch': 'B1', 'amount': 3000, 'status': 'Pending', 'dueDate': '15 Jan'},
+            {
+              'student': 'A',
+              'batch': 'B1',
+              'amount': 5000,
+              'status': 'Paid',
+              'dueDate': '01 Jan',
+              'paidDate': '01 Jan',
+            },
+            {
+              'student': 'B',
+              'batch': 'B1',
+              'amount': 3000,
+              'status': 'Pending',
+              'dueDate': '15 Jan',
+            },
           ],
           batchName: 'All Batches',
         );
@@ -215,4 +228,3 @@ void main() {
     });
   });
 }
-

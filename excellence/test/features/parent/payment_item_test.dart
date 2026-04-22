@@ -27,16 +27,29 @@ class PaymentItem {
     final status = rawStatus == 'paid'
         ? PaymentStatus.paid
         : rawStatus == 'overdue'
-            ? PaymentStatus.overdue
-            : PaymentStatus.pending;
+        ? PaymentStatus.overdue
+        : PaymentStatus.pending;
 
     const monthNames = [
-      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May',
-      'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final monthNum = (map['month'] as num?)?.toInt() ?? 0;
     final year = (map['year'] as num?)?.toInt() ?? 0;
-    final batchInfo = map['batch'] is Map ? (map['batch'] as Map)['name'] ?? '' : '';
+    final batchInfo = map['batch'] is Map
+        ? (map['batch'] as Map)['name'] ?? ''
+        : '';
     final monthLabel = monthNum > 0 && monthNum <= 12
         ? '${monthNames[monthNum]} $year'
         : (map['month'] ?? 'Unknown').toString();
@@ -58,7 +71,8 @@ class PaymentItem {
       description: batchInfo.toString().isNotEmpty
           ? 'Batch: $batchInfo'
           : (map['description'] ?? 'Fee Payment').toString(),
-      amount: (map['final_amount'] ?? map['amount_due'] ?? map['amount'] ?? 0).toString(),
+      amount: (map['final_amount'] ?? map['amount_due'] ?? map['amount'] ?? 0)
+          .toString(),
       date: formattedDate,
       status: status,
     );
@@ -90,15 +104,18 @@ void main() {
       expect(item.amount, '4000');
     });
 
-    test('falls back to amount when both final_amount and amount_due absent', () {
-      final item = PaymentItem.fromMap({
-        'amount': 2500,
-        'status': 'pending',
-        'month': 1,
-        'year': 2026,
-      });
-      expect(item.amount, '2500');
-    });
+    test(
+      'falls back to amount when both final_amount and amount_due absent',
+      () {
+        final item = PaymentItem.fromMap({
+          'amount': 2500,
+          'status': 'pending',
+          'month': 1,
+          'year': 2026,
+        });
+        expect(item.amount, '2500');
+      },
+    );
 
     test('defaults to 0 when all amount fields absent', () {
       final item = PaymentItem.fromMap({
@@ -112,17 +129,29 @@ void main() {
 
   group('PaymentItem.fromMap — status mapping', () {
     test('maps paid status correctly', () {
-      final item = PaymentItem.fromMap({'status': 'paid', 'month': 1, 'year': 2026});
+      final item = PaymentItem.fromMap({
+        'status': 'paid',
+        'month': 1,
+        'year': 2026,
+      });
       expect(item.status, PaymentStatus.paid);
     });
 
     test('maps overdue status correctly', () {
-      final item = PaymentItem.fromMap({'status': 'overdue', 'month': 1, 'year': 2026});
+      final item = PaymentItem.fromMap({
+        'status': 'overdue',
+        'month': 1,
+        'year': 2026,
+      });
       expect(item.status, PaymentStatus.overdue);
     });
 
     test('defaults unknown status to pending', () {
-      final item = PaymentItem.fromMap({'status': 'some_other', 'month': 1, 'year': 2026});
+      final item = PaymentItem.fromMap({
+        'status': 'some_other',
+        'month': 1,
+        'year': 2026,
+      });
       expect(item.status, PaymentStatus.pending);
     });
 
@@ -132,24 +161,40 @@ void main() {
     });
 
     test('handles case-insensitive status', () {
-      final item = PaymentItem.fromMap({'status': 'PAID', 'month': 1, 'year': 2026});
+      final item = PaymentItem.fromMap({
+        'status': 'PAID',
+        'month': 1,
+        'year': 2026,
+      });
       expect(item.status, PaymentStatus.paid);
     });
   });
 
   group('PaymentItem.fromMap — month label', () {
     test('formats numeric month correctly', () {
-      final item = PaymentItem.fromMap({'month': 3, 'year': 2026, 'status': 'paid'});
+      final item = PaymentItem.fromMap({
+        'month': 3,
+        'year': 2026,
+        'status': 'paid',
+      });
       expect(item.month, 'Mar 2026');
     });
 
     test('handles out-of-range month', () {
-      final item = PaymentItem.fromMap({'month': 13, 'year': 2026, 'status': 'paid'});
+      final item = PaymentItem.fromMap({
+        'month': 13,
+        'year': 2026,
+        'status': 'paid',
+      });
       expect(item.month, '13');
     });
 
     test('handles zero month', () {
-      final item = PaymentItem.fromMap({'month': 0, 'year': 2026, 'status': 'paid'});
+      final item = PaymentItem.fromMap({
+        'month': 0,
+        'year': 2026,
+        'status': 'paid',
+      });
       expect(item.month, '0');
     });
 
@@ -182,7 +227,11 @@ void main() {
     });
 
     test('defaults to Fee Payment when both missing', () {
-      final item = PaymentItem.fromMap({'status': 'paid', 'month': 1, 'year': 2026});
+      final item = PaymentItem.fromMap({
+        'status': 'paid',
+        'month': 1,
+        'year': 2026,
+      });
       expect(item.description, 'Fee Payment');
     });
   });
@@ -210,7 +259,11 @@ void main() {
     });
 
     test('handles missing date gracefully', () {
-      final item = PaymentItem.fromMap({'status': 'paid', 'month': 3, 'year': 2026});
+      final item = PaymentItem.fromMap({
+        'status': 'paid',
+        'month': 3,
+        'year': 2026,
+      });
       expect(item.date, '');
     });
 

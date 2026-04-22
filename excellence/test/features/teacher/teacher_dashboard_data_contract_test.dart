@@ -66,8 +66,14 @@ void main() {
     });
 
     test('refresh trigger accepts timetable and attendance reasons', () {
-      expect(shouldTeacherRefresh('batch_sync', 'lecture_schedule_updated'), isTrue);
-      expect(shouldTeacherRefresh('dashboard_sync', 'attendance_marked'), isTrue);
+      expect(
+        shouldTeacherRefresh('batch_sync', 'lecture_schedule_updated'),
+        isTrue,
+      );
+      expect(
+        shouldTeacherRefresh('dashboard_sync', 'attendance_marked'),
+        isTrue,
+      );
       expect(shouldTeacherRefresh('other', 'content_updated'), isTrue);
       expect(shouldTeacherRefresh('other', 'nothing_relevant'), isFalse);
     });

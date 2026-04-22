@@ -12,4 +12,3 @@ Widget testApp(Widget child, {ThemeMode themeMode = ThemeMode.light}) {
     home: child,
   );
 }
-

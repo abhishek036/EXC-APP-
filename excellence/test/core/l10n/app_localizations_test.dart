@@ -25,7 +25,17 @@ void main() {
       });
 
       test('returns all common keys', () {
-        for (final key in ['ok', 'cancel', 'save', 'delete', 'edit', 'done', 'next', 'back', 'search']) {
+        for (final key in [
+          'ok',
+          'cancel',
+          'save',
+          'delete',
+          'edit',
+          'done',
+          'next',
+          'back',
+          'search',
+        ]) {
           expect(l10n.t(key), isNotEmpty);
         }
       });
@@ -63,7 +73,10 @@ void main() {
 
       test('returns key when not in any language', () {
         final l10n = AppLocalizations(const Locale('fr'));
-        expect(l10n.t('totally_nonexistent_key'), equals('totally_nonexistent_key'));
+        expect(
+          l10n.t('totally_nonexistent_key'),
+          equals('totally_nonexistent_key'),
+        );
       });
     });
 
@@ -160,7 +173,11 @@ void main() {
           .where((e) => e.value.trim().isEmpty)
           .map((e) => e.key)
           .toList();
-      expect(emptyKeys, isEmpty, reason: 'Empty English translations: $emptyKeys');
+      expect(
+        emptyKeys,
+        isEmpty,
+        reason: 'Empty English translations: $emptyKeys',
+      );
     });
 
     test('no empty translation values in Hindi', () {
@@ -168,8 +185,11 @@ void main() {
           .where((e) => e.value.trim().isEmpty)
           .map((e) => e.key)
           .toList();
-      expect(emptyKeys, isEmpty, reason: 'Empty Hindi translations: $emptyKeys');
+      expect(
+        emptyKeys,
+        isEmpty,
+        reason: 'Empty Hindi translations: $emptyKeys',
+      );
     });
   });
 }
-

@@ -23,7 +23,10 @@ void main() {
         expect(restored.id, equals('fee_3day'));
         expect(restored.type, equals(AutoNotificationType.feeReminder));
         expect(restored.title, equals('Fee Due in 3 Days'));
-        expect(restored.description, equals('Remind parents 3 days before fee due date'));
+        expect(
+          restored.description,
+          equals('Remind parents 3 days before fee due date'),
+        );
         expect(restored.isEnabled, isTrue);
         expect(restored.daysBefore, equals(3));
         expect(restored.channel, equals('all'));
@@ -185,7 +188,9 @@ void main() {
     });
 
     test('defaultRules cover all expected types', () {
-      final types = AutoNotificationService.defaultRules.map((r) => r.type).toSet();
+      final types = AutoNotificationService.defaultRules
+          .map((r) => r.type)
+          .toSet();
       expect(types, contains(AutoNotificationType.feeReminder));
       expect(types, contains(AutoNotificationType.feeDueToday));
       expect(types, contains(AutoNotificationType.feeOverdue));
@@ -213,4 +218,3 @@ void main() {
     });
   });
 }
-

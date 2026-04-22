@@ -45,11 +45,7 @@ void main() {
     });
 
     test('schedule cards can render with minimal fields', () {
-      final item = {
-        'id': 'lec-2',
-        'name': 'Mathematics',
-        'teacher_name': null,
-      };
+      final item = {'id': 'lec-2', 'name': 'Mathematics', 'teacher_name': null};
 
       expect(item['id'], isNotNull);
       expect(item.containsKey('name'), isTrue);
@@ -57,10 +53,7 @@ void main() {
     });
 
     test('stats support percentage and fee rendering', () {
-      final stats = {
-        'attendance_percentage': 91,
-        'pending_fees_total': 1200,
-      };
+      final stats = {'attendance_percentage': 91, 'pending_fees_total': 1200};
 
       expect(stats['attendance_percentage'], isA<int>());
       expect(stats['pending_fees_total'], isA<int>());
@@ -68,8 +61,14 @@ void main() {
     });
 
     test('refresh trigger reacts to sync reasons', () {
-      expect(shouldStudentRefresh('batch_sync', 'lecture_schedule_created'), isTrue);
-      expect(shouldStudentRefresh('dashboard_sync', 'attendance_marked'), isTrue);
+      expect(
+        shouldStudentRefresh('batch_sync', 'lecture_schedule_created'),
+        isTrue,
+      );
+      expect(
+        shouldStudentRefresh('dashboard_sync', 'attendance_marked'),
+        isTrue,
+      );
       expect(shouldStudentRefresh('other', 'attendance_marked'), isFalse);
       expect(shouldStudentRefresh('batch_sync', 'notification_only'), isFalse);
     });

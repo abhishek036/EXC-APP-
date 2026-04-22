@@ -40,12 +40,16 @@ String resolveVideoId(String input) {
   return raw;
 }
 
-bool _isYoutubeId(String value) => RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(value);
+bool _isYoutubeId(String value) =>
+    RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(value);
 
 void main() {
   group('YouTube URL Resolution Tests', () {
     test('standard watch?v= link', () {
-      expect(resolveVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ'), 'dQw4w9WgXcQ');
+      expect(
+        resolveVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
+        'dQw4w9WgXcQ',
+      );
     });
 
     test('short youtu.be link', () {
@@ -53,7 +57,10 @@ void main() {
     });
 
     test('live session link (/live/)', () {
-      expect(resolveVideoId('https://www.youtube.com/live/dQw4w9WgXcQ?si=abcdef'), 'dQw4w9WgXcQ');
+      expect(
+        resolveVideoId('https://www.youtube.com/live/dQw4w9WgXcQ?si=abcdef'),
+        'dQw4w9WgXcQ',
+      );
     });
 
     test('raw video id', () {
