@@ -116,7 +116,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             ),
           ),
           const SizedBox(width: 16),
@@ -125,7 +125,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               letterSpacing: -0.5,
             ),
           ),
@@ -134,7 +134,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
             onPressed: _loadData,
             icon: Icon(
               Icons.refresh_rounded,
-              color: isDark ? Colors.white38 : Colors.black38,
+              color: isDark ? AppColors.paleSlate2 : Colors.black38,
             ),
           ),
         ],
@@ -174,7 +174,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: active ? const Color(0xFFBDAE18) : Colors.white,
+            color: active ? const Color(0xFFE5A100) : Colors.white,
             border: active
                 ? Border.all(color: const Color(0xFF354388), width: 2)
                 : Border.all(color: Colors.transparent, width: 2),
@@ -256,7 +256,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white38 : Colors.black38,
+                      color: isDark ? AppColors.paleSlate2 : Colors.black38,
                     ),
                   ),
                 ],
@@ -294,7 +294,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.white24 : Colors.black45,
+                      color: isDark ? AppColors.darkBorder : Colors.black45,
                     ),
                   ),
                 ],
@@ -411,7 +411,7 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: isDark
-                ? Colors.white24
+                ? AppColors.darkBorder
                 : Colors.black.withValues(alpha: 0.26),
           ),
           textAlign: TextAlign.center,

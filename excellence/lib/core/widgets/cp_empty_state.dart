@@ -36,16 +36,16 @@ class CPEmptyState extends StatelessWidget {
               height: 80,
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
+                    ? AppColors.softAmber.withValues(alpha: 0.08)
                     : AppColors.elitePrimary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isDark ? Colors.white24 : AppColors.elitePrimary,
-                  width: isDark ? 1.5 : 3,
+                  color: isDark ? AppColors.darkBorder : AppColors.elitePrimary,
+                  width: isDark ? 1.0 : 3,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: isDark ? Colors.black54 : AppColors.elitePrimary,
+                    color: isDark ? Colors.black38 : AppColors.elitePrimary,
                     offset: const Offset(3, 3),
                   ),
                 ],
@@ -54,7 +54,7 @@ class CPEmptyState extends StatelessWidget {
                 icon,
                 size: 36,
                 color: isDark
-                    ? Colors.white38
+                    ? AppColors.paleSlate2
                     : AppColors.elitePrimary.withValues(alpha: 0.4),
               ),
             ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
@@ -66,7 +66,7 @@ class CPEmptyState extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               ),
               textAlign: TextAlign.center,
             ).animate(delay: 200.ms).fadeIn(),
@@ -78,7 +78,7 @@ class CPEmptyState extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white54 : Colors.black54,
+                  color: isDark ? AppColors.paleSlate2 : Colors.black54,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,

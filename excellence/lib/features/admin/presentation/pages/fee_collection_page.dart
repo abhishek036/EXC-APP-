@@ -103,6 +103,71 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   double _toDouble(dynamic v) =>
       v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0;
 
+  DateTime? _toDate(dynamic value) {
+    if (value is DateTime) return value;
+    if (value == null) return null;
+    return DateTime.tryParse(value.toString());
+  }
+
+  String _fmtDateTime(DateTime? value) {
+    if (value == null) return 'Unknown time';
+    return DateFormat('dd MMM yyyy, hh:mm a').format(value);
+  }
+
+  List<Map<String, dynamic>> _extractFeeActivityLogs(Map<String, dynamic> fee) {
+    final rawPayments = (fee['payments'] as List?)?.cast<dynamic>() ?? const [];
+    final logs = <Map<String, dynamic>>[];
+
+    for (final raw in rawPayments) {
+      if (raw is! Map) continue;
+      final payment = Map<String, dynamic>.from(raw);
+      final amount = _toDouble(payment['amount_paid']);
+      final mode = (payment['payment_mode'] ?? payment['payment_channel'] ?? 'manual_qr')
+          .toString()
+          .toUpperCase();
+      final submittedAt = _toDate(payment['submitted_at']);
+      final approvedAt = _toDate(payment['approved_at']) ?? _toDate(payment['paid_at']);
+      final rejectedAt = _toDate(payment['rejected_at']);
+      final status = (payment['status'] ?? '').toString().toLowerCase();
+      final rejectionReason = (payment['rejection_reason'] ?? '').toString().trim();
+
+      if (submittedAt != null) {
+        logs.add({
+          'timestamp': submittedAt,
+          'title': 'Payment Submitted',
+          'detail': '₹${amount.toStringAsFixed(0)} via $mode',
+          'color': AppColors.feePending,
+        });
+      }
+
+      if (status == 'approved' || status == 'paid') {
+        logs.add({
+          'timestamp': approvedAt ?? submittedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+          'title': 'Payment Accepted',
+          'detail': '₹${amount.toStringAsFixed(0)} accepted',
+          'color': AppColors.success,
+        });
+      } else if (status == 'rejected') {
+        logs.add({
+          'timestamp': rejectedAt ?? submittedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+          'title': 'Payment Rejected',
+          'detail': rejectionReason.isNotEmpty
+              ? '₹${amount.toStringAsFixed(0)} • $rejectionReason'
+              : '₹${amount.toStringAsFixed(0)} rejected',
+          'color': AppColors.error,
+        });
+      }
+    }
+
+    logs.sort((a, b) {
+      final left = a['timestamp'] as DateTime;
+      final right = b['timestamp'] as DateTime;
+      return right.compareTo(left);
+    });
+
+    return logs;
+  }
+
   ({double total, double paid, double outstanding, String status}) _feeMetrics(
     Map<String, dynamic> record,
   ) {
@@ -170,7 +235,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w900,
                       fontSize: 24,
-                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                       letterSpacing: -1,
                     ),
                   ),
@@ -326,7 +391,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: const Color(0xFFBDAE18),
+          color: const Color(0xFFE5A100),
           border: Border.all(color: const Color(0xFF354388), width: 2),
           boxShadow: const [
             BoxShadow(
@@ -396,7 +461,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 9,
               fontWeight: FontWeight.w900,
-              color: const Color(0xFFBDAE18),
+              color: const Color(0xFFE5A100),
               letterSpacing: 0.5,
             ),
           ),
@@ -432,7 +497,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white38 : Colors.black38,
+                color: isDark ? AppColors.paleSlate2 : Colors.black38,
                 letterSpacing: 0.5,
               ),
             ),
@@ -468,7 +533,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
               color: _selectedStatus == i
-                  ? const Color(0xFFBDAE18)
+                  ? const Color(0xFFE5A100)
                   : Colors.white,
               border: Border.all(color: const Color(0xFF354388), width: 2),
               boxShadow: _selectedStatus == i
@@ -509,7 +574,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
         style: GoogleFonts.plusJakartaSans(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : AppColors.deepNavy,
+          color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
         ),
         decoration: InputDecoration(
           hintText: 'Search ledger entries...',
@@ -517,14 +582,14 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: isDark
-                ? Colors.white24
+                ? AppColors.darkBorder
                 : Colors.black.withValues(alpha: 0.26),
           ),
           prefixIcon: Icon(
             Icons.search_rounded,
             size: 20,
             color: isDark
-                ? Colors.white24
+                ? AppColors.darkBorder
                 : Colors.black.withValues(alpha: 0.26),
           ),
           border: InputBorder.none,
@@ -591,7 +656,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFBDAE18),
+                    color: const Color(0xFFE5A100),
                     border: Border.all(
                       color: const Color(0xFF354388),
                       width: 2,
@@ -709,7 +774,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: isDark
-                  ? Colors.white24
+                  ? AppColors.darkBorder
                   : Colors.black.withValues(alpha: 0.26),
             ),
           ),
@@ -727,6 +792,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     final paid = metrics.paid;
     final outstanding = metrics.outstanding;
     final id = (fee['id'] ?? '').toString();
+    final activityLogs = _extractFeeActivityLogs(fee);
 
     showModalBottomSheet(
       context: context,
@@ -763,7 +829,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 26,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                 letterSpacing: -1,
               ),
             ),
@@ -772,7 +838,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
               '${(fee['batch']?['name'] ?? 'Batch').toString().toUpperCase()} • ${_monthLabel(fee['month'], fee['year']).toUpperCase()}',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
-                color: isDark ? Colors.white38 : Colors.black38,
+                color: isDark ? AppColors.paleSlate2 : Colors.black38,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.5,
               ),
@@ -785,6 +851,79 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                 _detailStat('PENDING', '₹${outstanding.toInt()}', isDark),
               ],
             ),
+            const SizedBox(height: 28),
+            Text(
+              'Payment Activity',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: isDark ? AppColors.paleSlate2 : AppColors.deepNavy,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (activityLogs.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: (isDark ? AppColors.paleSlate1 : AppColors.deepNavy)
+                      .withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'No fee activity logs yet',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.paleSlate2 : Colors.black38,
+                  ),
+                ),
+              )
+            else
+              ...activityLogs.take(8).map((log) {
+                final color = log['color'] as Color;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        (log['title'] ?? '').toString(),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: color,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        (log['detail'] ?? '').toString(),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.paleSlate2 : AppColors.deepNavy,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _fmtDateTime(log['timestamp'] as DateTime?),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.paleSlate2 : Colors.black38,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
             const SizedBox(height: 40),
             if (status != 'PAID') ...[
               CustomButton(
@@ -847,7 +986,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                 width: double.infinity,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFBDAE18),
+                  color: const Color(0xFFE5A100),
                   border: Border.all(color: const Color(0xFF354388), width: 3),
                   boxShadow: const [
                     BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
@@ -892,7 +1031,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 20,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white : AppColors.deepNavy,
+            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             letterSpacing: -0.5,
           ),
         ),
@@ -902,7 +1041,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 10,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white38 : Colors.black38,
+            color: isDark ? AppColors.paleSlate2 : Colors.black38,
             letterSpacing: 0.5,
           ),
         ),
@@ -968,7 +1107,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                       letterSpacing: -1,
                     ),
                   ),
@@ -980,7 +1119,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: (isDark ? Colors.white : AppColors.deepNavy)
+                        color: (isDark ? AppColors.paleSlate1 : AppColors.deepNavy)
                             .withValues(alpha: 0.05),
                         border: Border.all(
                           color: const Color(0xFF354388),
@@ -991,7 +1130,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         'No fee records available',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
-                          color: isDark ? Colors.white38 : Colors.black38,
+                          color: isDark ? AppColors.paleSlate2 : Colors.black38,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1003,7 +1142,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: (isDark ? Colors.white : AppColors.deepNavy)
+                        color: (isDark ? AppColors.paleSlate1 : AppColors.deepNavy)
                             .withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
@@ -1020,7 +1159,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               color: isDark
-                                  ? Colors.white24
+                                  ? AppColors.darkBorder
                                   : Colors.black.withValues(alpha: 0.26),
                               fontWeight: FontWeight.w600,
                             ),
@@ -1227,7 +1366,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
       style: GoogleFonts.plusJakartaSans(
         fontSize: 10,
         fontWeight: FontWeight.w900,
-        color: isDark ? Colors.white38 : Colors.black38,
+        color: isDark ? AppColors.paleSlate2 : Colors.black38,
         letterSpacing: 0.5,
       ),
     ),
@@ -1276,7 +1415,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                   letterSpacing: -1,
                 ),
               ),
@@ -1285,7 +1424,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                 'Deploy fee contracts to all enrolled members.',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
-                  color: isDark ? Colors.white38 : Colors.black38,
+                  color: isDark ? AppColors.paleSlate2 : Colors.black38,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1302,7 +1441,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: (isDark ? Colors.white : AppColors.deepNavy)
+                      color: (isDark ? AppColors.paleSlate1 : AppColors.deepNavy)
                           .withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
@@ -1320,7 +1459,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: isDark
-                                ? Colors.white24
+                                ? AppColors.darkBorder
                                 : Colors.black.withValues(alpha: 0.26),
                           ),
                         ),
@@ -1366,7 +1505,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: (isDark ? Colors.white : AppColors.deepNavy)
+                            color: (isDark ? AppColors.paleSlate1 : AppColors.deepNavy)
                                 .withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
@@ -1420,7 +1559,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: (isDark ? Colors.white : AppColors.deepNavy)
+                            color: (isDark ? AppColors.paleSlate1 : AppColors.deepNavy)
                                 .withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
@@ -1548,7 +1687,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                       letterSpacing: -1,
                     ),
                   ),
@@ -1565,7 +1704,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: (isDark ? Colors.white : AppColors.deepNavy)
+                          color: (isDark ? AppColors.paleSlate1 : AppColors.deepNavy)
                               .withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
@@ -1583,7 +1722,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: isDark
-                                    ? Colors.white24
+                                    ? AppColors.darkBorder
                                     : Colors.black.withValues(alpha: 0.26),
                               ),
                             ),

@@ -624,7 +624,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white38 : Colors.black38,
+                      color: isDark ? AppColors.paleSlate2 : Colors.black38,
                     ),
                   ),
                   Text(
@@ -632,7 +632,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -661,7 +661,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     bool isDark, {
     bool badge = false,
   }) {
-    final iconColor = isDark ? Colors.white : AppColors.elitePrimary;
+    final iconColor = isDark ? AppColors.paleSlate1 : AppColors.elitePrimary;
     return CPPressable(
       onTap: onTap,
       child: Container(
@@ -1365,7 +1365,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.white24 : Colors.black26,
+                                color: isDark ? AppColors.darkBorder : Colors.black26,
                               ),
                             ),
                           ],
@@ -1377,7 +1377,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               'By $user',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
-                                color: isDark ? Colors.white38 : Colors.black45,
+                                color: isDark ? AppColors.paleSlate2 : Colors.black45,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -1413,7 +1413,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                             details.toString(),
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
-                              color: isDark ? Colors.white54 : Colors.black87,
+                              color: isDark ? AppColors.paleSlate2 : Colors.black87,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -1469,7 +1469,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   '${_formatCurrency(_totalOverdue)} total overdue amount',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    color: isDark ? Colors.white38 : Colors.black45,
+                    color: isDark ? AppColors.paleSlate2 : Colors.black45,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1564,7 +1564,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 child: Icon(
                   Icons.timer_outlined,
                   size: 20,
-                  color: isDark ? Colors.white38 : Colors.black38,
+                  color: isDark ? AppColors.paleSlate2 : Colors.black38,
                 ),
               ),
             ),
@@ -1578,7 +1578,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1586,7 +1586,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     '${c['teacherName']} • ${c['subject']}',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
-                      color: isDark ? Colors.white38 : Colors.black45,
+                      color: isDark ? AppColors.paleSlate2 : Colors.black45,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1611,7 +1611,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: isDark
-                          ? Colors.white24
+                          ? AppColors.darkBorder
                           : Colors.black.withValues(alpha: 0.26),
                     ),
                   ),
@@ -1681,7 +1681,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
-                            color: isDark ? Colors.white : AppColors.deepNavy,
+                            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1690,7 +1690,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           p['batch'],
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
-                            color: isDark ? Colors.white38 : Colors.black45,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black45,
                             fontWeight: FontWeight.w600,
                           ),
                           maxLines: 1,
@@ -1768,7 +1768,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white : AppColors.deepNavy,
+                            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                           ),
                         ),
                       ),
@@ -1787,7 +1787,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           a['batch'],
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
-                            color: isDark ? Colors.white38 : Colors.black54,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black54,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -1882,7 +1882,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white24 : Colors.black26,
+                              color: isDark ? AppColors.darkBorder : Colors.black26,
                             ),
                           ),
                         );
@@ -1900,7 +1900,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white24 : Colors.black26,
+                            color: isDark ? AppColors.darkBorder : Colors.black26,
                           ),
                         );
                       },

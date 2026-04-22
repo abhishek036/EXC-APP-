@@ -179,7 +179,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             ),
           ),
           const SizedBox(width: 16),
@@ -188,7 +188,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 22,
               fontWeight: FontWeight.w900,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               letterSpacing: -0.8,
             ),
           ),
@@ -263,7 +263,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 fontSize: 9,
                 fontWeight: FontWeight.w900,
                 color: isDark
-                    ? Colors.white24
+                    ? AppColors.darkBorder
                     : Colors.black.withValues(alpha: 0.26),
                 letterSpacing: 0.5,
               ),
@@ -320,7 +320,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: active ? const Color(0xFFBDAE18) : Colors.white,
+            color: active ? const Color(0xFFE5A100) : Colors.white,
             border: Border.all(color: const Color(0xFF354388), width: 2),
             boxShadow: active
                 ? const [
@@ -390,7 +390,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? Colors.white : AppColors.deepNavy,
+                        color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                         letterSpacing: -0.4,
                       ),
                     ),
@@ -400,7 +400,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white38 : Colors.black45,
+                        color: isDark ? AppColors.paleSlate2 : Colors.black45,
                         letterSpacing: 0.2,
                       ),
                     ),
@@ -588,7 +588,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? Colors.white : AppColors.deepNavy,
+                        color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -598,7 +598,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white38 : Colors.black45,
+                        color: isDark ? AppColors.paleSlate2 : Colors.black45,
                       ),
                     ),
                   ],
@@ -609,7 +609,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -649,7 +649,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: isDark
-                  ? Colors.white24
+                  ? AppColors.darkBorder
                   : Colors.black.withValues(alpha: 0.26),
             ),
             textAlign: TextAlign.center,
@@ -709,7 +709,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                   letterSpacing: -1,
                 ),
               ),
@@ -718,7 +718,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 'Maintain strictly elite personnel standards.',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
-                  color: isDark ? Colors.white38 : Colors.black38,
+                  color: isDark ? AppColors.paleSlate2 : Colors.black38,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -897,7 +897,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                   letterSpacing: -1,
                 ),
               ),
@@ -907,7 +907,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white38 : Colors.black38,
+                  color: isDark ? AppColors.paleSlate2 : Colors.black38,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -936,7 +936,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         color: isDark
-                            ? Colors.white24
+                            ? AppColors.darkBorder
                             : Colors.black.withValues(alpha: 0.26),
                         fontWeight: FontWeight.w600,
                       ),
@@ -990,7 +990,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
                               color: type == opt
-                                  ? const Color(0xFFBDAE18)
+                                  ? const Color(0xFFE5A100)
                                   : Colors.white,
                               border: Border.all(
                                 color: const Color(0xFF354388),

@@ -275,7 +275,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFBDAE18),
+                    color: const Color(0xFFE5A100),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -394,7 +394,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
         isScrollable: true,
         labelColor: const Color(0xFF354388),
         unselectedLabelColor: Colors.grey,
-        indicatorColor: const Color(0xFFBDAE18),
+        indicatorColor: const Color(0xFFE5A100),
         indicatorWeight: 4,
         labelStyle: GoogleFonts.plusJakartaSans(
           fontWeight: FontWeight.w800,
@@ -622,7 +622,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
                     width: 12,
                     height: 12,
                     decoration: const BoxDecoration(
-                      color: Color(0xFFBDAE18),
+                      color: Color(0xFFE5A100),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -832,7 +832,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
         keyboardType: keyboard,
         style: GoogleFonts.plusJakartaSans(
           fontWeight: FontWeight.w700,
-          color: isDark ? Colors.white : AppColors.deepNavy,
+          color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
         ),
         decoration: InputDecoration(
           labelText: label,
@@ -872,7 +872,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
               onChanged: (value) {
                 setState(() => _permissions[key] = value);
               },
-              activeThumbColor: const Color(0xFFBDAE18),
+              activeThumbColor: const Color(0xFFE5A100),
               activeTrackColor: const Color(0xFF354388),
             ),
           ],

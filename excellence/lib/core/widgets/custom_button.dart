@@ -92,7 +92,9 @@ class _CustomButtonState extends State<CustomButton>
               color: widget.backgroundColor ?? AppColors.elitePrimary,
               width: 1.5,
             ),
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.gunmetal
+                : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
             ),

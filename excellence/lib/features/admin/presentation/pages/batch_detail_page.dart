@@ -573,7 +573,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFBDAE18),
+              color: const Color(0xFFE5A100),
               border: Border.all(color: const Color(0xFF354388), width: 2),
               boxShadow: const [
                 BoxShadow(
@@ -675,7 +675,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                 'Monthly Fee',
                 '₹${_toDouble(_feeStructure?['monthly_fee']).toStringAsFixed(0)}',
                 Icons.payments_rounded,
-                const Color(0xFFBDAE18),
+                const Color(0xFFE5A100),
                 width: 154,
               ),
               _quickStatCard(
@@ -896,7 +896,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             'Fees Paid',
             '₹${_toDouble(data['feesPaid']).toStringAsFixed(0)}',
             Icons.payments_rounded,
-            const Color(0xFFBDAE18),
+            const Color(0xFFE5A100),
             emphasized: true,
           ),
           const SizedBox(height: 8),
@@ -1259,7 +1259,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                         width: 28,
                         height: 28,
                         decoration: const BoxDecoration(
-                          color: Color(0xFFBDAE18),
+                          color: Color(0xFFE5A100),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -1318,7 +1318,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                                 width: 8,
                                 height: 8,
                                 margin: const EdgeInsets.only(top: 4),
-                                color: const Color(0xFFBDAE18),
+                                color: const Color(0xFFE5A100),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -1384,7 +1384,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: selected ? const Color(0xFFBDAE18) : Colors.white,
+                    color: selected ? const Color(0xFFE5A100) : Colors.white,
                     border: Border.all(
                       color: const Color(0xFF354388),
                       width: 1.2,
@@ -1466,7 +1466,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                           _statusTag(
                             status,
                             status.toLowerCase() == 'live'
-                                ? const Color(0xFFBDAE18)
+                                ? const Color(0xFFE5A100)
                                 : const Color(0xFF354388),
                           ),
                         ],
@@ -1843,7 +1843,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                           _statusTag(
                             feeStatus,
                             feeStatus == 'Paid'
-                                ? const Color(0xFFBDAE18)
+                                ? const Color(0xFFE5A100)
                                 : const Color(0xFFB6231B),
                           ),
                           const SizedBox(height: 4),
@@ -1939,7 +1939,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                                 status,
                                 status == 'Completed'
                                     ? const Color(0xFF354388)
-                                    : const Color(0xFFBDAE18),
+                                    : const Color(0xFFE5A100),
                               ),
                             ],
                           ),
@@ -2022,7 +2022,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
               _feeMetric(
                 'Collected Today',
                 '₹${_toDouble(fee['collectedToday']).toStringAsFixed(0)}',
-                const Color(0xFFBDAE18),
+                const Color(0xFFE5A100),
               ),
               _feeMetric(
                 'Monthly Fee',
@@ -2102,7 +2102,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                             _statusTag(
                               status,
                               status == 'Paid'
-                                  ? const Color(0xFFBDAE18)
+                                  ? const Color(0xFFE5A100)
                                   : const Color(0xFFB6231B),
                             ),
                           ],
@@ -2189,7 +2189,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         ),
         _sectionCard(
           title: 'Performance Graph',
-          child: _miniBarGraph(performanceTrend, const Color(0xFFBDAE18)),
+          child: _miniBarGraph(performanceTrend, const Color(0xFFE5A100)),
         ),
         _sectionCard(
           title: 'Revenue Graph',

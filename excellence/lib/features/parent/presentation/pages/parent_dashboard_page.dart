@@ -75,7 +75,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
               Text(
                 'Failed to load dashboard',
                 style: GoogleFonts.plusJakartaSans(
-                  color: isDark ? Colors.white54 : Colors.black54,
+                  color: isDark ? AppColors.paleSlate2 : Colors.black54,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -201,7 +201,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white54 : Colors.black54,
+                  color: isDark ? AppColors.paleSlate2 : Colors.black54,
                 ),
               ),
               Text(
@@ -209,7 +209,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                   letterSpacing: -0.5,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -385,12 +385,12 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           color: isDark ? AppColors.eliteDarkBg : Colors.white,
           shape: BoxShape.circle,
           border: Border.all(
-            color: isDark ? Colors.white24 : AppColors.elitePrimary,
+            color: isDark ? AppColors.darkBorder : AppColors.elitePrimary,
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: isDark ? Colors.black54 : AppColors.elitePrimary,
+              color: isDark ? Colors.black38 : AppColors.elitePrimary,
               offset: const Offset(2, 2),
             ),
           ],
@@ -398,7 +398,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
         child: Icon(
           icon,
           size: 21,
-          color: isDark ? Colors.white : AppColors.elitePrimary,
+          color: isDark ? AppColors.paleSlate1 : AppColors.elitePrimary,
         ),
       ),
     );

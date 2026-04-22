@@ -26,7 +26,7 @@ class CPBottomNav extends StatelessWidget {
         border: Border(
           top: BorderSide(
             color: isDark
-                ? Colors.white24
+                ? AppColors.darkBorder
                 : AppColors.elitePrimary.withValues(alpha: 0.16),
             width: 1.2,
           ),
@@ -87,7 +87,7 @@ class _NavItem extends StatelessWidget {
     final isDark = CT.isDark(context);
     final activeColor = isDark ? AppColors.softAmber : AppColors.elitePrimary;
     final inactiveColor = isDark
-        ? Colors.white.withValues(alpha: 0.62)
+        ? AppColors.paleSlate2
         : AppColors.elitePrimary.withValues(alpha: 0.56);
 
     return GestureDetector(
@@ -105,7 +105,7 @@ class _NavItem extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isActive
                       ? (isDark
-                            ? Colors.white.withValues(alpha: 0.14)
+                            ? AppColors.softAmber.withValues(alpha: 0.12)
                             : AppColors.saharaSand)
                       : Colors.transparent,
                   shape: BoxShape.circle,

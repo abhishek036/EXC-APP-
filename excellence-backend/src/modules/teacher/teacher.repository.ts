@@ -3,7 +3,7 @@ import { CreateTeacherInput, UpdateTeacherInput } from './teacher.validator';
 import { Prisma } from '@prisma/client';
 
 export class TeacherRepository {
-  private pruneTeacherFromBatchMeta(settings: unknown, teacherId: string): Record<string, unknown> {
+  private pruneTeacherFromBatchMeta(settings: unknown, teacherIdentifiers: string[]): Record<string, unknown> {
     const currentSettings =
       settings && typeof settings === 'object' && !Array.isArray(settings)
         ? { ...(settings as Record<string, unknown>) }
@@ -23,9 +23,10 @@ export class TeacherRepository {
 
       const meta = { ...(value as Record<string, unknown>) };
       if (Array.isArray(meta['teacher_ids'])) {
-        meta['teacher_ids'] = (meta['teacher_ids'] as unknown[]).filter(
-          (id) => String(id) !== teacherId,
-        );
+        meta['teacher_ids'] = (meta['teacher_ids'] as unknown[]).filter((id) => {
+          const normalizedId = String(id ?? '').trim();
+          return normalizedId.length > 0 && !teacherIdentifiers.includes(normalizedId);
+        });
       }
       nextBatchMeta[batchId] = meta;
     }
@@ -134,6 +135,8 @@ export class TeacherRepository {
 
       if (!teacher) return null;
 
+      const teacherIdentifiers = [teacher.id, teacher.user_id].filter((id): id is string => Boolean(id));
+
       await Promise.all([
         tx.batch.updateMany({
           where: { institute_id: instituteId, teacher_id: teacherId },
@@ -170,7 +173,7 @@ export class TeacherRepository {
         select: { settings: true },
       });
 
-      const nextSettings = this.pruneTeacherFromBatchMeta(institute?.settings, teacherId);
+      const nextSettings = this.pruneTeacherFromBatchMeta(institute?.settings, teacherIdentifiers);
       await tx.institute.update({
         where: { id: instituteId },
         data: { settings: nextSettings as Prisma.InputJsonValue },

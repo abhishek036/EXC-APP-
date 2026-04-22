@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/l10n/app_locales.dart';
@@ -101,7 +102,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                              color: isDark ? AppColors.paleSlate1.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Center(

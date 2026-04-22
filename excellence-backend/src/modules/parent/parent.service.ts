@@ -608,7 +608,9 @@ export class ParentService {
       include: {
         student: { select: { id: true, name: true } },
         batch: { select: { id: true, name: true } },
-        payments: true
+        payments: {
+          orderBy: { submitted_at: 'desc' },
+        },
       },
       orderBy: [
         { year: 'desc' },
@@ -618,12 +620,19 @@ export class ParentService {
 
     return records.map((record) => {
       const metrics = calculateFeeAmounts(record.final_amount, record.paid_amount, record.status);
+      const latestRejectedPayment = (record.payments ?? []).find(
+        (payment) => (payment.status ?? '').toString().toLowerCase() === 'rejected',
+      );
+      const latestRejectionReason = latestRejectedPayment?.rejection_reason?.toString().trim() || null;
+
       return {
         ...record,
         ...metrics,
         final_amount: metrics.final_amount,
         paid_amount: metrics.paid_amount,
         remaining_amount: metrics.remaining_amount,
+        latest_rejection_reason: latestRejectionReason,
+        latest_rejected_at: latestRejectedPayment?.rejected_at ?? null,
       };
     });
   }

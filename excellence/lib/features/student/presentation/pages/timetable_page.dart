@@ -224,7 +224,7 @@ class _TimetablePageState extends State<TimetablePage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: isSelected ? Colors.white : (isDark ? Colors.white54 : Colors.black54),
+                        color: isSelected ? Colors.white : (isDark ? AppColors.paleSlate2 : Colors.black54),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -233,7 +233,7 @@ class _TimetablePageState extends State<TimetablePage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                        color: isSelected ? Colors.white : (isDark ? AppColors.paleSlate1 : Colors.black87),
                       ),
                     ),
                   ],

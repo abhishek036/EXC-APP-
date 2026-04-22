@@ -279,7 +279,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             ),
           ),
           const SizedBox(width: 16),
@@ -289,7 +289,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                 letterSpacing: -0.8,
               ),
             ),
@@ -328,7 +328,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
       style: GoogleFonts.plusJakartaSans(
         fontSize: 16,
         fontWeight: FontWeight.w900,
-        color: isDark ? Colors.white : AppColors.deepNavy,
+        color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
         letterSpacing: -0.5,
       ),
     );
@@ -383,7 +383,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 9,
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFFBDAE18),
+                color: const Color(0xFFE5A100),
                 letterSpacing: 1,
               ),
             ),
@@ -456,7 +456,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
               color: _selectedBatch == i
-                  ? const Color(0xFFBDAE18)
+                  ? const Color(0xFFE5A100)
                   : Colors.white,
               border: Border.all(color: const Color(0xFF354388), width: 2),
               boxShadow: _selectedBatch == i
@@ -497,7 +497,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                   letterSpacing: -0.2,
                 ),
               ),
@@ -546,7 +546,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           color: isDark
-                              ? Colors.white24
+                              ? AppColors.darkBorder
                               : Colors.black.withValues(alpha: 0.26),
                           fontWeight: FontWeight.w800,
                         ),
@@ -564,7 +564,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                             v.toInt() < 6 ? days[v.toInt()] : '',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 9,
-                              color: isDark ? Colors.white38 : Colors.black45,
+                              color: isDark ? AppColors.paleSlate2 : Colors.black45,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0.5,
                             ),
@@ -671,7 +671,7 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: isDark ? Colors.white38 : Colors.black38,
+                    color: isDark ? AppColors.paleSlate2 : Colors.black38,
                   ),
                 ),
               ],

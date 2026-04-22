@@ -39,7 +39,7 @@ class CPSectionHeader extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white : AppColors.deepNavy,
+                    color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                     letterSpacing: -0.6,
                   ),
                   overflow: TextOverflow.ellipsis,

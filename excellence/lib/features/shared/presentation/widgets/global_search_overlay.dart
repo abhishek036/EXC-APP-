@@ -86,17 +86,17 @@ class _GlobalSearchOverlayState extends State<GlobalSearchOverlay> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    Icon(Icons.search_rounded, color: isDark ? Colors.white24 : Colors.black26, size: 24),
+                    Icon(Icons.search_rounded, color: isDark ? AppColors.darkBorder : Colors.black26, size: 24),
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextField(
                         controller: _searchController,
                         focusNode: _focusNode,
                         onChanged: (v) => setState(() {}),
-                        style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColors.deepNavy),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy),
                         decoration: InputDecoration(
                           hintText: 'Search universal nodes...',
-                          hintStyle: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w500, color: isDark ? Colors.white24 : Colors.black26),
+                          hintStyle: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w500, color: isDark ? AppColors.darkBorder : Colors.black26),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(vertical: 24),
                         ),
@@ -108,8 +108,8 @@ class _GlobalSearchOverlayState extends State<GlobalSearchOverlay> {
                       onTap: () => Navigator.pop(context),
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05), shape: BoxShape.circle),
-                        child: Icon(Icons.close_rounded, size: 20, color: isDark ? Colors.white : AppColors.deepNavy),
+                        decoration: BoxDecoration(color: isDark ? AppColors.darkBorder.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.05), shape: BoxShape.circle),
+                        child: Icon(Icons.close_rounded, size: 20, color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy),
                       ),
                     ),
                   ],
@@ -135,11 +135,11 @@ class _GlobalSearchOverlayState extends State<GlobalSearchOverlay> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+        color: isDark ? AppColors.paleSlate1.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black12),
+        border: Border.all(color: isDark ? AppColors.paleSlate1.withValues(alpha: 0.08) : Colors.black12),
       ),
-      child: Text('ESC', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38)),
+      child: Text('ESC', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? AppColors.paleSlate2 : Colors.black38)),
     );
   }
 
@@ -149,7 +149,7 @@ class _GlobalSearchOverlayState extends State<GlobalSearchOverlay> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Text('QUICK COMMANDS', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black26, letterSpacing: 2.0)),
+          child: Text('QUICK COMMANDS', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? AppColors.darkBorder : Colors.black26, letterSpacing: 2.0)),
         ).animate().fadeIn(delay: 100.ms),
         const SizedBox(height: 16),
         Expanded(
@@ -176,9 +176,9 @@ class _GlobalSearchOverlayState extends State<GlobalSearchOverlay> {
                         child: Icon(item['icon'] as IconData, color: item['color'] as Color, size: 22),
                       ),
                       const SizedBox(width: 16),
-                      Text(item['title'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.deepNavy)),
+                      Text(item['title'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy)),
                       const Spacer(),
-                      Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? Colors.white24 : Colors.black26),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? AppColors.darkBorder : Colors.black26),
                     ],
                   ),
                 ),
@@ -219,9 +219,9 @@ class _GlobalSearchOverlayState extends State<GlobalSearchOverlay> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.manage_search_rounded, size: 64, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                Icon(Icons.manage_search_rounded, size: 64, color: isDark ? AppColors.darkBorder.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.05)),
                 const SizedBox(height: 16),
-                Text('ZERO NODES MATCHED', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black26, letterSpacing: 2.0)),
+                Text('ZERO NODES MATCHED', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w900, color: isDark ? AppColors.darkBorder : Colors.black26, letterSpacing: 2.0)),
               ],
             ).animate().fadeIn(),
           );
@@ -264,12 +264,12 @@ class _GlobalSearchOverlayState extends State<GlobalSearchOverlay> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(item['name'] ?? 'IDENTITY-PENDING', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.deepNavy)),
-                          Text('${type.toUpperCase()} • ${item['email'] ?? item['phone'] ?? 'NO CONTACT'}', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.white38 : Colors.black38)),
+                          Text(item['name'] ?? 'IDENTITY-PENDING', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy)),
+                          Text('${type.toUpperCase()} • ${item['email'] ?? item['phone'] ?? 'NO CONTACT'}', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? AppColors.paleSlate2 : Colors.black38)),
                         ],
                       ),
                     ),
-                    Icon(Icons.arrow_right_alt_rounded, color: isDark ? Colors.white24 : Colors.black26),
+                    Icon(Icons.arrow_right_alt_rounded, color: isDark ? AppColors.darkBorder : Colors.black26),
                   ],
                 ),
               ),

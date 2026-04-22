@@ -2,6 +2,7 @@ import { TeacherRepository } from './teacher.repository';
 import { CreateTeacherInput, UpdateTeacherInput, UpdateTeacherSettingsInput, AddTeacherFeedbackInput } from './teacher.validator';
 import { ApiError } from '../../middleware/error.middleware';
 import { prisma } from '../../server';
+import { batchHasTeacher } from '../../utils/batch-teacher-assignment';
 
 export class TeacherService {
   private teacherRepository: TeacherRepository;
@@ -240,6 +241,48 @@ export class TeacherService {
     if (!teacher) throw new ApiError('Teacher not found', 404, 'NOT_FOUND');
 
     const meta = await this.getTeacherMeta(instituteId, teacherId);
+    const teacherIdentifiers = [teacher.id, teacher.user_id].filter((id): id is string => Boolean(id));
+    const institute = await prisma.institute.findUnique({
+      where: { id: instituteId },
+      select: { settings: true },
+    });
+    const settings = (institute?.settings ?? {}) as Record<string, any>;
+    const batchMetaMap = (settings['batch_meta'] ?? {}) as Record<string, any>;
+
+    const directBatches = await prisma.batch.findMany({
+      where: { institute_id: instituteId, teacher_id: teacherId, is_active: true },
+      select: { id: true, teacher_id: true },
+    });
+
+    const assignedBatchIds = new Set<string>();
+    for (const batch of directBatches) {
+      const batchMeta = (batchMetaMap[batch.id] ?? {}) as Record<string, unknown>;
+      if (batchHasTeacher(batchMeta, batch.teacher_id, teacherIdentifiers)) {
+        assignedBatchIds.add(batch.id);
+      }
+    }
+
+    for (const [batchId, metaValue] of Object.entries(batchMetaMap)) {
+      if (assignedBatchIds.has(batchId)) continue;
+
+      const batchMeta = (metaValue ?? {}) as Record<string, unknown>;
+      if (batchHasTeacher(batchMeta, null, teacherIdentifiers)) {
+        assignedBatchIds.add(batchId);
+      }
+    }
+
+    const assignedBatches = assignedBatchIds.size > 0
+      ? await prisma.batch.findMany({
+        where: {
+          id: { in: Array.from(assignedBatchIds) },
+          institute_id: instituteId,
+          is_active: true,
+        },
+        include: {
+          _count: { select: { student_batches: { where: { is_active: true } } } },
+        },
+      })
+      : [];
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
@@ -333,9 +376,12 @@ export class TeacherService {
       : 0;
 
     return {
-      teacher,
+      teacher: {
+        ...teacher,
+        batches: assignedBatches,
+      },
       stats: {
-        batches_assigned: teacher.batches.length,
+        batches_assigned: assignedBatches.length,
         total_sessions_taken: totalSessions,
         sessions_last_30_days: sessionsLast30,
         classes_this_week: classesTakenThisWeek,

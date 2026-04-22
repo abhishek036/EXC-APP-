@@ -107,7 +107,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? Colors.white : AppColors.deepNavy,
+                        color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -311,8 +311,8 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
         : (isDark
               ? Colors.white.withValues(alpha: 0.08)
               : Colors.black.withValues(alpha: 0.04));
-    final textColor = isDark ? Colors.white : AppColors.deepNavy;
-    final metaColor = isDark ? Colors.white70 : Colors.black54;
+    final textColor = isDark ? AppColors.paleSlate1 : AppColors.deepNavy;
+    final metaColor = isDark ? AppColors.paleSlate2 : Colors.black54;
     final ts = msg.timestamp == null
         ? ''
         : DateFormat('MMM d, h:mm a').format(msg.timestamp!.toLocal());
@@ -419,7 +419,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
                             _error,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
-                              color: isDark ? Colors.white38 : Colors.black45,
+                              color: isDark ? AppColors.paleSlate2 : Colors.black45,
                             ),
                           ),
                         )
@@ -459,7 +459,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 24,
               fontWeight: FontWeight.w900,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               letterSpacing: -1,
             ),
           ),
@@ -468,7 +468,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: (isDark ? Colors.white : Colors.black).withValues(
+                color: (isDark ? AppColors.paleSlate1 : Colors.black).withValues(
                   alpha: 0.05,
                 ),
                 shape: BoxShape.circle,
@@ -476,7 +476,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
               child: Icon(
                 Icons.refresh_rounded,
                 size: 20,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               ),
             ),
           ),
@@ -507,7 +507,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: (isDark ? Colors.white : Colors.black).withValues(
+                color: (isDark ? AppColors.paleSlate1 : Colors.black).withValues(
                   alpha: 0.02,
                 ),
                 shape: BoxShape.circle,
@@ -515,7 +515,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
               child: Icon(
                 Icons.forum_outlined,
                 size: 64,
-                color: isDark ? Colors.white24 : Colors.black26,
+                color: isDark ? AppColors.darkBorder : Colors.black26,
               ),
             ),
             const SizedBox(height: 16),
@@ -524,7 +524,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white38 : Colors.black45,
+                color: isDark ? AppColors.paleSlate2 : Colors.black45,
               ),
             ),
             const SizedBox(height: 8),
@@ -533,7 +533,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white24 : Colors.black26,
+                color: isDark ? AppColors.darkBorder : Colors.black26,
               ),
             ),
           ],
@@ -608,7 +608,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white38 : Colors.black38,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black38,
                           ),
                         ),
                       ],
@@ -620,7 +620,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white60 : Colors.black54,
+                          color: isDark ? AppColors.paleSlate2 : Colors.black54,
                         ),
                       )
                     else

@@ -96,7 +96,13 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
 
   Widget _summaryCard(BuildContext context, List<_PaymentItem> items) {
     final paidCount = items.where((e) => e.status == _PaymentStatus.paid).length;
-    final pendingCount = items.where((e) => e.status == _PaymentStatus.pending).length;
+    final pendingCount = items
+        .where(
+          (e) =>
+              e.status == _PaymentStatus.pending ||
+              e.status == _PaymentStatus.rejected,
+        )
+        .length;
     final overdueCount = items.where((e) => e.status == _PaymentStatus.overdue).length;
 
     return Container(
@@ -148,12 +154,14 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     final statusColor = switch (item.status) {
       _PaymentStatus.paid => AppColors.success,
       _PaymentStatus.pending => AppColors.warning,
+      _PaymentStatus.rejected => AppColors.error,
       _PaymentStatus.overdue => AppColors.error,
     };
 
     final statusLabel = switch (item.status) {
       _PaymentStatus.paid => 'Paid',
       _PaymentStatus.pending => 'Pending',
+      _PaymentStatus.rejected => 'Rejected',
       _PaymentStatus.overdue => 'Overdue',
     };
 
@@ -200,6 +208,50 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
               color: CT.textS(context),
             ),
           ),
+          if (item.status == _PaymentStatus.rejected && item.rejectionReason.isNotEmpty) ...[
+            const SizedBox(height: AppDimensions.xs),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+              ),
+              child: Text(
+                'Reason: ${item.rejectionReason}',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.error,
+                ),
+              ),
+            ),
+          ],
+          if (item.activityLog.isNotEmpty) ...[
+            const SizedBox(height: AppDimensions.xs),
+            Text(
+              'Activity',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: CT.textS(context),
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...item.activityLog.take(3).map(
+              (line) => Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text(
+                  '- $line',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: CT.textM(context),
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: AppDimensions.sm),
           Row(
             children: [
@@ -227,7 +279,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
   }
 }
 
-enum _PaymentStatus { paid, pending, overdue }
+enum _PaymentStatus { paid, pending, rejected, overdue }
 
 class _PaymentItem {
   final String month;
@@ -235,6 +287,8 @@ class _PaymentItem {
   final String amount;
   final String date;
   final _PaymentStatus status;
+  final String rejectionReason;
+  final List<String> activityLog;
 
   const _PaymentItem({
     required this.month,
@@ -242,15 +296,35 @@ class _PaymentItem {
     required this.amount,
     required this.date,
     required this.status,
+    this.rejectionReason = '',
+    this.activityLog = const [],
   });
 
   factory _PaymentItem.fromMap(Map<String, dynamic> map) {
     final rawStatus = (map['status'] ?? 'pending').toString().toLowerCase();
     final status = rawStatus == 'paid'
       ? _PaymentStatus.paid
+      : rawStatus == 'rejected'
+        ? _PaymentStatus.rejected
       : rawStatus == 'overdue'
         ? _PaymentStatus.overdue
         : _PaymentStatus.pending;
+
+    String rejectionReason = (map['latest_rejection_reason'] ?? map['rejection_reason'] ?? '').toString().trim();
+    final activityLog = _extractActivityLog(map);
+    if (rejectionReason.isEmpty && map['payments'] is List) {
+      final payments = (map['payments'] as List).cast<dynamic>();
+      for (final payment in payments) {
+        if (payment is! Map) continue;
+        final pStatus = (payment['status'] ?? '').toString().toLowerCase();
+        if (pStatus != 'rejected') continue;
+        final reason = (payment['rejection_reason'] ?? '').toString().trim();
+        if (reason.isNotEmpty) {
+          rejectionReason = reason;
+          break;
+        }
+      }
+    }
 
     const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final monthNum = _toInt(map['month']) ?? 0;
@@ -286,7 +360,43 @@ class _PaymentItem {
       amount: (status == _PaymentStatus.paid ? totalAmount : remainingAmount).toStringAsFixed(0),
       date: formattedDate,
       status: status,
+      rejectionReason: rejectionReason,
+      activityLog: activityLog,
     );
+  }
+
+  static List<String> _extractActivityLog(Map<String, dynamic> map) {
+    final payments = (map['payments'] as List?)?.cast<dynamic>() ?? const [];
+    final lines = <String>[];
+
+    for (final raw in payments) {
+      if (raw is! Map) continue;
+      final payment = Map<String, dynamic>.from(raw);
+      final amount = _toDouble(payment['amount_paid']);
+      final status = (payment['status'] ?? '').toString().toLowerCase();
+      final submittedAt = _formatDate(payment['submitted_at']);
+      final approvedAt = _formatDate(payment['approved_at'] ?? payment['paid_at']);
+      final rejectedAt = _formatDate(payment['rejected_at']);
+      final reason = (payment['rejection_reason'] ?? '').toString().trim();
+
+      if (status == 'approved' || status == 'paid') {
+        lines.add('Accepted ₹${amount.toStringAsFixed(0)} on ${approvedAt ?? submittedAt ?? 'unknown date'}');
+      } else if (status == 'rejected') {
+        final base = 'Rejected ₹${amount.toStringAsFixed(0)} on ${rejectedAt ?? submittedAt ?? 'unknown date'}';
+        lines.add(reason.isNotEmpty ? '$base • $reason' : base);
+      } else {
+        lines.add('Submitted ₹${amount.toStringAsFixed(0)} on ${submittedAt ?? 'unknown date'}');
+      }
+    }
+
+    return lines;
+  }
+
+  static String? _formatDate(dynamic value) {
+    if (value == null) return null;
+    final dt = value is DateTime ? value : DateTime.tryParse(value.toString());
+    if (dt == null) return null;
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
   }
 
   static int? _toInt(dynamic value) {

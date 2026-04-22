@@ -354,7 +354,7 @@ class _BatchesPageState extends State<BatchesPage> {
                       max: 5,
                       divisions: 4,
                       label: rating.toStringAsFixed(1),
-                      activeColor: const Color(0xFFBDAE18),
+                      activeColor: const Color(0xFFE5A100),
                       inactiveColor: CT.textS(context).withValues(alpha: 0.2),
                       onChanged: (value) => setState(() => rating = value),
                     ),

@@ -3,6 +3,7 @@ import { CreateBatchInput, UpdateBatchInput, UpdateBatchMetaInput, MigrateBatchS
 import { ApiError } from '../../middleware/error.middleware';
 import { prisma } from '../../server';
 import { resolveTeacherScope } from '../../utils/teacher-scope';
+import { resolveBatchTeacherIds } from '../../utils/batch-teacher-assignment';
 
 export class BatchService {
   private batchRepository: BatchRepository;
@@ -174,11 +175,10 @@ export class BatchService {
     const allTeacherIds = new Set<string>();
     for (const batch of batches) {
       const meta = (batchMetaMap[batch.id] ?? {}) as Record<string, any>;
-      const ids = Array.isArray(meta.teacher_ids) ? meta.teacher_ids : [];
+      const ids = resolveBatchTeacherIds(meta, batch.teacher_id ?? undefined);
       for (const id of ids) {
         if (typeof id === 'string' && id.length > 0) allTeacherIds.add(id);
       }
-      if (batch.teacher_id) allTeacherIds.add(batch.teacher_id);
     }
 
     const teacherIdMap = await this.buildTeacherIdMap(instituteId, Array.from(allTeacherIds));
@@ -188,18 +188,18 @@ export class BatchService {
 
     return batches.map((b) => {
       const meta = (batchMetaMap[b.id] ?? {}) as Record<string, any>;
-      const mergedRawTeacherIds = this.normalizeTeacherIds({
-        teacher_id: b.teacher_id ?? undefined,
-        teacher_ids: Array.isArray(meta.teacher_ids) ? meta.teacher_ids : undefined,
-      });
+      const mergedRawTeacherIds = resolveBatchTeacherIds(meta, b.teacher_id ?? undefined);
       const mergedTeacherIds = this.mapTeacherIds(mergedRawTeacherIds, teacherIdMap);
 
       const assigned_teachers = mergedTeacherIds
         .map((id) => teacherMap.get(id))
         .filter(Boolean);
+      const primaryTeacher = assigned_teachers[0] ?? null;
 
       return {
         ...b,
+        teacher_id: mergedTeacherIds[0] ?? null,
+        teacher: primaryTeacher,
         current_students: b._count.student_batches,
         description: typeof meta.description === 'string' ? meta.description : null,
         cover_image_url: typeof meta.cover_image_url === 'string' ? meta.cover_image_url : null,
@@ -232,15 +232,15 @@ export class BatchService {
     }));
 
     const meta = await this.getStoredBatchMeta(instituteId, batchId);
-    const mergedRawTeacherIds = this.normalizeTeacherIds({
-      teacher_id: batch.teacher_id ?? undefined,
-      teacher_ids: Array.isArray(meta.teacher_ids) ? meta.teacher_ids : undefined,
-    });
+    const mergedRawTeacherIds = resolveBatchTeacherIds(meta, batch.teacher_id ?? undefined);
     const mergedTeacherIds = await this.resolveTeacherProfileIds(instituteId, mergedRawTeacherIds);
     const assigned_teachers = await this.resolveAssignedTeachers(instituteId, mergedTeacherIds);
+    const primaryTeacher = assigned_teachers[0] ?? null;
 
     return {
       ...batch,
+      teacher_id: mergedTeacherIds[0] ?? null,
+      teacher: primaryTeacher,
       student_batches: undefined,
       students,
       description: typeof meta.description === 'string' ? meta.description : null,
@@ -462,10 +462,7 @@ export class BatchService {
     if (!batch) throw new ApiError('Batch not found', 404, 'NOT_FOUND');
 
     const meta = await this.getStoredBatchMeta(instituteId, batchId);
-    const mergedRawTeacherIds = this.normalizeTeacherIds({
-      teacher_id: batch.teacher_id ?? undefined,
-      teacher_ids: Array.isArray(meta.teacher_ids) ? meta.teacher_ids : undefined,
-    });
+    const mergedRawTeacherIds = resolveBatchTeacherIds(meta, batch.teacher_id ?? undefined);
     const mergedTeacherIds = await this.resolveTeacherProfileIds(instituteId, mergedRawTeacherIds);
     const assigned_teachers = await this.resolveAssignedTeachers(instituteId, mergedTeacherIds);
 

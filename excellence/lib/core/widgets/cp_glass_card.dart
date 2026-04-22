@@ -36,13 +36,13 @@ class CPGlassCard extends StatelessWidget {
               (isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg),
           border: border ??
               Border.all(
-                color: isDark ? Colors.white24 : AppColors.elitePrimary,
+                color: isDark ? AppColors.darkBorder : AppColors.elitePrimary,
                 width: isDark ? 1.5 : 3,
               ),
           borderRadius: BorderRadius.circular(borderRadius),
           boxShadow: [
             BoxShadow(
-              color: isDark ? Colors.black54 : AppColors.elitePrimary,
+              color: isDark ? Colors.black38 : AppColors.elitePrimary,
               offset: const Offset(4, 4),
               blurRadius: 0,
               spreadRadius: 0,

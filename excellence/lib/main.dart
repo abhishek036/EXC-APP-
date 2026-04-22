@@ -199,7 +199,7 @@ class _ExcellenceAcademyAppState extends State<ExcellenceAcademyApp> with Widget
           SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
             statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-            systemNavigationBarColor: isDark ? const Color(0xFF212529) : Colors.white,
+            systemNavigationBarColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
             systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
           ));
           return ValueListenableBuilder<Locale>(

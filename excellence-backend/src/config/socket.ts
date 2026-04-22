@@ -3,6 +3,7 @@ import http from 'http';
 import * as jwt from 'jsonwebtoken';
 import { prisma } from './prisma';
 import { buildCorsPolicy, isOriginAllowed } from '../utils/cors';
+import { batchHasTeacher } from '../utils/batch-teacher-assignment';
 
 let io: Server;
 
@@ -78,20 +79,30 @@ const canAccessBatch = async (payload: TokenPayload, batchId: string): Promise<b
     if (normalizedRole === 'teacher') {
         const teacher = await prisma.teacher.findFirst({
             where: { user_id: payload.userId, institute_id: payload.instituteId },
-            select: { id: true },
+            select: { id: true, user_id: true },
         });
         if (!teacher) return false;
 
-        const batch = await prisma.batch.findFirst({
-            where: {
-                id: batchId,
-                institute_id: payload.instituteId,
-                teacher_id: teacher.id,
-                is_active: true,
-            },
-            select: { id: true },
-        });
-        return Boolean(batch);
+        const [batch, institute] = await Promise.all([
+            prisma.batch.findFirst({
+                where: {
+                    id: batchId,
+                    institute_id: payload.instituteId,
+                    is_active: true,
+                },
+                select: { id: true, teacher_id: true },
+            }),
+            prisma.institute.findUnique({
+                where: { id: payload.instituteId },
+                select: { settings: true },
+            }),
+        ]);
+
+        if (!batch) return false;
+
+        const batchMetaMap = (institute?.settings as any)?.batch_meta || {};
+        const batchMeta = batchMetaMap[batchId] || {};
+        return batchHasTeacher(batchMeta, batch.teacher_id, [teacher.id, teacher.user_id]);
     }
 
     if (normalizedRole === 'student') {

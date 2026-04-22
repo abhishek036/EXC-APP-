@@ -5,26 +5,26 @@ class AppColors {
 
   // Design system anchors
   static const Color chambrayBlue = Color(0xFF354388);
-  static const Color saharaSand = Color(0xFFF6EA90);
+  static const Color saharaSand = Color(0xFFFFE066);
   static const Color thunderbirdRed = Color(0xFFB6231B);
-  static const Color saharaYellow = Color(0xFFBDAE18);
+  static const Color saharaYellow = Color(0xFFE5A100);
   static const Color ink = Color(0xFF222222);
 
   // ═══════════════════════════════════════════════════════
-  // 🌑 DARK MODE PALETTE (6 shades — Grey/Slate family)
+  // 🌑 DARK MODE PALETTE (True Black family)
   // ═══════════════════════════════════════════════════════
-  static const Color paleSlate1    = Color(0xFFCED4DA); // lightest — near white grey
-  static const Color paleSlate2    = Color(0xFFADB5BD); // light grey — secondary text
-  static const Color slateGrey     = Color(0xFF6C757D); // mid grey — muted/disabled
-  static const Color ironGrey      = Color(0xFF495057); // dark grey — borders, dividers
-  static const Color gunmetal      = Color(0xFF343A40); // deep grey — card surfaces
-  static const Color shadowGrey    = Color(0xFF212529); // darkest — page background
+  static const Color paleSlate1    = Color(0xFFF5F5F5); // primary white text
+  static const Color paleSlate2    = Color(0xFFB0B0B0); // secondary grey text
+  static const Color slateGrey     = Color(0xFF707070); // muted text / icons
+  static const Color ironGrey      = Color(0xFF2A2A2A); // borders, dividers
+  static const Color gunmetal      = Color(0xFF141414); // card surfaces
+  static const Color shadowGrey    = Color(0xFF0A0A0A); // page background — near black
 
   // ═══════════════════════════════════════════════════════
   // 🌕 LIGHT MODE PALETTE (4 shades — White/Blue family)
   // ═══════════════════════════════════════════════════════
   static const Color offWhite      = Color(0xFFFFFFFF); // page background
-  static const Color frostBlue     = Color(0xFFF4F6FF); // subtle surface tint
+  static const Color frostBlue     = Color(0xFFF0F3FF); // subtle cool-blue surface tint
   static const Color steelBlue     = chambrayBlue; // primary blue — CTAs, active states
   static const Color deepNavy      = ink; // darkest text
 
@@ -33,7 +33,7 @@ class AppColors {
   // ═══════════════════════════════════════════════════════
   static const Color elitePrimary   = chambrayBlue;
   static const Color elitePurple    = Color(0xFF2B356E);
-  static const Color eliteDarkBg    = Color(0xFF263063);
+  static const Color eliteDarkBg    = Color(0xFF0A0A0A);
   static const Color eliteLightBg   = Color(0xFFFFFFFF);
   
   static const Color glassWhiteCard = Color(0xFFFFFFFF);
@@ -133,13 +133,13 @@ class AppColors {
 
   // Backgrounds (new system)
   static const Color backgroundLight = Color(0xFFFFFFFF);
-  static const Color backgroundDark  = shadowGrey;
+  static const Color backgroundDark  = shadowGrey;     // #0A0A0A
   static const Color surfaceLight    = Color(0xFFFFFFFF);
-  static const Color surfaceDark     = gunmetal;
+  static const Color surfaceDark     = gunmetal;        // #141414
 
   // Cards
   static const Color cardLight = Color(0xFFFFFFFF);
-  static const Color cardDark  = gunmetal;
+  static const Color cardDark  = gunmetal;              // #141414
 
   // Text — Light Mode
   static const Color textPrimary   = ink;
@@ -153,7 +153,7 @@ class AppColors {
 
   // Borders
   static const Color lightBorder   = frostBlue;
-  static const Color darkBorder    = ironGrey;
+  static const Color darkBorder    = ironGrey;          // #2A2A2A
 
   // Legacy compat
   static const Color lightBg       = Color(0xFFFFFFFF);

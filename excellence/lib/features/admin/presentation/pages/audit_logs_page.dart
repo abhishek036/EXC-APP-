@@ -103,7 +103,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                     'System Monitoring',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
-                      color: isDark ? Colors.white38 : Colors.black45,
+                      color: isDark ? AppColors.paleSlate2 : Colors.black45,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
                     ),
@@ -144,7 +144,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             ),
           ),
           const SizedBox(width: 16),
@@ -154,7 +154,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                 letterSpacing: -0.8,
               ),
             ),
@@ -173,7 +173,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
               child: Icon(
                 Icons.refresh_rounded,
                 size: 20,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               ),
             ),
           ),
@@ -204,14 +204,14 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
             Icon(
               Icons.monitor_heart_outlined,
               size: 48,
-              color: isDark ? Colors.white24 : Colors.black26,
+              color: isDark ? AppColors.darkBorder : Colors.black26,
             ),
             const SizedBox(height: 16),
             Text(
               'No system logs recorded yet',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                color: isDark ? Colors.white38 : Colors.black45,
+                color: isDark ? AppColors.paleSlate2 : Colors.black45,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -296,7 +296,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                 Expanded(
                   child: Container(
                     width: 2,
-                    color: isDark ? Colors.white12 : Colors.black12,
+                    color: isDark ? AppColors.darkBorder.withValues(alpha: 0.5) : Colors.black12,
                   ),
                 ),
             ],
@@ -343,7 +343,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 9,
                               fontWeight: FontWeight.w900,
-                              color: isDark ? Colors.white54 : Colors.black54,
+                              color: isDark ? AppColors.paleSlate2 : Colors.black54,
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -364,7 +364,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white : AppColors.deepNavy,
+                            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -404,7 +404,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                           '"$comment"',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
-                            color: isDark ? Colors.white70 : Colors.black87,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black87,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -416,7 +416,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                         Icon(
                           Icons.schedule_rounded,
                           size: 12,
-                          color: isDark ? Colors.white24 : Colors.black38,
+                          color: isDark ? AppColors.darkBorder : Colors.black38,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -424,7 +424,7 @@ class _AuditLogsPageState extends State<AuditLogsPage> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white38 : Colors.black45,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black45,
                           ),
                         ),
                       ],

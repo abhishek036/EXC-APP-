@@ -141,7 +141,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white : AppColors.deepNavy,
+                          color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                           letterSpacing: -1.0,
                         ),
                       ),
@@ -155,7 +155,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                               vertical: 12,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFBDAE18),
+                              color: const Color(0xFFE5A100),
                               border: Border.all(
                                 color: const Color(0xFF354388),
                                 width: 2,
@@ -449,7 +449,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                                             ),
                                                         decoration: BoxDecoration(
                                                           color: const Color(
-                                                            0xFFBDAE18,
+                                                            0xFFE5A100,
                                                           ),
                                                           border: Border.all(
                                                             color: const Color(
@@ -654,7 +654,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -758,7 +758,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                 letterSpacing: -0.5,
               ),
             ),
@@ -769,7 +769,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white54 : Colors.black87,
+            color: isDark ? AppColors.paleSlate2 : Colors.black87,
           ),
         ),
         actions: [
@@ -859,7 +859,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                       height: 4,
                       decoration: BoxDecoration(
                         color: isDark
-                            ? Colors.white24
+                            ? AppColors.darkBorder
                             : Colors.black.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(2),
                       ),
@@ -900,7 +900,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.white54 : Colors.black54,
+                                color: isDark ? AppColors.paleSlate2 : Colors.black54,
                               ),
                             ),
                           ],
@@ -1026,7 +1026,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                   : Colors.white,
                               icon: Icon(
                                 Icons.arrow_drop_down_rounded,
-                                color: isDark ? Colors.white54 : Colors.black54,
+                                color: isDark ? AppColors.paleSlate2 : Colors.black54,
                               ),
                               items: ['Academic', 'Fee', 'Holiday', 'Event']
                                   .map(
@@ -1062,7 +1062,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: pin
-                                ? const Color(0xFFBDAE18)
+                                ? const Color(0xFFE5A100)
                                 : Colors.white,
                             border: Border.all(
                               color: const Color(0xFF354388),

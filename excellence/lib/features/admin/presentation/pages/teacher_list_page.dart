@@ -97,7 +97,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
                         'Faculty Scholars',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
-                          color: isDark ? Colors.white38 : Colors.black38,
+                          color: isDark ? AppColors.paleSlate2 : Colors.black38,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.5,
                         ),
@@ -161,7 +161,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             ),
           ),
           const SizedBox(width: 16),
@@ -171,7 +171,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                 letterSpacing: -0.8,
               ),
             ),
@@ -230,7 +230,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
         child: TextField(
           onChanged: (v) => setState(() => _searchQuery = v),
           style: GoogleFonts.plusJakartaSans(
-            color: isDark ? Colors.white : AppColors.deepNavy,
+            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             fontSize: 14,
             fontWeight: FontWeight.w700,
           ),
@@ -238,13 +238,13 @@ class _TeacherListPageState extends State<TeacherListPage> {
             hintText: 'Search faculty by name or detail...',
             hintStyle: GoogleFonts.plusJakartaSans(
               color: isDark
-                  ? Colors.white24
+                  ? AppColors.darkBorder
                   : Colors.black.withValues(alpha: 0.26),
               fontWeight: FontWeight.w600,
             ),
             prefixIcon: Icon(
               Icons.search_rounded,
-              color: isDark ? Colors.white38 : Colors.black38,
+              color: isDark ? AppColors.paleSlate2 : Colors.black38,
               size: 20,
             ),
             border: InputBorder.none,
@@ -262,7 +262,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
         Icon(
           Icons.person_search_rounded,
           size: 64,
-          color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.1),
+          color: isDark ? AppColors.darkBorder.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.1),
         ),
         const SizedBox(height: 24),
         Text(
@@ -270,7 +270,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             color: isDark
-                ? Colors.white24
+                ? AppColors.darkBorder
                 : Colors.black.withValues(alpha: 0.26),
             fontWeight: FontWeight.w700,
           ),
@@ -297,7 +297,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
-                color: isDark ? Colors.white70 : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate2 : AppColors.deepNavy,
               ),
               textAlign: TextAlign.center,
             ),
@@ -430,7 +430,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
                             ),
                             decoration: BoxDecoration(
                               color: isActive
-                                  ? const Color(0xFFBDAE18)
+                                  ? const Color(0xFFE5A100)
                                   : const Color(0xFFB6231B),
                               border: Border.all(
                                 color: const Color(0xFF354388),

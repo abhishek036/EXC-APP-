@@ -94,7 +94,7 @@ class _LeadsPageState extends State<LeadsPage> {
                   height: 4,
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.white24
+                        ? AppColors.darkBorder
                         : Colors.black.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
@@ -124,7 +124,7 @@ class _LeadsPageState extends State<LeadsPage> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
-                            color: isDark ? Colors.white : AppColors.deepNavy,
+                            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                             letterSpacing: -0.5,
                           ),
                         ),
@@ -133,7 +133,7 @@ class _LeadsPageState extends State<LeadsPage> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white54 : Colors.black54,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black54,
                           ),
                         ),
                       ],
@@ -217,7 +217,7 @@ class _LeadsPageState extends State<LeadsPage> {
     style: GoogleFonts.plusJakartaSans(
       fontSize: 10,
       fontWeight: FontWeight.w900,
-      color: isDark ? Colors.white54 : Colors.black54,
+      color: isDark ? AppColors.paleSlate2 : Colors.black54,
       letterSpacing: 1.0,
     ),
   );
@@ -247,18 +247,18 @@ class _LeadsPageState extends State<LeadsPage> {
         style: GoogleFonts.plusJakartaSans(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : Colors.black87,
+          color: isDark ? AppColors.paleSlate1 : Colors.black87,
         ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white38 : Colors.black38,
+            color: isDark ? AppColors.paleSlate2 : Colors.black38,
           ),
           prefixIcon: Icon(
             icon,
-            color: isDark ? Colors.white54 : Colors.black54,
+            color: isDark ? AppColors.paleSlate2 : Colors.black54,
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
@@ -309,7 +309,7 @@ class _LeadsPageState extends State<LeadsPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                 ),
               ),
               const SizedBox(height: 16),
@@ -453,7 +453,7 @@ class _LeadsPageState extends State<LeadsPage> {
                           child: Icon(
                             Icons.arrow_back_ios_new_rounded,
                             size: 20,
-                            color: isDark ? Colors.white : AppColors.deepNavy,
+                            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                           ),
                         ),
                       ),
@@ -463,7 +463,7 @@ class _LeadsPageState extends State<LeadsPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white : AppColors.deepNavy,
+                          color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                           letterSpacing: -1.0,
                         ),
                       ),
@@ -540,7 +540,7 @@ class _LeadsPageState extends State<LeadsPage> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           decoration: BoxDecoration(
                             color: isActive
-                                ? (isDark ? Colors.white : AppColors.deepNavy)
+                                ? (isDark ? AppColors.paleSlate1 : AppColors.deepNavy)
                                 : (isDark
                                       ? Colors.white.withValues(alpha: 0.05)
                                       : Colors.black.withValues(alpha: 0.05)),
@@ -600,7 +600,7 @@ class _LeadsPageState extends State<LeadsPage> {
                                                   alpha: 0.2,
                                                 ))
                                         : (isDark
-                                              ? Colors.white24
+                                              ? AppColors.darkBorder
                                               : Colors.black.withValues(
                                                   alpha: 0.2,
                                                 )),

@@ -46,6 +46,7 @@ import '../../features/parent/presentation/pages/payment_history_page.dart';
 import '../../features/chat/presentation/pages/chat_page.dart';
 import '../../features/chat/presentation/pages/chat_list_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/settings/presentation/pages/legal_document_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/shared/presentation/pages/live_session_page.dart';
 import '../../features/shared/presentation/pages/notifications_page.dart';
@@ -130,8 +131,14 @@ class AppRouter {
     '/register',
     '/otp',
     '/forgot-password',
+    '/terms-of-service',
+    '/privacy-policy',
     '/update',
     '/profile-completion', // New users complete profile after first OTP
+  };
+
+  static const _authenticatedUtilityPaths = <String>{
+    '/change-password',
   };
 
   static const _rolePrefixes = <AppRole, List<String>>{
@@ -267,6 +274,11 @@ class AppRouter {
           return authState.user.dashboardPath;
         }
 
+        if (_publicPaths.contains(location) ||
+            _authenticatedUtilityPaths.contains(location)) {
+          return null;
+        }
+
         final allowed = _rolePrefixes[authState.user.role] ?? [];
         final hasAccess = allowed.any((prefix) => location.startsWith(prefix));
         if (!hasAccess) return authState.user.dashboardPath;
@@ -343,6 +355,28 @@ class AppRouter {
         path: '/change-password',
         name: 'change-password',
         pageBuilder: (c, s) => _page(s, const ChangePasswordPage()),
+      ),
+      GoRoute(
+        path: '/terms-of-service',
+        name: 'terms-of-service',
+        pageBuilder: (c, s) => _page(
+          s,
+          const LegalDocumentPage(
+            title: 'Terms of Service',
+            content: LegalDocumentTexts.termsOfService,
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/privacy-policy',
+        name: 'privacy-policy',
+        pageBuilder: (c, s) => _page(
+          s,
+          const LegalDocumentPage(
+            title: 'Privacy Policy',
+            content: LegalDocumentTexts.privacyPolicy,
+          ),
+        ),
       ),
       GoRoute(
         path: '/update',

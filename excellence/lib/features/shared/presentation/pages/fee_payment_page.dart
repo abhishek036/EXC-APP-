@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/app_permission_service.dart';
 import '../../../../core/services/cloud_storage_service.dart';
 import '../../../../core/utils/role_prefix.dart';
 import '../../../../core/widgets/custom_text_field.dart';
@@ -38,6 +39,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
   double _amountDue = 0;
   int _pendingReviewCount = 0;
   String _dueText = 'DUE DATE UNAVAILABLE';
+  String _latestRejectionReason = '';
   List<Map<String, dynamic>> _feeRecords = [];
 
   @override
@@ -81,6 +83,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
           _dueText = queue.isEmpty
               ? 'NO PAYMENT PROOFS PENDING'
               : '${queue.length} PROOFS WAITING';
+          _latestRejectionReason = '';
           _feeRecords = queue;
           _loading = false;
         });
@@ -150,6 +153,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
         final dueStr = dueDt == null
             ? 'DUE DATE UNAVAILABLE'
             : 'DUE BY ${dueDt.day} ${monthNames[dueDt.month]} ${dueDt.year}';
+        final rejectionReason = _extractRejectionReason(target);
 
         setState(() {
           _selectedFeeRecordId = target?['id']?.toString();
@@ -166,6 +170,8 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
           } else {
             _dueText = amount > 0 ? dueStr : 'CLEARED';
           }
+
+          _latestRejectionReason = _status == 'rejected' ? rejectionReason : '';
           
           _feeRecords = pending.isNotEmpty ? pending : normalizedRecords;
           _loading = false;
@@ -177,6 +183,7 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
           _amountDue = 0;
           _batchName = 'No active records';
           _dueText = 'NO PENDING DUES';
+          _latestRejectionReason = '';
           _feeRecords = normalizedRecords;
           _loading = false;
         });
@@ -203,6 +210,25 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
   }
 
   String _safeString(dynamic value) => value == null ? '' : value.toString();
+
+  String _extractRejectionReason(Map<String, dynamic> record) {
+    final explicitReason =
+        (record['latest_rejection_reason'] ?? record['rejection_reason'] ?? '')
+            .toString()
+            .trim();
+    if (explicitReason.isNotEmpty) return explicitReason;
+
+    final payments = (record['payments'] as List?)?.cast<dynamic>() ?? const [];
+    for (final payment in payments) {
+      if (payment is! Map) continue;
+      final status = (payment['status'] ?? '').toString().toLowerCase();
+      if (status != 'rejected') continue;
+      final reason = (payment['rejection_reason'] ?? '').toString().trim();
+      if (reason.isNotEmpty) return reason;
+    }
+
+    return '';
+  }
 
   double _remainingAmountForRecord(Map<String, dynamic> record) {
     final rawRemaining = record['remaining_amount'];
@@ -382,6 +408,31 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                       ),
                                       child: Text(
                                         'Payment proof is pending admin verification',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: CT.elevated(context),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  if (_status == 'rejected' && _latestRejectionReason.isNotEmpty) ...[
+                                    const SizedBox(height: 12),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 10,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.red.withValues(alpha: 0.35),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Rejection reason: $_latestRejectionReason',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w700,
@@ -877,6 +928,9 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
   }
 
   Future<String?> _pickAndUploadScreenshot() async {
+    final granted = await AppPermissionService.requestMediaAccess(context);
+    if (!granted) return null;
+
     final picked = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp'],

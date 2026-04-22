@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/widgets/custom_button.dart';
+import '../../../../core/services/app_permission_service.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/di/injection_container.dart';
@@ -69,6 +70,9 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
 
   Future<void> _pickImage() async {
     try {
+      final granted = await AppPermissionService.requestMediaAccess(context);
+      if (!granted) return;
+
       final picker = ImagePicker();
       final picked = await picker.pickImage(
         source: ImageSource.gallery,

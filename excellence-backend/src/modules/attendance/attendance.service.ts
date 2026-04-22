@@ -3,6 +3,7 @@ import { MarkAttendanceInput } from './attendance.validator';
 import { notificationQueue } from '../../jobs/queue';
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
+import { batchHasTeacher } from '../../utils/batch-teacher-assignment';
 import { ATTENDANCE_PRESENT_STATUSES, normalizeStatus, summarizeAttendanceFromStatuses } from '../../utils/metrics';
 
 export class AttendanceService {
@@ -52,7 +53,7 @@ export class AttendanceService {
     if (role === 'teacher') {
       const teacher = await prisma.teacher.findFirst({
         where: { user_id: userId, institute_id: instituteId },
-        select: { id: true },
+        select: { id: true, user_id: true },
       });
       if (!teacher) {
         throw new ApiError('Teacher profile not found', 404, 'NOT_FOUND');
@@ -62,9 +63,9 @@ export class AttendanceService {
       // Check authorization
       const metaMap = (batch.institute.settings as any)?.batch_meta || {};
       const meta = metaMap[batch.id] || {};
-      const assignedIds = Array.isArray(meta.teacher_ids) ? meta.teacher_ids : [];
+      const assigned = batchHasTeacher(meta, batch.teacher_id, [teacher.id, teacher.user_id]);
 
-      if (batch.teacher_id !== teacherProfileId && !assignedIds.includes(teacherProfileId!)) {
+      if (!assigned) {
         throw new ApiError('You are not assigned to this batch', 403, 'FORBIDDEN');
       }
     }

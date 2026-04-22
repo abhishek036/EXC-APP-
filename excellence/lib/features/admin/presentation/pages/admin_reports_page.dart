@@ -172,7 +172,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
             'Analytics Engine',
             style: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.w900,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               letterSpacing: -1,
             ),
           ),
@@ -203,7 +203,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                     style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w900,
                       fontSize: 24,
-                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                       letterSpacing: -1,
                     ),
                   ),
@@ -215,7 +215,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                       },
                       icon: Icon(
                         Icons.get_app_rounded,
-                        color: isDark ? Colors.white : AppColors.deepNavy,
+                        color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -248,7 +248,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                           dividerColor: Colors.transparent,
                           indicatorSize: TabBarIndicatorSize.tab,
                           indicator: BoxDecoration(
-                            color: const Color(0xFFBDAE18),
+                            color: const Color(0xFFE5A100),
                             border: Border.all(
                               color: const Color(0xFF354388),
                               width: 2,
@@ -318,7 +318,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white70 : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate2 : AppColors.deepNavy,
             ),
           ),
         ),
@@ -443,7 +443,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               margin: const EdgeInsets.only(bottom: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFFBDAE18),
+                color: const Color(0xFFE5A100),
                 border: Border.all(color: const Color(0xFF354388), width: 2),
                 boxShadow: const [
                   BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
@@ -602,7 +602,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
             style: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               letterSpacing: -0.5,
             ),
           ),
@@ -612,7 +612,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white54 : Colors.black54,
+              color: isDark ? AppColors.paleSlate2 : Colors.black54,
               letterSpacing: 0.5,
             ),
           ),
@@ -633,7 +633,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white : AppColors.deepNavy,
+            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             letterSpacing: -0.5,
           ),
         ),
@@ -655,7 +655,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white38 : Colors.black38,
+                        color: isDark ? AppColors.paleSlate2 : Colors.black38,
                       ),
                     ),
                   ),
@@ -672,7 +672,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
-                            color: isDark ? Colors.white54 : Colors.black54,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black54,
                           ),
                         ),
                       );
@@ -735,7 +735,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white : AppColors.deepNavy,
+            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             letterSpacing: -0.5,
           ),
         ),
@@ -760,7 +760,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
           style: GoogleFonts.plusJakartaSans(
             fontSize: 10,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white70 : Colors.black87,
+            color: isDark ? AppColors.paleSlate2 : Colors.black87,
             letterSpacing: 0.5,
           ),
         ),
@@ -819,7 +819,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
         style: GoogleFonts.plusJakartaSans(
           fontSize: 18,
           fontWeight: FontWeight.w900,
-          color: isDark ? Colors.white : AppColors.deepNavy,
+          color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
           letterSpacing: -0.5,
         ),
       ),
@@ -890,7 +890,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white70 : Colors.black87,
+                      color: isDark ? AppColors.paleSlate2 : Colors.black87,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -900,7 +900,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white38 : Colors.black38,
+                    color: isDark ? AppColors.paleSlate2 : Colors.black38,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -926,7 +926,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                 letterSpacing: -0.5,
               ),
             ),
@@ -977,7 +977,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white38 : Colors.black38,
+                        color: isDark ? AppColors.paleSlate2 : Colors.black38,
                       ),
                     ),
                   ),
@@ -994,7 +994,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
-                            color: isDark ? Colors.white54 : Colors.black54,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black54,
                           ),
                         ),
                       );
@@ -1056,7 +1056,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white : AppColors.deepNavy,
+            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             letterSpacing: -0.5,
           ),
         ),
@@ -1086,7 +1086,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white70 : Colors.black87,
+                      color: isDark ? AppColors.paleSlate2 : Colors.black87,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -1155,7 +1155,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white : AppColors.deepNavy,
+            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             letterSpacing: -0.5,
           ),
         ),
@@ -1265,7 +1265,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white70 : Colors.black87,
+              color: isDark ? AppColors.paleSlate2 : Colors.black87,
               letterSpacing: -0.2,
             ),
           ),
@@ -1287,7 +1287,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white : AppColors.deepNavy,
+            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             letterSpacing: -0.5,
           ),
         ),
@@ -1336,7 +1336,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white70 : Colors.black87,
+                        color: isDark ? AppColors.paleSlate2 : Colors.black87,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -1388,7 +1388,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white38 : Colors.black38,
+                        color: isDark ? AppColors.paleSlate2 : Colors.black38,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -1398,7 +1398,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white38 : Colors.black38,
+                        color: isDark ? AppColors.paleSlate2 : Colors.black38,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -1438,7 +1438,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -1470,7 +1470,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
               'No pending fees found',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                color: isDark ? Colors.white54 : Colors.black54,
+                color: isDark ? AppColors.paleSlate2 : Colors.black54,
               ),
             ),
           ...pending.map((record) {
@@ -1529,7 +1529,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white70 : Colors.black87,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black87,
                             letterSpacing: -0.5,
                           ),
                         ),
@@ -1538,7 +1538,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
-                            color: isDark ? Colors.white38 : Colors.black38,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black38,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -1590,7 +1590,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white : AppColors.deepNavy,
+            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             letterSpacing: -0.5,
           ),
         ),
@@ -1612,7 +1612,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white38 : Colors.black38,
+                        color: isDark ? AppColors.paleSlate2 : Colors.black38,
                       ),
                     ),
                   ),
@@ -1629,7 +1629,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
-                            color: isDark ? Colors.white54 : Colors.black54,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black54,
                           ),
                         ),
                       );
@@ -1700,7 +1700,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white : AppColors.deepNavy,
+            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             letterSpacing: -0.5,
           ),
         ),
@@ -1758,7 +1758,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white70 : Colors.black87,
+                          color: isDark ? AppColors.paleSlate2 : Colors.black87,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -1767,7 +1767,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white38 : Colors.black38,
+                          color: isDark ? AppColors.paleSlate2 : Colors.black38,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -1782,7 +1782,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white : AppColors.deepNavy,
+                        color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                       ),
                     ),
                     Text(
@@ -1790,7 +1790,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white38 : Colors.black38,
+                        color: isDark ? AppColors.paleSlate2 : Colors.black38,
                       ),
                     ),
                   ],
@@ -1818,7 +1818,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
             style: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               letterSpacing: -0.5,
             ),
           ),
@@ -1828,7 +1828,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
               'No upcoming assessments indexed',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                color: isDark ? Colors.white54 : Colors.black54,
+                color: isDark ? AppColors.paleSlate2 : Colors.black54,
               ),
             ),
           ...exams.asMap().entries.map((e) {
@@ -1874,7 +1874,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white70 : Colors.black87,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black87,
                             letterSpacing: -0.5,
                           ),
                         ),
@@ -1884,7 +1884,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
-                            color: isDark ? Colors.white38 : Colors.black38,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black38,
                             letterSpacing: 0.5,
                           ),
                         ),

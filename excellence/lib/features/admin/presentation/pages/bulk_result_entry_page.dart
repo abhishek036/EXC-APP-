@@ -264,7 +264,7 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             ),
           ),
           const SizedBox(width: 16),
@@ -274,7 +274,7 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                 letterSpacing: -0.8,
               ),
             ),
@@ -303,14 +303,14 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
             Icon(
               Icons.group_off_rounded,
               size: 48,
-              color: isDark ? Colors.white24 : Colors.black26,
+              color: isDark ? AppColors.darkBorder : Colors.black26,
             ),
             const SizedBox(height: 16),
             Text(
               'No scholars found in batch',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                color: isDark ? Colors.white38 : Colors.black45,
+                color: isDark ? AppColors.paleSlate2 : Colors.black45,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -367,7 +367,7 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: isDark ? Colors.white : AppColors.deepNavy,
+                            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                             letterSpacing: -0.5,
                           ),
                         ),
@@ -377,7 +377,7 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white38 : Colors.black45,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black45,
                           ),
                         ),
                       ],

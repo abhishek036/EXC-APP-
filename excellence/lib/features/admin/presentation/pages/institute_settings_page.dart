@@ -402,7 +402,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFBDAE18),
+                    color: const Color(0xFFE5A100),
                     border: Border.all(
                       color: const Color(0xFF354388),
                       width: 3,
@@ -453,14 +453,14 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
 
   Widget _sectionTitle(String title, IconData icon, bool isDark) => Row(
     children: [
-      Icon(icon, size: 16, color: isDark ? Colors.white54 : Colors.black54),
+      Icon(icon, size: 16, color: isDark ? AppColors.paleSlate2 : Colors.black54),
       const SizedBox(width: 8),
       Text(
         title,
         style: GoogleFonts.plusJakartaSans(
           fontSize: 11,
           fontWeight: FontWeight.w900,
-          color: isDark ? Colors.white54 : Colors.black54,
+          color: isDark ? AppColors.paleSlate2 : Colors.black54,
           letterSpacing: 1.0,
         ),
       ),
@@ -538,7 +538,7 @@ class _InstituteSettingsPageState extends State<InstituteSettingsPage> {
             },
             activeThumbColor: Colors.white,
             activeTrackColor: accentColor,
-            inactiveThumbColor: isDark ? Colors.white38 : Colors.black38,
+            inactiveThumbColor: isDark ? AppColors.paleSlate2 : Colors.black38,
             inactiveTrackColor: isDark
                 ? Colors.white12
                 : Colors.black.withValues(alpha: 0.12),

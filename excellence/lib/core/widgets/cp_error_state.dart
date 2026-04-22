@@ -52,7 +52,7 @@ class CPErrorState extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               ),
               textAlign: TextAlign.center,
             ),
@@ -62,7 +62,7 @@ class CPErrorState extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white54 : Colors.black54,
+                color: isDark ? AppColors.paleSlate2 : Colors.black54,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,

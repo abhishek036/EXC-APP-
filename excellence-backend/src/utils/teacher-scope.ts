@@ -1,17 +1,10 @@
 import { prisma } from '../server';
 import { ApiError } from '../middleware/error.middleware';
+import { batchHasTeacher } from './batch-teacher-assignment';
 
 export type TeacherScope = {
   teacherId: string;
   batchIds: string[];
-};
-
-const normalizeTeacherIds = (value: unknown): string[] => {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .map((item) => String(item || '').trim())
-    .filter((item) => item.length > 0);
 };
 
 export const resolveTeacherScope = async (
@@ -37,7 +30,7 @@ export const resolveTeacherScope = async (
         institute_id: instituteId,
         teacher_id: teacher.id,
       },
-      select: { id: true },
+      select: { id: true, teacher_id: true },
     }),
     prisma.institute.findUnique({
       where: { id: instituteId },
@@ -50,15 +43,24 @@ export const resolveTeacherScope = async (
   const settings = (institute?.settings ?? {}) as Record<string, unknown>;
   const batchMeta = settings.batch_meta;
   if (batchMeta && typeof batchMeta === 'object' && !Array.isArray(batchMeta)) {
+    for (const batch of directBatches) {
+      const meta = (batchMeta as Record<string, unknown>)[batch.id] as Record<string, unknown> | undefined;
+      if (batchHasTeacher(meta, batch.teacher_id, [teacher.id, teacher.user_id])) {
+        batchIds.add(batch.id);
+      }
+    }
+
     for (const [batchId, metaValue] of Object.entries(batchMeta as Record<string, unknown>)) {
+      if (batchIds.has(batchId)) continue;
+
       const meta = (metaValue ?? {}) as Record<string, unknown>;
-      const assignedTeacherIds = normalizeTeacherIds(meta.teacher_ids);
-      if (
-        assignedTeacherIds.includes(teacher.id)
-        || (!!teacher.user_id && assignedTeacherIds.includes(teacher.user_id))
-      ) {
+      if (batchHasTeacher(meta, null, [teacher.id, teacher.user_id])) {
         batchIds.add(batchId);
       }
+    }
+  } else {
+    for (const batch of directBatches) {
+      batchIds.add(batch.id);
     }
   }
 

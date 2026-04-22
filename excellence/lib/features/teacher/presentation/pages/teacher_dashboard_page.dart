@@ -294,7 +294,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white54 : Colors.black54,
+                  color: isDark ? AppColors.paleSlate2 : Colors.black54,
                 ),
               ),
               Text(
@@ -302,7 +302,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                   letterSpacing: -0.5,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -507,7 +507,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 28,
               fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : AppColors.elitePrimary,
+              color: isDark ? AppColors.paleSlate1 : AppColors.elitePrimary,
               letterSpacing: -0.5,
             ),
           ),

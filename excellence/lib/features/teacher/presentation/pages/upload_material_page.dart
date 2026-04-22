@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/app_permission_service.dart';
 import '../../../../core/services/cloud_storage_service.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../data/repositories/teacher_repository.dart';
@@ -750,6 +751,12 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
   Future<void> _pickFile() async {
     try {
+      final granted = await AppPermissionService.requestFileAccess(
+        context,
+        featureName: 'material uploads',
+      );
+      if (!granted) return;
+
       final result = await FilePicker.platform.pickFiles(
         type: FileType.any,
         withData: true,

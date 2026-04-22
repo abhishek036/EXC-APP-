@@ -2,6 +2,7 @@ import { DoubtRepository } from './doubt.repository';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../server';
 import { ApiError } from '../../middleware/error.middleware';
+import { batchHasTeacher } from '../../utils/batch-teacher-assignment';
 import { NotificationService } from '../notification/notification.service';
 
 export class DoubtService {
@@ -64,7 +65,7 @@ export class DoubtService {
   static async answerDoubt(id: string, instituteId: string, userId: string, data: any) {
     const teacher = await prisma.teacher.findFirst({
       where: { user_id: userId, institute_id: instituteId },
-      select: { id: true },
+      select: { id: true, user_id: true },
     });
     if (!teacher) throw new ApiError('Teacher profile not found', 404, 'NOT_FOUND');
 
@@ -80,9 +81,9 @@ export class DoubtService {
     if (batch) {
       const metaMap = (batch.institute.settings as any)?.batch_meta || {};
       const meta = metaMap[batch.id] || {};
-      const assignedTeacherIds = Array.isArray(meta.teacher_ids) ? meta.teacher_ids : [];
+      const assignedTeacher = batchHasTeacher(meta, batch.teacher_id, [teacher.id, teacher.user_id]);
 
-      if (batch.teacher_id !== teacher.id && !assignedTeacherIds.includes(teacher.id)) {
+      if (!assignedTeacher) {
         throw new ApiError('You are not authorized to answer this doubt', 403, 'FORBIDDEN');
       }
     }

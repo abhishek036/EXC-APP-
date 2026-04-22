@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/app_permission_service.dart';
 import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/services/api_auth_service.dart';
 import '../../../../core/theme/theme_aware.dart';
@@ -59,6 +60,11 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
 
   Future<void> _pickAndUploadImage(ImageSource source) async {
     try {
+      final granted = source == ImageSource.camera
+          ? await AppPermissionService.requestCameraAccess(context)
+          : await AppPermissionService.requestMediaAccess(context);
+      if (!granted) return;
+
       final picker = ImagePicker();
       final picked = await picker.pickImage(
         source: source,
@@ -254,7 +260,7 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
                         margin: const EdgeInsets.only(right: 16),
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFBDAE18),
+                          color: const Color(0xFFE5A100),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -311,7 +317,7 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
                               onTap: _showImageOptions,
                               child: Container(
                                 padding: const EdgeInsets.all(6),
-                                decoration: const BoxDecoration(color: Color(0xFFBDAE18), shape: BoxShape.circle),
+                                decoration: const BoxDecoration(color: Color(0xFFE5A100), shape: BoxShape.circle),
                                 child: const Icon(Icons.camera_alt_rounded, size: 14, color: Color(0xFF354388)),
                               ),
                             ),

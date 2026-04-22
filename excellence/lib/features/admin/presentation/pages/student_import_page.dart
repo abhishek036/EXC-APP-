@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/app_permission_service.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
@@ -36,6 +37,15 @@ class _StudentImportPageState extends State<StudentImportPage> {
     });
 
     try {
+      final granted = await AppPermissionService.requestFileAccess(
+        context,
+        featureName: 'student import',
+      );
+      if (!granted) {
+        setState(() => _isPicking = false);
+        return;
+      }
+
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         withData: true,

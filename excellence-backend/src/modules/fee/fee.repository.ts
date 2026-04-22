@@ -300,6 +300,8 @@ export class FeeRepository {
                                 screenshot_url: true,
                                 submitted_at: true,
                                 approved_at: true,
+                                paid_at: true,
+                                rejected_at: true,
                                 rejection_reason: true,
                                 note: true,
                                 receipt_number: true,
@@ -510,12 +512,21 @@ export class FeeRepository {
                 throw new ApiError('Submitted amount must be greater than zero', 400, 'INVALID_AMOUNT');
             }
 
-            const allowPartialProofPayments = (process.env.ALLOW_PARTIAL_QR_PROOF || 'false').toLowerCase() === 'true';
-            if (allowPartialProofPayments && requestedAmount > remainingAmount) {
+            const allowPartialProofPayments =
+                ((process.env.ALLOW_PARTIAL_QR_PROOF ?? 'true').trim().toLowerCase() !== 'false');
+            if (requestedAmount > remainingAmount) {
                 throw new ApiError('Submitted amount exceeds remaining amount', 400, 'AMOUNT_EXCEEDS_DUE');
             }
 
-            const effectiveAmount = allowPartialProofPayments ? requestedAmount : remainingAmount;
+            if (!allowPartialProofPayments && requestedAmount < remainingAmount) {
+                throw new ApiError(
+                    'Partial payment proofs are disabled. Submit full remaining amount.',
+                    400,
+                    'PARTIAL_PAYMENT_DISABLED',
+                );
+            }
+
+            const effectiveAmount = requestedAmount;
 
             const fromStatus = record.status ?? 'unpaid';
             const now = new Date();

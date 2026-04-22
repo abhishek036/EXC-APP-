@@ -119,7 +119,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             ),
           ),
           const SizedBox(width: 16),
@@ -128,7 +128,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               letterSpacing: -0.5,
             ),
           ),
@@ -163,7 +163,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 11,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white38 : Colors.black38,
+            color: isDark ? AppColors.paleSlate2 : Colors.black38,
             letterSpacing: 1.2,
           ),
         ),
@@ -180,12 +180,12 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
         aspectRatio: 1.4,
         child: Container(
           decoration: BoxDecoration(
-            color: (isDark ? Colors.white : Colors.black).withValues(
+            color: (isDark ? AppColors.paleSlate1 : Colors.black).withValues(
               alpha: 0.05,
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: (isDark ? Colors.white : Colors.black).withValues(
+              color: (isDark ? AppColors.paleSlate1 : Colors.black).withValues(
                 alpha: 0.05,
               ),
             ),
@@ -196,7 +196,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
               Icon(
                 Icons.description_rounded,
                 size: 48,
-                color: (isDark ? Colors.white : Colors.black).withValues(
+                color: (isDark ? AppColors.paleSlate1 : Colors.black).withValues(
                   alpha: 0.1,
                 ),
               ),
@@ -207,7 +207,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: isDark
-                      ? Colors.white24
+                      ? AppColors.darkBorder
                       : Colors.black.withValues(alpha: 0.26),
                 ),
               ),
@@ -241,7 +241,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+            color: isDark ? AppColors.paleSlate1.withValues(alpha: 0.04) : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isDark
@@ -257,7 +257,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   color: isDark
-                      ? Colors.white24
+                      ? AppColors.darkBorder
                       : Colors.black.withValues(alpha: 0.26),
                   fontWeight: FontWeight.w600,
                 ),
@@ -266,7 +266,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
               dropdownColor: isDark ? const Color(0xFF354388) : Colors.white,
               icon: Icon(
                 Icons.keyboard_arrow_down_rounded,
-                color: isDark ? Colors.white38 : Colors.black38,
+                color: isDark ? AppColors.paleSlate2 : Colors.black38,
               ),
               items: students
                   .map(
@@ -276,7 +276,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
                         s['name'].toString(),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
-                          color: isDark ? Colors.white : AppColors.deepNavy,
+                          color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -350,7 +350,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
                 color: active
                     ? color
                     : (isDark
-                          ? Colors.white24
+                          ? AppColors.darkBorder
                           : Colors.black.withValues(alpha: 0.12)),
                 size: 32,
               ),
@@ -362,7 +362,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
                   fontWeight: FontWeight.w900,
                   color: active
                       ? color
-                      : (isDark ? Colors.white38 : Colors.black38),
+                      : (isDark ? AppColors.paleSlate2 : Colors.black38),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -377,7 +377,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        color: isDark ? AppColors.paleSlate1.withValues(alpha: 0.04) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark
@@ -391,14 +391,14 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
         style: GoogleFonts.plusJakartaSans(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : AppColors.deepNavy,
+          color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
         ),
         decoration: InputDecoration(
           hintText: 'e.g. Advance Mathematics',
           hintStyle: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             color: isDark
-                ? Colors.white24
+                ? AppColors.darkBorder
                 : Colors.black.withValues(alpha: 0.26),
           ),
           border: InputBorder.none,
@@ -406,7 +406,7 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
             Icons.school_outlined,
             size: 20,
             color: isDark
-                ? Colors.white24
+                ? AppColors.darkBorder
                 : Colors.black.withValues(alpha: 0.26),
           ),
         ),

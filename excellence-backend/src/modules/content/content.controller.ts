@@ -6,6 +6,7 @@ import { emitBatchSync, emitInstituteDashboardSync } from '../../config/socket';
 import { ApiError } from '../../middleware/error.middleware';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { UploadController } from '../upload/upload.controller';
+import { resolveBatchTeacherIds } from '../../utils/batch-teacher-assignment';
 
 export class ContentController {
   private service: ContentService;
@@ -1143,26 +1144,33 @@ export class ContentController {
           if (batch) {
             const metaMap = (batch.institute.settings as any)?.batch_meta || {};
             const batchMeta = metaMap[req.body.batch_id] || {};
-            const teacherIds = [batch.teacher_id, ...(Array.isArray(batchMeta.teacher_ids) ? batchMeta.teacher_ids : [])].filter(Boolean);
-
-            for (const tId of teacherIds) {
-              const teacher = await prisma.teacher.findUnique({
-                where: { id: tId },
-                select: { user_id: true }
-              });
-              if (teacher?.user_id) {
-                await NotificationService.sendNotificationToUser(teacher.user_id, {
-                  title: 'New Doubt from Student',
-                  body: `A student has a new doubt in "${batch.name || 'your batch'}": "${((req.body.question_text || 'doubt') as string).substring(0, 50)}..."`,
-                  type: 'doubt',
+            const teacherIds = resolveBatchTeacherIds(batchMeta, batch.teacher_id);
+            const teachers = teacherIds.length > 0
+              ? await prisma.teacher.findMany({
+                where: {
                   institute_id: req.instituteId!,
-                  meta: {
-                    route: '/teacher/doubts',
-                    doubt_id: (data as any)?.id,
-                    batch_id: req.body.batch_id
-                  }
-                });
-              }
+                  OR: [
+                    { id: { in: teacherIds } },
+                    { user_id: { in: teacherIds } },
+                  ],
+                },
+                select: { user_id: true },
+              })
+              : [];
+
+            for (const teacher of teachers) {
+              if (!teacher.user_id) continue;
+              await NotificationService.sendNotificationToUser(teacher.user_id, {
+                title: 'New Doubt from Student',
+                body: `A student has a new doubt in "${batch.name || 'your batch'}": "${((req.body.question_text || 'doubt') as string).substring(0, 50)}..."`,
+                type: 'doubt',
+                institute_id: req.instituteId!,
+                meta: {
+                  route: '/teacher/doubts',
+                  doubt_id: (data as any)?.id,
+                  batch_id: req.body.batch_id
+                }
+              });
             }
           }
         } catch (err) {

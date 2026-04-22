@@ -181,12 +181,12 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         color: bgColor ?? (isDark ? AppColors.eliteDarkBg : Colors.white),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white24 : AppColors.elitePrimary,
-          width: isDark ? 1.5 : 3,
+          color: isDark ? AppColors.darkBorder : AppColors.elitePrimary,
+          width: isDark ? 1.0 : 3,
         ),
         boxShadow: [
           BoxShadow(
-            color: isDark ? Colors.black54 : AppColors.elitePrimary,
+            color: isDark ? Colors.black38 : AppColors.elitePrimary,
             offset: const Offset(4, 4),
           ),
         ],
@@ -225,7 +225,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white54 : Colors.black54,
+                          color: isDark ? AppColors.paleSlate2 : Colors.black54,
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -346,7 +346,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           height: 48,
           alignment: Alignment.center,
           child: CircularProgressIndicator(
-            color: isDark ? Colors.white70 : AppColors.elitePrimary,
+            color: isDark ? AppColors.paleSlate2 : AppColors.elitePrimary,
           ),
         ),
       ],
@@ -366,14 +366,14 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : AppColors.elitePrimary,
+              color: isDark ? AppColors.paleSlate1 : AppColors.elitePrimary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             _error ?? 'Unknown error',
             style: GoogleFonts.plusJakartaSans(
-              color: isDark ? Colors.white54 : Colors.black54,
+              color: isDark ? AppColors.paleSlate2 : Colors.black54,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -615,7 +615,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white54 : Colors.black54,
+                  color: isDark ? AppColors.paleSlate2 : Colors.black54,
                 ),
               ),
               Text(
@@ -623,7 +623,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : AppColors.deepNavy,
+                  color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                   letterSpacing: -0.5,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -705,7 +705,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: isDark ? Colors.white : AppColors.deepNavy,
+              color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               letterSpacing: -0.6,
             ),
             overflow: TextOverflow.ellipsis,
@@ -818,7 +818,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: isDark ? Colors.white : AppColors.elitePrimary,
+                color: isDark ? AppColors.paleSlate1 : AppColors.elitePrimary,
               ),
               textAlign: TextAlign.center,
               maxLines: 1,
@@ -846,7 +846,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white54 : Colors.black54,
+              color: isDark ? AppColors.paleSlate2 : Colors.black54,
             ),
           ),
         ),
@@ -941,7 +941,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? Colors.white : AppColors.elitePrimary,
+                        color: isDark ? AppColors.paleSlate1 : AppColors.elitePrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -957,7 +957,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white : AppColors.deepNavy,
+                    color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -967,7 +967,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                   Icon(
                     Icons.person_rounded,
                     size: 14,
-                    color: isDark ? Colors.white54 : Colors.black54,
+                    color: isDark ? AppColors.paleSlate2 : Colors.black54,
                   ),
                   const SizedBox(width: 6),
                   Expanded(
@@ -976,7 +976,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white54 : Colors.black54,
+                        color: isDark ? AppColors.paleSlate2 : Colors.black54,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1203,7 +1203,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? Colors.white : AppColors.elitePrimary,
+                        color: isDark ? AppColors.paleSlate1 : AppColors.elitePrimary,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1452,7 +1452,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             Icons.inventory_2_outlined,
             size: 24,
             color: isDark
-                ? Colors.white24
+                ? AppColors.darkBorder
                 : AppColors.elitePrimary.withValues(alpha: 0.26),
           ),
           const SizedBox(height: 12),
@@ -1506,7 +1506,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? Colors.white : AppColors.elitePrimary,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.elitePrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1517,7 +1517,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white70 : Colors.black54,
+                      color: isDark ? AppColors.paleSlate2 : Colors.black54,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1598,7 +1598,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
               fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white70 : Colors.black87,
+              color: isDark ? AppColors.paleSlate2 : Colors.black87,
             ),
             maxLines: 1,
           ),

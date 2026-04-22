@@ -114,6 +114,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
               _sectionTitle('Notifications'),
               _settingsToggle(Icons.notifications_outlined, 'Push Notifications', _notificationsEnabled, (v) { _togglePushNotifications(v); }, isDark: isDark),
+              _settingsTile(Icons.tune_outlined, 'Notification Settings', subtitle: 'System permission and delivery preferences', onTap: () => context.push('${context.rolePrefix}/notification-settings'), isDark: isDark),
               _settingsToggle(Icons.volume_up_outlined, 'Sound Effects', _soundEffects, (v) { setState(() => _soundEffects = v); _saveBool('soundEffects', v); }, isDark: isDark),
               _settingsToggle(Icons.vibration_outlined, 'Haptic Feedback', _hapticFeedback, (v) { setState(() => _hapticFeedback = v); _saveBool('hapticFeedback', v); }, isDark: isDark),
               const SizedBox(height: AppDimensions.lg),
@@ -490,136 +491,11 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showTermsSheet() {
-    _showLegalSheet('Terms of Service', '''
-Last Updated: February 2026
-
-1. ACCEPTANCE OF TERMS
-By accessing or using the Excellence Academy application, you agree to be bound by these Terms of Service. If you do not agree, please do not use the app.
-
-2. DESCRIPTION OF SERVICE
-Excellence Academy provides an educational coaching management platform that includes class management, attendance tracking, fee management, student performance analytics, and communication tools.
-
-3. USER ACCOUNTS
-• You must provide accurate information during registration
-• You are responsible for maintaining the confidentiality of your account
-• You must notify us immediately of any unauthorized use
-• One account per individual; account sharing is not permitted
-
-4. ACCEPTABLE USE
-You agree not to:
-• Use the service for any unlawful purpose
-• Interfere with or disrupt the service
-• Attempt to gain unauthorized access to other accounts
-• Share copyrighted study materials without permission
-
-5. INTELLECTUAL PROPERTY
-All content, features, and functionality are owned by Excellence Academy and protected by copyright, trademark, and other laws.
-
-6. FEE PAYMENTS
-• All fees are due as per the schedule set by your coaching institute
-• Refund policies are determined by individual institutes
-• Payment processing is handled through secure third-party providers
-
-7. PRIVACY
-Your use of Excellence Academy is also governed by our Privacy Policy, which is incorporated by reference.
-
-8. LIMITATION OF LIABILITY
-Excellence Academy shall not be liable for any indirect, incidental, special, or consequential damages.
-
-9. CHANGES TO TERMS
-We reserve the right to modify these terms at any time. Continued use constitutes acceptance of modified terms.
-
-10. CONTACT
-For questions about these Terms, contact us at support@Excellence Academy.app''');
+    context.push('/terms-of-service');
   }
 
   void _showPrivacySheet() {
-    _showLegalSheet('Privacy Policy', '''
-Last Updated: February 2026
-
-1. INFORMATION WE COLLECT
-• Personal Information: Name, email, phone number, profile photo
-• Academic Data: Attendance records, test scores, performance metrics
-• Usage Data: App usage patterns, feature interactions
-• Device Information: Device type, OS version, app version
-
-2. HOW WE USE YOUR INFORMATION
-• To provide and maintain the Excellence Academy service
-• To manage your account and provide customer support
-• To send notifications about classes, tests, and fees
-• To generate performance analytics and reports
-• To improve our app and services
-
-3. DATA SHARING
-We do not sell your personal information. We may share data with:
-• Your coaching institute administrators and teachers
-• Parents/guardians (for student accounts, as configured)
-• Service providers who assist in app operations
-• Legal authorities when required by law
-
-4. DATA SECURITY
-• All data is encrypted in transit and at rest
-• We use industry-standard security measures
-• Regular security audits are performed
-• Access to user data is restricted to authorized personnel
-
-5. DATA RETENTION
-• Account data is retained while your account is active
-• You can request data deletion at any time
-• Deleted data is permanently removed within 30 days
-• Anonymized analytics data may be retained longer
-
-6. YOUR RIGHTS
-You have the right to:
-• Access your personal data
-• Correct inaccurate data
-• Delete your account and data
-• Export your data
-• Opt out of non-essential communications
-
-7. CHILDREN'S PRIVACY
-Excellence Academy is designed for students of all ages. For users under 13, parental consent is required during registration.
-
-8. COOKIES & TRACKING
-The app uses minimal analytics to improve user experience. No third-party advertising trackers are used.
-
-9. CHANGES TO POLICY
-We will notify you of significant changes via in-app notification or email.
-
-10. CONTACT
-For privacy concerns, contact us at privacy@Excellence Academy.app''');
-  }
-
-  void _showLegalSheet(String title, String content) {
-    showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: CT.bg(context),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.8, maxChildSize: 0.95, minChildSize: 0.4, expand: false,
-        builder: (ctx, scrollCtrl) => Column(children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-            child: Column(children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: CT.textM(context).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 16),
-              Row(children: [
-                Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: CT.textH(context))),
-                const Spacer(),
-                CPPressable(onTap: () => Navigator.pop(ctx), child: Icon(Icons.close, color: CT.textM(context))),
-              ]),
-            ]),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: SingleChildScrollView(
-              controller: scrollCtrl,
-              padding: const EdgeInsets.all(20),
-              child: Text(content, style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.7, color: CT.textS(context))),
-            ),
-          ),
-        ]),
-      ),
-    );
+    context.push('/privacy-policy');
   }
 
   void _showSnack(String msg) {

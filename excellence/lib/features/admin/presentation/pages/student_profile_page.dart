@@ -300,7 +300,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
           _editMode = false;
           _saving = false;
         });
-        _showSnack('Student updated successfully!', const Color(0xFFBDAE18));
+        _showSnack('Student updated successfully!', const Color(0xFFE5A100));
       }
     } catch (_) {
       if (mounted) {
@@ -449,7 +449,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
         studentId: widget.studentId,
       );
       if (mounted) {
-        _showSnack('Removed from $batchName', const Color(0xFFBDAE18));
+        _showSnack('Removed from $batchName', const Color(0xFFE5A100));
       }
     } catch (_) {
       if (mounted) {
@@ -476,7 +476,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
     if (available.isEmpty) {
       _showSnack(
         'Student is already in all available batches',
-        const Color(0xFFBDAE18),
+        const Color(0xFFE5A100),
       );
       return;
     }
@@ -504,7 +504,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
         batchId: batchId,
         studentId: widget.studentId,
       );
-      if (mounted) _showSnack('Added to $batchName!', const Color(0xFFBDAE18));
+      if (mounted) _showSnack('Added to $batchName!', const Color(0xFFE5A100));
     } catch (_) {
       if (mounted) {
         setState(
@@ -610,7 +610,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                               if (mounted) {
                                 _showSnack(
                                   'Error copied',
-                                  const Color(0xFFBDAE18),
+                                  const Color(0xFFE5A100),
                                 );
                               }
                             },
@@ -726,15 +726,15 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
         .toList();
 
     final attColor = attendance >= 80
-        ? const Color(0xFFBDAE18)
+        ? const Color(0xFFE5A100)
         : attendance >= 65
-        ? const Color(0xFFBDAE18)
+        ? const Color(0xFFE5A100)
         : const Color(0xFFB6231B);
     final feeColor = feeStatus == 'PAID'
-        ? const Color(0xFFBDAE18)
+        ? const Color(0xFFE5A100)
         : feeStatus == 'OVERDUE'
         ? const Color(0xFFB6231B)
-        : const Color(0xFFBDAE18);
+        : const Color(0xFFE5A100);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -774,7 +774,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFBDAE18),
+                          color: const Color(0xFFE5A100),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: _saving
@@ -817,7 +817,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFBDAE18),
+                          color: const Color(0xFFE5A100),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -932,7 +932,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                                 decoration: BoxDecoration(
                                   color: status == 'active'
                                       ? const Color(
-                                          0xFFBDAE18,
+                                          0xFFE5A100,
                                         ).withValues(alpha: 0.2)
                                       : Colors.white12,
                                   borderRadius: BorderRadius.circular(12),
@@ -981,9 +981,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 ),
                 bottom: TabBar(
                   controller: _tabs,
-                  labelColor: const Color(0xFFBDAE18),
+                  labelColor: const Color(0xFFE5A100),
                   unselectedLabelColor: Colors.white60,
-                  indicatorColor: const Color(0xFFBDAE18),
+                  indicatorColor: const Color(0xFFE5A100),
                   indicatorWeight: 3,
                   labelStyle: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
@@ -1229,7 +1229,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                     const Color(0xFF354388),
                     const Color(0xFF7C3AED),
                     const Color(0xFF354388),
-                    const Color(0xFFBDAE18),
+                    const Color(0xFFE5A100),
                   ];
                   final ic = colors[entry.key % colors.length];
                   return Column(
@@ -1325,7 +1325,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 _actionBtn(
                   Icons.chat_rounded,
                   'WhatsApp Parent',
-                  const Color(0xFFBDAE18),
+                  const Color(0xFFE5A100),
                   () =>
                       _openWhatsApp(parentPhone.isEmpty ? phone : parentPhone),
                 ),
@@ -1364,7 +1364,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               _feeMetricCard(
                 'Total Paid',
                 '₹${paidAmount.toInt()}',
-                const Color(0xFFBDAE18),
+                const Color(0xFFE5A100),
               ),
               const SizedBox(width: 12),
               _feeMetricCard(
@@ -1386,7 +1386,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               _feeMetricCard(
                 'Months Due',
                 '$totalDue',
-                const Color(0xFFBDAE18),
+                const Color(0xFFE5A100),
               ),
             ],
           ),
@@ -1406,10 +1406,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               final amount = _toInt(fee['amount']);
               final st = (fee['status'] ?? 'PENDING').toString().toUpperCase();
               final stColor = st == 'PAID'
-                  ? const Color(0xFFBDAE18)
+                  ? const Color(0xFFE5A100)
                   : st == 'OVERDUE'
                   ? const Color(0xFFB6231B)
-                  : const Color(0xFFBDAE18);
+                  : const Color(0xFFE5A100);
               final dueDate = (fee['dueDate'] ?? fee['due_date'] ?? '')
                   .toString();
 
@@ -1539,9 +1539,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               final grade = (exam['grade'] ?? '').toString();
               final pct = total > 0 ? score / total : 0.0;
               final perfColor = pct >= 0.75
-                  ? const Color(0xFFBDAE18)
+                  ? const Color(0xFFE5A100)
                   : pct >= 0.5
-                  ? const Color(0xFFBDAE18)
+                  ? const Color(0xFFE5A100)
                   : const Color(0xFFB6231B);
 
               return Container(
@@ -1948,7 +1948,7 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
                   const Color(0xFF354388),
                   const Color(0xFF7C3AED),
                   const Color(0xFF354388),
-                  const Color(0xFFBDAE18),
+                  const Color(0xFFE5A100),
                 ];
                 final c = bColors[i % bColors.length];
                 return CPPressable(

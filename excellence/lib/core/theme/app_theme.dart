@@ -7,28 +7,38 @@ class AppTheme {
   static const Color deepBlue = Color(0xFF354388);
   static const Color deepBlueDark = Color(0xFF263063);
   static const Color offWhite = Color(0xFFFFFFFF);
-  static const Color saharaSand = Color(0xFFF6EA90);
-  static const Color accentYellow = Color(0xFFBDAE18);
+  static const Color saharaSand = Color(0xFFFFE066);
+  static const Color accentYellow = Color(0xFFE5A100);
   static const Color alertRed = Color(0xFFB6231B);
   static const Color ink = Color(0xFF222222);
+
+  // ── TRUE BLACK DARK MODE PALETTE ──
+  static const Color darkBg = Color(0xFF0A0A0A);           // page background — near black
+  static const Color darkSurface = Color(0xFF141414);       // card / surface
+  static const Color darkSurfaceHigh = Color(0xFF1E1E1E);  // elevated surface
+  static const Color darkBorder = Color(0xFF2A2A2A);        // subtle border
+  static const Color darkBorderAccent = Color(0xFFE5A100);  // accent yellow border for focus
+  static const Color darkTextPrimary = Color(0xFFF5F5F5);   // primary white text
+  static const Color darkTextSecondary = Color(0xFFB0B0B0); // secondary grey text
+  static const Color darkTextMuted = Color(0xFF707070);     // muted text
 
   static ThemeData get lightTheme => _baseTheme(brightness: Brightness.light);
   static ThemeData get darkTheme => _baseTheme(brightness: Brightness.dark);
 
   static BorderSide _neoBorder(bool isDark, {double? width, Color? color}) {
     return BorderSide(
-      color: color ?? (isDark ? Colors.white24 : deepBlue),
-      width: width ?? (isDark ? 1.5 : 3),
+      color: color ?? (isDark ? darkBorder : deepBlue),
+      width: width ?? (isDark ? 1.0 : 3),
     );
   }
 
   static ThemeData _baseTheme({required Brightness brightness}) {
     final isDark = brightness == Brightness.dark;
-    final bg = isDark ? deepBlueDark : offWhite;
-    final surface = isDark ? deepBlue : Colors.white;
-    final textPrimary = isDark ? offWhite : ink;
+    final bg = isDark ? darkBg : offWhite;
+    final surface = isDark ? darkSurface : Colors.white;
+    final textPrimary = isDark ? darkTextPrimary : ink;
     final textSecondary = isDark
-        ? offWhite.withValues(alpha: 0.74)
+        ? darkTextSecondary
       : deepBlue.withValues(alpha: 0.76);
 
     final baseText = GoogleFonts.plusJakartaSansTextTheme(
@@ -88,11 +98,11 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       scaffoldBackgroundColor: bg,
-      primaryColor: deepBlue,
+      primaryColor: isDark ? accentYellow : deepBlue,
       colorScheme: ColorScheme(
         brightness: brightness,
-        primary: deepBlue,
-        onPrimary: Colors.white,
+        primary: isDark ? accentYellow : deepBlue,
+        onPrimary: isDark ? darkBg : Colors.white,
         secondary: saharaSand,
         onSecondary: ink,
         error: alertRed,
@@ -101,10 +111,10 @@ class AppTheme {
         onSurface: textPrimary,
       ),
       textTheme: textTheme,
-      dividerColor: deepBlue,
+      dividerColor: isDark ? darkBorder : deepBlue,
       appBarTheme: AppBarTheme(
-        backgroundColor: offWhite,
-        foregroundColor: deepBlue,
+        backgroundColor: isDark ? darkBg : offWhite,
+        foregroundColor: isDark ? darkTextPrimary : deepBlue,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
@@ -113,7 +123,7 @@ class AppTheme {
           fontWeight: FontWeight.w800,
           color: textPrimary,
         ),
-        iconTheme: const IconThemeData(color: deepBlue),
+        iconTheme: IconThemeData(color: isDark ? darkTextPrimary : deepBlue),
       ),
       cardTheme: CardThemeData(
         color: surface,
@@ -126,10 +136,10 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: deepBlue,
-          foregroundColor: Colors.white,
+          backgroundColor: isDark ? accentYellow : deepBlue,
+          foregroundColor: isDark ? darkBg : Colors.white,
           elevation: 0,
-          side: _neoBorder(isDark, width: 2.2, color: deepBlue),
+          side: _neoBorder(isDark, width: 2.2, color: isDark ? accentYellow : deepBlue),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -139,8 +149,8 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: deepBlue,
-          side: _neoBorder(isDark, width: isDark ? 1.5 : 2.2, color: deepBlue),
+          foregroundColor: isDark ? darkTextPrimary : deepBlue,
+          side: _neoBorder(isDark, width: isDark ? 1.0 : 2.2, color: isDark ? darkBorder : deepBlue),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -150,9 +160,9 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surface,
+        fillColor: isDark ? darkSurfaceHigh : surface,
         hintStyle: textTheme.bodySmall?.copyWith(
-          color: textSecondary,
+          color: isDark ? darkTextMuted : textSecondary,
           fontSize: 13,
         ),
         labelStyle: textTheme.labelMedium?.copyWith(
@@ -170,7 +180,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: _neoBorder(isDark, width: isDark ? 2 : 2.5, color: deepBlue),
+          borderSide: _neoBorder(isDark, width: isDark ? 1.5 : 2.5, color: isDark ? darkBorderAccent : deepBlue),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -182,21 +192,23 @@ class AppTheme {
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: saharaSand,
+        backgroundColor: isDark ? darkSurfaceHigh : saharaSand,
         selectedColor: accentYellow,
-        labelStyle: textTheme.labelMedium?.copyWith(color: ink),
+        labelStyle: textTheme.labelMedium?.copyWith(
+          color: isDark ? darkTextPrimary : ink,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: _neoBorder(isDark, width: isDark ? 1.4 : 2, color: deepBlue),
+          side: _neoBorder(isDark, width: isDark ? 1.0 : 2, color: isDark ? darkBorder : deepBlue),
         ),
       ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: deepBlue,
-        foregroundColor: offWhite,
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: isDark ? accentYellow : deepBlue,
+        foregroundColor: isDark ? darkBg : offWhite,
         elevation: 0,
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: deepBlue,
+        backgroundColor: isDark ? darkSurfaceHigh : deepBlue,
         contentTextStyle: textTheme.bodyMedium?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w700,
@@ -208,7 +220,7 @@ class AppTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: surface,
+        backgroundColor: isDark ? darkSurface : surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: _neoBorder(isDark),
@@ -224,17 +236,19 @@ class AppTheme {
         ),
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: surface,
+        backgroundColor: isDark ? darkSurface : surface,
         shape: RoundedRectangleBorder(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          side: _neoBorder(isDark, width: isDark ? 1.5 : 3, color: deepBlue),
+          side: _neoBorder(isDark, width: isDark ? 1.0 : 3, color: isDark ? darkBorder : deepBlue),
         ),
         showDragHandle: true,
-        dragHandleColor: deepBlue,
+        dragHandleColor: isDark ? darkTextMuted : deepBlue,
       ),
       tabBarTheme: TabBarThemeData(
-        labelColor: deepBlue,
-        unselectedLabelColor: deepBlue.withValues(alpha: 0.6),
+        labelColor: isDark ? accentYellow : deepBlue,
+        unselectedLabelColor: isDark
+            ? darkTextSecondary
+            : deepBlue.withValues(alpha: 0.6),
         labelStyle: textTheme.labelMedium?.copyWith(
           fontWeight: FontWeight.w800,
           fontSize: 13,
@@ -243,28 +257,28 @@ class AppTheme {
           fontWeight: FontWeight.w600,
           fontSize: 13,
         ),
-        indicator: const UnderlineTabIndicator(
+        indicator: UnderlineTabIndicator(
           borderSide: BorderSide(color: accentYellow, width: 3),
         ),
       ),
       listTileTheme: ListTileThemeData(
-        iconColor: deepBlue,
+        iconColor: isDark ? accentYellow : deepBlue,
         textColor: textPrimary,
         tileColor: surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: _neoBorder(isDark, width: isDark ? 1.2 : 2, color: deepBlue),
+          side: _neoBorder(isDark, width: isDark ? 1.0 : 2, color: isDark ? darkBorder : deepBlue),
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: surface,
+        color: isDark ? darkSurface : surface,
         textStyle: textTheme.bodyMedium?.copyWith(
           color: textPrimary,
           fontWeight: FontWeight.w700,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: _neoBorder(isDark, width: isDark ? 1.3 : 2, color: deepBlue),
+          side: _neoBorder(isDark, width: isDark ? 1.0 : 2, color: isDark ? darkBorder : deepBlue),
         ),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
@@ -274,37 +288,58 @@ class AppTheme {
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return Colors.white;
+            return isDark ? darkBg : Colors.white;
           }
-          return isDark ? offWhite : deepBlue;
+          return isDark ? darkTextSecondary : deepBlue;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return deepBlue;
+            return isDark ? accentYellow : deepBlue;
           }
-          return deepBlue.withValues(alpha: 0.3);
+          return isDark ? darkBorder : deepBlue.withValues(alpha: 0.3);
         }),
       ),
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return deepBlue;
+            return isDark ? accentYellow : deepBlue;
           }
           return surface;
         }),
-        checkColor: const WidgetStatePropertyAll(Colors.white),
-        side: _neoBorder(isDark, width: isDark ? 1.4 : 2, color: deepBlue),
+        checkColor: WidgetStatePropertyAll(isDark ? darkBg : Colors.white),
+        side: _neoBorder(isDark, width: isDark ? 1.0 : 2, color: isDark ? darkBorder : deepBlue),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       ),
       radioTheme: RadioThemeData(
-        fillColor: const WidgetStatePropertyAll(deepBlue),
+        fillColor: WidgetStatePropertyAll(isDark ? accentYellow : deepBlue),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: offWhite,
-        selectedItemColor: deepBlue,
-        unselectedItemColor: deepBlue,
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: isDark ? darkBg : offWhite,
+        selectedItemColor: isDark ? accentYellow : deepBlue,
+        unselectedItemColor: isDark ? darkTextMuted : deepBlue,
         elevation: 0,
         type: BottomNavigationBarType.fixed,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: isDark ? darkBg : offWhite,
+        indicatorColor: isDark ? accentYellow.withValues(alpha: 0.15) : deepBlue.withValues(alpha: 0.1),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return IconThemeData(color: isDark ? accentYellow : deepBlue);
+          }
+          return IconThemeData(color: isDark ? darkTextMuted : deepBlue);
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return textTheme.labelSmall?.copyWith(
+              color: isDark ? accentYellow : deepBlue,
+              fontWeight: FontWeight.w700,
+            );
+          }
+          return textTheme.labelSmall?.copyWith(
+            color: isDark ? darkTextMuted : deepBlue,
+          );
+        }),
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
@@ -318,8 +353,11 @@ class AppTheme {
     );
 
     return base.copyWith(
-      iconTheme: IconThemeData(color: isDark ? offWhite : deepBlue),
-      dividerTheme: const DividerThemeData(color: deepBlue, thickness: 1),
+      iconTheme: IconThemeData(color: isDark ? darkTextPrimary : deepBlue),
+      dividerTheme: DividerThemeData(
+        color: isDark ? darkBorder : deepBlue,
+        thickness: 1,
+      ),
       cardColor: surface,
     );
   }

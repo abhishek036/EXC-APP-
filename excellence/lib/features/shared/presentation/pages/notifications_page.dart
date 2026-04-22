@@ -44,9 +44,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasMore = true;
+  bool _initialLoadComplete = false;
   int _page = 1;
   final int _perPage = 20;
   String _selectedType = 'all';
+  String? _loadError;
 
   bool get _canComposeOrGlobalDelete {
     final prefix = context.rolePrefix;
@@ -78,6 +80,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     _syncSub?.cancel();
     _syncSub = _realtime.updates.listen((event) {
       if (!mounted) return;
+      if (!_initialLoadComplete) return;
       final type = (event['type'] ?? '').toString();
       final reason = (event['reason'] ?? '').toString().toLowerCase();
 
@@ -119,6 +122,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         _isLoading = _notifications.isEmpty;
         _page = 1;
         _hasMore = true;
+        _loadError = null;
       });
     } else {
       if (_isLoadingMore || !_hasMore) return;
@@ -157,6 +161,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         setState(() {
           _notifications.clear();
           _hasMore = false;
+          _loadError = 'Unable to load notifications right now.';
         });
       }
     } finally {
@@ -165,6 +170,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         setState(() {
           _isLoading = false;
           _isLoadingMore = false;
+          _initialLoadComplete = true;
         });
       }
     }
@@ -619,6 +625,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
                   )
+                : _loadError != null && _notifications.isEmpty
+                ? _errorState(context)
                 : _notifications.isEmpty
                 ? _emptyState(context)
                 : RefreshIndicator(
@@ -976,6 +984,64 @@ class _NotificationsPageState extends State<NotificationsPage> {
           ),
         ],
       ).animate().fadeIn().scale(begin: const Offset(0.95, 0.95)),
+    );
+  }
+
+  Widget _errorState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 56,
+              color: CT.textS(context).withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'NOTIFICATIONS UNAVAILABLE',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: CT.textH(context),
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _loadError ?? 'Please try again in a moment.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: CT.textS(context),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            CPPressable(
+              onTap: _isFetching ? null : () => _fetchNotifications(reset: true),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                decoration: BoxDecoration(
+                  color: CT.accent(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: CT.border(context), width: 1.5),
+                ),
+                child: Text(
+                  'Retry',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w800,
+                    color: CT.elevated(context),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

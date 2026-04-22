@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/widgets/custom_button.dart';
+import '../../../../core/services/app_permission_service.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import 'dart:io';
@@ -565,6 +566,12 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                     CPPressable(
                           onTap: () async {
                             try {
+                              final granted = await AppPermissionService.requestFileAccess(
+                                context,
+                                featureName: 'assignment submission',
+                              );
+                              if (!granted) return;
+
                               final result = await FilePicker.platform.pickFiles(
                                 type: FileType.custom,
                                 allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],

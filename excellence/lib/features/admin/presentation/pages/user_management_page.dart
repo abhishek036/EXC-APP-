@@ -118,7 +118,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 width: 32,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white12 : Colors.black12,
+                  color: isDark ? AppColors.darkBorder.withValues(alpha: 0.5) : Colors.black12,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -149,7 +149,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white : AppColors.deepNavy,
+                          color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                           letterSpacing: -0.8,
                         ),
                       ),
@@ -158,7 +158,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white38 : Colors.black38,
+                          color: isDark ? AppColors.paleSlate2 : Colors.black38,
                           letterSpacing: 1.2,
                         ),
                       ),
@@ -242,7 +242,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     (r) => _actionButton(
                       r.toUpperCase(),
                       _roleIcon(r),
-                      isDark ? Colors.white : AppColors.deepNavy,
+                      isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                       () {
                         Navigator.pop(ctx);
                         _updateClearanceLevel(user, r);
@@ -424,7 +424,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
               child: Icon(
                 Icons.shield_outlined,
                 size: 22,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               ),
             ),
           ),
@@ -447,7 +447,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white : AppColors.deepNavy,
+                    color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                     letterSpacing: -0.8,
                   ),
                 ),
@@ -467,7 +467,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
               child: Icon(
                 Icons.sync_rounded,
                 size: 20,
-                color: isDark ? Colors.white38 : Colors.black38,
+                color: isDark ? AppColors.paleSlate2 : Colors.black38,
               ),
             ),
           ),
@@ -519,7 +519,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 8,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white38 : Colors.black38,
+                color: isDark ? AppColors.paleSlate2 : Colors.black38,
                 letterSpacing: 1.0,
               ),
             ),
@@ -547,18 +547,18 @@ class _UserManagementPageState extends State<UserManagementPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black87,
+                color: isDark ? AppColors.paleSlate1 : Colors.black87,
               ),
               decoration: InputDecoration(
                 hintText: 'Search security handles...',
                 hintStyle: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white24 : Colors.black26,
+                  color: isDark ? AppColors.darkBorder : Colors.black26,
                 ),
                 icon: Icon(
                   Icons.search_rounded,
-                  color: isDark ? Colors.white24 : Colors.black26,
+                  color: isDark ? AppColors.darkBorder : Colors.black26,
                   size: 20,
                 ),
                 border: InputBorder.none,
@@ -636,11 +636,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 11,
             fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white70 : AppColors.deepNavy,
+            color: isDark ? AppColors.paleSlate2 : AppColors.deepNavy,
           ),
           icon: Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: isDark ? Colors.white24 : Colors.black26,
+            color: isDark ? AppColors.darkBorder : Colors.black26,
             size: 18,
           ),
           items: items
@@ -729,7 +729,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -755,7 +755,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
             ),
             Icon(
               Icons.more_vert_rounded,
-              color: isDark ? Colors.white12 : Colors.black12,
+              color: isDark ? AppColors.darkBorder.withValues(alpha: 0.5) : Colors.black12,
               size: 20,
             ),
           ],
@@ -820,7 +820,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white38 : Colors.black38,
+              color: isDark ? AppColors.paleSlate2 : Colors.black38,
             ),
           ),
         ],

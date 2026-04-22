@@ -93,7 +93,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                     style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w900,
                       fontSize: 24,
-                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                       letterSpacing: -1,
                     ),
                   ),
@@ -110,7 +110,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFBDAE18),
+                          color: const Color(0xFFE5A100),
                           border: Border.all(
                             color: const Color(0xFF354388),
                             width: 2,
@@ -401,7 +401,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                             Icon(
                               Icons.more_horiz_rounded,
                               size: 20,
-                              color: isDark ? Colors.white38 : Colors.black38,
+                              color: isDark ? AppColors.paleSlate2 : Colors.black38,
                             ),
                         ],
                       ),
@@ -480,7 +480,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                 letterSpacing: -1,
               ),
             ),
@@ -520,7 +520,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
   Widget _infoChip(IconData icon, String text, bool isDark) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: const Color(0xFFBDAE18),
+      color: const Color(0xFFE5A100),
       border: Border.all(color: const Color(0xFF354388), width: 2),
       boxShadow: const [
         BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
@@ -659,7 +659,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w900,
-                            color: isDark ? Colors.white : AppColors.deepNavy,
+                            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                             letterSpacing: -0.5,
                           ),
                         ),
@@ -684,7 +684,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white : AppColors.deepNavy,
+                          color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -760,14 +760,14 @@ class _ExamManagementPageState extends State<ExamManagementPage>
           'Delete Exam?',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white : AppColors.deepNavy,
+            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             letterSpacing: -0.5,
           ),
         ),
         content: Text(
           'Delete "${exam['name']}" permanently from the database.',
           style: GoogleFonts.plusJakartaSans(
-            color: isDark ? Colors.white70 : const Color(0xFF354388),
+            color: isDark ? AppColors.paleSlate2 : const Color(0xFF354388),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -855,7 +855,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 26,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : AppColors.deepNavy,
+                color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                 letterSpacing: -1,
               ),
             ),
@@ -898,8 +898,8 @@ class _ExamManagementPageState extends State<ExamManagementPage>
             CustomButton(
               text: 'View Result Analytics',
               icon: Icons.leaderboard_rounded,
-              backgroundColor: isDark ? Colors.white12 : Colors.black12,
-              foregroundColor: isDark ? Colors.white : AppColors.deepNavy,
+              backgroundColor: isDark ? AppColors.darkBorder.withValues(alpha: 0.5) : Colors.black12,
+              foregroundColor: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
               onPressed: () {
                 Navigator.pop(ctx);
                 _tabController.animateTo(2);
@@ -920,7 +920,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
           style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white : AppColors.deepNavy,
+            color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
             letterSpacing: -0.5,
           ),
         ),
@@ -930,7 +930,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
           style: GoogleFonts.plusJakartaSans(
             fontSize: 10,
             fontWeight: FontWeight.w900,
-            color: isDark ? Colors.white38 : Colors.black38,
+            color: isDark ? AppColors.paleSlate2 : Colors.black38,
             letterSpacing: 0.5,
           ),
         ),
@@ -982,7 +982,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : AppColors.deepNavy,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
                       letterSpacing: -1,
                     ),
                   ),
@@ -1104,7 +1104,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: isDark
-                                ? Colors.white24
+                                ? AppColors.darkBorder
                                 : Colors.black.withValues(alpha: 0.26),
                           ),
                         ),

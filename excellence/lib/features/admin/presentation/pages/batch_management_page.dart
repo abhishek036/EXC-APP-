@@ -119,7 +119,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
       case 'Completed':
         return const Color(0xFFB6231B);
       case 'Filling Fast':
-        return const Color(0xFFBDAE18);
+        return const Color(0xFFE5A100);
       case 'Suspended':
         return Colors.grey;
       default:
@@ -210,7 +210,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
-              color: isDark ? Colors.white : const Color(0xFF354388),
+              color: isDark ? AppColors.paleSlate1 : const Color(0xFF354388),
             ),
           ),
           const SizedBox(width: 14),
@@ -220,7 +220,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : const Color(0xFF354388),
+                color: isDark ? AppColors.paleSlate1 : const Color(0xFF354388),
                 letterSpacing: -0.7,
               ),
             ),
@@ -231,7 +231,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: const Color(0xFFBDAE18),
+                color: const Color(0xFFE5A100),
                 border: Border.all(color: const Color(0xFF354388), width: 3),
                 boxShadow: const [
                   BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
@@ -267,7 +267,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
-                color: isDark ? Colors.white54 : Colors.black54,
+                color: isDark ? AppColors.paleSlate2 : Colors.black54,
                 letterSpacing: 0.7,
               ),
             ),
@@ -362,7 +362,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                       subject,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
-                        color: isDark ? Colors.white70 : Colors.black87,
+                        color: isDark ? AppColors.paleSlate2 : Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -371,7 +371,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                         Icon(
                           Icons.groups_rounded,
                           size: 16,
-                          color: isDark ? Colors.white60 : Colors.black54,
+                          color: isDark ? AppColors.paleSlate2 : Colors.black54,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -381,7 +381,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white70 : Colors.black87,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black87,
                           ),
                         ),
                         const Spacer(),
@@ -402,7 +402,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white60 : Colors.black54,
+                        color: isDark ? AppColors.paleSlate2 : Colors.black54,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -504,7 +504,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
           Icon(
             Icons.layers_clear_rounded,
             size: 58,
-            color: isDark ? Colors.white24 : Colors.black26,
+            color: isDark ? AppColors.darkBorder : Colors.black26,
           ),
           const SizedBox(height: 14),
           Text(
@@ -512,7 +512,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white70 : Colors.black54,
+              color: isDark ? AppColors.paleSlate2 : Colors.black54,
             ),
           ),
           const SizedBox(height: 14),

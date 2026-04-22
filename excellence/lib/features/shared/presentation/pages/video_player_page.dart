@@ -152,42 +152,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
     });
   }
 
-  // Whether we have already retried with the nocookie domain.
-  bool _retriedWithNocookie = false;
-
   void _startEmbedHealthWatchdog() {
-    _embedHealthTimer?.cancel();
-    // Use 15 s window to avoid false positives on slow networks/devices.
-    _embedHealthTimer = Timer(const Duration(seconds: 15), () async {
-      if (!mounted || !_isYoutube || _forceExternalFallback) return;
-
-      final noDuration = _durationSeconds <= 0.5;
-      final noProgress = _positionSeconds <= 0.5;
-      final stalled = !_isPlaying && !_isBuffering && noDuration && noProgress;
-
-      if (!stalled) return;
-
-      // First stall → try reloading via youtube-nocookie.com (bypasses some
-      // embedding restrictions) before giving up entirely.
-      if (!_retriedWithNocookie && _youtubeVideoId != null) {
-        _retriedWithNocookie = true;
-        debugPrint('[VideoPlayer] Embed stalled – retrying with nocookie domain.');
-        try {
-          await _ytController?.loadVideoById(
-            videoId: _youtubeVideoId!,
-            startSeconds: 0,
-          );
-          // Give it another 10 s after the retry.
-          _startEmbedHealthWatchdog();
-          return;
-        } catch (_) {}
-      }
-
-      _switchToExternalFallback(
-        'YouTube has blocked in-app playback for this video (Error 150/152). '
-        'Tap below to watch it directly in YouTube.',
-      );
-    });
+    // Watchdog removed: It was aggressively forcing external fallback for live streams 
+    // (which have 0 duration) or when autoplay was blocked by the browser. 
+    // We now provide a manual 'Open in YouTube' button in the info panel instead.
   }
 
   // ── Lifecycle ────────────────────────────────────────────
@@ -661,82 +629,111 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _skipButton(Icons.replay_10_rounded, () => _skipBy(-10)),
+                              if (_durationSeconds > 0)
+                                _skipButton(Icons.replay_10_rounded, () => _skipBy(-10)),
                               const SizedBox(width: 16),
                               _playPauseButton(),
                               const SizedBox(width: 16),
-                              _skipButton(Icons.forward_10_rounded, () => _skipBy(10)),
+                              if (_durationSeconds > 0)
+                                _skipButton(Icons.forward_10_rounded, () => _skipBy(10)),
                             ],
                           ),
                         ),
                       ),
 
-                      // ── Bottom seek bar ──
+                      // ── Bottom seek bar or LIVE badge ──
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                trackHeight: 3,
-                                thumbShape: const RoundSliderThumbShape(
-                                  enabledThumbRadius: 7,
-                                ),
-                                overlayShape: const RoundSliderOverlayShape(
-                                  overlayRadius: 14,
-                                ),
-                                activeTrackColor: AppColors.moltenAmber,
-                                inactiveTrackColor: Colors.white24,
-                                thumbColor: AppColors.moltenAmber,
-                                overlayColor:
-                                    AppColors.moltenAmber.withValues(alpha: 0.2),
-                              ),
-                              child: Slider(
-                                value: sliderValue,
-                                min: 0,
-                                max: sliderMax,
-                                onChangeStart: (_) {
-                                  _isDraggingSeek = true;
-                                  _controlsHideTimer?.cancel();
-                                },
-                                onChanged: (v) {
-                                  setState(() => _positionSeconds = v);
-                                },
-                                onChangeEnd: (v) async {
-                                  _isDraggingSeek = false;
-                                  await _seekTo(v);
-                                  if (_isPlaying) _startAutoHideTimer();
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 14),
-                              child: Row(
+                        child: _durationSeconds <= 0
+                            ? Row(
                                 children: [
-                                  Text(
-                                    _formatTime(_positionSeconds),
-                                    style: GoogleFonts.jetBrainsMono(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
+                                  Container(
+                                    margin: const EdgeInsets.only(left: 14, bottom: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.coralRed,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.sensors_rounded, color: Colors.white, size: 12),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'LIVE STREAM',
+                                          style: GoogleFonts.jetBrainsMono(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   const Spacer(),
-                                  Text(
-                                    _formatTime(_durationSeconds),
-                                    style: GoogleFonts.jetBrainsMono(
-                                      color: Colors.white70,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
+                                ],
+                              )
+                            : Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SliderTheme(
+                                    data: SliderTheme.of(context).copyWith(
+                                      trackHeight: 3,
+                                      thumbShape: const RoundSliderThumbShape(
+                                        enabledThumbRadius: 7,
+                                      ),
+                                      overlayShape: const RoundSliderOverlayShape(
+                                        overlayRadius: 14,
+                                      ),
+                                      activeTrackColor: AppColors.moltenAmber,
+                                      inactiveTrackColor: Colors.white24,
+                                      thumbColor: AppColors.moltenAmber,
+                                      overlayColor: AppColors.moltenAmber.withValues(alpha: 0.2),
+                                    ),
+                                    child: Slider(
+                                      value: sliderValue,
+                                      min: 0,
+                                      max: sliderMax,
+                                      onChangeStart: (_) {
+                                        _isDraggingSeek = true;
+                                        _controlsHideTimer?.cancel();
+                                      },
+                                      onChanged: (v) {
+                                        setState(() => _positionSeconds = v);
+                                      },
+                                      onChangeEnd: (v) async {
+                                        _isDraggingSeek = false;
+                                        await _seekTo(v);
+                                        if (_isPlaying) _startAutoHideTimer();
+                                      },
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          _formatTime(_positionSeconds),
+                                          style: GoogleFonts.jetBrainsMono(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          _formatTime(_durationSeconds),
+                                          style: GoogleFonts.jetBrainsMono(
+                                            color: Colors.white70,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
                       ),
                     ],
                   ),
@@ -892,60 +889,95 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
             const SizedBox(height: 24),
 
             // Quick speed buttons
-            Text(
-              'PLAYBACK SPEED',
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                color: Colors.white38,
-                letterSpacing: 1.5,
+            if (_durationSeconds > 0) ...[
+              Text(
+                'PLAYBACK SPEED',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white38,
+                  letterSpacing: 1.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 36,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _speedOptions.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (_, i) {
-                  final speed = _speedOptions[i];
-                  final isActive = (_playbackRate - speed).abs() < 0.01;
-                  return GestureDetector(
-                    onTap: () => _setPlaybackRate(speed),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? AppColors.moltenAmber
-                            : Colors.white.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _speedOptions.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final speed = _speedOptions[i];
+                    final isActive = (_playbackRate - speed).abs() < 0.01;
+                    return GestureDetector(
+                      onTap: () => _setPlaybackRate(speed),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
                           color: isActive
                               ? AppColors.moltenAmber
-                              : Colors.white12,
-                          width: isActive ? 2 : 1,
+                              : Colors.white.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isActive
+                                ? AppColors.moltenAmber
+                                : Colors.white12,
+                            width: isActive ? 2 : 1,
+                          ),
                         ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${speed}x',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: isActive ? Colors.black : Colors.white60,
+                        child: Center(
+                          child: Text(
+                            '${speed}x',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: isActive ? Colors.black : Colors.white60,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
+              const SizedBox(height: 24),
+            ],
+
+            // Open in YouTube button
+            if (_isYoutube)
+              InkWell(
+                onTap: _openExternally,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.open_in_new_rounded, color: Colors.white, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        'OPEN IN YOUTUBE',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),

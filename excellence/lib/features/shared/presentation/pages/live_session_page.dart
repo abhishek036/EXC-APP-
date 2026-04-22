@@ -135,7 +135,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
               margin: const EdgeInsets.only(right: 16),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                color: isDark ? AppColors.darkBorder.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.05),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -530,7 +530,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                          color: isDark ? AppColors.darkBorder.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(

@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/app_permission_service.dart';
 import '../../../../core/services/cloud_storage_service.dart';
 import '../../data/repositories/teacher_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
@@ -296,6 +297,9 @@ class _CreateQuizPageState extends State<CreateQuizPage> with ThemeAware<CreateQ
 
   Future<void> _pickQuestionImage(int qIndex, {int? oIndex}) async {
     try {
+      final granted = await AppPermissionService.requestMediaAccess(context);
+      if (!granted) return;
+
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
         withData: true,

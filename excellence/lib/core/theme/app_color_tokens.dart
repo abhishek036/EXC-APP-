@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Excellence Academy Color Token System
-/// Dark Mode = 6 Grey/Slate shades
+/// Dark Mode = True Black theme with accent highlights
 /// Light Mode = 4 White/Blue shades
 class ColorTokens {
   ColorTokens._();
@@ -16,34 +16,35 @@ class ColorTokens {
 class DarkTokens {
   const DarkTokens();
 
-  // Palette
-  Color get paleSlate1   => const Color(0xFFCED4DA);
-  Color get paleSlate2   => const Color(0xFFADB5BD);
-  Color get slateGrey    => const Color(0xFF6C757D);
-  Color get ironGrey     => const Color(0xFF495057);
-  Color get gunmetal     => const Color(0xFF343A40);
-  Color get shadowGrey   => const Color(0xFF212529);
+  // True Black Palette
+  Color get nearBlack    => const Color(0xFF0A0A0A);
+  Color get darkSurface  => const Color(0xFF141414);
+  Color get darkElevated => const Color(0xFF1E1E1E);
+  Color get darkBorder   => const Color(0xFF2A2A2A);
+  Color get darkMuted    => const Color(0xFF707070);
+  Color get darkSecText  => const Color(0xFFB0B0B0);
+  Color get darkPriText  => const Color(0xFFF5F5F5);
 
   // Semantic tokens
-  Color get background   => shadowGrey;
-  Color get surface      => gunmetal;
-  Color get surfaceHigh  => ironGrey;
-  Color get border       => ironGrey;
-  Color get borderFocus  => paleSlate1;
-  Color get divider      => ironGrey;
-  Color get textPrimary  => paleSlate1;
-  Color get textSecondary => paleSlate2;
-  Color get textMuted    => slateGrey;
-  Color get textDisabled => ironGrey;
-  Color get iconPrimary  => paleSlate1;
-  Color get iconMuted    => slateGrey;
-  Color get ripple       => paleSlate1.withValues(alpha: 0.10);
-  Color get shimmerBase  => gunmetal;
-  Color get shimmerHigh  => ironGrey;
-  Color get inputFill    => ironGrey;
-  Color get chipInactive => ironGrey;
-  Color get tooltipBg    => ironGrey;
-  Color get tooltipText  => paleSlate1;
+  Color get background   => nearBlack;
+  Color get surface      => darkSurface;
+  Color get surfaceHigh  => darkElevated;
+  Color get border       => darkBorder;
+  Color get borderFocus  => const Color(0xFFE5A100); // accent golden yellow
+  Color get divider      => darkBorder;
+  Color get textPrimary  => darkPriText;
+  Color get textSecondary => darkSecText;
+  Color get textMuted    => darkMuted;
+  Color get textDisabled => darkBorder;
+  Color get iconPrimary  => darkPriText;
+  Color get iconMuted    => darkMuted;
+  Color get ripple       => darkPriText.withValues(alpha: 0.08);
+  Color get shimmerBase  => darkSurface;
+  Color get shimmerHigh  => darkElevated;
+  Color get inputFill    => darkElevated;
+  Color get chipInactive => darkElevated;
+  Color get tooltipBg    => darkElevated;
+  Color get tooltipText  => darkPriText;
 }
 
 class LightTokens {

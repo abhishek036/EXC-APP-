@@ -271,7 +271,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
       if (mounted) {
         _showSnack(
           '${_selected.length} students assigned to ${picked['name']}',
-          const Color(0xFFBDAE18),
+          const Color(0xFFE5A100),
         );
         setState(() {
           _selectMode = false;
@@ -284,7 +284,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
       if (mounted) {
         _showSnack(
           'Assigned locally (sync when online)',
-          const Color(0xFFBDAE18),
+          const Color(0xFFE5A100),
         );
         setState(() {
           _selectMode = false;
@@ -470,7 +470,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               height: 40,
               decoration: BoxDecoration(
                 color: _selectMode
-                    ? const Color(0xFFBDAE18)
+                    ? const Color(0xFFE5A100)
                     : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFF354388), width: 1.5),
@@ -525,7 +525,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFBDAE18), // Bright Neo-Brutalist Yellow
+                  color: const Color(0xFFE5A100), // Bright Neo-Brutalist Yellow
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: const Color(0xFF354388),
@@ -617,14 +617,14 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
           _metricCard(
             'Active',
             '$active',
-            const Color(0xFFBDAE18),
+            const Color(0xFFE5A100),
             Icons.check_circle_rounded,
           ),
           const SizedBox(width: 10),
           _metricCard(
             'Fee Due',
             '$feeDue',
-            const Color(0xFFBDAE18),
+            const Color(0xFFE5A100),
             Icons.receipt_long_rounded,
           ),
           const SizedBox(width: 10),
@@ -805,7 +805,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                 padding: const EdgeInsets.symmetric(vertical: 7),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFFBDAE18)
+                      ? const Color(0xFFE5A100)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   border: isSelected
@@ -1033,23 +1033,23 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
     final isInactive = student.status == 'inactive';
 
     final feeColor = isPaid
-        ? const Color(0xFFBDAE18)
+        ? const Color(0xFFE5A100)
         : isOverdue
         ? const Color(0xFFB6231B)
-        : const Color(0xFFBDAE18);
+        : const Color(0xFFE5A100);
 
     final attColor = student.attendance >= 80
-        ? const Color(0xFFBDAE18)
+        ? const Color(0xFFE5A100)
         : student.attendance >= 65
-        ? const Color(0xFFBDAE18)
+        ? const Color(0xFFE5A100)
         : const Color(0xFFB6231B);
 
     // Avatar background based on first initial
     final avatarColors = [
       const Color(0xFF354388),
-      const Color(0xFFBDAE18),
+      const Color(0xFFE5A100),
       const Color(0xFF7C3AED),
-      const Color(0xFFBDAE18),
+      const Color(0xFFE5A100),
       const Color(0xFF354388),
       const Color(0xFFB6231B),
     ];
@@ -1160,7 +1160,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                         decoration: BoxDecoration(
                           color: isInactive
                               ? const Color(0xFF9CA3AF)
-                              : const Color(0xFFBDAE18),
+                              : const Color(0xFFE5A100),
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
@@ -1483,7 +1483,7 @@ class _BatchPickerSheet extends StatelessWidget {
                   const Color(0xFF354388),
                   const Color(0xFF7C3AED),
                   const Color(0xFF354388),
-                  const Color(0xFFBDAE18),
+                  const Color(0xFFE5A100),
                 ];
                 final color = colors[i % colors.length];
                 return CPPressable(

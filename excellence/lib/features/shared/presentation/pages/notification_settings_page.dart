@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/services/app_permission_service.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/services/push_notification_service.dart';
 
@@ -181,6 +182,32 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     ? 'Checking push token state...'
                     : '${status.message}\nToken: $tokenText\nBackend sync: ${ready ? 'OK' : 'Not registered'}',
                 style: GoogleFonts.plusJakartaSans(fontSize: 12, color: CT.textS(context), height: 1.4),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () async {
+                    final granted = await AppPermissionService.requestNotificationAccess(context);
+                    if (!mounted) return;
+                    _refreshStatus();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          granted
+                              ? 'Notification permission granted'
+                              : 'Notification permission not changed',
+                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.notifications_active_outlined, size: 16),
+                  label: Text(
+                    'Grant Permission',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: accent),
+                  ),
+                ),
               ),
             ],
           ),
