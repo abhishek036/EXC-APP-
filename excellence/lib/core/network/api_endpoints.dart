@@ -3,9 +3,6 @@
 class ApiEndpoints {
   ApiEndpoints._();
 
-  // Config
-  static const String clientConfig    = 'config/client';
-
   // Auth
   static const String login           = 'auth/login';
   static const String logout          = 'auth/logout';

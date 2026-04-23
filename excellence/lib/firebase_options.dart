@@ -2,69 +2,83 @@
 // ignore_for_file: type=lint
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform, debugPrint;
-import 'package:dio/dio.dart';
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
+///
+/// Example:
+/// ```dart
+/// import 'firebase_options.dart';
+/// // ...
+/// await Firebase.initializeApp(
+///   options: DefaultFirebaseOptions.currentPlatform,
+/// );
+/// ```
 class DefaultFirebaseOptions {
-  static Future<FirebaseOptions> get currentPlatform async {
-    const configuredApiUrl = String.fromEnvironment('API_URL', defaultValue: '');
-    final baseUrl = configuredApiUrl.trim().isNotEmpty
-        ? configuredApiUrl.trim()
-        : 'https://api.excellenceacademy.site/api/v1/';
-        
-    final dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-    ));
-
-    try {
-      final response = await dio.get('config/client');
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final data = response.data['data']['firebase'];
-        if (kIsWeb) {
-          return _parseOptions(data['web']);
-        }
-        switch (defaultTargetPlatform) {
-          case TargetPlatform.android:
-            return _parseOptions(data['android']);
-          case TargetPlatform.iOS:
-            return _parseOptions(data['ios']);
-          case TargetPlatform.macOS:
-            return _parseOptions(data['macos']);
-          case TargetPlatform.windows:
-            throw UnsupportedError('DefaultFirebaseOptions have not been configured for windows.');
-          case TargetPlatform.linux:
-            throw UnsupportedError('DefaultFirebaseOptions have not been configured for linux.');
-          default:
-            throw UnsupportedError('DefaultFirebaseOptions are not supported for this platform.');
-        }
-      } else {
-        throw Exception('Server returned invalid config response');
-      }
-    } catch (e) {
-      debugPrint('[FirebaseOptions] Failed to fetch config from server: $e');
-      throw Exception('Failed to load Firebase configuration securely');
+  static FirebaseOptions get currentPlatform {
+    if (kIsWeb) {
+      return web;
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return android;
+      case TargetPlatform.iOS:
+        return ios;
+      case TargetPlatform.macOS:
+        return macos;
+      case TargetPlatform.windows:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      case TargetPlatform.linux:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for linux - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      default:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not supported for this platform.',
+        );
     }
   }
 
-  static FirebaseOptions _parseOptions(Map<String, dynamic> json) {
-    return FirebaseOptions(
-      apiKey: json['apiKey'] ?? '',
-      appId: json['appId'] ?? '',
-      messagingSenderId: json['messagingSenderId'] ?? '',
-      projectId: json['projectId'] ?? '',
-      authDomain: json['authDomain'],
-      databaseURL: json['databaseURL'],
-      storageBucket: json['storageBucket'],
-      measurementId: json['measurementId'],
-      trackingId: json['trackingId'],
-      deepLinkURLScheme: json['deepLinkURLScheme'],
-      androidClientId: json['androidClientId'],
-      iosClientId: json['iosClientId'],
-      iosBundleId: json['iosBundleId'],
-      appGroupId: json['appGroupId'],
-    );
-  }
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBqMmLkPtlHJRKDrriznpW2aqqwG-v6jMA',
+    appId: '1:100598842137:web:89bd35f42daa41df6a7b88',
+    messagingSenderId: '100598842137',
+    projectId: 'excellence-academy-9154a',
+    authDomain: 'excellence-academy-9154a.firebaseapp.com',
+    storageBucket: 'excellence-academy-9154a.firebasestorage.app',
+    measurementId: 'G-EDNBSTJK5F',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyDZxE4wPdAG8EMBV3NtC-6J52VVs_k7VpU',
+    appId: '1:100598842137:android:d272a5520592264c6a7b88',
+    messagingSenderId: '100598842137',
+    projectId: 'excellence-academy-9154a',
+    storageBucket: 'excellence-academy-9154a.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyBV7HcYNPBBKNFbXFy2iyG3TTbGLRaG35U',
+    appId: '1:100598842137:ios:d1093d2b2ebe62696a7b88',
+    messagingSenderId: '100598842137',
+    projectId: 'excellence-academy-9154a',
+    storageBucket: 'excellence-academy-9154a.firebasestorage.app',
+    iosClientId: '100598842137-cb4j9h11gl6qk7jmgi2lppjho0r3mak3.apps.googleusercontent.com',
+    iosBundleId: 'com.example.excellence',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyBV7HcYNPBBKNFbXFy2iyG3TTbGLRaG35U',
+    appId: '1:100598842137:ios:c67e732d5fe60fb46a7b88',
+    messagingSenderId: '100598842137',
+    projectId: 'excellence-academy-9154a',
+    storageBucket: 'excellence-academy-9154a.firebasestorage.app',
+    iosClientId: '100598842137-la2huc5edt6lra5go4n34qbvrafh00i4.apps.googleusercontent.com',
+    iosBundleId: 'excellence.academy',
+  );
 }
+

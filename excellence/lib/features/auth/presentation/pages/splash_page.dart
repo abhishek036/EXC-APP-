@@ -8,7 +8,6 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/app_update_service.dart';
 import '../bloc/auth_bloc.dart';
 import '../../../../core/theme/theme_aware.dart';
-
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -38,8 +37,7 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
   /// Play animations for 2.8 s then tell AuthBloc to check stored session.
   /// GoRouter redirect handles the navigation based on the resulting state.
   Future<void> _initAuth() async {
-    // Reduced delay for faster perception
-    await Future.delayed(const Duration(milliseconds: 200));
+    await Future.delayed(const Duration(milliseconds: 800));
 
     final updateDecision = await sl<AppUpdateService>().checkPolicy();
     if (!mounted) return;
@@ -48,20 +46,16 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
       final params = <String, String>{
         'latest': updateDecision.latestVersion,
         'min': updateDecision.minSupportedVersion,
-        if (updateDecision.storeUrl.isNotEmpty)
-          'storeUrl': updateDecision.storeUrl,
+        if (updateDecision.storeUrl.isNotEmpty) 'storeUrl': updateDecision.storeUrl,
       };
       context.go(Uri(path: '/update', queryParameters: params).toString());
       return;
     }
 
     if (updateDecision.recommendUpdate &&
-        await sl<AppUpdateService>().shouldShowOptionalPrompt(
-          updateDecision.latestVersion,
-        ) &&
+        await sl<AppUpdateService>().shouldShowOptionalPrompt(updateDecision.latestVersion) &&
         mounted) {
-      final updateNow =
-          await showDialog<bool>(
+      final updateNow = await showDialog<bool>(
             context: context,
             barrierDismissible: true,
             builder: (ctx) => AlertDialog(
@@ -88,9 +82,7 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
       if (updateNow) {
         await sl<AppUpdateService>().openStore(updateDecision.storeUrl);
       } else {
-        await sl<AppUpdateService>().markOptionalPromptSkipped(
-          updateDecision.latestVersion,
-        );
+        await sl<AppUpdateService>().markOptionalPromptSkipped(updateDecision.latestVersion);
       }
     }
 
@@ -111,7 +103,7 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
             fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
-          ), // Removed fade-in to avoid flicker from native splash
+          ).animate().fadeIn(duration: 800.ms),
 
           // Loading dots at bottom center
           Positioned(
@@ -120,24 +112,22 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
             right: 0,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                3,
-                (i) =>
-                    Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.white54,
-                            shape: BoxShape.circle,
-                          ),
-                        )
-                        .animate(
-                          delay: Duration(milliseconds: 800 + i * 200),
-                          onPlay: (c) => c.repeat(reverse: true),
-                        )
-                        .scaleXY(begin: 0.6, end: 1.2, duration: 600.ms)
-                        .fadeIn(duration: 400.ms),
+              children: List.generate(3, (i) =>
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.white54,
+                    shape: BoxShape.circle,
+                  ),
+                )
+                    .animate(
+                      delay: Duration(milliseconds: 800 + i * 200),
+                      onPlay: (c) => c.repeat(reverse: true),
+                    )
+                    .scaleXY(begin: 0.6, end: 1.2, duration: 600.ms)
+                    .fadeIn(duration: 400.ms),
               ),
             ),
           ),
@@ -162,3 +152,5 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
     );
   }
 }
+
+

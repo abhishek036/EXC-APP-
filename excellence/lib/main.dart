@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -23,14 +22,13 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 Future<void> main() async {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  WidgetsFlutterBinding.ensureInitialized();
 
   await ensureWebViewPlatformInitialized();
 
   try {
     await Firebase.initializeApp(
-      options: await DefaultFirebaseOptions.currentPlatform,
+      options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e, st) {
     debugPrint('[main] Firebase init failed: $e\n$st');
@@ -77,9 +75,6 @@ Future<void> main() async {
     SystemUiMode.manual,
     overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
   );
-
-  // Splash removal moved to ExcellenceAcademyApp initState for smoother transition
-
 
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return MaterialApp(
@@ -146,11 +141,6 @@ class _ExcellenceAcademyAppState extends State<ExcellenceAcademyApp> with Widget
       if (route != null && route.isNotEmpty) {
         _router.go(route);
       }
-    });
-
-    // Remove splash screen after first frame is rendered
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      FlutterNativeSplash.remove();
     });
   }
 

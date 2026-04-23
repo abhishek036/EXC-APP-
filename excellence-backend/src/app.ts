@@ -247,6 +247,11 @@ app.use('/api/v1/auth/login', loginLimiter);
 app.use('/api/v1/auth/refresh', refreshLimiter);
 app.use('/api/v1/auth/otp/send', otpSendLimiter);
 app.use('/api/v1/auth/otp/verify', otpVerifyLimiter);
+// Backward-compatible auth rate limits for clients still using /api/* (without /v1).
+app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth/refresh', refreshLimiter);
+app.use('/api/auth/otp/send', otpSendLimiter);
+app.use('/api/auth/otp/verify', otpVerifyLimiter);
 
 const inferAuditAction = (method: string): AuditAction => {
   switch (method) {
@@ -405,6 +410,7 @@ import youtubeRoutes from './modules/youtube/youtube.routes';
 import uploadRoutes from './modules/upload/upload.routes';
 
 const API_V1 = '/api/v1';
+const API_LEGACY = '/api';
 
 app.use(`${API_V1}/auth`, authRoutes);
 app.use(`${API_V1}/batches`, batchRoutes);
@@ -434,6 +440,10 @@ app.use(`${API_V1}/app-update`, appUpdateRoutes);
 app.use(`${API_V1}/notifications`, notificationRoutes);
 app.use(`${API_V1}/youtube`, youtubeRoutes);
 app.use(`${API_V1}/upload`, uploadRoutes);
+
+// Backward-compatible mounts for clients still calling /api/*.
+app.use(`${API_LEGACY}/auth`, authRoutes);
+app.use(`${API_LEGACY}/app-update`, appUpdateRoutes);
 
 // 404 Catcher
 app.all('*', (req: Request, res: Response, _next: NextFunction) => {

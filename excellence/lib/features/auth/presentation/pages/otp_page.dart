@@ -9,7 +9,6 @@ import '../../../../core/widgets/cp_pressable.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
 import '../../../../core/theme/theme_aware.dart';
-
 class OtpRouteArgs {
   final String phoneNumber;
   final AppRole role;
@@ -326,9 +325,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                               color: AppColors.saharaSand,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: AppColors.elitePrimary.withValues(
-                                  alpha: 0.18,
-                                ),
+                                color: AppColors.elitePrimary.withValues(alpha: 0.18),
                               ),
                             ),
                             child: const Icon(
@@ -351,9 +348,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                                 color: AppColors.saharaSand,
                                 borderRadius: BorderRadius.circular(22),
                                 border: Border.all(
-                                  color: AppColors.elitePrimary.withValues(
-                                    alpha: 0.18,
-                                  ),
+                                  color: AppColors.elitePrimary.withValues(alpha: 0.18),
                                 ),
                               ),
                               child: Image.asset(
@@ -404,17 +399,13 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                               borderRadius: BorderRadius.circular(24),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.elitePrimary.withValues(
-                                    alpha: 0.12,
-                                  ),
+                                  color: AppColors.elitePrimary.withValues(alpha: 0.12),
                                   blurRadius: 18,
                                   offset: const Offset(0, 8),
                                 ),
                               ],
                               border: Border.all(
-                                color: AppColors.elitePrimary.withValues(
-                                  alpha: 0.2,
-                                ),
+                                color: AppColors.elitePrimary.withValues(alpha: 0.2),
                                 width: 1.4,
                               ),
                             ),
@@ -444,7 +435,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                                                   GoogleFonts.plusJakartaSans(
                                                     fontSize: 22,
                                                     fontWeight: FontWeight.w700,
-                                                    color: AppColors.deepNavy,
+                                                      color: AppColors.deepNavy,
                                                   ),
                                               decoration: InputDecoration(
                                                 filled: true,
@@ -466,14 +457,11 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                                                           BorderRadius.circular(
                                                             12,
                                                           ),
-                                                      borderSide: BorderSide(
-                                                        color: AppColors
-                                                            .elitePrimary
-                                                            .withValues(
-                                                              alpha: 0.35,
-                                                            ),
-                                                        width: 1.4,
-                                                      ),
+                                                      borderSide:
+                                                          BorderSide(
+                                                            color: AppColors.elitePrimary.withValues(alpha: 0.35),
+                                                            width: 1.4,
+                                                          ),
                                                     ),
                                                 focusedBorder:
                                                     OutlineInputBorder(
@@ -483,8 +471,7 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                                                           ),
                                                       borderSide:
                                                           const BorderSide(
-                                                            color: AppColors
-                                                                .elitePrimary,
+                                                            color: AppColors.elitePrimary,
                                                             width: 2,
                                                           ),
                                                     ),
@@ -649,3 +636,6 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
     );
   }
 }
+
+
+
