@@ -1,5 +1,6 @@
 // ignore_for_file: use_null_aware_elements
 
+import 'package:flutter/foundation.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/di/injection_container.dart';
 
