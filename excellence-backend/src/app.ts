@@ -443,7 +443,33 @@ app.use(`${API_V1}/upload`, uploadRoutes);
 
 // Backward-compatible mounts for clients still calling /api/*.
 app.use(`${API_LEGACY}/auth`, authRoutes);
+app.use(`${API_LEGACY}/batches`, batchRoutes);
+app.use(`${API_LEGACY}/students`, studentRoutes);
+app.use(`${API_LEGACY}/teachers`, teacherRoutes);
+app.use(`${API_LEGACY}/institutes`, instituteRoutes);
+app.use(`${API_LEGACY}/fees`, feeRoutes);
+app.use(`${API_LEGACY}/attendance`, attendanceRoutes);
+app.use(`${API_LEGACY}/content`, contentRoutes);
+app.use(`${API_LEGACY}/announcements`, announcementRoutes);
+app.use(`${API_LEGACY}/exams`, examRoutes);
+app.use(`${API_LEGACY}/leads`, leadRoutes);
+app.use(`${API_LEGACY}/staff`, staffRoutes);
+app.use(`${API_LEGACY}/quizzes`, quizRoutes);
+app.use(`${API_LEGACY}/lectures`, lectureRoutes);
+app.use(`${API_LEGACY}/doubts`, doubtRoutes);
+app.use(`${API_LEGACY}/chat`, chatRoutes);
+app.use(`${API_LEGACY}/analytics`, analyticsRoutes);
+app.use(`${API_LEGACY}/users`, usersRoutes);
+app.use(`${API_LEGACY}/parents`, parentRoutes);
+app.use(`${API_LEGACY}/payroll`, payrollRoutes);
+app.use(`${API_LEGACY}/certificates`, certificateRoutes);
+app.use(`${API_LEGACY}/timetable`, timetableRoutes);
+app.use(`${API_LEGACY}/audit-logs`, auditLogRoutes);
+app.use(`${API_LEGACY}/whatsapp`, whatsappRoutes);
 app.use(`${API_LEGACY}/app-update`, appUpdateRoutes);
+app.use(`${API_LEGACY}/notifications`, notificationRoutes);
+app.use(`${API_LEGACY}/youtube`, youtubeRoutes);
+app.use(`${API_LEGACY}/upload`, uploadRoutes);
 
 // 404 Catcher
 app.all('*', (req: Request, res: Response, _next: NextFunction) => {

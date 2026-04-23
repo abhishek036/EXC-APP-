@@ -65,10 +65,17 @@ export const errorHandler = (
     message = err.message;
   }
 
-  console.error(
-    `[ERROR] [${requestRef}] ${req.method} ${req.originalUrl} -> ${statusCode} ${code}: ${message}`,
-    err,
-  );
+  if (statusCode >= 500) {
+    console.error(
+      `[ERROR] [${requestRef}] ${req.method} ${req.originalUrl} -> ${statusCode} ${code}: ${message}`,
+      err,
+    );
+  } else {
+    // For operational errors like 401/404, don't dump stack traces to error logs
+    console.warn(
+      `[WARN] [${requestRef}] ${req.method} ${req.originalUrl} -> ${statusCode} ${code}: ${message}`
+    );
+  }
 
   res.status(statusCode).json({
     success: false,
