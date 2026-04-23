@@ -105,32 +105,6 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
             height: double.infinity,
           ).animate().fadeIn(duration: 800.ms),
 
-          // Loading dots at bottom center
-          Positioned(
-            bottom: 80,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(3, (i) =>
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.white54,
-                    shape: BoxShape.circle,
-                  ),
-                )
-                    .animate(
-                      delay: Duration(milliseconds: 800 + i * 200),
-                      onPlay: (c) => c.repeat(reverse: true),
-                    )
-                    .scaleXY(begin: 0.6, end: 1.2, duration: 600.ms)
-                    .fadeIn(duration: 400.ms),
-              ),
-            ),
-          ),
 
           // Bottom version text
           Positioned(

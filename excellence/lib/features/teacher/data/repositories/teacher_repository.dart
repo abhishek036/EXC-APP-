@@ -37,19 +37,28 @@ class TeacherRepository {
 
   // ── Helper ───────────────────────────────────────────────
   List<Map<String, dynamic>> _extractList(dynamic responseData) {
-    final payload = responseData is Map<String, dynamic>
-        ? responseData['data']
-        : null;
+    try {
+      final payload = responseData is Map<String, dynamic>
+          ? responseData['data']
+          : null;
 
-    if (payload is List) {
-      return payload.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      if (payload is List) {
+        return payload.map((e) {
+          if (e is Map) return Map<String, dynamic>.from(e);
+          return <String, dynamic>{};
+        }).toList();
+      }
+
+      if (payload is Map && payload['data'] is List) {
+        final nested = payload['data'] as List;
+        return nested.map((e) {
+          if (e is Map) return Map<String, dynamic>.from(e);
+          return <String, dynamic>{};
+        }).toList();
+      }
+    } catch (e, st) {
+      debugPrint('Error in _extractList: $e\n$st');
     }
-
-    if (payload is Map && payload['data'] is List) {
-      final nested = payload['data'] as List;
-      return nested.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-    }
-
     return const [];
   }
 

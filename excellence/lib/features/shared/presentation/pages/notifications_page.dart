@@ -156,7 +156,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
         _hasMore = data.length >= _perPage;
         if (_hasMore) _page += 1;
       });
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('Error fetching notifications: $e\n$stack');
       if (reset) {
         setState(() {
           _notifications.clear();
@@ -189,28 +190,40 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Map<String, dynamic> _normalizeNotification(Map<String, dynamic> input) {
-    final rawDate = input['created_at'] ?? input['date'];
-    DateTime? dt;
-    if (rawDate != null) {
-      dt = DateTime.tryParse(rawDate.toString())?.toLocal();
+    try {
+      final rawDate = input['created_at'] ?? input['date'];
+      DateTime? dt;
+      if (rawDate != null) {
+        dt = DateTime.tryParse(rawDate.toString())?.toLocal();
+      }
+      return {
+        ...input,
+        'isRead':
+            _isTruthy(input['read_status']) ||
+            _isTruthy(input['isRead']) ||
+            _isTruthy(input['readStatus']) ||
+            _isTruthy(input['is_read']),
+        'title': input['title'] ?? 'Notification',
+        'body': input['body'] ?? input['message'] ?? '',
+        'type': (input['type'] ?? 'system').toString(),
+        'time': (input['created_at'] ?? input['date'] ?? '').toString(),
+        'dateTime': dt,
+        'batchName':
+            input['batch_name'] ??
+            input['batchName'] ??
+            (input['meta'] is Map ? input['meta']['batchName'] : null),
+      };
+    } catch (e, st) {
+      debugPrint('Error normalizing notification: $e\n$st');
+      return {
+        ...input,
+        'isRead': false,
+        'title': 'Notification',
+        'body': 'Error loading notification details',
+        'type': 'system',
+        'time': '',
+      };
     }
-    return {
-      ...input,
-      'isRead':
-          _isTruthy(input['read_status']) ||
-          _isTruthy(input['isRead']) ||
-          _isTruthy(input['readStatus']) ||
-          _isTruthy(input['is_read']),
-      'title': input['title'] ?? 'Notification',
-      'body': input['body'] ?? input['message'] ?? '',
-      'type': (input['type'] ?? 'system').toString(),
-      'time': (input['created_at'] ?? input['date'] ?? '').toString(),
-      'dateTime': dt,
-      'batchName':
-          input['batch_name'] ??
-          input['batchName'] ??
-          (input['meta'] is Map ? input['meta']['batchName'] : null),
-    };
   }
 
   Future<void> _markRead(int index, {bool read = true}) async {
