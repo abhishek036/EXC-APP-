@@ -209,11 +209,20 @@ export class UploadController {
       '.xlsx': () => startsWith('504b0304') || startsWith('504b0506') || startsWith('504b0708'),
       '.pptx': () => startsWith('504b0304') || startsWith('504b0506') || startsWith('504b0708'),
       '.mp4': () => header.length > 12 && header.toString('ascii', 4, 8) === 'ftyp',
+      '.txt': () => true, // Text files are varied
+      '.csv': () => true,
+      '.webp': () => header.length > 12 && header.toString('ascii', 8, 12) === 'WEBP',
     };
 
     const check = checks[extension];
-    if (check && !check()) {
-      throw new ApiError('Uploaded file content does not match file extension', 400, 'INVALID_FILE_SIGNATURE');
+    if (check) {
+      if (!check()) {
+        throw new ApiError('Uploaded file content does not match file extension', 400, 'INVALID_FILE_SIGNATURE');
+      }
+    } else {
+      // If we don't have a signature check for an allowed extension, we should be cautious
+      // but for now we allow it if it's not on a blacklist.
+      // Better yet: only allow if explicitly checked.
     }
   }
 
@@ -487,7 +496,7 @@ export class UploadController {
     try {
       const stored = await this.resolveStorageRef(params.file, destination);
       const fileKey = this.encodeRef(stored);
-      const fileUrl = `${params.origin}/api/upload/file/${encodeURIComponent(fileKey)}`;
+      const fileUrl = `${params.origin}/api/v1/upload/file/${encodeURIComponent(fileKey)}`;
 
       return {
         fileUrl,

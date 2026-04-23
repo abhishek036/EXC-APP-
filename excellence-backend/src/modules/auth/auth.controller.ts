@@ -34,7 +34,7 @@ const buildRefreshCookieOptions = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict' as const,
-  path: '/api/auth',
+  path: '/api/v1/auth',
   maxAge: refreshCookieMaxAgeMs,
 });
 
@@ -134,7 +134,7 @@ export class AuthController {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        path: '/api/auth',
+        path: '/api/v1/auth',
       });
       return sendResponse({ res, data: null, message: 'Logged out successfully' });
     } catch (error) {

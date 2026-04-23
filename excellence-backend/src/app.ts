@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 import { randomUUID } from 'crypto';
 import { errorHandler, ApiError } from './middleware/error.middleware';
+import { xssMiddleware } from './middleware/xss.middleware';
 
 import authRoutes from './modules/auth/auth.routes';
 import batchRoutes from './modules/batch/batch.routes';
@@ -200,11 +201,12 @@ app.use(express.urlencoded({
   extended: true,
   limit: process.env.MAX_JSON_BODY_SIZE || '1mb',
 }));
+app.use(xssMiddleware);
 app.use(morgan(isProduction ? 'combined' : 'dev'));
 
 app.use((req: Request, _res: Response, next: NextFunction) => {
   if (!mutatingMethods.has(req.method.toUpperCase())) return next();
-  if (req.path.startsWith('/api/upload')) return next();
+  if (req.path.startsWith('/api/v1/upload') || req.path.startsWith('/api/upload')) return next();
 
   const contentType = String(req.headers['content-type'] || '').toLowerCase();
   const isAllowedType =
@@ -240,11 +242,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'X-Request-Id'],
 }));
 
-app.use('/api', globalApiLimiter);
-app.use('/api/auth/login', loginLimiter);
-app.use('/api/auth/refresh', refreshLimiter);
-app.use('/api/auth/otp/send', otpSendLimiter);
-app.use('/api/auth/otp/verify', otpVerifyLimiter);
+app.use('/api/v1', globalApiLimiter);
+app.use('/api/v1/auth/login', loginLimiter);
+app.use('/api/v1/auth/refresh', refreshLimiter);
+app.use('/api/v1/auth/otp/send', otpSendLimiter);
+app.use('/api/v1/auth/otp/verify', otpVerifyLimiter);
 
 const inferAuditAction = (method: string): AuditAction => {
   switch (method) {
@@ -262,7 +264,9 @@ const inferAuditAction = (method: string): AuditAction => {
 
 const shouldSkipAutoAudit = (path: string): boolean => {
   const ignoredPrefixes = [
+    '/api/v1/auth',
     '/api/auth',
+    '/api/v1/notifications/register-token',
     '/api/notifications/register-token',
   ];
 
@@ -298,7 +302,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       if (!instituteId) return;
 
       const actorId = anyReq?.user?.userId;
-      const entityType = req.baseUrl.replace('/api/', '') || req.path.split('/').filter(Boolean)[0] || 'system';
+      const entityType = req.baseUrl.replace('/api/v1/', '').replace('/api/', '') || req.path.split('/').filter(Boolean)[0] || 'system';
       const entityId = (req.params?.id || req.params?.studentId || req.params?.teacherId || req.params?.batchId || '').toString() || undefined;
       const action = inferAuditAction(req.method.toUpperCase());
 
@@ -342,8 +346,57 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ success: true, message: 'Excellence API is running smoothly' });
 });
 
+app.get('/api/v1', (req: Request, res: Response) => {
+  res.status(200).json({ success: true, message: 'Excellence Backend API v1 is LIVE' });
+});
+
 app.get('/api', (req: Request, res: Response) => {
-  res.status(200).json({ success: true, message: 'Excellence Backend API is LIVE' });
+  res.status(200).json({ success: true, message: 'Excellence Backend API is LIVE. Please use /api/v1 endpoints.' });
+});
+
+// Client Config Route
+app.get('/api/v1/config/client', (req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      firebase: {
+        web: {
+          apiKey: process.env.FIREBASE_API_KEY_WEB,
+          appId: process.env.FIREBASE_APP_ID_WEB,
+          messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+          storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+          measurementId: process.env.FIREBASE_MEASUREMENT_ID,
+        },
+        android: {
+          apiKey: process.env.FIREBASE_API_KEY_ANDROID,
+          appId: process.env.FIREBASE_APP_ID_ANDROID,
+          messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+        },
+        ios: {
+          apiKey: process.env.FIREBASE_API_KEY_IOS,
+          appId: process.env.FIREBASE_APP_ID_IOS,
+          messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+          iosClientId: process.env.FIREBASE_IOS_CLIENT_ID,
+          iosBundleId: process.env.FIREBASE_IOS_BUNDLE_ID,
+        },
+        macos: {
+          apiKey: process.env.FIREBASE_API_KEY_MACOS,
+          appId: process.env.FIREBASE_APP_ID_MACOS,
+          messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+          iosClientId: process.env.FIREBASE_MACOS_CLIENT_ID,
+          iosBundleId: process.env.FIREBASE_MACOS_BUNDLE_ID,
+        }
+      }
+    }
+  });
 });
 
 // Import and use routes here:
@@ -351,34 +404,36 @@ import youtubeRoutes from './modules/youtube/youtube.routes';
 
 import uploadRoutes from './modules/upload/upload.routes';
 
-app.use('/api/auth', authRoutes);
-app.use('/api/batches', batchRoutes);
-app.use('/api/students', studentRoutes);
-app.use('/api/teachers', teacherRoutes);
-app.use('/api/institutes', instituteRoutes);
-app.use('/api/fees', feeRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/content', contentRoutes);
-app.use('/api/announcements', announcementRoutes);
-app.use('/api/exams', examRoutes);
-app.use('/api/leads', leadRoutes);
-app.use('/api/staff', staffRoutes);
-app.use('/api/quizzes', quizRoutes);
-app.use('/api/lectures', lectureRoutes);
-app.use('/api/doubts', doubtRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/parents', parentRoutes);
-app.use('/api/payroll', payrollRoutes);
-app.use('/api/certificates', certificateRoutes);
-app.use('/api/timetable', timetableRoutes);
-app.use('/api/audit-logs', auditLogRoutes);
-app.use('/api/whatsapp', whatsappRoutes);
-app.use('/api/app-update', appUpdateRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/youtube', youtubeRoutes);
-app.use('/api/upload', uploadRoutes);
+const API_V1 = '/api/v1';
+
+app.use(`${API_V1}/auth`, authRoutes);
+app.use(`${API_V1}/batches`, batchRoutes);
+app.use(`${API_V1}/students`, studentRoutes);
+app.use(`${API_V1}/teachers`, teacherRoutes);
+app.use(`${API_V1}/institutes`, instituteRoutes);
+app.use(`${API_V1}/fees`, feeRoutes);
+app.use(`${API_V1}/attendance`, attendanceRoutes);
+app.use(`${API_V1}/content`, contentRoutes);
+app.use(`${API_V1}/announcements`, announcementRoutes);
+app.use(`${API_V1}/exams`, examRoutes);
+app.use(`${API_V1}/leads`, leadRoutes);
+app.use(`${API_V1}/staff`, staffRoutes);
+app.use(`${API_V1}/quizzes`, quizRoutes);
+app.use(`${API_V1}/lectures`, lectureRoutes);
+app.use(`${API_V1}/doubts`, doubtRoutes);
+app.use(`${API_V1}/chat`, chatRoutes);
+app.use(`${API_V1}/analytics`, analyticsRoutes);
+app.use(`${API_V1}/users`, usersRoutes);
+app.use(`${API_V1}/parents`, parentRoutes);
+app.use(`${API_V1}/payroll`, payrollRoutes);
+app.use(`${API_V1}/certificates`, certificateRoutes);
+app.use(`${API_V1}/timetable`, timetableRoutes);
+app.use(`${API_V1}/audit-logs`, auditLogRoutes);
+app.use(`${API_V1}/whatsapp`, whatsappRoutes);
+app.use(`${API_V1}/app-update`, appUpdateRoutes);
+app.use(`${API_V1}/notifications`, notificationRoutes);
+app.use(`${API_V1}/youtube`, youtubeRoutes);
+app.use(`${API_V1}/upload`, uploadRoutes);
 
 // 404 Catcher
 app.all('*', (req: Request, res: Response, _next: NextFunction) => {

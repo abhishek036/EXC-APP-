@@ -563,7 +563,7 @@ export class ContentController {
         action,
       });
 
-      const streamPath = `/api/content/notes/${encodeURIComponent(req.params.noteId)}/files/${encodeURIComponent(req.params.fileId)}/stream`;
+      const streamPath = `/api/v1/content/notes/${encodeURIComponent(req.params.noteId)}/files/${encodeURIComponent(req.params.fileId)}/stream`;
       const query = `action=${encodeURIComponent(action)}&token=${encodeURIComponent(tokenPack.token)}`;
       const baseUrl = `${req.protocol}://${req.get('host')}`;
 
@@ -631,8 +631,14 @@ export class ContentController {
         throw new ApiError('File URL missing for this note', 404, 'NOT_FOUND');
       }
 
-      const uploadMarker = '/api/upload/file/';
-      const markerIndex = targetUrl.indexOf(uploadMarker);
+      const uploadMarkerV1 = '/api/v1/upload/file/';
+      const uploadMarkerLegacy = '/api/upload/file/';
+      const markerIndexV1 = targetUrl.indexOf(uploadMarkerV1);
+      const markerIndexLegacy = targetUrl.indexOf(uploadMarkerLegacy);
+      
+      const markerIndex = markerIndexV1 >= 0 ? markerIndexV1 : markerIndexLegacy;
+      const uploadMarker = markerIndexV1 >= 0 ? uploadMarkerV1 : uploadMarkerLegacy;
+
       if (markerIndex >= 0) {
         const key = decodeURIComponent(targetUrl.substring(markerIndex + uploadMarker.length).split('?')[0]);
         const proxyReq = req as any;

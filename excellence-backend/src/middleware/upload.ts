@@ -57,7 +57,7 @@ export const excelUpload = multer({
 
 export const generalUpload = multer({
     storage,
-    limits: { fileSize: Number.parseInt(process.env.GENERAL_UPLOAD_MAX_MB || '5', 10) * 1024 * 1024 },
+    limits: { fileSize: Number.parseInt(process.env.MAX_FILE_SIZE_MB || '20', 10) * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
         const ext = getExtension(file.originalname);
         if (blockedExtensions.has(ext)) {

@@ -185,8 +185,16 @@ export class ContentRepository {
     private decodeUploadRef(fileUrl?: string | null): any | null {
             const raw = String(fileUrl ?? '').trim();
             if (!raw) return null;
-            const marker = '/api/upload/file/';
-            const idx = raw.indexOf(marker);
+            const markerV1 = '/api/v1/upload/file/';
+            const markerLegacy = '/api/upload/file/';
+            let marker = markerV1;
+            let idx = raw.indexOf(markerV1);
+
+            if (idx < 0) {
+                marker = markerLegacy;
+                idx = raw.indexOf(markerLegacy);
+            }
+
             if (idx < 0) return null;
             const keyRaw = raw.substring(idx + marker.length).split('?')[0];
             const key = decodeURIComponent(keyRaw);
@@ -349,7 +357,7 @@ export class ContentRepository {
                         ?? this.hashText(`${fileUrl}|${fileName}`);
                     const baseStorageProvider = this.trimOrNull(file.storage_provider)
                         ?? this.trimOrNull(storageMeta?.provider)
-                        ?? (fileUrl.includes('/api/upload/file/') ? 'b2' : 'external');
+                        ?? (fileUrl.includes('/api/v1/upload/file/') || fileUrl.includes('/api/upload/file/') ? 'b2' : 'external');
 
                     return {
                         file_url: fileUrl,
@@ -617,7 +625,7 @@ export class ContentRepository {
                         const nextVersionNo = Number(version._max.version_no ?? 0) + 1;
                         const baseStorageProvider =
                             this.trimOrNull(storageMeta?.provider)
-                            ?? (incomingFileUrl.includes('/api/upload/file/') ? 'b2' : 'external');
+                            ?? (incomingFileUrl.includes('/api/v1/upload/file/') || incomingFileUrl.includes('/api/upload/file/') ? 'b2' : 'external');
 
                         await tx.noteFile.create({
                             data: {

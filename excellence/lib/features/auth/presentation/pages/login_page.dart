@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/theme/theme_aware.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_toast.dart';
 import '../../domain/entities/user_entity.dart';
@@ -38,7 +38,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
+class _LoginPageState extends State<LoginPage> {
   UserRole _selectedRole = UserRole.student;
   LoginMethod _loginMethod = LoginMethod.otp;
   final _phoneController = TextEditingController();
@@ -162,8 +162,10 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
       },
       builder: (context, state) {
         final isLoading = state is AuthLoading;
-        return Scaffold(
-          backgroundColor: Colors.white,
+        return Theme(
+          data: AppTheme.lightTheme,
+          child: Scaffold(
+            backgroundColor: Colors.white,
           body: Stack(
             children: [
               // Soft Yellow ambient glow — top right
@@ -622,7 +624,7 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
               ),
             ],
           ),
-        );
+        ));
       },
     );
   }

@@ -7,7 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
-import '../../../../core/theme/theme_aware.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
@@ -89,8 +89,10 @@ class _RegisterPageState extends State<RegisterPage>
       builder: (context, state) {
         final isLoading = state is AuthLoading;
 
-        return Scaffold(
-          backgroundColor: Colors.white,
+        return Theme(
+          data: AppTheme.lightTheme,
+          child: Scaffold(
+            backgroundColor: Colors.white,
           body: Stack(
             children: [
               Positioned(
@@ -337,7 +339,7 @@ class _RegisterPageState extends State<RegisterPage>
               ),
             ],
           ),
-        );
+        ));
       },
     );
   }
