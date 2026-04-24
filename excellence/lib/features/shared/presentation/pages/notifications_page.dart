@@ -131,7 +131,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
     _isFetching = true;
     try {
-      final data = await _repo
+      final rawData = await _repo
           .getNotifications(
         page: _page,
         perPage: _perPage,
@@ -139,6 +139,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
         readStatus: 'all',
       )
           .timeout(const Duration(seconds: 15));
+      final data = rawData is List
+          ? rawData
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList(growable: false)
+          : const <Map<String, dynamic>>[];
 
       if (reset) {
         unawaited(_syncUnreadCount());
