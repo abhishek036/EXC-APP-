@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../di/injection_container.dart';
+import '../services/network_activity_service.dart';
 import '../services/secure_storage_service.dart';
 import 'api_endpoints.dart';
 
@@ -54,6 +55,8 @@ class ApiClient {
 
   bool get isRefreshing => _refreshCompleter != null;
 
+  NetworkActivityService get _networkActivity => sl<NetworkActivityService>();
+
   /// Attempt to refresh the access token using the stored refresh token.
   /// Returns the new access token on success, null on failure.
   Future<String?> tryRefreshToken() async {
@@ -105,18 +108,34 @@ class _AuthInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    _client._networkActivity.beginRequest();
+
     // Don't add auth header to refresh-token endpoint itself
-    if (!options.path.contains(ApiEndpoints.refreshToken)) {
-      final token = await _storage.getToken();
-      if (token != null && token.isNotEmpty) {
-        options.headers['Authorization'] = 'Bearer $token';
+    try {
+      if (!options.path.contains(ApiEndpoints.refreshToken)) {
+        final token = await _storage.getToken();
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+      }
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('[ApiClient] Failed to read auth token: $e\n$st');
       }
     }
     handler.next(options);
   }
 
   @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    _client._networkActivity.endRequest();
+    handler.next(response);
+  }
+
+  @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
+    _client._networkActivity.endRequest();
+
     // Unwrap backend error message for better UX
     String? backendMessage;
     if (err.response?.data is Map) {

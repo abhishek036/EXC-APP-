@@ -4,6 +4,7 @@ import '../network/api_client.dart';
 import '../network/network_info.dart';
 import '../services/secure_storage_service.dart';
 import '../services/api_auth_service.dart';
+import '../services/network_activity_service.dart';
 import '../services/whatsapp_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/auto_notification_service.dart';
@@ -32,6 +33,10 @@ Future<void> initDependencies() async {
   // ── Core services ──────────────────────────────────────
   sl.registerLazySingleton<SecureStorageService>(
     () => SecureStorageService(),
+  );
+
+  sl.registerLazySingleton<NetworkActivityService>(
+    () => NetworkActivityService(),
   );
 
   sl.registerLazySingleton<NetworkInfo>(

@@ -12,6 +12,7 @@ import 'core/constants/app_colors.dart';
 import 'core/di/injection_container.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
+import 'core/widgets/cp_network_activity_overlay.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/webview_platform_initializer.dart';
 import 'core/l10n/app_localizations.dart';
@@ -214,12 +215,14 @@ class _ExcellenceAcademyAppState extends State<ExcellenceAcademyApp> with Widget
                 locale: currentLocale,
                 supportedLocales: AppLocales.supported,
                 builder: (context, child) {
-                  return SafeArea(
-                    top: false,
-                    left: false,
-                    right: false,
-                    bottom: true,
-                    child: child ?? const SizedBox.shrink(),
+                  return CPNetworkActivityOverlay(
+                    child: SafeArea(
+                      top: false,
+                      left: false,
+                      right: false,
+                      bottom: true,
+                      child: child ?? const SizedBox.shrink(),
+                    ),
                   );
                 },
                 routerConfig: _router,
