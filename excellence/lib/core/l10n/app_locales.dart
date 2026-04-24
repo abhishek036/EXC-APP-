@@ -13,25 +13,9 @@ class AppLocales {
   static const Locale gujarati = Locale('gu', 'IN');
   static const Locale kannada = Locale('kn', 'IN');
 
-  static const List<Locale> supported = [
-    english,
-    hindi,
-    marathi,
-    tamil,
-    telugu,
-    bengali,
-    gujarati,
-    kannada,
-  ];
+  static const List<Locale> supported = [english];
 
   static const Map<String, String> languageNames = {
     'en': 'English',
-    'hi': 'हिन्दी (Hindi)',
-    'mr': 'मराठी (Marathi)',
-    'ta': 'தமிழ் (Tamil)',
-    'te': 'తెలుగు (Telugu)',
-    'bn': 'বাংলা (Bengali)',
-    'gu': 'ગુજરાતી (Gujarati)',
-    'kn': 'ಕನ್ನಡ (Kannada)',
   };
 }

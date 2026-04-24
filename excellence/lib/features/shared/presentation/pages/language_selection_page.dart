@@ -22,7 +22,9 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
   @override
   void initState() {
     super.initState();
-    _selectedCode = localeNotifier.value.languageCode;
+    _selectedCode = AppLocales.supported.any((l) => l.languageCode == localeNotifier.value.languageCode)
+        ? localeNotifier.value.languageCode
+        : AppLocales.english.languageCode;
   }
 
   Future<void> _saveSelection() async {

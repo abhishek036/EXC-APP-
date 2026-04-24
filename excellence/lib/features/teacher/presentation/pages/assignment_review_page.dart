@@ -3,9 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/download_registry.dart';
 import '../../../../core/utils/file_opener.dart';
+import '../../../../core/utils/stable_token.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/theme_aware.dart';
+import '../../../../core/widgets/download_status_icon.dart';
 import '../../data/repositories/teacher_repository.dart';
 
 class AssignmentReviewPage extends StatefulWidget {
@@ -51,6 +54,7 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
   @override
   void initState() {
     super.initState();
+    DownloadRegistry.instance.ensureLoaded();
     _loadAssignments();
   }
 
@@ -157,6 +161,9 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
         url: fileUrl,
         fileName: fileName.isEmpty ? null : fileName,
         mimeType: mimeType.isEmpty ? null : mimeType,
+        downloadKey: current['id'] != null
+            ? 'submission:${current["id"]}'
+            : 'submission:${stableToken(fileUrl)}',
       );
     } catch (_) {
       final uri = Uri.tryParse(fileUrl);
@@ -395,7 +402,16 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
               children: [
                 OutlinedButton.icon(
                   onPressed: _openSubmissionFile,
-                  icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
+                  icon: DownloadStatusIcon(
+                    downloadKey: 'submission:${stableToken(fileUrl)}',
+                    idleIcon: Icons.picture_as_pdf_rounded,
+                    downloadedIcon: Icons.check_circle_rounded,
+                    idleColor: blue,
+                    downloadedColor: AppColors.success,
+                    size: 18,
+                    spinnerSize: 18,
+                    strokeWidth: 2,
+                  ),
                   label: const Text('Open Submitted PDF'),
                 ),
                 SizedBox(

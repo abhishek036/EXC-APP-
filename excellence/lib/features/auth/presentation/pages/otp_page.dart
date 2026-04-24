@@ -6,18 +6,15 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/cp_pressable.dart';
-import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
 import '../../../../core/theme/theme_aware.dart';
 class OtpRouteArgs {
   final String phoneNumber;
-  final AppRole role;
   final String? infoMessage;
   final String? debugOtp;
 
   const OtpRouteArgs({
     required this.phoneNumber,
-    required this.role,
     this.infoMessage,
     this.debugOtp,
   });
@@ -25,14 +22,12 @@ class OtpRouteArgs {
 
 class OtpPage extends StatefulWidget {
   final String? phoneNumber;
-  final AppRole? role;
   final String? infoMessage;
   final String? debugOtp;
 
   const OtpPage({
     super.key,
     this.phoneNumber,
-    this.role,
     this.infoMessage,
     this.debugOtp,
   });
@@ -42,12 +37,13 @@ class OtpPage extends StatefulWidget {
 }
 
 class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
+  static const int _resendCooldownSeconds = 45;
   final List<TextEditingController> _controllers = List.generate(
     6,
     (_) => TextEditingController(),
   );
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
-  int _countdown = 45;
+  int _countdown = _resendCooldownSeconds;
   bool _canResend = false;
   bool _isError = false;
 
@@ -184,14 +180,13 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
     }
     _focusNodes[0].requestFocus();
     final phone = widget.phoneNumber ?? '';
-    final role = widget.role;
-    if (phone.isNotEmpty && role != null) {
+    if (phone.isNotEmpty) {
       context.read<AuthBloc>().add(
-        AuthSendOtpRequested(phone: phone, role: role),
+        AuthSendOtpRequested(phone: phone),
       );
     }
     setState(() {
-      _countdown = 45;
+      _countdown = _resendCooldownSeconds;
       _canResend = false;
     });
     _startTimer();
@@ -548,15 +543,6 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                           .fadeIn(duration: 600.ms)
                           .slideY(begin: 0.08, end: 0),
 
-                      const SizedBox(height: 40),
-                      Text(
-                        'Having trouble? Contact support.',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          color: AppColors.deepNavy.withValues(alpha: 0.34),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -636,6 +622,3 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
     );
   }
 }
-
-
-

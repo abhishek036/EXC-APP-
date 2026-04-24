@@ -3,12 +3,22 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_toast.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../data/repositories/admin_repository.dart';
+import '../widgets/batch_detail_common_widgets.dart';
+import '../widgets/batch_overview_tab.dart';
+import '../widgets/batch_content_tab.dart';
+import '../widgets/batch_students_tab.dart';
+import '../widgets/batch_tests_tab.dart';
+import '../widgets/batch_fees_tab.dart';
+import '../widgets/batch_attendance_tab.dart';
+import '../widgets/batch_announcements_tab.dart';
+import '../widgets/batch_analytics_tab.dart';
 
 class BatchDetailPage extends StatefulWidget {
   final String batchId;
@@ -31,6 +41,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
   List<Map<String, dynamic>> _materials = [];
   List<Map<String, dynamic>> _feeRecords = [];
   List<Map<String, dynamic>> _attendanceSessions = [];
+  List<Map<String, dynamic>> _announcements = [];
 
   Map<String, dynamic>? _feeStructure;
 
@@ -42,6 +53,8 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
   String _studentFilter = 'All';
   String _feeFilter = 'All';
   bool _fabExpanded = false;
+  String? _selectedSubject;
+  List<String> _batchSubjects = [];
 
   static const _tabs = [
     'Overview',
@@ -49,6 +62,8 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     'Students',
     'Tests',
     'Fees',
+    'Attendance',
+    'Announcements',
     'Analytics',
   ];
   static const _contentTabs = [
@@ -102,60 +117,233 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     return text;
   }
 
+  String _sessionDate(DateTime value) {
+    return '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+  }
+
+  String _defaultBatchSubject() {
+    final subject = (_batch?['subject'] ?? '').toString().trim();
+    if (subject.isNotEmpty) return subject;
+    return 'General';
+  }
+
+  String _normalizeSubjectValue(dynamic value) {
+    return (value ?? '').toString().trim().toLowerCase();
+  }
+
+  List<String> _extractSubjectsFromBatchMeta(Map<String, dynamic>? batch) {
+    final subjects = <String>[];
+    if (batch == null) return subjects;
+
+    final raw = batch['subjects'];
+    if (raw is List) {
+      for (final item in raw) {
+        final text = item.toString().trim();
+        if (text.isNotEmpty) subjects.add(text);
+      }
+    } else if (raw is String) {
+      for (final part in raw.split(',')) {
+        final text = part.trim();
+        if (text.isNotEmpty) subjects.add(text);
+      }
+    }
+
+    final single = (batch['subject'] ?? '').toString().trim();
+    if (single.isNotEmpty) subjects.add(single);
+
+    return subjects;
+  }
+
+  List<String> _extractSubjectsFromRecords(List<Map<String, dynamic>> records) {
+    final subjects = <String>[];
+    for (final record in records) {
+      final subject = (record['subject'] ?? '').toString().trim();
+      if (subject.isNotEmpty) subjects.add(subject);
+    }
+    return subjects;
+  }
+
+  bool _matchesSubjectFilter(Map<String, dynamic> item) {
+    final selected = _normalizeSubjectValue(_selectedSubject);
+    if (selected.isEmpty) return true;
+
+    final itemSubject = _normalizeSubjectValue(item['subject']);
+    return itemSubject == selected;
+  }
+
+  List<Map<String, dynamic>> get _subjectScopedQuizzes {
+    if (_selectedSubject == null || _selectedSubject!.trim().isEmpty) {
+      return _quizzes;
+    }
+    return _quizzes.where(_matchesSubjectFilter).toList();
+  }
+
+  List<Map<String, dynamic>> get _subjectScopedAttendanceSessions {
+    if (_selectedSubject == null || _selectedSubject!.trim().isEmpty) {
+      return _attendanceSessions;
+    }
+    return _attendanceSessions.where(_matchesSubjectFilter).toList();
+  }
+
+  bool get _showSubjectScope {
+    return _activeTab == 3 || _activeTab == 5;
+  }
+
+  String _normalizeNoteType(dynamic value) {
+    final raw = (value ?? '').toString().trim().toLowerCase();
+    switch (raw) {
+      case 'pdf':
+      case 'image':
+      case 'video':
+      case 'zip':
+      case 'doc':
+      case 'docx':
+      case 'ppt':
+      case 'pptx':
+      case 'other':
+        return raw;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+        return 'image';
+      default:
+        return 'pdf';
+    }
+  }
+
+  String _normalizeAttendanceStatus(dynamic value) {
+    final raw = (value ?? '').toString().trim().toLowerCase();
+    if (raw == 'present' || raw == 'absent' || raw == 'late' || raw == 'excused') {
+      return raw;
+    }
+    return 'present';
+  }
+
   Future<void> _replaceNote(Map<String, dynamic> note) async {
-    final initialUrl = (note['file_url'] ?? '').toString();
+    await _showNoteEditor(note: note, replaceLabel: true);
+  }
+
+  Future<void> _showNoteEditor({
+    Map<String, dynamic>? note,
+    bool replaceLabel = false,
+  }) async {
+    final isEdit = note != null;
+    final noteId = (note?['id'] ?? '').toString();
+    if (isEdit && noteId.isEmpty) {
+      CPToast.error(context, 'Invalid note');
+      return;
+    }
+
+    String selectedType = _normalizeNoteType(note?['file_type']);
     final titleCtrl = TextEditingController(
-      text:
-          '${(note['title'] ?? note['file_name'] ?? 'Note').toString()} (Updated)',
+      text: (note?['title'] ?? note?['file_name'] ?? '').toString(),
     );
-    final urlCtrl = TextEditingController(text: initialUrl);
+    final subjectCtrl = TextEditingController(
+      text: (note?['subject'] ?? _defaultBatchSubject()).toString(),
+    );
+    final urlCtrl = TextEditingController(
+      text: (note?['file_url'] ?? '').toString(),
+    );
     final descCtrl = TextEditingController(
-      text: (note['description'] ?? '').toString(),
+      text: (note?['description'] ?? '').toString(),
     );
 
     final approved = await showDialog<bool>(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Replace Note'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleCtrl,
-                decoration: const InputDecoration(labelText: 'Title'),
+        return StatefulBuilder(
+          builder: (ctx, setS) {
+            return AlertDialog(
+              title: Text(
+                replaceLabel
+                    ? 'Replace Note'
+                    : (isEdit ? 'Edit Note' : 'Add Note'),
               ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: urlCtrl,
-                decoration: const InputDecoration(labelText: 'File URL'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: descCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: titleCtrl,
+                      decoration: const InputDecoration(labelText: 'Title'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: subjectCtrl,
+                      decoration: const InputDecoration(labelText: 'Subject'),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedType,
+                      decoration: const InputDecoration(labelText: 'File Type'),
+                      items: const [
+                        DropdownMenuItem(value: 'pdf', child: Text('PDF')),
+                        DropdownMenuItem(value: 'image', child: Text('Image')),
+                        DropdownMenuItem(value: 'video', child: Text('Video')),
+                        DropdownMenuItem(value: 'zip', child: Text('ZIP')),
+                        DropdownMenuItem(value: 'doc', child: Text('DOC')),
+                        DropdownMenuItem(value: 'docx', child: Text('DOCX')),
+                        DropdownMenuItem(value: 'ppt', child: Text('PPT')),
+                        DropdownMenuItem(value: 'pptx', child: Text('PPTX')),
+                        DropdownMenuItem(value: 'other', child: Text('Other')),
+                      ],
+                      onChanged: (value) {
+                        setS(() => selectedType = value ?? selectedType);
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: urlCtrl,
+                      decoration: const InputDecoration(labelText: 'File URL'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: descCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Description (optional)',
+                      ),
+                      maxLines: 2,
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Replace'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(replaceLabel ? 'Replace' : 'Save'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
 
+    final title = titleCtrl.text.trim();
+    final subjectInput = subjectCtrl.text.trim();
+    final newUrl = urlCtrl.text.trim();
+    final description = descCtrl.text.trim();
+
+    titleCtrl.dispose();
+    subjectCtrl.dispose();
+    urlCtrl.dispose();
+    descCtrl.dispose();
+
     if (approved != true) return;
 
-    final newUrl = urlCtrl.text.trim();
+    if (title.length < 2) {
+      if (!mounted) return;
+      CPToast.error(context, 'Title must be at least 2 characters');
+      return;
+    }
+
+    final subject = subjectInput.isEmpty ? _defaultBatchSubject() : subjectInput;
     if (newUrl.isEmpty) {
       if (!mounted) return;
       CPToast.error(context, 'File URL is required');
@@ -163,25 +351,463 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     }
 
     try {
-      await _adminRepo.createNote(
-        title: titleCtrl.text.trim().isEmpty
-            ? 'Updated Note'
-            : titleCtrl.text.trim(),
-        subject: (note['subject'] ?? _batch?['subject'] ?? 'General')
-            .toString(),
-        fileType: (note['file_type'] ?? 'PDF').toString(),
-        batchId: widget.batchId,
-        fileUrl: newUrl,
-        description: descCtrl.text.trim(),
-      );
+      if (isEdit) {
+        await _adminRepo.updateNote(
+          noteId: noteId,
+          title: title,
+          subject: subject,
+          fileType: selectedType,
+          fileUrl: newUrl,
+          description: description,
+          batchId: widget.batchId,
+        );
+      } else {
+        await _adminRepo.createNote(
+          title: title,
+          subject: subject,
+          fileType: selectedType,
+          batchId: widget.batchId,
+          fileUrl: newUrl,
+          description: description,
+        );
+      }
       if (!mounted) return;
-      CPToast.success(context, 'Updated note version created');
+      CPToast.success(
+        context,
+        isEdit ? 'Note updated successfully' : 'Note created successfully',
+      );
       await _loadBatch();
     } catch (e) {
       if (!mounted) return;
       CPToast.error(context, e.toString());
     }
   }
+
+  Future<void> _deleteNote(Map<String, dynamic> note) async {
+    final noteId = (note['id'] ?? '').toString();
+    if (noteId.isEmpty) {
+      CPToast.error(context, 'Invalid note');
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete note?'),
+        content: Text(
+          'This will remove ${(note['title'] ?? 'this note').toString()} from this batch.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _adminRepo.deleteNote(noteId);
+      if (!mounted) return;
+      CPToast.success(context, 'Note deleted');
+      await _loadBatch();
+    } catch (e) {
+      if (!mounted) return;
+      CPToast.error(context, 'Delete failed: $e');
+    }
+  }
+
+  Future<DateTime?> _pickDateTime({DateTime? initial}) async {
+    final now = DateTime.now();
+    final seed = initial ?? now;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: seed,
+      firstDate: DateTime(now.year - 2),
+      lastDate: DateTime(now.year + 5),
+    );
+    if (date == null) return null;
+
+    if (!mounted) return DateTime(date.year, date.month, date.day);
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(seed),
+    );
+
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time?.hour ?? seed.hour,
+      time?.minute ?? seed.minute,
+    );
+  }
+
+  Future<void> _showAssignmentEditor({Map<String, dynamic>? assignment}) async {
+    final isEdit = assignment != null;
+    final assignmentId = (assignment?['id'] ?? '').toString();
+    if (isEdit && assignmentId.isEmpty) {
+      CPToast.error(context, 'Invalid assignment');
+      return;
+    }
+
+    final titleCtrl = TextEditingController(
+      text: (assignment?['title'] ?? '').toString(),
+    );
+    final subjectCtrl = TextEditingController(
+      text: (assignment?['subject'] ?? _defaultBatchSubject()).toString(),
+    );
+    final descriptionCtrl = TextEditingController(
+      text: (assignment?['description'] ?? '').toString(),
+    );
+    final instructionsCtrl = TextEditingController(
+      text: (assignment?['instructions'] ?? '').toString(),
+    );
+    final fileUrlCtrl = TextEditingController(
+      text: (assignment?['file_url'] ?? '').toString(),
+    );
+
+    final initialDueDate = _toDate(assignment?['due_date'])?.toLocal();
+    DateTime? dueDate = initialDueDate;
+    bool allowLateSubmission = (assignment?['allow_late_submission'] ?? false) == true;
+    bool allowTextSubmission = (assignment?['allow_text_submission'] ?? true) != false;
+    bool allowFileSubmission = (assignment?['allow_file_submission'] ?? true) != false;
+    final lateGraceCtrl = TextEditingController(
+      text: _toInt(assignment?['late_grace_minutes']) > 0
+          ? _toInt(assignment?['late_grace_minutes']).toString()
+          : '',
+    );
+    final maxAttemptsCtrl = TextEditingController(
+      text: _toInt(assignment?['max_attempts']) > 0
+          ? _toInt(assignment?['max_attempts']).toString()
+          : '',
+    );
+    final maxMarksCtrl = TextEditingController(
+      text: _toDouble(assignment?['max_marks']) > 0
+          ? _toDouble(assignment?['max_marks']).toStringAsFixed(0)
+          : '',
+    );
+
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setS) {
+            return AlertDialog(
+              title: Text(isEdit ? 'Edit Assignment' : 'Add Assignment'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: titleCtrl,
+                      decoration: const InputDecoration(labelText: 'Title'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: subjectCtrl,
+                      decoration: const InputDecoration(labelText: 'Subject'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: descriptionCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Description (optional)',
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: instructionsCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Instructions (optional)',
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: fileUrlCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Question/File URL (optional)',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: maxMarksCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Max Marks (optional)',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await _pickDateTime(initial: dueDate);
+                        if (picked == null) return;
+                        setS(() => dueDate = picked);
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: CT.divider(context)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.schedule_rounded, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                dueDate == null
+                                    ? 'Due date (optional)'
+                                    : '${_dateLabel(dueDate)} ${_timeLabel(dueDate)}',
+                              ),
+                            ),
+                            if (dueDate != null)
+                              InkWell(
+                                onTap: () => setS(() => dueDate = null),
+                                child: const Icon(Icons.close_rounded, size: 18),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Allow late submissions'),
+                      value: allowLateSubmission,
+                      onChanged: (value) {
+                        setS(() => allowLateSubmission = value);
+                      },
+                    ),
+                    if (allowLateSubmission)
+                      TextField(
+                        controller: lateGraceCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Late grace minutes (optional)',
+                        ),
+                      ),
+                    const SizedBox(height: 10),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Allow text submission'),
+                      value: allowTextSubmission,
+                      onChanged: (value) {
+                        setS(() => allowTextSubmission = value);
+                      },
+                    ),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Allow file submission'),
+                      value: allowFileSubmission,
+                      onChanged: (value) {
+                        setS(() => allowFileSubmission = value);
+                      },
+                    ),
+                    TextField(
+                      controller: maxAttemptsCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Max attempts (optional)',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    final title = titleCtrl.text.trim();
+    final subject = subjectCtrl.text.trim().isEmpty
+        ? _defaultBatchSubject()
+        : subjectCtrl.text.trim();
+    final description = descriptionCtrl.text.trim();
+    final instructions = instructionsCtrl.text.trim();
+    final fileUrl = fileUrlCtrl.text.trim();
+    final maxMarksRaw = maxMarksCtrl.text.trim();
+    final lateGraceRaw = lateGraceCtrl.text.trim();
+    final maxAttemptsRaw = maxAttemptsCtrl.text.trim();
+
+    titleCtrl.dispose();
+    subjectCtrl.dispose();
+    descriptionCtrl.dispose();
+    instructionsCtrl.dispose();
+    fileUrlCtrl.dispose();
+    lateGraceCtrl.dispose();
+    maxAttemptsCtrl.dispose();
+    maxMarksCtrl.dispose();
+
+    if (approved != true) return;
+
+    if (title.length < 2) {
+      CPToast.error(context, 'Title must be at least 2 characters');
+      return;
+    }
+
+    if (!allowTextSubmission && !allowFileSubmission) {
+      CPToast.error(context, 'Enable text or file submission');
+      return;
+    }
+
+    final now = DateTime.now();
+    final dueDateChanged =
+        (initialDueDate == null && dueDate != null) ||
+        (initialDueDate != null && dueDate == null) ||
+        (initialDueDate != null &&
+            dueDate != null &&
+        !initialDueDate.isAtSameMomentAs(dueDate!));
+
+    if (!isEdit && dueDate != null && !dueDate!.isAfter(now)) {
+      CPToast.error(context, 'Due date must be in the future');
+      return;
+    }
+    if (isEdit && dueDateChanged && dueDate != null && !dueDate!.isAfter(now)) {
+      CPToast.error(context, 'Updated due date must be in the future');
+      return;
+    }
+
+    num? maxMarks;
+    if (maxMarksRaw.isNotEmpty) {
+      maxMarks = num.tryParse(maxMarksRaw);
+      if (maxMarks == null || maxMarks <= 0) {
+        CPToast.error(context, 'Max marks should be a positive number');
+        return;
+      }
+    }
+
+    int? lateGrace;
+    if (lateGraceRaw.isNotEmpty) {
+      lateGrace = int.tryParse(lateGraceRaw);
+      if (lateGrace == null || lateGrace < 0) {
+        CPToast.error(context, 'Late grace should be 0 or more');
+        return;
+      }
+    }
+
+    int? maxAttempts;
+    if (maxAttemptsRaw.isNotEmpty) {
+      maxAttempts = int.tryParse(maxAttemptsRaw);
+      if (maxAttempts == null || maxAttempts < 1) {
+        CPToast.error(context, 'Max attempts should be at least 1');
+        return;
+      }
+    }
+
+    try {
+      if (isEdit) {
+        await _adminRepo.updateAssignment(
+          assignmentId: assignmentId,
+          title: title,
+          batchId: widget.batchId,
+          subject: subject,
+          description: description.isEmpty ? null : description,
+          instructions: instructions.isEmpty ? null : instructions,
+          fileUrl: fileUrl.isEmpty ? null : fileUrl,
+          dueDate: dueDateChanged ? dueDate : null,
+          maxMarks: maxMarks,
+          allowLateSubmission: allowLateSubmission,
+          lateGraceMinutes: allowLateSubmission ? lateGrace : null,
+          maxAttempts: maxAttempts,
+          allowTextSubmission: allowTextSubmission,
+          allowFileSubmission: allowFileSubmission,
+        );
+      } else {
+        await _adminRepo.createAssignment(
+          title: title,
+          batchId: widget.batchId,
+          subject: subject,
+          description: description.isEmpty ? null : description,
+          instructions: instructions.isEmpty ? null : instructions,
+          fileUrl: fileUrl.isEmpty ? null : fileUrl,
+          dueDate: dueDate,
+          maxMarks: maxMarks,
+          allowLateSubmission: allowLateSubmission,
+          lateGraceMinutes: allowLateSubmission ? lateGrace : null,
+          maxAttempts: maxAttempts,
+          allowTextSubmission: allowTextSubmission,
+          allowFileSubmission: allowFileSubmission,
+        );
+      }
+
+      if (!mounted) return;
+      CPToast.success(
+        context,
+        isEdit
+            ? 'Assignment updated successfully'
+            : 'Assignment created successfully',
+      );
+      await _loadBatch();
+    } catch (e) {
+      if (!mounted) return;
+      CPToast.error(context, e.toString());
+    }
+  }
+
+  Future<void> _deleteAssignment(Map<String, dynamic> assignment) async {
+    final assignmentId = (assignment['id'] ?? '').toString();
+    if (assignmentId.isEmpty) {
+      CPToast.error(context, 'Invalid assignment');
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete assignment?'),
+        content: Text(
+          'This will remove ${(assignment['title'] ?? 'this assignment').toString()} from this batch.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _adminRepo.deleteAssignment(assignmentId);
+      if (!mounted) return;
+      CPToast.success(context, 'Assignment deleted');
+      await _loadBatch();
+    } catch (e) {
+      if (!mounted) return;
+      CPToast.error(context, 'Delete failed: $e');
+    }
+  }
+
 
   Future<void> _loadBatch() async {
     try {
@@ -211,7 +837,9 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         _adminRepo
             .getAssignments(batchId: widget.batchId)
             .catchError((_) => <Map<String, dynamic>>[]),
-        _adminRepo.getMaterials().catchError((_) => <Map<String, dynamic>>[]),
+        _adminRepo
+          .getMaterials(batchId: widget.batchId)
+          .catchError((_) => <Map<String, dynamic>>[]),
         _adminRepo
             .getFeeRecords(batchId: widget.batchId)
             .catchError((_) => <Map<String, dynamic>>[]),
@@ -222,25 +850,45 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
               year: now.year,
             )
             .catchError((_) => <Map<String, dynamic>>[]),
+        _adminRepo
+            .getBatchStudents(widget.batchId)
+            .catchError((_) => <Map<String, dynamic>>[]),
+        _adminRepo
+            .getAnnouncements()
+            .catchError((_) => <Map<String, dynamic>>[]),
       ]);
 
       if (!mounted) return;
+      final batchStudents = ((batch['students'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+      final studentsFromApi = List<Map<String, dynamic>>.from(results[9] as List);
+      final quizzes = List<Map<String, dynamic>>.from(results[2] as List);
+      final attendanceSessions = List<Map<String, dynamic>>.from(results[8] as List);
+      final mergedSubjects = <String>{
+        ..._extractSubjectsFromBatchMeta(batch),
+        ..._extractSubjectsFromRecords(quizzes),
+        ..._extractSubjectsFromRecords(attendanceSessions),
+      }.toList();
+
       setState(() {
         _batch = batch;
-        _students = ((batch['students'] as List?) ?? const [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
+        _students = batchStudents.isNotEmpty ? batchStudents : studentsFromApi;
         _timetable = List<Map<String, dynamic>>.from(results[0] as List);
         _lectures = List<Map<String, dynamic>>.from(results[1] as List);
-        _quizzes = List<Map<String, dynamic>>.from(results[2] as List);
+        _quizzes = quizzes;
         _feeStructure = Map<String, dynamic>.from(results[3] as Map);
         _teachers = List<Map<String, dynamic>>.from(results[4] as List);
         _assignments = List<Map<String, dynamic>>.from(results[5] as List);
         _materials = List<Map<String, dynamic>>.from(results[6] as List);
         _feeRecords = List<Map<String, dynamic>>.from(results[7] as List);
-        _attendanceSessions = List<Map<String, dynamic>>.from(
-          results[8] as List,
-        );
+        _attendanceSessions = attendanceSessions;
+        _batchSubjects = mergedSubjects;
+        if (_selectedSubject != null && !_batchSubjects.contains(_selectedSubject)) {
+          _selectedSubject = null;
+        }
+        _announcements = List<Map<String, dynamic>>.from(results[10] as List);
         _isLoading = false;
       });
     } catch (e) {
@@ -321,15 +969,22 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
   }
 
   double _studentAttendance(Map<String, dynamic> student) {
+    return _studentAttendanceFromSessions(student, _attendanceSessions);
+  }
+
+  double _studentAttendanceFromSessions(
+    Map<String, dynamic> student,
+    List<Map<String, dynamic>> sessions,
+  ) {
     final studentId = (student['id'] ?? '').toString();
-    if (studentId.isEmpty || _attendanceSessions.isEmpty) {
+    if (studentId.isEmpty || sessions.isEmpty) {
       return _toDouble(student['attendance_percent'], fallback: 0);
     }
 
     int total = 0;
     int present = 0;
 
-    for (final session in _attendanceSessions) {
+    for (final session in sessions) {
       final records =
           (session['records'] as List?) ??
           (session['student_records'] as List?) ??
@@ -348,6 +1003,30 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       return _toDouble(student['attendance_percent'], fallback: 0);
     }
     return (present / total) * 100;
+  }
+
+  Map<String, dynamic> _attendanceStatsForSessions(
+    List<Map<String, dynamic>> sessions,
+  ) {
+    if (_students.isEmpty) {
+      return {'avg': '0%', 'count': 0, 'status': 'No data'};
+    }
+
+    final average = _students.fold<double>(0, (sum, student) {
+          return sum + _studentAttendanceFromSessions(student, sessions);
+        }) /
+        _students.length;
+    final lowCount = _students
+        .where((student) => _studentAttendanceFromSessions(student, sessions) < 70)
+        .length;
+
+    return {
+      'avg': '${average.toStringAsFixed(0)}%',
+      'count': _students.length,
+      'status': lowCount == 0
+          ? 'Healthy'
+          : (lowCount < (_students.length / 3) ? 'Watch' : 'Risk'),
+    };
   }
 
   String _studentFeeStatus(String studentId) {
@@ -372,18 +1051,90 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     return anyPending ? 'Pending' : 'Paid';
   }
 
+  Map<String, dynamic> get _attendanceStats {
+    if (_students.isEmpty) {
+      return {'avg': '0%', 'count': 0, 'status': 'No data'};
+    }
+
+    final average = _students.fold<double>(0, (sum, student) {
+          return sum + _studentAttendance(student);
+        }) /
+        _students.length;
+    final lowCount = _students.where((student) => _studentAttendance(student) < 70).length;
+
+    return {
+      'avg': '${average.toStringAsFixed(0)}%',
+      'count': _students.length,
+      'status': lowCount == 0
+          ? 'Healthy'
+          : (lowCount < (_students.length / 3) ? 'Watch' : 'Risk'),
+    };
+  }
+
+  List<double> _attendanceTrend() {
+    if (_attendanceSessions.isEmpty) return [0];
+
+    final sessions = _attendanceSessions.reversed.take(6).toList().reversed.toList();
+    final trend = sessions.map((session) {
+      final records =
+          (session['records'] as List?) ??
+          (session['student_records'] as List?) ??
+          const [];
+      if (records.isEmpty) return 0.0;
+
+      final present = records.where((record) {
+        if (record is! Map) return false;
+        final status = (record['status'] ?? '').toString().toLowerCase();
+        return status == 'present' || status == 'late';
+      }).length;
+
+      return (present / records.length) * 100;
+    }).toList();
+
+    return trend.isEmpty ? [0] : trend;
+  }
+
+  List<double> _performanceTrend() {
+    final quizTrend = _quizzes.reversed.take(6).toList().reversed.map((quiz) {
+      return _toDouble(quiz['average_score'] ?? quiz['avg_score'] ?? quiz['average']);
+    }).toList();
+    if (quizTrend.any((value) => value > 0)) return quizTrend;
+
+    final assignmentTrend = _assignments.reversed.take(6).toList().reversed.map((assignment) {
+      return _toDouble(
+        assignment['average_score'] ??
+            assignment['avg_score'] ??
+            assignment['max_marks'] ??
+            assignment['total_marks'],
+      );
+    }).toList();
+
+    return assignmentTrend.isEmpty ? [0] : assignmentTrend;
+  }
+
+  List<double> _revenueTrend() {
+    final trend = _feeRecords.reversed.take(6).toList().reversed.map((record) {
+      return _recordPaidAmount(record);
+    }).toList();
+    return trend.isEmpty ? [0] : trend;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = CT.isDark(context);
 
     return Scaffold(
-      backgroundColor: CT.bg(context),
+      backgroundColor: AppColors.elitePrimary,
       appBar: AppBar(
+        backgroundColor: AppColors.elitePrimary,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           _batch?['name']?.toString() ?? 'Batch Control Panel',
           style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w900,
             fontSize: 16,
+            color: Colors.white,
           ),
         ),
         actions: [
@@ -436,6 +1187,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     _buildHeroPanel(isDark),
                     _buildLiveInsights(),
                     _buildTabBar(isDark),
+                    if (_showSubjectScope) _buildSubjectScopeBar(),
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 220),
                       child: _buildTabBody(),
@@ -1001,51 +1753,124 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
   }
 
   Widget _buildTabBar(bool isDark) {
-    return SizedBox(
-      height: 48,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.pagePaddingH,
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: AppColors.elitePrimary,
+        border: Border(
+          top: BorderSide(color: AppColors.elitePrimary, width: 2),
+          bottom: BorderSide(color: AppColors.elitePrimary, width: 2),
         ),
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (_, index) {
-          final selected = _activeTab == index;
-          return InkWell(
-            onTap: () => setState(() => _activeTab = index),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: BoxDecoration(
-                color: selected ? const Color(0xFF354388) : Colors.white,
-                border: Border.all(color: const Color(0xFF354388), width: 1.4),
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: selected
-                    ? const [
-                        BoxShadow(
-                          color: Color(0xFF354388),
-                          offset: Offset(2, 2),
-                          blurRadius: 0,
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Center(
-                child: Text(
-                  _tabs[index],
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                    color: selected
-                        ? Colors.white
-                        : const Color(0xFF354388),
+      ),
+      child: SizedBox(
+        height: 48,
+        child: ListView.separated(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.pagePaddingH,
+          ),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (_, index) {
+            final selected = _activeTab == index;
+            return InkWell(
+              onTap: () => setState(() => _activeTab = index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: selected
+                          ? AppColors.moltenAmber
+                          : Colors.transparent,
+                      width: 3,
+                    ),
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    _tabs[index].toUpperCase(),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: selected ? FontWeight.w900 : FontWeight.w800,
+                      fontSize: 12,
+                      color: selected
+                          ? AppColors.moltenAmber
+                          : Colors.white.withValues(alpha: 0.68),
+                      letterSpacing: 0.2,
+                    ),
                   ),
                 ),
               ),
+            );
+          },
+          separatorBuilder: (context, index) => const SizedBox(width: 12),
+          itemCount: _tabs.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubjectScopeBar() {
+    if (_batchSubjects.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(
+        AppDimensions.pagePaddingH,
+        8,
+        AppDimensions.pagePaddingH,
+        4,
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _subjectScopeChip(
+              label: 'All Subjects',
+              selected: _selectedSubject == null,
+              onTap: () => setState(() => _selectedSubject = null),
             ),
-          );
-        },
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
-        itemCount: _tabs.length,
+            ..._batchSubjects.map((subject) {
+              final selected = _selectedSubject == subject;
+              return Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: _subjectScopeChip(
+                  label: subject,
+                  selected: selected,
+                  onTap: () => setState(() => _selectedSubject = subject),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _subjectScopeChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.moltenAmber : Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.elitePrimary, width: 1.5),
+        ),
+        child: Text(
+          label.toUpperCase(),
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: AppColors.elitePrimary,
+            letterSpacing: 0.3,
+          ),
+        ),
       ),
     );
   }
@@ -1053,1236 +1878,798 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
   Widget _buildTabBody() {
     switch (_activeTab) {
       case 0:
-        return _buildOverviewTab();
+        return BatchOverviewTab(
+          batch: _batch,
+          timetable: _timetable,
+          lectures: _lectures,
+          quizzes: _quizzes,
+          feeRecords: _feeRecords,
+          students: _students,
+          attendanceStats: _attendanceStats,
+          dateLabel: _dateLabel,
+        );
       case 1:
-        return _buildContentTab();
+        return BatchContentTab(
+          lectures: _lectures,
+          materials: _materials,
+          assignments: _assignments,
+          dateLabel: _dateLabel,
+          timeLabel: _timeLabel,
+          toDouble: _toDouble,
+          toInt: _toInt,
+          normalizeNoteType: _normalizeNoteType,
+          onAddLecture: () => _showLectureEditor(),
+          onEditLecture: (Map<String, dynamic> lecture) => _showLectureEditor(lecture: lecture),
+          onDeleteLecture: (String id) => _deleteLecture(id),
+          onAddNote: () => _showNoteEditor(),
+          onEditNote: (Map<String, dynamic> note) => _showNoteEditor(note: note),
+          onReplaceNote: (Map<String, dynamic> note) => _replaceNote(note),
+          onDeleteNote: (Map<String, dynamic> note) => _deleteNote(note),
+          onAddAssignment: () => _showAssignmentEditor(),
+          onEditAssignment: (Map<String, dynamic> assignment) => _showAssignmentEditor(assignment: assignment),
+          onDeleteAssignment: (Map<String, dynamic> assignment) => _deleteAssignment(assignment),
+          onViewSubmissions: (Map<String, dynamic> assignment) => _showSubmissionsList(assignment),
+        );
       case 2:
-        return _buildStudentsTab();
+        return BatchStudentsTab(
+          students: _students,
+          batch: _batch,
+          getStudentAttendance: _studentAttendance,
+          getStudentFeeStatus: _studentFeeStatus,
+          onAddStudent: () => context.push('/admin/add-student').then((_) => _loadBatch()),
+          onViewStudent: (id) => context.push('/admin/students/$id').then((_) => _loadBatch()),
+          onRefresh: _loadBatch,
+        );
       case 3:
-        return _buildTestsTab();
+        return BatchTestsTab(
+          quizzes: _subjectScopedQuizzes,
+          toInt: _toInt,
+          toDouble: _toDouble,
+          onAddTest: () => _showExamEditor(),
+          onEditTest: (q) => _showExamEditor(exam: q),
+          onDeleteTest: (id) => _deleteExam(id),
+        );
       case 4:
-        return _buildFeesTab();
+        return BatchFeesTab(
+          feeStats: _feeStats(),
+          feeRecords: _feeRecords,
+          feeStructure: _feeStructure,
+          recordStatus: _recordStatus,
+          recordPaidAmount: _recordPaidAmount,
+          toDouble: _toDouble,
+          dateLabel: _dateLabel,
+          onGenerateFees: _showGenerateFeesDialog,
+          onMarkAsPaid: _markAsPaid,
+          onSendWhatsAppReminder: () => context.push('/admin/whatsapp-broadcast'),
+        );
       case 5:
+        return BatchAttendanceTab(
+          attendanceStats: _attendanceStatsForSessions(
+            _subjectScopedAttendanceSessions,
+          ),
+          attendanceSessions: _subjectScopedAttendanceSessions,
+          dateLabel: _dateLabel,
+          timeLabel: _timeLabel,
+          onMarkAttendance: () => _showAttendanceMarker(),
+          onEditAttendance: (s) => _showAttendanceMarker(existingSession: s),
+        );
+      case 6:
+        return BatchAnnouncementsTab(
+          announcements: _announcements,
+          dateLabel: _dateLabel,
+          onAddAnnouncement: _showAnnouncementEditor,
+          onDeleteAnnouncement: (Map<String, dynamic> announcement) =>
+              _deleteAnnouncement((announcement['id'] ?? '').toString()),
+        );
+      case 7:
+        return BatchAnalyticsTab(
+          attendanceTrend: _attendanceTrend(),
+          performanceTrend: _performanceTrend(),
+          revenueTrend: _revenueTrend(),
+        );
       default:
-        return _buildAnalyticsTab();
+        return const SizedBox.shrink();
     }
   }
 
-  Widget _sectionCard({
-    required String title,
-    required Widget child,
-    Widget? trailing,
-  }) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(
-        AppDimensions.pagePaddingH,
-        12,
-        AppDimensions.pagePaddingH,
-        0,
-      ),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: CT.card(context),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF354388), width: 1.6),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 14,
-                    color: const Color(0xFF354388),
-                  ),
-                ),
-              ),
-              if (trailing case final Widget item) item,
-            ],
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
-  }
 
-  Widget _buildOverviewTab() {
-    final assigned = ((_batch?['assigned_teachers'] as List?) ?? const [])
-        .map((e) => Map<String, dynamic>.from(e as Map))
-        .toList();
-    final upcoming = [..._timetable]
-      ..sort(
-        (a, b) => (_toDate(a['scheduled_at']) ?? DateTime(0)).compareTo(
-          _toDate(b['scheduled_at']) ?? DateTime(0),
-        ),
-      );
-    final nextSlot = upcoming.isEmpty ? null : upcoming.first;
+  Future<void> _showAttendanceMarker({Map<String, dynamic>? existingSession}) async {
+    final isEdit = existingSession != null;
+    final studentsList = _students; // Use loaded students
+    final Map<String, String> statusMap = {};
+    
+    // Initialize status map
+    if (isEdit) {
+      final records = (existingSession['records'] as List? ?? []);
+      for (var r in records) {
+        statusMap[r['student_id'].toString()] = r['status'].toString();
+      }
+    } else {
+      for (var s in studentsList) {
+        statusMap[s['id'].toString()] = 'present'; // Default
+      }
+    }
 
-    final timelineItems = <Map<String, String>>[];
-    timelineItems.addAll(
-      _lectures
-          .take(2)
-          .map(
-            (e) => {
-              'title': 'Lecture uploaded',
-              'subtitle': (e['title'] ?? 'Lecture').toString(),
-              'time': _dateLabel(e['created_at'] ?? e['scheduled_at']),
-            },
-          ),
+    final subjectCtrl = TextEditingController(
+      text: (existingSession?['subject'] ?? _selectedSubject ?? _defaultBatchSubject()).toString(),
     );
-    timelineItems.addAll(
-      _quizzes
-          .take(2)
-          .map(
-            (e) => {
-              'title': 'Test created',
-              'subtitle': (e['title'] ?? 'Test').toString(),
-              'time': _dateLabel(e['created_at'] ?? e['scheduled_at']),
-            },
-          ),
-    );
-    timelineItems.addAll(
-      _feeRecords
-          .take(2)
-          .map(
-            (e) => {
-              'title': 'Fee collected',
-              'subtitle': ((e['student'] as Map?)?['name'] ?? 'Student')
-                  .toString(),
-              'time': _dateLabel(e['updated_at'] ?? e['created_at']),
-            },
-          ),
-    );
+    DateTime sessionDate = _toDate(existingSession?['date']) ?? DateTime.now();
 
-    return Column(
-      key: const ValueKey('overview-tab'),
-      children: [
-        _sectionCard(
-          title: 'Batch Snapshot',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                ((_batch?['description'] ?? '').toString().trim().isEmpty)
-                    ? 'No description added yet.'
-                    : (_batch?['description'] ?? '').toString(),
-                style: GoogleFonts.plusJakartaSans(fontSize: 12, height: 1.35),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+    final approved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setS) {
+            return Container(
+              height: MediaQuery.of(ctx).size.height * 0.9,
+              decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+              child: Column(
                 children: [
-                  _pill(
-                    Icons.calendar_month_rounded,
-                    '${_dateLabel(_batch?['start_date'])} → ${_dateLabel(_batch?['end_date'])}',
-                  ),
-                  _pill(
-                    Icons.class_rounded,
-                    (_batch?['subject'] ?? 'General').toString(),
-                  ),
-                  _pill(
-                    Icons.location_on_rounded,
-                    (_batch?['room'] ?? 'Room TBD').toString(),
-                  ),
-                  if (nextSlot != null)
-                    _pill(
-                      Icons.schedule_rounded,
-                      'Next class ${_dateLabel(nextSlot['scheduled_at'])} ${_timeLabel(nextSlot['scheduled_at'])}',
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        _sectionCard(
-          title: 'Faculty Assigned',
-          child: assigned.isEmpty
-              ? Text(
-                  'No faculty mapped yet',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    color: CT.textS(context),
-                  ),
-                )
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: assigned
-                      .map(
-                        (teacher) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: const Color(0xFF354388),
-                              width: 1.2,
-                            ),
-                          ),
-                          child: Text(
-                            (teacher['name'] ?? 'Teacher').toString(),
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                              color: const Color(0xFF354388),
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-        ),
-        _sectionCard(
-          title: 'Activity Timeline',
-          child: timelineItems.isEmpty
-              ? Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: const Color(0xFF354388),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE5A100),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.timeline_rounded,
-                          size: 16,
-                          color: Color(0xFF354388),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Batch created • waiting for first activity',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 11,
-                              ),
-                            ),
-                            Text(
-                              'Add your first lecture or test to start timeline tracking',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 10,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () => setState(() => _fabExpanded = true),
-                        icon: const Icon(Icons.add_rounded, size: 14),
-                        label: const Text('Add'),
-                      ),
-                    ],
-                  ),
-                )
-              : Column(
-                  children: timelineItems
-                      .map(
-                        (entry) => Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: const Color(0xFF354388),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                margin: const EdgeInsets.only(top: 4),
-                                color: const Color(0xFFE5A100),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      entry['title'] ?? '',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    Text(
-                                      entry['subtitle'] ?? '',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 11,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Text(
-                                entry['time'] ?? '--',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 10,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildContentTab() {
-    return Column(
-      key: const ValueKey('content-tab'),
-      children: [
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 38,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.pagePaddingH,
-            ),
-            scrollDirection: Axis.horizontal,
-            itemCount: _contentTabs.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 8),
-            itemBuilder: (_, index) {
-              final selected = _activeContentTab == index;
-              return InkWell(
-                onTap: () => setState(() => _activeContentTab = index),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected ? const Color(0xFFE5A100) : Colors.white,
-                    border: Border.all(
-                      color: const Color(0xFF354388),
-                      width: 1.2,
-                    ),
-                  ),
-                  child: Text(
-                    _contentTabs[index],
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF354388),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        if (_activeContentTab == 0) _buildLecturesBlock(),
-        if (_activeContentTab == 1) _buildNotesBlock(),
-        if (_activeContentTab == 2 || _activeContentTab == 3)
-          _buildAssignmentsBlock(isDpp: _activeContentTab == 3),
-        if (_activeContentTab == 4) _buildMaterialsBlock(),
-      ],
-    );
-  }
-
-  Widget _buildLecturesBlock() {
-    return _sectionCard(
-      title: 'Lectures',
-      trailing: TextButton.icon(
-        onPressed: () => context.push('/admin/timetable'),
-        icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
-        label: const Text('Add Lecture'),
-      ),
-      child: _lectures.isEmpty
-          ? Text(
-              'No lectures uploaded yet',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                color: CT.textS(context),
-              ),
-            )
-          : Column(
-              children: _lectures.take(12).map((lecture) {
-                final status =
-                    (lecture['status'] ?? lecture['is_live'] == true
-                            ? 'Live'
-                            : 'Recorded')
-                        .toString();
-                final completion = _toDouble(lecture['completion_percent']);
-                final views = _toInt(
-                  lecture['views_count'] ?? lecture['view_count'],
-                );
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: const Color(0xFF354388),
-                      width: 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              (lecture['title'] ?? 'Lecture').toString(),
-                              style: GoogleFonts.plusJakartaSans(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          _statusTag(
-                            status,
-                            status.toLowerCase() == 'live'
-                                ? const Color(0xFFE5A100)
-                                : const Color(0xFF354388),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${_dateLabel(lecture['scheduled_at'])} ${_timeLabel(lecture['scheduled_at'])} • ${_toInt(lecture['duration_minutes'])} min',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          color: Colors.black54,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Text(
-                            'Views: $views',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Completion: ${completion.toStringAsFixed(0)}%',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: () => context.push('/admin/timetable'),
-                            icon: const Icon(Icons.edit_outlined, size: 18),
-                          ),
-                          IconButton(
-                            onPressed: () => context.push('/admin/timetable'),
-                            icon: const Icon(
-                              Icons.delete_outline_rounded,
-                              size: 18,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-    );
-  }
-
-  Widget _buildNotesBlock() {
-    return _sectionCard(
-      title: 'Notes',
-      child: _materials.isEmpty
-          ? Text(
-              'No notes uploaded yet',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                color: CT.textS(context),
-              ),
-            )
-          : Column(
-              children: _materials.take(12).map((note) {
-                final downloads = _toInt(
-                  note['downloads_count'] ?? note['download_count'],
-                );
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(
-                    Icons.description_outlined,
-                    color: Color(0xFF354388),
-                  ),
-                  title: Text(
-                    (note['title'] ?? note['file_name'] ?? 'Note').toString(),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  subtitle: Text(
-                    '${(note['subject'] ?? 'General').toString()} • ${_dateLabel(note['created_at'])}',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 11),
-                  ),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '$downloads downloads',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF354388),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      InkWell(
-                        onTap: () => _replaceNote(note),
-                        child: Text(
-                          'Replace',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-    );
-  }
-
-  Widget _buildAssignmentsBlock({required bool isDpp}) {
-    final title = isDpp ? 'DPP' : 'Assignments';
-    final list = _assignments.where((item) {
-      final type = (item['type'] ?? '').toString().toLowerCase();
-      if (isDpp) return type == 'dpp' || type.contains('practice');
-      return type.isEmpty || type == 'assignment';
-    }).toList();
-
-    return _sectionCard(
-      title: title,
-      child: list.isEmpty
-          ? Text(
-              'No $title found',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                color: CT.textS(context),
-              ),
-            )
-          : Column(
-              children: list.take(12).map((item) {
-                final submissions = _toInt(
-                  item['submission_count'] ??
-                      item['submissions_count'] ??
-                      item['submitted_count'],
-                );
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: const Color(0xFF354388),
-                      width: 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        (item['title'] ?? title).toString(),
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Due: ${_dateLabel(item['due_date'])} • Submissions: $submissions',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          color: Colors.black54,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          OutlinedButton(
-                            onPressed: () => context.push('/admin/exams'),
-                            child: const Text('View Submissions'),
-                          ),
-                          OutlinedButton(
-                            onPressed: () => context.push('/admin/exams'),
-                            child: const Text('Grade'),
-                          ),
-                          OutlinedButton(
-                            onPressed: () =>
-                                context.push('/admin/whatsapp-broadcast'),
-                            child: const Text('Send Reminder'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-    );
-  }
-
-  Widget _buildMaterialsBlock() {
-    return _sectionCard(
-      title: 'Materials Library',
-      child: _materials.isEmpty
-          ? Text(
-              'No materials available',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                color: CT.textS(context),
-              ),
-            )
-          : Column(
-              children: _materials.take(10).map((item) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: const Color(0xFF354388),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.folder_open_rounded,
-                        color: Color(0xFF354388),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          (item['title'] ?? item['file_name'] ?? 'Material')
-                              .toString(),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        (item['type'] ?? 'File').toString(),
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF354388),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-    );
-  }
-
-  Widget _buildStudentsTab() {
-    final filtered = _students.where((student) {
-      if (_studentFilter == 'All') return true;
-      if (_studentFilter == 'Low attendance') {
-        return _studentAttendance(student) < 70;
-      }
-
-      final status = (student['status'] ?? student['is_active'])
-          ?.toString()
-          .toLowerCase();
-      final active = status == null || status == 'active' || status == 'true';
-
-      if (_studentFilter == 'Active') return active;
-      if (_studentFilter == 'Inactive') return !active;
-      if (_studentFilter == 'Paid') {
-        return _studentFeeStatus((student['id'] ?? '').toString()) == 'Paid';
-      }
-      if (_studentFilter == 'Unpaid') {
-        return _studentFeeStatus((student['id'] ?? '').toString()) == 'Pending';
-      }
-      return true;
-    }).toList();
-
-    return Column(
-      key: const ValueKey('students-tab'),
-      children: [
-        _sectionCard(
-          title: 'Students',
-          trailing: TextButton.icon(
-            onPressed: () => context.push('/admin/add-student'),
-            icon: const Icon(Icons.person_add_alt_rounded, size: 16),
-            label: const Text('Add Student'),
-          ),
-          child: Column(
-            children: [
-              SizedBox(
-                height: 34,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children:
-                      [
-                            'All',
-                            'Paid',
-                            'Unpaid',
-                            'Active',
-                            'Inactive',
-                            'Low attendance',
-                          ]
-                          .map(
-                            (f) => Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ChoiceChip(
-                                label: Text(f),
-                                selected: _studentFilter == f,
-                                onSelected: (_) =>
-                                    setState(() => _studentFilter = f),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              if (filtered.isEmpty)
-                Text(
-                  'No students match this filter',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    color: CT.textS(context),
-                  ),
-                )
-              else
-                ...filtered.map((student) {
-                  final attendance = _studentAttendance(student);
-                  final feeStatus = _studentFeeStatus(
-                    (student['id'] ?? '').toString(),
-                  );
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(
-                        color: const Color(0xFF354388),
-                        width: 1,
-                      ),
-                    ),
-                    child: ListTile(
-                      onTap: () {
-                        context.push('/admin/students/${student['id']}').then((
-                          _,
-                        ) {
-                          if (!mounted) return;
-                          _loadBatch();
-                        });
-                      },
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.white,
-                        child: Text(
-                          ((student['name'] ?? 'S').toString())
-                              .substring(0, 1)
-                              .toUpperCase(),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF354388),
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        (student['name'] ?? 'Student').toString(),
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      subtitle: Text(
-                        'Batch: ${(_batch?['name'] ?? 'Batch')} • Attendance ${attendance.toStringAsFixed(0)}%',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 11),
-                      ),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _statusTag(
-                            feeStatus,
-                            feeStatus == 'Paid'
-                                ? const Color(0xFFE5A100)
-                                : const Color(0xFFB6231B),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            attendance < 70 ? 'Low' : 'Good',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTestsTab() {
-    return Column(
-      key: const ValueKey('tests-tab'),
-      children: [
-        _sectionCard(
-          title: 'Tests',
-          trailing: TextButton.icon(
-            onPressed: () => context.push('/admin/exams'),
-            icon: const Icon(Icons.add_rounded, size: 16),
-            label: const Text('Add Test'),
-          ),
-          child: _quizzes.isEmpty
-              ? Text(
-                  'No tests available',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    color: CT.textS(context),
-                  ),
-                )
-              : Column(
-                  children: _quizzes.take(12).map((quiz) {
-                    final attempts = _toInt(
-                      quiz['attempt_count'] ?? quiz['attempts'],
-                    );
-                    final questions = _toInt(
-                      quiz['question_count'] ?? quiz['questions'],
-                    );
-                    final marks = _toDouble(
-                      quiz['total_marks'] ?? quiz['marks'],
-                    );
-                    final avg = _toDouble(quiz['average_score']);
-                    final failure = _toDouble(
-                      quiz['failure_percent'] ?? quiz['failure_rate'],
-                    );
-                    final topper = (quiz['topper_name'] ?? 'N/A').toString();
-
-                    String status = 'Upcoming';
-                    if ((quiz['is_published'] ?? false) == true) {
-                      status = 'Live';
-                    }
-                    if ((quiz['status'] ?? '').toString().toLowerCase() ==
-                        'completed') {
-                      status = 'Completed';
-                    }
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(
-                          color: const Color(0xFF354388),
-                          width: 1,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  (quiz['title'] ?? 'Test').toString(),
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                              _statusTag(
-                                status,
-                                status == 'Completed'
-                                    ? const Color(0xFF354388)
-                                    : const Color(0xFFE5A100),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Questions: $questions • Marks: ${marks.toStringAsFixed(0)} • Attempts: $attempts',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11,
-                              color: Colors.black54,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 6,
-                            children: [
-                              Text(
-                                'Avg: ${avg > 0 ? avg.toStringAsFixed(1) : '--'}',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              Text(
-                                'Topper: $topper',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              Text(
-                                'Failure: ${failure > 0 ? '${failure.toStringAsFixed(0)}%' : '--'}',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFFB6231B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFeesTab() {
-    final fee = _feeStats();
-    final rows = _feeRecords.where((record) {
-      if (_feeFilter == 'All') return true;
-      final status = _recordStatus(record);
-      if (_feeFilter == 'Paid') return status == 'Paid';
-      if (_feeFilter == 'Pending') return status == 'Pending';
-      return true;
-    }).toList();
-
-    return Column(
-      key: const ValueKey('fees-tab'),
-      children: [
-        _sectionCard(
-          title: 'Fee Summary',
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _feeMetric(
-                'Total Revenue',
-                '₹${_toDouble(fee['total']).toStringAsFixed(0)}',
-                const Color(0xFF354388),
-              ),
-              _feeMetric(
-                'Pending Fees',
-                '₹${_toDouble(fee['pending']).toStringAsFixed(0)}',
-                const Color(0xFFB6231B),
-              ),
-              _feeMetric(
-                'Collected Today',
-                '₹${_toDouble(fee['collectedToday']).toStringAsFixed(0)}',
-                const Color(0xFFE5A100),
-              ),
-              _feeMetric(
-                'Monthly Fee',
-                '₹${_toDouble(_feeStructure?['monthly_fee']).toStringAsFixed(0)}',
-                const Color(0xFF354388),
-              ),
-            ],
-          ),
-        ),
-        _sectionCard(
-          title: 'Student Fee Table',
-          trailing: OutlinedButton(
-            onPressed: () => context.push('/admin/whatsapp-broadcast'),
-            child: const Text('Send WhatsApp Reminder'),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: ['All', 'Paid', 'Pending']
-                    .map(
-                      (label) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(label),
-                          selected: _feeFilter == label,
-                          onSelected: (_) => setState(() => _feeFilter = label),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-              const SizedBox(height: 10),
-              if (rows.isEmpty)
-                Text(
-                  'No fee records for selected filter',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    color: CT.textS(context),
-                  ),
-                )
-              else
-                ...rows.take(20).map((record) {
-                  final status = _recordStatus(record);
-                  final amount = _toDouble(
-                    record['final_amount'] ?? record['amount'],
-                  );
-                  final paidAmount = _recordPaidAmount(record);
-                  final studentName =
-                      ((record['student'] as Map?)?['name'] ??
-                              record['student_name'] ??
-                              'Student')
-                          .toString();
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(
-                        color: const Color(0xFF354388),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                studentName,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                            _statusTag(
-                              status,
-                              status == 'Paid'
-                                  ? const Color(0xFFE5A100)
-                                  : const Color(0xFFB6231B),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Paid ₹${paidAmount.toStringAsFixed(0)} / ₹${amount.toStringAsFixed(0)} • Due ${_dateLabel(record['due_date'])}',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            color: Colors.black54,
+                        Text(isEdit ? 'Edit Attendance' : 'Mark Attendance', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 18)),
+                        const Spacer(),
+                        IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Expanded(child: TextField(controller: subjectCtrl, decoration: const InputDecoration(labelText: 'Subject/Topic'))),
+                        const SizedBox(width: 12),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(context: context, initialDate: sessionDate, firstDate: DateTime(2020), lastDate: DateTime.now());
+                            if (picked != null) setS(() => sessionDate = picked);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+                            child: Text(_dateLabel(sessionDate)),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            OutlinedButton(
-                              onPressed: status == 'Paid'
-                                  ? null
-                                  : () => _markAsPaid(record),
-                              child: const Text('Mark paid'),
-                            ),
-                            OutlinedButton(
-                              onPressed: () =>
-                                  context.push('/admin/whatsapp-broadcast'),
-                              child: const Text('Send reminder'),
-                            ),
-                          ],
                         ),
                       ],
                     ),
-                  );
-                }),
-            ],
-          ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(20),
+                      itemCount: studentsList.length,
+                      separatorBuilder: (ctx, i) => const Divider(),
+                      itemBuilder: (ctx, i) {
+                        final s = studentsList[i];
+                        final id = s['id'].toString();
+                        final status = statusMap[id] ?? 'present';
+                        
+                        return Row(
+                          children: [
+                            CircleAvatar(radius: 16, child: Text(s['name'].toString().substring(0,1))),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(s['name'].toString(), style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600))),
+                            _attendanceToggle('P', status == 'present', () => setS(() => statusMap[id] = 'present')),
+                            const SizedBox(width: 4),
+                            _attendanceToggle('A', status == 'absent', () => setS(() => statusMap[id] = 'absent')),
+                            const SizedBox(width: 4),
+                            _attendanceToggle('L', status == 'late', () => setS(() => statusMap[id] = 'late')),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: CustomButton(
+                      text: 'Save Attendance',
+                      onPressed: () => Navigator.pop(ctx, true),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (approved != true) return;
+
+    try {
+      final attendanceSubject = subjectCtrl.text.trim().isEmpty
+          ? (_selectedSubject ?? _defaultBatchSubject())
+          : subjectCtrl.text.trim();
+      final records = statusMap.entries.map((e) => {'student_id': e.key, 'status': e.value}).toList();
+      await _adminRepo.markAttendance(
+        batchId: widget.batchId,
+        sessionDate: sessionDate.toIso8601String(),
+        records: records,
+        subject: attendanceSubject,
+      );
+      CPToast.success(context, 'Attendance updated');
+      _loadBatch();
+    } catch (e) {
+      CPToast.error(context, e.toString());
+    }
+  }
+
+  Widget _attendanceToggle(String label, bool active, VoidCallback onTap) {
+    final color = label == 'P' ? Colors.green : (label == 'A' ? Colors.red : Colors.orange);
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: active ? color : Colors.transparent,
+          border: Border.all(color: active ? color : Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(4),
         ),
-      ],
+        child: Center(child: Text(label, style: TextStyle(color: active ? Colors.white : Colors.grey, fontWeight: FontWeight.bold))),
+      ),
     );
   }
 
-  Widget _feeMetric(String label, String value, Color accent) {
-    return Container(
-      width: 156,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: accent, width: 1.2),
+  Future<void> _showGenerateFeesDialog() async {
+    int month = DateTime.now().month;
+    int year = DateTime.now().year;
+    DateTime dueDate = DateTime.now().add(const Duration(days: 7));
+
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: const Text('Generate Monthly Fees'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('This will generate fee records for all students in this batch for the selected month.'),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      value: month,
+                      items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(_getMonthName(i + 1)))).toList(),
+                      onChanged: (v) => setS(() => month = v ?? month),
+                      decoration: const InputDecoration(labelText: 'Month'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      value: year,
+                      items: [year - 1, year, year + 1].map((y) => DropdownMenuItem(value: y, child: Text(y.toString()))).toList(),
+                      onChanged: (v) => setS(() => year = v ?? year),
+                      decoration: const InputDecoration(labelText: 'Year'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(context: context, initialDate: dueDate, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 90)));
+                  if (picked != null) setS(() => dueDate = picked);
+                },
+                child: InputDecorator(
+                  decoration: const InputDecoration(labelText: 'Due Date'),
+                  child: Text(_dateLabel(dueDate)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Generate', style: TextStyle(fontWeight: FontWeight.bold))),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: GoogleFonts.plusJakartaSans(
-              fontWeight: FontWeight.w900,
-              fontSize: 13,
-              color: const Color(0xFF354388),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+    );
+
+    if (approved != true) return;
+
+    try {
+      await _adminRepo.generateMonthlyFees(
+        batchId: widget.batchId,
+        month: month,
+        year: year,
+        dueDate: dueDate.toIso8601String(),
+      );
+      CPToast.success(context, 'Fees generated successfully');
+      _loadBatch();
+    } catch (e) {
+      CPToast.error(context, e.toString());
+    }
+  }
+
+  String _getMonthName(int m) {
+    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1];
+  }
+
+
+
+  Future<void> _showLectureEditor({Map<String, dynamic>? lecture}) async {
+    final isEdit = lecture != null;
+    final lectureId = (lecture?['id'] ?? '').toString();
+
+    final subjectCtrl = TextEditingController(
+      text: (lecture?['subject'] ?? _defaultBatchSubject()).toString(),
+    );
+    final roomCtrl = TextEditingController(
+      text: (lecture?['room'] ?? '').toString(),
+    );
+    final linkCtrl = TextEditingController(
+      text: (lecture?['link'] ?? '').toString(),
+    );
+    final durationCtrl = TextEditingController(
+      text: _toInt(lecture?['duration_minutes'] ?? lecture?['duration'], fallback: 60).toString(),
+    );
+
+    DateTime scheduledAt = _toDate(lecture?['scheduled_at']) ?? DateTime.now();
+    String? selectedTeacherId = (lecture?['teacher_id'] ?? lecture?['teacherId'] ?? '').toString().trim();
+    if ((selectedTeacherId ?? '').isEmpty && _teachers.isNotEmpty) {
+      selectedTeacherId = (_teachers.first['id'] ?? '').toString();
+    }
+
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setS) {
+            return AlertDialog(
+              title: Text(isEdit ? 'Edit Lecture' : 'Schedule Lecture'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: (selectedTeacherId ?? '').isEmpty ? null : selectedTeacherId,
+                      decoration: const InputDecoration(labelText: 'Teacher'),
+                      items: _teachers.map((t) {
+                        return DropdownMenuItem(
+                          value: (t['id'] ?? '').toString(),
+                          child: Text((t['name'] ?? 'Unknown').toString()),
+                        );
+                      }).toList(),
+                      onChanged: (val) => setS(() => selectedTeacherId = val),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: subjectCtrl,
+                      decoration: const InputDecoration(labelText: 'Subject'),
+                    ),
+                    const SizedBox(height: 10),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await _pickDateTime(initial: scheduledAt);
+                        if (picked != null) setS(() => scheduledAt = picked);
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(labelText: 'Scheduled At'),
+                        child: Text('${_dateLabel(scheduledAt)} ${_timeLabel(scheduledAt)}'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: durationCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Duration (mins)'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: roomCtrl,
+                      decoration: const InputDecoration(labelText: 'Room/Location'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: linkCtrl,
+                      decoration: const InputDecoration(labelText: 'Online Link (Optional)'),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (approved != true) return;
+
+    try {
+      final data = {
+        'batchId': widget.batchId,
+        'teacherId': selectedTeacherId,
+        'subject': subjectCtrl.text.trim(),
+        'scheduledAt': scheduledAt.toIso8601String(),
+        'duration': int.tryParse(durationCtrl.text) ?? 60,
+        'room': roomCtrl.text.trim(),
+        'link': linkCtrl.text.trim(),
+      };
+
+      if (isEdit) {
+        await _adminRepo.updateLecture(lectureId: lectureId, data: data);
+      } else {
+        await _adminRepo.scheduleLecture(
+          batchId: data['batchId'] as String,
+          teacherId: data['teacherId'] as String,
+          subject: data['subject'] as String,
+          scheduledAt: scheduledAt,
+          duration: data['duration'] as int,
+          room: data['room'] as String?,
+          link: data['link'] as String?,
+        );
+      }
+      CPToast.success(context, isEdit ? 'Lecture updated' : 'Lecture scheduled');
+      _loadBatch();
+    } catch (e) {
+      CPToast.error(context, e.toString());
+    }
+  }
+
+  Future<void> _deleteLecture(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Lecture?'),
+        content: const Text('This action cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
+    if (confirm != true) return;
+    try {
+      await _adminRepo.deleteLecture(id);
+      CPToast.success(context, 'Lecture deleted');
+      _loadBatch();
+    } catch (e) {
+      CPToast.error(context, e.toString());
+    }
   }
 
-  Widget _buildAnalyticsTab() {
-    final attendanceTrend = _attendanceTrend();
-    final revenueTrend = _revenueTrend();
-    final performanceTrend = _performanceTrend();
+  Future<void> _showExamEditor({Map<String, dynamic>? exam}) async {
+    final isEdit = exam != null;
+    final examId = (exam?['id'] ?? '').toString();
 
-    return Column(
-      key: const ValueKey('analytics-tab'),
-      children: [
-        _sectionCard(
-          title: 'Attendance Graph',
-          child: _miniBarGraph(attendanceTrend, const Color(0xFF354388)),
+    final nameCtrl = TextEditingController(text: (exam?['name'] ?? '').toString());
+    final subjectCtrl = TextEditingController(
+      text: (exam?['subject'] ?? _selectedSubject ?? _defaultBatchSubject()).toString(),
+    );
+    final marksCtrl = TextEditingController(text: _toInt(exam?['total_marks'] ?? exam?['totalMarks'], fallback: 100).toString());
+    final durationCtrl = TextEditingController(text: _toInt(exam?['duration'], fallback: 60).toString());
+    DateTime date = _toDate(exam?['date']) ?? DateTime.now();
+
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setS) {
+            return AlertDialog(
+              title: Text(isEdit ? 'Edit Exam' : 'Create Exam'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Exam Name')),
+                    const SizedBox(height: 10),
+                    TextField(controller: subjectCtrl, decoration: const InputDecoration(labelText: 'Subject')),
+                    const SizedBox(height: 10),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await _pickDateTime(initial: date);
+                        if (picked != null) setS(() => date = picked);
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(labelText: 'Date & Time'),
+                        child: Text('${_dateLabel(date)} ${_timeLabel(date)}'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(controller: marksCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Total Marks')),
+                    const SizedBox(height: 10),
+                    TextField(controller: durationCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Duration (mins)')),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (approved != true) return;
+
+    try {
+      final examSubject = subjectCtrl.text.trim().isEmpty
+          ? (_selectedSubject ?? _defaultBatchSubject())
+          : subjectCtrl.text.trim();
+      final data = {
+        'name': nameCtrl.text.trim(),
+        'subject': examSubject,
+        'date': date.toIso8601String(),
+        'totalMarks': int.tryParse(marksCtrl.text) ?? 100,
+        'duration': int.tryParse(durationCtrl.text) ?? 60,
+        'batchId': widget.batchId,
+      };
+
+      if (isEdit) {
+        await _adminRepo.updateExam(examId: examId, data: data);
+      } else {
+        await _adminRepo.createExam(
+          name: data['name'] as String,
+          subject: data['subject'] as String,
+          date: date,
+          totalMarks: data['totalMarks'] as int,
+          duration: data['duration'] as int,
+          batchId: widget.batchId,
+        );
+      }
+      CPToast.success(context, isEdit ? 'Exam updated' : 'Exam created');
+      _loadBatch();
+    } catch (e) {
+      CPToast.error(context, e.toString());
+    }
+  }
+
+  Future<void> _deleteExam(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Exam?'),
+        content: const Text('This will delete the exam and all its results.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      await _adminRepo.deleteExam(id);
+      CPToast.success(context, 'Exam deleted');
+      _loadBatch();
+    } catch (e) {
+      CPToast.error(context, e.toString());
+    }
+  }
+
+  Future<void> _showAnnouncementEditor({Map<String, dynamic>? announcement}) async {
+    final isEdit = announcement != null;
+    final id = (announcement?['id'] ?? '').toString();
+
+    final titleCtrl = TextEditingController(text: (announcement?['title'] ?? '').toString());
+    final bodyCtrl = TextEditingController(text: (announcement?['body'] ?? '').toString());
+    String category = (announcement?['category'] ?? 'Batch').toString();
+    bool pinned = (announcement?['pinned'] ?? false) == true;
+
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setS) {
+            return AlertDialog(
+              title: Text(isEdit ? 'Edit Announcement' : 'Post Announcement'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Title')),
+                    const SizedBox(height: 10),
+                    TextField(controller: bodyCtrl, maxLines: 4, decoration: const InputDecoration(labelText: 'Content')),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: category,
+                      items: ['Batch', 'Urgent', 'Holiday', 'Exam'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                      onChanged: (val) => setS(() => category = val ?? category),
+                      decoration: const InputDecoration(labelText: 'Category'),
+                    ),
+                    const SizedBox(height: 10),
+                    SwitchListTile(
+                      title: const Text('Pin to top', style: TextStyle(fontSize: 14)),
+                      value: pinned,
+                      onChanged: (val) => setS(() => pinned = val),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Post')),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (approved != true) return;
+
+    try {
+      if (isEdit) {
+        await _adminRepo.updateAnnouncement(id: id, title: titleCtrl.text.trim(), body: bodyCtrl.text.trim(), category: category, pinned: pinned);
+      } else {
+        await _adminRepo.createAnnouncement(title: titleCtrl.text.trim(), body: bodyCtrl.text.trim(), category: category, pinned: pinned);
+        await _adminRepo.sendNotification(
+          title: 'New Announcement: ${titleCtrl.text.trim()}',
+          body: bodyCtrl.text.trim(),
+          type: 'announcement',
+          meta: {'batch_id': widget.batchId},
+        );
+      }
+      CPToast.success(context, 'Announcement published');
+      _loadBatch();
+    } catch (e) {
+      CPToast.error(context, e.toString());
+    }
+  }
+
+  Future<void> _deleteAnnouncement(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Announcement?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      await _adminRepo.deleteAnnouncement(id);
+      CPToast.success(context, 'Deleted');
+      _loadBatch();
+    } catch (e) {
+      CPToast.error(context, e.toString());
+    }
+  }
+
+  Future<void> _showSubmissionsList(Map<String, dynamic> assignment) async {
+    final id = (assignment['id'] ?? '').toString();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(ctx).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        _sectionCard(
-          title: 'Performance Graph',
-          child: _miniBarGraph(performanceTrend, const Color(0xFFE5A100)),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: CT.divider(context))),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Submissions', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 18)),
+                        Text((assignment['title'] ?? '').toString(), style: GoogleFonts.plusJakartaSans(fontSize: 14, color: CT.textS(context))),
+                      ],
+                    ),
+                  ),
+                  IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
+                ],
+              ),
+            ),
+            Expanded(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _adminRepo.getAssignmentSubmissions(id),
+                builder: (ctx, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                  final submissions = snapshot.data ?? [];
+                  if (submissions.isEmpty) return const Center(child: Text('No submissions yet'));
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: submissions.length,
+                    separatorBuilder: (ctx, i) => const Divider(),
+                    itemBuilder: (ctx, i) {
+                      final sub = submissions[i];
+                      final studentName = (sub['student_name'] ?? 'Student').toString();
+                      final status = (sub['status'] ?? 'pending').toString();
+                      final submittedAt = _toDate(sub['submitted_at']);
+
+                      return ListTile(
+                        leading: CircleAvatar(child: Text(studentName.substring(0, 1))),
+                        title: Text(studentName),
+                        subtitle: Text('Submitted: ${_dateLabel(submittedAt)} ${_timeLabel(submittedAt)}'),
+                        trailing: _statusTag(
+                          status,
+                          status.toLowerCase() == 'reviewed'
+                              ? Colors.green
+                              : (status.toLowerCase() == 'rejected'
+                                  ? Colors.red
+                                  : Colors.orange),
+                        ),
+                        onTap: () => _showSubmissionReviewer(sub),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-        _sectionCard(
-          title: 'Revenue Graph',
-          child: _miniBarGraph(revenueTrend, const Color(0xFFB6231B)),
-        ),
-      ],
+      ),
     );
   }
 
-  List<double> _attendanceTrend() {
-    if (_attendanceSessions.isEmpty) return [0, 0, 0, 0, 0, 0];
-    final sorted = [..._attendanceSessions]
-      ..sort(
-        (a, b) => (_toDate(a['date']) ?? DateTime(0)).compareTo(
-          _toDate(b['date']) ?? DateTime(0),
-        ),
-      );
-    final recent = sorted.take(6).toList();
+  Future<void> _showSubmissionReviewer(Map<String, dynamic> submission) async {
+    final id = (submission['id'] ?? '').toString();
+    final marksCtrl = TextEditingController(text: (submission['marks_obtained'] ?? '').toString());
+    final remarksCtrl = TextEditingController(text: (submission['remarks'] ?? '').toString());
+    String status = (submission['status'] ?? 'pending').toString();
 
-    return recent.map((session) {
-      final records = (session['student_records'] as List?) ?? const [];
-      if (records.isEmpty) return 0.0;
-      final present = records
-          .where(
-            (e) => (e as Map)['status']?.toString().toLowerCase() == 'present',
-          )
-          .length;
-      return (present / records.length) * 100;
-    }).toList();
-  }
-
-  List<double> _performanceTrend() {
-    if (_quizzes.isEmpty) return [0, 0, 0, 0, 0, 0];
-    final recent = _quizzes.take(6).toList();
-    return recent.map((q) => _toDouble(q['average_score'])).toList();
-  }
-
-  List<double> _revenueTrend() {
-    if (_feeRecords.isEmpty) return [0, 0, 0, 0, 0, 0];
-    final monthMap = <int, double>{};
-    for (final record in _feeRecords) {
-      final payments = (record['payments'] as List?) ?? const [];
-      for (final item in payments) {
-        if (item is! Map) continue;
-        final dt = _toDate(item['created_at'] ?? item['paid_at']);
-        if (dt == null) continue;
-        monthMap[dt.month] =
-            (monthMap[dt.month] ?? 0) + _toDouble(item['amount_paid']);
-      }
-    }
-
-    final now = DateTime.now();
-    final result = <double>[];
-    for (var i = 5; i >= 0; i--) {
-      final m = now.month - i;
-      final month = m > 0 ? m : m + 12;
-      result.add(monthMap[month] ?? 0);
-    }
-    return result;
-  }
-
-  Widget _miniBarGraph(List<double> values, Color color) {
-    final fixed = values.isEmpty ? [0.0] : values;
-    final maxValue = fixed.reduce((a, b) => a > b ? a : b);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: fixed.map((value) {
-        final height = maxValue <= 0
-            ? 6.0
-            : ((value / maxValue) * 70).clamp(6, 70).toDouble();
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: const Text('Review Submission'),
+          content: SingleChildScrollView(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  value.toStringAsFixed(0),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                  ),
+                DropdownButtonFormField<String>(
+                  value: status,
+                  items: ['pending', 'reviewed', 'rejected'].map((s) => DropdownMenuItem(value: s, child: Text(s.toUpperCase()))).toList(),
+                  onChanged: (val) => setS(() => status = val ?? status),
+                  decoration: const InputDecoration(labelText: 'Status'),
                 ),
-                const SizedBox(height: 4),
-                Container(height: height, color: color),
+                const SizedBox(height: 10),
+                TextField(controller: marksCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Marks Obtained')),
+                const SizedBox(height: 10),
+                TextField(controller: remarksCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Remarks')),
               ],
             ),
           ),
-        );
-      }).toList(),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () async {
+                try {
+                  await _adminRepo.reviewAssignmentSubmission(
+                    submissionId: id,
+                    status: status,
+                    marksObtained: double.tryParse(marksCtrl.text),
+                    remarks: remarksCtrl.text.trim(),
+                  );
+                  Navigator.pop(ctx);
+                  CPToast.success(context, 'Submission reviewed');
+                } catch (e) {
+                  CPToast.error(context, e.toString());
+                }
+              },
+              child: const Text('Submit Review'),
+            ),
+          ],
+        ),
+      ),
     );
   }
+
 
   Widget _buildActionDock() {
     return Column(
@@ -2319,6 +2706,21 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                         'Lecture',
                         Icons.ondemand_video_rounded,
                         () => context.push('/admin/timetable'),
+                      ),
+                      _fabMenuItem(
+                        'Material',
+                        Icons.note_add_outlined,
+                        () => _showNoteEditor(),
+                      ),
+                      _fabMenuItem(
+                        'Assignment',
+                        Icons.assignment_outlined,
+                        () => _showAssignmentEditor(),
+                      ),
+                      _fabMenuItem(
+                        'Attendance',
+                        Icons.how_to_reg_rounded,
+                        () => _showAttendanceMarker(),
                       ),
                       _fabMenuItem(
                         'Test',
@@ -2413,66 +2815,41 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     );
   }
 
-  Widget _statusTag(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: color, width: 1.2),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          color: const Color(0xFF354388),
-        ),
-      ),
-    );
-  }
-
-  String _recordStatus(Map<String, dynamic> record) {
-    final amount = _toDouble(record['final_amount'] ?? record['amount']);
-    final paid = _recordPaidAmount(record);
-    return paid + 0.01 >= amount ? 'Paid' : 'Pending';
-  }
-
-  double _recordPaidAmount(Map<String, dynamic> record) {
-    final payments = (record['payments'] as List?) ?? const [];
-    return payments.fold<double>(
-      0,
-      (sum, p) => sum + _toDouble((p as Map)['amount_paid']),
-    );
-  }
-
   Future<void> _markAsPaid(Map<String, dynamic> record) async {
-    final feeRecordId = (record['id'] ?? '').toString();
-    if (feeRecordId.isEmpty) {
-      CPToast.error(context, 'Invalid fee record');
-      return;
-    }
-
     final amount = _toDouble(record['final_amount'] ?? record['amount']);
-    final paid = _recordPaidAmount(record);
-    final remaining = (amount - paid).clamp(0, double.infinity);
-    if (remaining <= 0) {
-      CPToast.info(context, 'Already fully paid');
-      return;
-    }
+    final studentName = ((record['student'] as Map?)?['name'] ?? 'Student').toString();
+    
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Record Payment?'),
+        content: Text('Mark ₹$amount as paid for $studentName?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
 
     try {
       await _adminRepo.recordFeePayment(
-        feeRecordId: feeRecordId,
-        amountPaid: remaining,
-        paymentMode: 'Cash',
-        note: 'Marked paid from batch control panel',
+        feeRecordId: record['id'].toString(),
+        amountPaid: amount,
+        paymentMode: 'manual_qr_admin',
+        note: 'Marked as paid by admin',
       );
-      if (!mounted) return;
-      CPToast.success(context, 'Fee marked paid');
+      CPToast.success(context, 'Payment recorded');
       _loadBatch();
     } catch (e) {
-      if (!mounted) return;
-      CPToast.error(context, 'Payment failed: $e');
+      CPToast.error(context, e.toString());
     }
   }
 
@@ -2853,5 +3230,42 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       },
     );
   }
+
+  Widget _statusTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: color, width: 1.2),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  String _recordStatus(Map<String, dynamic> record) {
+    final amount = _toDouble(record['final_amount'] ?? record['amount']);
+    final paid = _recordPaidAmount(record);
+    return paid + 0.01 >= amount ? 'Paid' : 'Pending';
+  }
+
+  double _recordPaidAmount(Map<String, dynamic> record) {
+    final payments = (record['payments'] as List?) ?? const [];
+    return payments.fold<double>(
+      0,
+      (sum, p) => sum + _toDouble((p as Map)['amount_paid']),
+    );
+  }
+}
+
+extension _BatchDetailUtils on _BatchDetailPageState {
+  double _toDouble(dynamic v) => double.tryParse(v?.toString() ?? '0') ?? 0.0;
+  int _toInt(dynamic v, {int fallback = 0}) => int.tryParse(v?.toString() ?? '') ?? fallback;
 }
 

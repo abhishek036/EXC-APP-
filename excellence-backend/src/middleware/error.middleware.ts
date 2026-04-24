@@ -65,12 +65,17 @@ export const errorHandler = (
     message = err.message;
   }
 
+  const isExpectedPushRegisterAuthExpiry =
+    statusCode === 401 &&
+    req.originalUrl.includes('/notifications/register-token') &&
+    (code === 'TOKEN_EXPIRED' || code === 'SESSION_REVOKED' || code === 'UNAUTHORIZED');
+
   if (statusCode >= 500) {
     console.error(
       `[ERROR] [${requestRef}] ${req.method} ${req.originalUrl} -> ${statusCode} ${code}: ${message}`,
       err,
     );
-  } else {
+  } else if (!isExpectedPushRegisterAuthExpiry || isDevelopment) {
     // For operational errors like 401/404, don't dump stack traces to error logs
     console.warn(
       `[WARN] [${requestRef}] ${req.method} ${req.originalUrl} -> ${statusCode} ${code}: ${message}`

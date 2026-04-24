@@ -7,24 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
-import '../../../../core/widgets/cp_toast.dart';
-import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
 import 'otp_page.dart';
-
-enum UserRole { admin, teacher, student, parent }
-enum LoginMethod { otp, password }
-
-extension UserRoleX on UserRole {
-  AppRole toAppRole() {
-    switch (this) {
-      case UserRole.admin: return AppRole.admin;
-      case UserRole.teacher: return AppRole.teacher;
-      case UserRole.student: return AppRole.student;
-      case UserRole.parent: return AppRole.parent;
-    }
-  }
-}
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -34,24 +18,9 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
-  UserRole _selectedRole = UserRole.student;
-  LoginMethod _loginMethod = LoginMethod.otp;
   final _phoneController = TextEditingController();
-  final _identifierController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _joinCodeController = TextEditingController();
   String? _phoneError;
-  String? _identifierError;
-  String? _passwordError;
-  bool _obscurePassword = true;
-
-  // Role metadata with sub-labels
-  static const _roleMeta = {
-    UserRole.admin:   {'label': 'Admin',   'sub': 'Manage system',   'icon': Icons.admin_panel_settings_rounded},
-    UserRole.teacher: {'label': 'Teacher', 'sub': 'Manage classes',  'icon': Icons.school_rounded},
-    UserRole.student: {'label': 'Student', 'sub': 'Access courses',  'icon': Icons.menu_book_rounded},
-    UserRole.parent:  {'label': 'Parent',  'sub': 'Track progress',  'icon': Icons.family_restroom_rounded},
-  };
 
   void _handleSendOtp() {
     final phone = _phoneController.text.trim();
@@ -60,24 +29,6 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
     HapticFeedback.mediumImpact();
     context.read<AuthBloc>().add(AuthSendOtpRequested(
       phone: phone,
-      role: _selectedRole.toAppRole(),
-      joinCode: _joinCodeController.text.trim().isEmpty ? null : _joinCodeController.text.trim(),
-    ));
-  }
-
-  void _handlePasswordLogin() {
-    final identifier = _identifierController.text.trim();
-    final password = _passwordController.text;
-    setState(() {
-      _identifierError = identifier.length < 3 ? 'Enter phone number or username' : null;
-      _passwordError = password.length < 4 ? 'Password must be at least 4 characters' : null;
-    });
-    if (_identifierError != null || _passwordError != null) return;
-    HapticFeedback.mediumImpact();
-    context.read<AuthBloc>().add(AuthLoginRequested(
-      identifier: identifier,
-      password: password,
-      role: _selectedRole.toAppRole(),
       joinCode: _joinCodeController.text.trim().isEmpty ? null : _joinCodeController.text.trim(),
     ));
   }
@@ -85,8 +36,6 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
   @override
   void dispose() {
     _phoneController.dispose();
-    _identifierController.dispose();
-    _passwordController.dispose();
     _joinCodeController.dispose();
     super.dispose();
   }
@@ -106,7 +55,6 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
         if (state is AuthOtpSent) {
           context.push('/otp', extra: OtpRouteArgs(
             phoneNumber: _phoneController.text.trim(),
-            role: _selectedRole.toAppRole(),
             infoMessage: state.infoMessage,
             debugOtp: state.debugOtp,
           ));
@@ -178,140 +126,31 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
 
                             // ── Card Title ──────────────────
                             Text(
-                              _loginMethod == LoginMethod.otp ? 'Login via WhatsApp OTP' : 'Login with Password',
+                              'Login via WhatsApp OTP',
                               style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF0A0C1E), letterSpacing: -0.5),
                             ),
                             const SizedBox(height: 4),
-                            Text('Select your role to continue',
+                            Text('Use your phone number. Role is detected automatically.',
                               style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF6B7280), fontWeight: FontWeight.w500)),
 
                             const SizedBox(height: 24),
 
-                            // ── Role Selector ───────────────
-                            Row(
-                              children: UserRole.values.map((role) {
-                                final isSelected = _selectedRole == role;
-                                final meta = _roleMeta[role]!;
-                                return Expanded(
-                                  child: CPPressable(
-                                    onTap: () {
-                                      HapticFeedback.lightImpact();
-                                      setState(() => _selectedRole = role);
-                                    },
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      margin: EdgeInsets.only(right: role != UserRole.parent ? 8 : 0),
-                                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-                                      decoration: BoxDecoration(
-                                        color: isSelected ? AppColors.saharaSand : Colors.white,
-                                        borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(
-                                          color: isSelected
-                                              ? AppColors.elitePrimary
-                                              : AppColors.elitePrimary.withValues(alpha: 0.22),
-                                          width: isSelected ? 1.8 : 1.2,
-                                        ),
-                                      ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(meta['icon'] as IconData,
-                                            size: 20,
-                                            color: isSelected ? AppColors.elitePrimary : AppColors.elitePrimary.withValues(alpha: 0.6)),
-                                          const SizedBox(height: 5),
-                                          Text(meta['label'] as String,
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w800,
-                                              color: AppColors.elitePrimary,
-                                            )),
-                                          const SizedBox(height: 2),
-                                          Text(meta['sub'] as String,
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 8,
-                                              fontWeight: FontWeight.w600,
-                                              color: AppColors.elitePrimary.withValues(alpha: 0.7),
-                                            ),
-                                            textAlign: TextAlign.center,
-                                            overflow: TextOverflow.ellipsis),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-
-                            const SizedBox(height: 28),
-
                             // ── Input Fields ────────────────
-                            if (_loginMethod == LoginMethod.otp) ...[
-                              _buildField(
-                                label: 'Phone Number',
-                                hint: '98765 43210',
-                                icon: Icons.phone_android_rounded,
-                                controller: _phoneController,
-                                keyboardType: TextInputType.phone,
-                                errorText: _phoneError,
-                                prefixText: '+91 ',
-                              ),
-                              const SizedBox(height: 20),
-                              _buildPrimaryButton(
-                                label: 'Send WhatsApp OTP',
-                                icon: Icons.arrow_forward_rounded,
-                                isLoading: isLoading,
-                                onTap: _handleSendOtp,
-                              ),
-                            ] else ...[
-                              _buildField(
-                                label: 'Phone or Username',
-                                hint: 'Enter phone or username',
-                                icon: Icons.alternate_email_rounded,
-                                controller: _identifierController,
-                                errorText: _identifierError,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildField(
-                                label: 'Password',
-                                hint: 'Enter your password',
-                                icon: Icons.lock_outline_rounded,
-                                controller: _passwordController,
-                                obscureText: _obscurePassword,
-                                errorText: _passwordError,
-                                suffixIcon: IconButton(
-                                  icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20, color: const Color(0xFF8F97B8)),
-                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: CPPressable(
-                                  onTap: () => context.push('/forgot-password'),
-                                  child: Text('Forgot Password?',
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF354388))),
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              _buildPrimaryButton(
-                                label: 'Sign In',
-                                icon: Icons.login_rounded,
-                                isLoading: isLoading,
-                                onTap: _handlePasswordLogin,
-                              ),
-                            ],
-
-                            const SizedBox(height: 18),
-
-                            // ── Toggle Login Method ──────────
-                            Center(
-                              child: CPPressable(
-                                onTap: () => setState(() => _loginMethod = _loginMethod == LoginMethod.otp ? LoginMethod.password : LoginMethod.otp),
-                                child: Text(
-                                  _loginMethod == LoginMethod.otp ? 'Use Username / Password instead' : 'Use OTP Login instead',
-                                  style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF354388)),
-                                ),
-                              ),
+                            _buildField(
+                              label: 'Phone Number',
+                              hint: '98765 43210',
+                              icon: Icons.phone_android_rounded,
+                              controller: _phoneController,
+                              keyboardType: TextInputType.phone,
+                              errorText: _phoneError,
+                              prefixText: '+91 ',
+                            ),
+                            const SizedBox(height: 20),
+                            _buildPrimaryButton(
+                              label: 'Send WhatsApp OTP',
+                              icon: Icons.arrow_forward_rounded,
+                              isLoading: isLoading,
+                              onTap: _handleSendOtp,
                             ),
                           ],
                         ),
@@ -319,57 +158,7 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
 
                       const SizedBox(height: 28),
 
-                      // ── OR Divider ───────────────────────
-                      Row(children: [
-                        Expanded(child: Divider(color: AppColors.elitePrimary.withValues(alpha: 0.18), thickness: 1)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('OR', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.deepNavy.withValues(alpha: 0.55), fontWeight: FontWeight.w700)),
-                        ),
-                        Expanded(child: Divider(color: AppColors.elitePrimary.withValues(alpha: 0.18), thickness: 1)),
-                      ]),
-
-                      const SizedBox(height: 20),
-
-                      // ── Biometrics ───────────────────────
-                      CPPressable(
-                        onTap: () => CPToast.info(context, 'Biometric login will be enabled soon.'),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-                          decoration: BoxDecoration(
-                            color: AppColors.saharaSand,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.elitePrimary.withValues(alpha: 0.28), width: 1.2),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.fingerprint_rounded, color: AppColors.elitePrimary, size: 24),
-                              const SizedBox(width: 12),
-                              Text('Use Biometrics',
-                                style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.elitePrimary)),
-                            ],
-                          ),
-                        ),
-                      ).animate(delay: 500.ms).fadeIn(),
-
-                      const SizedBox(height: 16),
-                      Center(
-                        child: CPPressable(
-                          onTap: () => context.push('/register'),
-                          child: Text(
-                            'New here? Create an account',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.elitePrimary,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 36),
+                      const SizedBox(height: 28),
                       Text('© 2026 Excellence Academy. All Rights Reserved.',
                         style: GoogleFonts.plusJakartaSans(fontSize: 11, color: AppColors.deepNavy.withValues(alpha: 0.34), fontWeight: FontWeight.w500)),
                       const SizedBox(height: 24),

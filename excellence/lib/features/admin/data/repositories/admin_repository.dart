@@ -32,6 +32,30 @@ class AdminRepository {
     return <String, dynamic>{};
   }
 
+  String _normalizeNoteFileType(String? value) {
+    final raw = (value ?? '').trim().toLowerCase();
+    switch (raw) {
+      case 'pdf':
+      case 'image':
+      case 'video':
+      case 'zip':
+      case 'doc':
+      case 'docx':
+      case 'ppt':
+      case 'pptx':
+      case 'other':
+        return raw;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+        return 'image';
+      default:
+        return 'other';
+    }
+  }
+
   Future<Map<String, dynamic>> getAdminReports() async {
     final response = await _api.dio.get('analytics/reports');
     if (response.statusCode == 200) {
@@ -203,6 +227,21 @@ class AdminRepository {
     );
     if (response.statusCode == 200) return _extractMap(response.data);
     throw Exception(response.data['message'] ?? 'Failed to schedule lecture');
+  }
+
+  Future<Map<String, dynamic>> updateLecture({
+    required String lectureId,
+    required Map<String, dynamic> data,
+  }) async {
+    final response = await _api.dio.put('lectures/$lectureId', data: data);
+    if (response.statusCode == 200) return _extractMap(response.data);
+    throw Exception(response.data['message'] ?? 'Failed to update lecture');
+  }
+
+  Future<void> deleteLecture(String lectureId) async {
+    final response = await _api.dio.delete('lectures/$lectureId');
+    if (response.statusCode == 200 || response.statusCode == 204) return;
+    throw Exception(response.data['message'] ?? 'Failed to delete lecture');
   }
 
   Future<Map<String, dynamic>> createStudent(Map<String, dynamic> data) async {
@@ -788,6 +827,15 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to create exam');
   }
 
+  Future<Map<String, dynamic>> updateExam({
+    required String examId,
+    required Map<String, dynamic> data,
+  }) async {
+    final response = await _api.dio.put('exams/$examId', data: data);
+    if (response.statusCode == 200) return _extractMap(response.data);
+    throw Exception(response.data['message'] ?? 'Failed to update exam');
+  }
+
   Future<void> updateExamStatus({
     required String examId,
     required String status,
@@ -973,8 +1021,19 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch doubts');
   }
 
-  Future<List<Map<String, dynamic>>> getMaterials() async {
-    final response = await _api.dio.get('content/notes');
+  Future<List<Map<String, dynamic>>> getMaterials({
+    String? batchId,
+    String? subject,
+    bool includeDeleted = false,
+  }) async {
+    final response = await _api.dio.get(
+      'content/notes',
+      queryParameters: {
+        if (batchId != null && batchId.isNotEmpty) 'batchId': batchId,
+        if (subject != null && subject.isNotEmpty) 'subject': subject,
+        if (includeDeleted) 'includeDeleted': 'true',
+      },
+    );
     if (response.statusCode == 200) {
       return _extractList(response.data);
     }
@@ -992,7 +1051,7 @@ class AdminRepository {
     final payload = <String, dynamic>{
       'title': title,
       'subject': subject,
-      'file_type': fileType,
+      'file_type': _normalizeNoteFileType(fileType),
       'batch_id': batchId,
       'file_url': fileUrl,
       'description': description,
@@ -1009,6 +1068,48 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to create note');
   }
 
+  Future<Map<String, dynamic>> updateNote({
+    required String noteId,
+    String? title,
+    String? subject,
+    String? batchId,
+    String? fileType,
+    String? fileUrl,
+    String? description,
+  }) async {
+    final payload = <String, dynamic>{
+      'title': title,
+      'subject': subject,
+      'batch_id': batchId,
+      'file_url': fileUrl,
+      'description': description,
+    };
+    if (fileType != null && fileType.trim().isNotEmpty) {
+      payload['file_type'] = _normalizeNoteFileType(fileType);
+    }
+    payload.removeWhere(
+      (key, value) => value == null || (value is String && value.trim().isEmpty),
+    );
+
+    if (payload.isEmpty) {
+      throw Exception('No note changes to update');
+    }
+
+    final response = await _api.dio.put('content/notes/$noteId', data: payload);
+    if (response.statusCode == 200) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update note');
+  }
+
+  Future<void> deleteNote(String noteId) async {
+    final response = await _api.dio.delete('content/notes/$noteId');
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+    throw Exception(response.data['message'] ?? 'Failed to delete note');
+  }
+
   Future<List<Map<String, dynamic>>> getAssignments({String? batchId}) async {
     final response = await _api.dio.get(
       'content/assignments',
@@ -1020,6 +1121,104 @@ class AdminRepository {
       return _extractList(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch assignments');
+  }
+
+  Future<Map<String, dynamic>> createAssignment({
+    required String title,
+    required String batchId,
+    String? subject,
+    String? description,
+    String? instructions,
+    DateTime? dueDate,
+    num? maxMarks,
+    String? fileUrl,
+    bool? allowLateSubmission,
+    int? lateGraceMinutes,
+    int? maxAttempts,
+    bool? allowTextSubmission,
+    bool? allowFileSubmission,
+  }) async {
+    final payload = <String, dynamic>{
+      'title': title,
+      'batch_id': batchId,
+      'subject': subject,
+      'description': description,
+      'instructions': instructions,
+      'due_date': dueDate?.toUtc().toIso8601String(),
+      'max_marks': maxMarks,
+      'file_url': fileUrl,
+      'allow_late_submission': allowLateSubmission,
+      'late_grace_minutes': lateGraceMinutes,
+      'max_attempts': maxAttempts,
+      'allow_text_submission': allowTextSubmission,
+      'allow_file_submission': allowFileSubmission,
+    };
+    payload.removeWhere(
+      (key, value) => value == null || (value is String && value.trim().isEmpty),
+    );
+
+    final response = await _api.dio.post('content/assignments', data: payload);
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to create assignment');
+  }
+
+  Future<Map<String, dynamic>> updateAssignment({
+    required String assignmentId,
+    String? title,
+    String? batchId,
+    String? subject,
+    String? description,
+    String? instructions,
+    DateTime? dueDate,
+    num? maxMarks,
+    String? fileUrl,
+    bool? allowLateSubmission,
+    int? lateGraceMinutes,
+    int? maxAttempts,
+    bool? allowTextSubmission,
+    bool? allowFileSubmission,
+  }) async {
+    final payload = <String, dynamic>{
+      'title': title,
+      'batch_id': batchId,
+      'subject': subject,
+      'description': description,
+      'instructions': instructions,
+      'due_date': dueDate?.toUtc().toIso8601String(),
+      'max_marks': maxMarks,
+      'file_url': fileUrl,
+      'allow_late_submission': allowLateSubmission,
+      'late_grace_minutes': lateGraceMinutes,
+      'max_attempts': maxAttempts,
+      'allow_text_submission': allowTextSubmission,
+      'allow_file_submission': allowFileSubmission,
+    };
+    payload.removeWhere(
+      (key, value) => value == null || (value is String && value.trim().isEmpty),
+    );
+
+    if (payload.isEmpty) {
+      throw Exception('No assignment changes to update');
+    }
+
+    final response = await _api.dio.put(
+      'content/assignments/$assignmentId',
+      data: payload,
+    );
+    if (response.statusCode == 200) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to update assignment');
+  }
+
+  Future<void> deleteAssignment(String assignmentId) async {
+    final response = await _api.dio.delete('content/assignments/$assignmentId');
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+    throw Exception(response.data['message'] ?? 'Failed to delete assignment');
   }
 
   Future<Map<String, dynamic>> submitAssignment({
@@ -1321,6 +1520,8 @@ class AdminRepository {
     required String batchId,
     required String sessionDate,
     required List<Map<String, dynamic>> records,
+    String? subject,
+    bool notifyParents = true,
   }) async {
     final response = await _api.dio.post(
       'attendance/mark',
@@ -1328,6 +1529,8 @@ class AdminRepository {
         'batch_id': batchId,
         'session_date': sessionDate,
         'records': records,
+        if (subject != null && subject.trim().isNotEmpty) 'subject': subject.trim(),
+        'notify_parents': notifyParents,
       },
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -1350,6 +1553,14 @@ class AdminRepository {
     throw Exception(
       response.data['message'] ?? 'Failed to fetch attendance stats',
     );
+  }
+
+  Future<List<Map<String, dynamic>>> getBatchStudents(String batchId) async {
+    final response = await _api.dio.get('batches/$batchId/students');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch batch students');
   }
 
   // ── Batch ↔ Student Assignment ──────────────────────────

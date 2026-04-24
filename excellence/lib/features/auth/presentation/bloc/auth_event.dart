@@ -52,12 +52,12 @@ class AuthRegisterRequested extends AuthEvent {
 /// Step 1 of phone auth: request OTP.
 class AuthSendOtpRequested extends AuthEvent {
   final String phone;
-  final AppRole role;
+  final AppRole? role;
   final String? joinCode;
 
   const AuthSendOtpRequested({
     required this.phone,
-    required this.role,
+    this.role,
     this.joinCode,
   });
 

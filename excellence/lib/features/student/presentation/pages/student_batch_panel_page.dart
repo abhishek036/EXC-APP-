@@ -8,7 +8,10 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
+import '../../../../core/services/download_registry.dart';
 import '../../../../core/utils/file_opener.dart';
+import '../../../../core/utils/stable_token.dart';
+import '../../../../core/widgets/download_status_icon.dart';
 import '../../data/repositories/student_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 class _DoubtThreadMessage {
@@ -527,6 +530,7 @@ class _LecturesPaneState extends State<_LecturesPane> with ThemeAware<_LecturesP
   @override
   void initState() {
     super.initState();
+    DownloadRegistry.instance.ensureLoaded();
     _load();
   }
 
@@ -857,6 +861,24 @@ class _NotesPaneState extends State<_NotesPane> with ThemeAware<_NotesPane> {
     return <String, dynamic>{};
   }
 
+  String _noteDownloadKey(Map<String, dynamic> note) {
+    final noteId = (note['id'] ?? '').toString();
+    final primary = _resolvePrimaryFile(note);
+    final fileId = (primary['id'] ?? '').toString();
+
+    if (noteId.isNotEmpty && fileId.isNotEmpty) {
+      return 'note:$noteId:$fileId';
+    }
+
+    final fallbackUrl = (primary['file_url'] ?? note['file_url'] ?? '').toString().trim();
+    if (fallbackUrl.isNotEmpty) {
+      return 'note-url:${stableToken(fallbackUrl)}';
+    }
+
+    final fallbackTitle = (note['title'] ?? 'note').toString();
+    return 'note:${stableToken(fallbackTitle)}';
+  }
+
   Future<void> _openNote(Map<String, dynamic> note) async {
     try {
       final noteId = (note['id'] ?? '').toString();
@@ -893,6 +915,9 @@ class _NotesPaneState extends State<_NotesPane> with ThemeAware<_NotesPane> {
             ? (primary['file_name'] ?? note['title'] ?? 'note').toString()
             : fileName,
         mimeType: mimeType?.trim().isEmpty ?? true ? null : mimeType,
+        downloadKey: noteId.isNotEmpty && fileId.isNotEmpty
+          ? 'note:$noteId:$fileId'
+          : (targetUrl.isNotEmpty ? 'note-url:${stableToken(targetUrl)}' : null),
       );
     } catch (_) {
       if (!mounted) return;
@@ -958,6 +983,16 @@ class _NotesPaneState extends State<_NotesPane> with ThemeAware<_NotesPane> {
                     ? '$sizeKb KB'
                     : 'PDF',
                 onTap: () => _openNote(note),
+                trailing: DownloadStatusIcon(
+                  downloadKey: _noteDownloadKey(note),
+                  idleIcon: Icons.file_download_outlined,
+                  downloadedIcon: Icons.check_circle_rounded,
+                  idleColor: _StudentBatchPanelPageState.primaryBlue,
+                  downloadedColor: AppColors.success,
+                  size: 20,
+                  spinnerSize: 20,
+                  strokeWidth: 2,
+                ),
               );
             },
           ),
@@ -3664,6 +3699,7 @@ Widget _buildItemCard({
   required String subtitle,
   required String meta,
   required VoidCallback onTap,
+  Widget? trailing,
 }) {
   return GestureDetector(
     onTap: onTap,
@@ -3729,7 +3765,7 @@ Widget _buildItemCard({
                 ),
               ),
               const SizedBox(height: 4),
-              const Icon(
+              trailing ?? const Icon(
                 Icons.arrow_forward_ios_rounded,
                 color: _StudentBatchPanelPageState.primaryBlue,
                 size: 14,

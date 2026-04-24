@@ -252,7 +252,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final phone = _normalizePhone(event.phone);
     _pendingPhone = phone;
     _pendingJoinCode = event.joinCode;
-    _pendingRole = event.role.name;
+    _pendingRole = event.role?.name;
 
     try {
       final otpResponse = await _apiAuth.sendOtp(

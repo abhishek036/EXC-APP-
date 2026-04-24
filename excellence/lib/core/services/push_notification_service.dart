@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -163,6 +164,9 @@ class PushNotificationService {
   bool _lastRegisterSucceeded = false;
   String _lastRegisterMessage = 'Push status not checked yet';
   DateTime? _lastRegisterAt;
+  Completer<void>? _registerTokenInFlight;
+  String? _lastRegisteredBackendToken;
+  String? _lastRegisteredSessionToken;
 
   String? get fcmToken => _fcmToken;
 
@@ -265,6 +269,27 @@ class PushNotificationService {
   }
 
   Future<void> _registerCurrentToken() async {
+    final inFlight = _registerTokenInFlight;
+    if (inFlight != null) {
+      await inFlight.future;
+      return;
+    }
+
+    final completer = Completer<void>();
+    _registerTokenInFlight = completer;
+    try {
+      await _registerCurrentTokenInternal();
+    } catch (error) {
+      debugPrint('Unexpected push token registration error: $error');
+    } finally {
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
+      _registerTokenInFlight = null;
+    }
+  }
+
+  Future<void> _registerCurrentTokenInternal() async {
     await _ensureFcmToken();
     if (_fcmToken == null || _fcmToken!.isEmpty) {
       _lastRegisterSucceeded = false;
@@ -274,13 +299,23 @@ class PushNotificationService {
     }
 
     final storage = sl<SecureStorageService>();
-    final token = await storage.getToken();
+    final sessionToken = await storage.getToken();
 
-    if (token == null || token.isEmpty) {
+    if (sessionToken == null || sessionToken.isEmpty) {
       _lastRegisterSucceeded = false;
       _lastRegisterAt = DateTime.now();
       _lastRegisterMessage =
           'Session missing or expired. Login again to register push token';
+      _lastRegisteredBackendToken = null;
+      _lastRegisteredSessionToken = null;
+      return;
+    }
+
+    if (_lastRegisterSucceeded &&
+        _lastRegisteredBackendToken == _fcmToken &&
+        _lastRegisteredSessionToken == sessionToken) {
+      _lastRegisterAt = DateTime.now();
+      _lastRegisterMessage = 'FCM token already registered for current session';
       return;
     }
 
@@ -301,13 +336,48 @@ class PushNotificationService {
       _lastRegisterSucceeded = true;
       _lastRegisterAt = DateTime.now();
       _lastRegisterMessage = 'FCM token registered on backend';
+      _lastRegisteredBackendToken = _fcmToken;
+      _lastRegisteredSessionToken = sessionToken;
       debugPrint('FCM token registered on backend');
     } catch (error) {
       _lastRegisterSucceeded = false;
       _lastRegisterAt = DateTime.now();
-      _lastRegisterMessage = 'FCM token register failed: $error';
+      if (_isSessionExpiredError(error)) {
+        _lastRegisterMessage =
+            'Session missing or expired. Login again to register push token';
+        _lastRegisteredBackendToken = null;
+        _lastRegisteredSessionToken = null;
+      } else {
+        _lastRegisterMessage = 'FCM token register failed: $error';
+      }
       debugPrint('FCM token register failed: $error');
     }
+  }
+
+  bool _isSessionExpiredError(Object error) {
+    if (error is! DioException) return false;
+
+    if (error.response?.statusCode == 401) {
+      return true;
+    }
+
+    final payload = error.response?.data;
+    if (payload is Map) {
+      final errorObj = payload['error'];
+      if (errorObj is Map) {
+        final code = errorObj['code']?.toString().toUpperCase();
+        if (code == 'TOKEN_EXPIRED' ||
+            code == 'SESSION_REVOKED' ||
+            code == 'UNAUTHORIZED') {
+          return true;
+        }
+      }
+    }
+
+    final combined = '${error.error ?? ''} ${error.message ?? ''}'
+        .toLowerCase();
+    return combined.contains('token expired') ||
+        combined.contains('session expired');
   }
 
   Future<void> _ensureFcmToken() async {
@@ -329,8 +399,17 @@ class PushNotificationService {
         '${ApiEndpoints.notifications}/register-token',
         data: {'token': _fcmToken},
       );
+      _lastRegisterSucceeded = false;
+      _lastRegisterAt = DateTime.now();
+      _lastRegisterMessage = 'FCM token unregistered from backend';
     } catch (error) {
+      _lastRegisterSucceeded = false;
+      _lastRegisterAt = DateTime.now();
+      _lastRegisterMessage = 'FCM token unregister failed: $error';
       debugPrint('FCM token unregister failed: $error');
+    } finally {
+      _lastRegisteredBackendToken = null;
+      _lastRegisteredSessionToken = null;
     }
   }
 
@@ -373,6 +452,11 @@ class PushNotificationService {
         debugPrint('FCM token deletion error: $e');
       }
       _fcmToken = null;
+      _lastRegisterSucceeded = false;
+      _lastRegisterAt = DateTime.now();
+      _lastRegisterMessage = 'Push disabled in app settings';
+      _lastRegisteredBackendToken = null;
+      _lastRegisteredSessionToken = null;
       return;
     }
 

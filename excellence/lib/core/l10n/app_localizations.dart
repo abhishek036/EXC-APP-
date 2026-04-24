@@ -52,10 +52,13 @@ class AppLocalizations {
 
   /// Change and persist locale.
   static Future<void> changeLocale(Locale locale) async {
-    localeNotifier.value = locale;
+    final resolved = AppLocales.supported.any((l) => l.languageCode == locale.languageCode)
+        ? locale
+        : AppLocales.english;
+    localeNotifier.value = resolved;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('app_language', locale.languageCode);
+      await prefs.setString('app_language', resolved.languageCode);
     } catch (_) {}
   }
 }

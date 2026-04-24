@@ -6,7 +6,10 @@ import 'dart:async';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
+import '../../../../core/services/download_registry.dart';
 import '../../../../core/utils/file_opener.dart';
+import '../../../../core/utils/stable_token.dart';
+import '../../../../core/widgets/download_status_icon.dart';
 import '../../data/repositories/teacher_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 class TeacherBatchPanelPage extends StatefulWidget {
@@ -71,6 +74,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
   @override
   void initState() {
     super.initState();
+    DownloadRegistry.instance.ensureLoaded();
     _load();
     _initRealtime();
   }
@@ -1171,6 +1175,21 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                           ),
                         ),
                           const SizedBox(width: 8),
+                          if (canDownload)
+                            IconButton(
+                              onPressed: isDeleting ? null : () => _downloadAndOpenNote(item),
+                              icon: DownloadStatusIcon(
+                                downloadKey: _noteDownloadKey(item),
+                                idleIcon: Icons.file_download_outlined,
+                                downloadedIcon: Icons.check_circle_rounded,
+                                idleColor: blue,
+                                downloadedColor: AppColors.success,
+                                size: 20,
+                                spinnerSize: 20,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          if (canDownload) const SizedBox(width: 4),
                           isDeleting
                               ? SizedBox(
                                   width: 20,
@@ -1183,10 +1202,6 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                               : PopupMenuButton<String>(
                                   icon: Icon(Icons.more_vert_rounded, color: blue),
                                   onSelected: (value) {
-                                    if (value == 'download') {
-                                      _downloadAndOpenNote(item);
-                                      return;
-                                    }
                                     if (value == 'edit') {
                                       _openEditContentItem(item, type: contentType);
                                       return;
@@ -1202,11 +1217,6 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                                     }
                                   },
                                   itemBuilder: (_) => [
-                                    if (canDownload)
-                                      const PopupMenuItem(
-                                        value: 'download',
-                                        child: Text('Download & Open'),
-                                      ),
                                     const PopupMenuItem(
                                       value: 'edit',
                                       child: Text('Edit'),
@@ -1658,6 +1668,24 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
     return <String, dynamic>{};
   }
 
+  String _noteDownloadKey(Map<String, dynamic> note) {
+    final noteId = (note['id'] ?? '').toString();
+    final primary = _resolvePrimaryNoteFile(note);
+    final fileId = (primary['id'] ?? '').toString();
+
+    if (noteId.isNotEmpty && fileId.isNotEmpty) {
+      return 'note:$noteId:$fileId';
+    }
+
+    final fallbackUrl = (primary['file_url'] ?? note['file_url'] ?? '').toString().trim();
+    if (fallbackUrl.isNotEmpty) {
+      return 'note-url:${stableToken(fallbackUrl)}';
+    }
+
+    final fallbackTitle = (note['title'] ?? 'note').toString();
+    return 'note:${stableToken(fallbackTitle)}';
+  }
+
   Future<void> _downloadAndOpenNote(Map<String, dynamic> note) async {
     try {
       final noteId = (note['id'] ?? '').toString();
@@ -1694,6 +1722,9 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
             ? (primary['file_name'] ?? note['title'] ?? 'note').toString()
             : fileName,
         mimeType: mimeType?.isEmpty ?? true ? null : mimeType,
+        downloadKey: noteId.isNotEmpty && fileId.isNotEmpty
+          ? 'note:$noteId:$fileId'
+          : (targetUrl.isNotEmpty ? 'note-url:${stableToken(targetUrl)}' : null),
       );
     } catch (_) {
       if (!mounted) return;

@@ -22,15 +22,29 @@ class BatchManagementPage extends StatefulWidget {
 
 class _BatchManagementPageState extends State<BatchManagementPage> {
   final _adminRepo = sl<AdminRepository>();
+  final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
 
   bool _isLoading = true;
   List<Map<String, dynamic>> _batches = [];
   List<Map<String, dynamic>> _teachers = [];
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _searchController.addListener(() {
+      if (!mounted) return;
+      setState(() => _query = _searchController.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData({bool silent = false}) async {
@@ -129,118 +143,132 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = CT.isDark(context);
+    const primaryBlue = AppColors.elitePrimary;
+    const surfaceWhite = AppColors.offWhite;
+    const accentYellow = AppColors.moltenAmber;
     final active = _batches
         .where((b) => (b['is_active'] ?? b['isActive']) == true)
         .length;
+    final visibleBatches = _batches.where((batch) {
+      if (_query.trim().isEmpty) return true;
+      final q = _query.trim().toLowerCase();
+      final name = (batch['name'] ?? '').toString().toLowerCase();
+      final subject = (batch['subject'] ?? '').toString().toLowerCase();
+      final teacherLabel = (((batch['assigned_teachers'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => (e['name'] ?? '').toString())
+          .join(' '))
+          .toLowerCase();
+      return name.contains(q) ||
+          subject.contains(q) ||
+          teacherLabel.contains(q);
+    }).toList();
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildAppBar(isDark),
-            Expanded(
-              child: _isLoading
-                  ? ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 20,
-                      ),
-                      itemCount: 4,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 16),
-                      itemBuilder: (context, index) => const CPShimmer(
-                        width: double.infinity,
-                        height: 160,
-                        borderRadius: 22,
-                      ),
-                    )
-                  : RefreshIndicator(
-                      color: const Color(0xFF354388),
-                      onRefresh: _loadData,
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-                        children: [
-                          Row(
-                            children: [
-                              _summaryStat(
-                                'ACTIVE',
-                                '$active',
-                                const Color(0xFF354388),
-                                isDark,
-                              ),
-                              const SizedBox(width: 10),
-                              _summaryStat(
-                                'TOTAL',
-                                '${_batches.length}',
-                                const Color(0xFF354388),
-                                isDark,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-                          if (_batches.isEmpty)
-                            _buildEmptyState(isDark)
-                          else
-                            ..._batches.asMap().entries.map((entry) {
-                              final batch = entry.value;
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 14),
-                                child: _batchCard(batch, entry.key, isDark),
-                              );
-                            }),
-                        ],
-                      ),
-                    ),
-            ),
-          ],
+      backgroundColor: primaryBlue,
+      appBar: AppBar(
+        backgroundColor: primaryBlue,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
+          onPressed: () => Navigator.pop(context),
         ),
-      ),
-    );
-  }
-
-  Widget _buildAppBar(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 14, 10),
-      child: Row(
-        children: [
-          CPPressable(
-            onTap: () => Navigator.pop(context),
-            child: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              size: 20,
-              color: isDark ? AppColors.paleSlate1 : const Color(0xFF354388),
-            ),
+        title: Text(
+          'BATCHES',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+            color: Colors.white,
+            letterSpacing: 1.0,
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              'Batches',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                color: isDark ? AppColors.paleSlate1 : const Color(0xFF354388),
-                letterSpacing: -0.7,
-              ),
-            ),
-          ),
+        ),
+        actions: [
           CPPressable(
             onTap: () => _showCreateBatchSheet(context),
             child: Container(
               width: 46,
               height: 46,
+              margin: const EdgeInsets.only(right: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFFE5A100),
-                border: Border.all(color: const Color(0xFF354388), width: 3),
+                color: accentYellow,
+                border: Border.all(color: primaryBlue, width: 3),
                 boxShadow: const [
-                  BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
+                  BoxShadow(color: primaryBlue, offset: Offset(3, 3)),
                 ],
               ),
-              child: const Icon(Icons.add_rounded, color: Color(0xFF354388)),
+              child: const Icon(Icons.add_rounded, color: primaryBlue),
             ),
           ),
         ],
+      ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: accentYellow,
+          backgroundColor: primaryBlue,
+          onRefresh: _loadData,
+          child: _isLoading
+              ? ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                  itemCount: 4,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 16),
+                  itemBuilder: (context, index) => const CPShimmer(
+                    width: double.infinity,
+                    height: 240,
+                    borderRadius: 18,
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    _searchBar(primaryBlue, surfaceWhite),
+                    const SizedBox(height: 14),
+                    if (visibleBatches.isEmpty)
+                      _buildEmptyState(false)
+                    else
+                      ...visibleBatches.asMap().entries.map((entry) {
+                        final batch = entry.value;
+                        return _batchCard(batch, entry.key, false);
+                      }),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _searchBar(Color blue, Color surface) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: surface.withValues(alpha: 0.35), width: 2),
+      ),
+      child: TextField(
+        controller: _searchController,
+        focusNode: _searchFocusNode,
+        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+        decoration: InputDecoration(
+          hintText: 'Search batches',
+          hintStyle: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w700,
+            color: blue.withValues(alpha: 0.45),
+          ),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            color: blue.withValues(alpha: 0.55),
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 14,
+          ),
+        ),
       ),
     );
   }
@@ -279,26 +307,18 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
 
   Widget _batchCard(Map<String, dynamic> batch, int index, bool isDark) {
     final badge = _batchBadge(batch);
-    final badgeColor = _badgeColor(badge);
     final name = (batch['name'] ?? 'Batch').toString();
     final subject = (batch['subject'] ?? 'General').toString();
     final capacity = _toInt(batch['capacity'], fallback: 0);
     final currentStudents = _toInt(batch['current_students']);
-    final fee = _toDouble(batch['monthly_fee'] ?? batch['fee']);
     final isActive = (batch['is_active'] ?? batch['isActive']) == true;
-
-    final assignedTeachers = ((batch['assigned_teachers'] as List?) ?? const [])
-        .map((e) => Map<String, dynamic>.from(e as Map))
-        .toList();
-
-    final teacherText = assignedTeachers.isNotEmpty
-        ? assignedTeachers
-              .map((t) => (t['name'] ?? 'Teacher').toString())
-              .join(', ')
-        : ((batch['teacher'] is Map &&
-                  (batch['teacher'] as Map)['name'] != null)
-              ? (batch['teacher'] as Map)['name'].toString()
-              : 'No teacher assigned');
+    final statusText = badge == 'Completed' ? 'COMPLETED' : (isActive ? 'ONGOING' : 'SUSPENDED');
+    final startDate = (batch['start_date'] ?? '').toString();
+    final teacherText = (((batch['assigned_teachers'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((e) => (e['name'] ?? 'Teacher').toString())
+            .join(', '))
+        .trim();
 
     return CPPressable(
       onTap: () {
@@ -307,140 +327,279 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
           _loadData();
         });
       },
-      child:
-          CPGlassCard(
-                isDark: isDark,
-                padding: const EdgeInsets.all(18),
-                borderRadius: 22,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            name,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF354388),
-                            ),
-                            overflow: TextOverflow.ellipsis,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.offWhite,
+          border: Border.all(color: AppColors.elitePrimary, width: 2.5),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(color: AppColors.elitePrimary, offset: Offset(4, 4)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 124,
+              decoration: const BoxDecoration(
+                color: AppColors.moltenAmber,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Center(
+                child: Text(
+                  subject.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 30,
+                    color: AppColors.elitePrimary,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          name.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 28,
+                            color: AppColors.elitePrimary,
+                            letterSpacing: -0.8,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(
+                            color: AppColors.elitePrimary.withValues(alpha: 0.35),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'ADMIN',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 10,
+                            color: AppColors.elitePrimary.withValues(alpha: 0.75),
+                          ),
+                        ),
+                      ),
+                      PopupMenuButton<String>(
+                        icon: const Icon(
+                          Icons.more_vert_rounded,
+                          color: AppColors.elitePrimary,
+                        ),
+                        onSelected: (value) {
+                          if (value == 'open') {
+                            context.push('/admin/batches/${batch['id']}').then((_) {
+                              if (!mounted) return;
+                              _loadData();
+                            });
+                          } else if (value == 'toggle') {
+                            _toggleBatchStatus(batch);
+                          } else if (value == 'migrate') {
+                            _showMigrateSheet(batch);
+                          } else if (value == 'delete') {
+                            _confirmDelete(batch);
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                            value: 'open',
+                            child: Text('Open batch'),
+                          ),
+                          PopupMenuItem(
+                            value: 'toggle',
+                            child: Text(isActive ? 'Suspend batch' : 'Resume batch'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'migrate',
+                            child: Text('Promote / migrate students'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Delete batch'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.menu_book_rounded,
+                        size: 18,
+                        color: AppColors.elitePrimary.withValues(alpha: 0.75),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        subject.toUpperCase(),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: AppColors.elitePrimary.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.fiber_manual_record_rounded,
+                        size: 12,
+                        color: statusText == 'ONGOING'
+                            ? AppColors.elitePrimary
+                            : AppColors.coralRed,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '$statusText  |  ${batch['start_time'] ?? '--'} - ${batch['end_time'] ?? '--'}${startDate.isNotEmpty ? '  |  Started: $startDate' : ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            color: AppColors.elitePrimary.withValues(alpha: 0.65),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (teacherText.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      teacherText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.elitePrimary.withValues(alpha: 0.55),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            context.push('/admin/batches/${batch['id']}').then((_) {
+                              if (!mounted) return;
+                              _loadData();
+                            });
+                          },
+                          child: Container(
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: AppColors.moltenAmber,
+                              border: Border.all(color: AppColors.elitePrimary, width: 2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'MANAGE BATCH',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                                color: AppColors.elitePrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: () {
+                          context.push('/admin/batches/${batch['id']}').then((_) {
+                            if (!mounted) return;
+                            _loadData();
+                          });
+                        },
+                        child: Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: AppColors.elitePrimary, width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 18,
+                            color: AppColors.elitePrimary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: () {
+                          context.push('/admin/batches/${batch['id']}').then((_) {
+                            if (!mounted) return;
+                            _loadData();
+                          });
+                        },
+                        child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
-                            vertical: 5,
+                            vertical: 8,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            border: Border.all(color: badgeColor, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: badgeColor,
-                                offset: const Offset(2, 2),
+                            border: Border.all(color: AppColors.elitePrimary, width: 2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                currentStudents.toString(),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 16,
+                                  color: AppColors.elitePrimary,
+                                ),
+                              ),
+                              Text(
+                                'STUD',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 9,
+                                  color: AppColors.elitePrimary.withValues(alpha: 0.7),
+                                ),
                               ),
                             ],
                           ),
-                          child: Text(
-                            badge,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 10,
-                              color: const Color(0xFF354388),
-                            ),
-                          ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      subject,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        color: isDark ? AppColors.paleSlate2 : Colors.black87,
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.groups_rounded,
-                          size: 16,
-                          color: isDark ? AppColors.paleSlate2 : Colors.black54,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          capacity > 0
-                              ? '$currentStudents / $capacity'
-                              : '$currentStudents enrolled',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.paleSlate2 : Colors.black87,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (fee > 0)
-                          Text(
-                            '₹${fee.toStringAsFixed(0)}',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFF354388),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      teacherText,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.paleSlate2 : Colors.black54,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        _inlineAction(
-                          icon: isActive
-                              ? Icons.pause_circle_outline_rounded
-                              : Icons.play_circle_outline_rounded,
-                          label: isActive ? 'Suspend' : 'Resume',
-                          onTap: () => _toggleBatchStatus(batch),
-                          isDark: isDark,
-                        ),
-                        const SizedBox(width: 8),
-                        _inlineAction(
-                          icon: Icons.swap_horiz_rounded,
-                          label: 'Migrate',
-                          onTap: () => _showMigrateSheet(batch),
-                          isDark: isDark,
-                        ),
-                        const SizedBox(width: 8),
-                        _inlineAction(
-                          icon: Icons.delete_outline_rounded,
-                          label: 'Delete',
-                          onTap: () => _confirmDelete(batch),
-                          isDark: isDark,
-                          danger: true,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              )
-              .animate(delay: (80 * index).ms)
-              .fadeIn(duration: 400.ms)
-              .slideX(begin: 0.06),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ).animate(delay: (80 * index).ms).fadeIn(duration: 400.ms).slideX(begin: 0.1),
     );
   }
 

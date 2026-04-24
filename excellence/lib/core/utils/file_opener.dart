@@ -1,63 +1,145 @@
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:path/path.dart' as p;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../di/injection_container.dart';
 import '../network/api_client.dart';
+import '../services/download_registry.dart';
 import 'file_opener_platform_stub.dart'
     if (dart.library.io) 'file_opener_platform_io.dart'
     if (dart.library.html) 'file_opener_platform_web.dart' as platform;
 
-Future<void> downloadAndOpenFromUrl({
+Future<String> downloadAndOpenFromUrl({
   required String url,
   String? fileName,
   String? mimeType,
+  String? downloadKey,
 }) async {
   final apiClient = sl<ApiClient>();
-  Response<List<int>>? response;
-  Object? lastError;
+  final storageKey = downloadKey?.trim();
+  final persistToCache = await _isOfflineCacheEnabled();
 
-  for (final candidate in _buildDownloadUrlCandidates(
-    url,
-    baseUrl: apiClient.dio.options.baseUrl,
-  )) {
-    try {
-      response = await apiClient.dio.get<List<int>>(
-        candidate,
-        options: Options(
-          responseType: ResponseType.bytes,
-          followRedirects: true,
-          validateStatus: (code) => code != null && code >= 200 && code < 400,
-        ),
-      );
-      break;
-    } catch (e) {
-      lastError = e;
+  if (storageKey != null && storageKey.isNotEmpty) {
+    await DownloadRegistry.instance.ensureLoaded();
+    final cachedPath = DownloadRegistry.instance.downloadedPath(storageKey);
+    if (cachedPath != null && cachedPath.isNotEmpty) {
+      try {
+        await platform.openSavedFile(path: cachedPath, mimeType: mimeType);
+        return cachedPath;
+      } catch (_) {
+        await DownloadRegistry.instance.clear(storageKey);
+      }
     }
   }
 
-  if (response == null) {
-    if (lastError is Exception) throw lastError;
-    throw Exception('Unable to download file');
+  Response<List<int>>? response;
+  Object? lastError;
+
+  if (storageKey != null && storageKey.isNotEmpty) {
+    await DownloadRegistry.instance.markDownloading(
+      storageKey,
+      fileName: fileName,
+      mimeType: mimeType,
+      persist: persistToCache,
+    );
   }
 
-  final bytes = Uint8List.fromList(response.data ?? const <int>[]);
-  if (bytes.isEmpty) {
-    throw Exception('Downloaded file is empty');
+  try {
+    for (final candidate in _buildDownloadUrlCandidates(
+      url,
+      baseUrl: apiClient.dio.options.baseUrl,
+    )) {
+      try {
+        response = await apiClient.dio.get<List<int>>(
+          candidate,
+          options: Options(
+            responseType: ResponseType.bytes,
+            followRedirects: true,
+            validateStatus: (code) => code != null && code >= 200 && code < 400,
+          ),
+        );
+        break;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+
+    if (response == null) {
+      if (lastError is Exception) throw lastError;
+      throw Exception('Unable to download file');
+    }
+
+    final bytes = Uint8List.fromList(response.data ?? const <int>[]);
+    if (bytes.isEmpty) {
+      throw Exception('Downloaded file is empty');
+    }
+
+    final resolvedName = _resolveFileName(
+      explicitName: fileName,
+      url: response.requestOptions.uri.toString(),
+      headers: response.headers,
+    );
+
+    final savedPath = await platform.saveAndOpenBytes(
+      bytes: bytes,
+      fileName: resolvedName,
+      mimeType: mimeType,
+      storageKey: persistToCache ? storageKey : null,
+      persistToCache: persistToCache,
+    );
+
+    if (storageKey != null && storageKey.isNotEmpty && savedPath.isNotEmpty) {
+      await DownloadRegistry.instance.markDownloaded(
+        storageKey,
+        filePath: savedPath,
+        fileName: resolvedName,
+        mimeType: mimeType,
+        persist: persistToCache,
+      );
+    }
+
+    return savedPath;
+  } catch (error) {
+    if (storageKey != null && storageKey.isNotEmpty) {
+      await DownloadRegistry.instance.markFailed(
+        storageKey,
+        fileName: fileName,
+        mimeType: mimeType,
+        errorMessage: error.toString(),
+        persist: persistToCache,
+      );
+    }
+    rethrow;
   }
+}
 
-  final resolvedName = _resolveFileName(
-    explicitName: fileName,
-    url: response.requestOptions.uri.toString(),
-    headers: response.headers,
-  );
+Future<bool> _isOfflineCacheEnabled() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final offlineMode = prefs.getBool('offlineMode') ?? true;
+    final autoDownload = prefs.getBool('autoDownload') ?? false;
+    return offlineMode || (autoDownload && await _isOnWifi());
+  } catch (_) {
+    return true;
+  }
+}
 
-  await platform.saveAndOpenBytes(
-    bytes: bytes,
-    fileName: resolvedName,
-    mimeType: mimeType,
-  );
+Future<bool> _isOnWifi() async {
+  try {
+    final result = await Connectivity().checkConnectivity();
+    if (result is List<ConnectivityResult>) {
+      return result.any(
+        (item) => item == ConnectivityResult.wifi || item == ConnectivityResult.ethernet,
+      );
+    }
+    if (result is ConnectivityResult) {
+      return result == ConnectivityResult.wifi || result == ConnectivityResult.ethernet;
+    }
+  } catch (_) {}
+  return false;
 }
 
 List<String> _buildDownloadUrlCandidates(String rawUrl, {required String baseUrl}) {

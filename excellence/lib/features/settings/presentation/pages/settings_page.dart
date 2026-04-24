@@ -5,11 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/services/download_registry.dart';
 import '../../../../core/widgets/cp_pressable.dart';
-import '../../../../main.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/utils/role_prefix.dart';
-import '../../../../core/services/push_notification_service.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -19,14 +18,8 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _notificationsEnabled = true;
-  bool _biometric = false;
   bool _offlineMode = true;
   bool _autoDownload = false;
-  bool _soundEffects = true;
-  bool _hapticFeedback = true;
-  bool _compactView = false;
-  String _videoQuality = 'Auto';
   String _language = 'English';
 
   @override
@@ -39,15 +32,9 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       setState(() {
-        _notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
-        _biometric = prefs.getBool('biometric') ?? false;
         _offlineMode = prefs.getBool('offlineMode') ?? true;
         _autoDownload = prefs.getBool('autoDownload') ?? false;
-        _soundEffects = prefs.getBool('soundEffects') ?? true;
-        _hapticFeedback = prefs.getBool('hapticFeedback') ?? true;
-        _compactView = prefs.getBool('compactView') ?? false;
-        _videoQuality = prefs.getString('videoQuality') ?? 'Auto';
-        _language = prefs.getString('language') ?? 'English';
+        _language = 'English';
       });
     } catch (_) {}
   }
@@ -59,23 +46,12 @@ class _SettingsPageState extends State<SettingsPage> {
     try { (await SharedPreferences.getInstance()).setString(key, value); } catch (_) {}
   }
 
-  Future<void> _togglePushNotifications(bool value) async {
-    final previous = _notificationsEnabled;
-    setState(() => _notificationsEnabled = value);
-    await _saveBool('notificationsEnabled', value);
-
-    try {
-      await PushNotificationService.instance.setPushEnabled(value);
-      if (!mounted) return;
-      _showSnack(
-        value ? 'Push notifications enabled' : 'Push notifications disabled',
-      );
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _notificationsEnabled = previous);
-      await _saveBool('notificationsEnabled', previous);
-      _showSnack('Could not update push notifications. Please try again.');
-    }
+  Future<void> _clearCache() async {
+    final cleared = await DownloadRegistry.instance.clearAll();
+    if (!mounted) return;
+    _showSnack(
+      cleared > 0 ? 'Cleared $cleared cached file(s).' : 'Cache is already empty.',
+    );
   }
 
   @override
@@ -94,84 +70,58 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-        child: ValueListenableBuilder<ThemeMode>(
-          valueListenable: themeNotifier,
-          builder: (context, currentThemeMode, _) {
-            final isDarkMode = currentThemeMode == ThemeMode.dark;
-            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _sectionTitle('Account'),
-              _settingsTile(Icons.person_outline, 'Edit Profile', subtitle: 'Name, phone, email', onTap: () => context.go('${context.rolePrefix}/profile'), isDark: isDark),
-              _settingsTile(Icons.lock_outline, 'Change Password', subtitle: 'Update your password', onTap: () => context.push('/change-password'), isDark: isDark),
-              _settingsToggle(Icons.fingerprint, 'Biometric Login', _biometric, (v) { setState(() => _biometric = v); _saveBool('biometric', v); }, isDark: isDark),
-              const SizedBox(height: AppDimensions.lg),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _sectionTitle('Account'),
+          _settingsTile(Icons.person_outline, 'Edit Profile', subtitle: 'Name, phone, email', onTap: () => context.go('${context.rolePrefix}/profile'), isDark: isDark),
+          const SizedBox(height: AppDimensions.lg),
 
-              _sectionTitle('Appearance'),
-              _settingsToggle(Icons.dark_mode_outlined, 'Dark Mode', isDarkMode, (v) {
-                themeNotifier.value = v ? ThemeMode.dark : ThemeMode.light;
-              }, isDark: isDark),
-              _settingsToggle(Icons.view_compact_outlined, 'Compact View', _compactView, (v) { setState(() => _compactView = v); _saveBool('compactView', v); }, isDark: isDark),
-              const SizedBox(height: AppDimensions.lg),
+          _sectionTitle('Content & Downloads'),
+          _settingsToggle(Icons.cloud_off_outlined, 'Offline Mode', _offlineMode, (v) { setState(() => _offlineMode = v); _saveBool('offlineMode', v); }, isDark: isDark),
+          _settingsToggle(Icons.download_outlined, 'Auto-Download on WiFi', _autoDownload, (v) { setState(() => _autoDownload = v); _saveBool('autoDownload', v); }, isDark: isDark),
+          _settingsTile(Icons.language, 'Language', subtitle: _language,
+            trailing: Icon(Icons.chevron_right, color: CT.textM(context)),
+            onTap: () => _showLanguagePicker(), isDark: isDark),
+          const SizedBox(height: AppDimensions.lg),
 
-              _sectionTitle('Notifications'),
-              _settingsToggle(Icons.notifications_outlined, 'Push Notifications', _notificationsEnabled, (v) { _togglePushNotifications(v); }, isDark: isDark),
-              _settingsTile(Icons.tune_outlined, 'Notification Settings', subtitle: 'System permission and delivery preferences', onTap: () => context.push('${context.rolePrefix}/notification-settings'), isDark: isDark),
-              _settingsToggle(Icons.volume_up_outlined, 'Sound Effects', _soundEffects, (v) { setState(() => _soundEffects = v); _saveBool('soundEffects', v); }, isDark: isDark),
-              _settingsToggle(Icons.vibration_outlined, 'Haptic Feedback', _hapticFeedback, (v) { setState(() => _hapticFeedback = v); _saveBool('hapticFeedback', v); }, isDark: isDark),
-              const SizedBox(height: AppDimensions.lg),
+          _sectionTitle('Data & Privacy'),
+          _settingsTile(Icons.delete_outline, 'Clear Cache', subtitle: 'Free up storage space', onTap: _clearCache, isDark: isDark),
+          const SizedBox(height: AppDimensions.lg),
 
-              _sectionTitle('Content & Downloads'),
-              _settingsToggle(Icons.cloud_off_outlined, 'Offline Mode', _offlineMode, (v) { setState(() => _offlineMode = v); _saveBool('offlineMode', v); }, isDark: isDark),
-              _settingsToggle(Icons.download_outlined, 'Auto-Download on WiFi', _autoDownload, (v) { setState(() => _autoDownload = v); _saveBool('autoDownload', v); }, isDark: isDark),
-              _settingsTile(Icons.high_quality_outlined, 'Video Quality', subtitle: _videoQuality,
-                trailing: Icon(Icons.chevron_right, color: CT.textM(context)),
-                onTap: () => _showVideoQualityPicker(), isDark: isDark),
-              _settingsTile(Icons.language, 'Language', subtitle: _language,
-                trailing: Icon(Icons.chevron_right, color: CT.textM(context)),
-                onTap: () => _showLanguagePicker(), isDark: isDark),
-              const SizedBox(height: AppDimensions.lg),
+          _sectionTitle('Support'),
+          _settingsTile(Icons.help_outline, 'Help & FAQ', onTap: () => _showHelpFAQSheet(), isDark: isDark),
+          _settingsTile(Icons.chat_bubble_outline, 'Contact Support', onTap: () => _showContactSupportSheet(), isDark: isDark),
+          _settingsTile(Icons.bug_report_outlined, 'Report a Bug', onTap: () => _showBugReportSheet(), isDark: isDark),
+          _settingsTile(Icons.star_outline, 'Rate App', onTap: () => _showRateAppDialog(), isDark: isDark),
+          const SizedBox(height: AppDimensions.lg),
 
-              _sectionTitle('Data & Privacy'),
-              _settingsTile(Icons.delete_outline, 'Clear Cache', subtitle: 'Free up storage space', onTap: () => _showSnack('Cache cleared!'), isDark: isDark),
-              _settingsTile(Icons.download_for_offline_outlined, 'Download Data', subtitle: 'Export your account data', onTap: () => _showDataExportDialog(), isDark: isDark),
-              const SizedBox(height: AppDimensions.lg),
+          _sectionTitle('About'),
+          _settingsTile(Icons.info_outline, 'App Version', subtitle: 'v1.0.0 (Build 42)', isDark: isDark),
+          _settingsTile(Icons.description_outlined, 'Terms of Service', onTap: () => _showTermsSheet(), isDark: isDark),
+          _settingsTile(Icons.privacy_tip_outlined, 'Privacy Policy', onTap: () => _showPrivacySheet(), isDark: isDark),
+          _settingsTile(Icons.shield_outlined, 'Open Source Licenses',
+            onTap: () => showLicensePage(context: context, applicationName: 'Excellence Academy', applicationVersion: 'v1.0.0'), isDark: isDark),
+          const SizedBox(height: AppDimensions.lg),
 
-              _sectionTitle('Support'),
-              _settingsTile(Icons.help_outline, 'Help & FAQ', onTap: () => _showHelpFAQSheet(), isDark: isDark),
-              _settingsTile(Icons.chat_bubble_outline, 'Contact Support', onTap: () => _showContactSupportSheet(), isDark: isDark),
-              _settingsTile(Icons.bug_report_outlined, 'Report a Bug', onTap: () => _showBugReportSheet(), isDark: isDark),
-              _settingsTile(Icons.star_outline, 'Rate App', onTap: () => _showRateAppDialog(), isDark: isDark),
-              const SizedBox(height: AppDimensions.lg),
-
-              _sectionTitle('About'),
-              _settingsTile(Icons.info_outline, 'App Version', subtitle: 'v1.0.0 (Build 42)', isDark: isDark),
-              _settingsTile(Icons.description_outlined, 'Terms of Service', onTap: () => _showTermsSheet(), isDark: isDark),
-              _settingsTile(Icons.privacy_tip_outlined, 'Privacy Policy', onTap: () => _showPrivacySheet(), isDark: isDark),
-              _settingsTile(Icons.shield_outlined, 'Open Source Licenses',
-                onTap: () => showLicensePage(context: context, applicationName: 'Excellence Academy', applicationVersion: 'v1.0.0'), isDark: isDark),
-              const SizedBox(height: AppDimensions.lg),
-
-              // Logout
-              CPPressable(
-                onTap: () => _showLogoutDialog(),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: AppDimensions.md),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                    border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
-                  ),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    const Icon(Icons.logout, color: AppColors.error, size: 20),
-                    const SizedBox(width: AppDimensions.sm),
-                    Text('Log Out', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.error)),
-                  ]),
-                ),
+          // Logout
+          CPPressable(
+            onTap: () => _showLogoutDialog(),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: AppDimensions.md),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
               ),
-              const SizedBox(height: 40),
-            ]);
-          },
-        ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Icon(Icons.logout, color: AppColors.error, size: 20),
+                const SizedBox(width: AppDimensions.sm),
+                Text('Log Out', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.error)),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 40),
+        ]),
       ),
     );
   }
@@ -194,31 +144,6 @@ class _SettingsPageState extends State<SettingsPage> {
     ));
   }
 
-  void _showVideoQualityPicker() {
-    showModalBottomSheet(context: context, backgroundColor: CT.bg(context),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(AppDimensions.lg),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Video Quality', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: CT.textH(context))),
-          const SizedBox(height: AppDimensions.md),
-          ...['Auto', '1080p', '720p', '480p', '360p'].map((q) => CPPressable(
-            onTap: () { setState(() => _videoQuality = q); _saveString('videoQuality', q); Navigator.pop(ctx); },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppDimensions.step),
-              child: Row(children: [
-                Icon(_videoQuality == q ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                  color: _videoQuality == q ? CT.accent(context) : CT.textM(context)),
-                const SizedBox(width: AppDimensions.step),
-                Text(q, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
-              ]),
-            ),
-          )),
-          const SizedBox(height: AppDimensions.md),
-        ]),
-      ));
-  }
-
   void _showLanguagePicker() {
     showModalBottomSheet(context: context, backgroundColor: CT.bg(context),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
@@ -227,7 +152,7 @@ class _SettingsPageState extends State<SettingsPage> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Language', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w600, color: CT.textH(context))),
           const SizedBox(height: AppDimensions.md),
-          ...['English', 'Hindi', 'Hinglish'].map((l) => CPPressable(
+          ...['English'].map((l) => CPPressable(
             onTap: () { setState(() => _language = l); _saveString('language', l); Navigator.pop(ctx); },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: AppDimensions.step),
@@ -244,13 +169,9 @@ class _SettingsPageState extends State<SettingsPage> {
       ));
   }
 
-  void _showDataExportDialog() {
-    showDialog(context: context, builder: (ctx) => _DataExportDialog(accent: CT.accent(context), card: CT.card(context), textH: CT.textH(context), textS: CT.textS(context)));
-  }
-
   void _showHelpFAQSheet() {
     final faqs = [
-      {'q': 'How do I reset my password?', 'a': 'Go to Settings → Change Password. Enter your current password and set a new one.'},
+      {'q': 'How do I reset my password?', 'a': 'Please contact support to reset your password.'},
       {'q': 'How do I change my profile picture?', 'a': 'Navigate to your Profile page and tap on the avatar to upload a new photo.'},
       {'q': 'Can I access content offline?', 'a': 'Yes! Enable Offline Mode in Settings → Content & Downloads to save materials for offline use.'},
       {'q': 'How do I contact my teacher?', 'a': 'Use the Chat feature from your dashboard to send direct messages to your assigned teachers.'},

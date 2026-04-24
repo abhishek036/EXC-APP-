@@ -7,8 +7,10 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/download_registry.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/utils/file_opener.dart';
+import '../../../../core/utils/stable_token.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../data/repositories/student_repository.dart';
 
@@ -36,6 +38,7 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
   @override
   void initState() {
     super.initState();
+    DownloadRegistry.instance.ensureLoaded();
     _materialsFuture = Future.value([]); // init eagerly
     _loadInitialData();
   }
@@ -173,6 +176,7 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
         url: targetUrl,
         fileName: resolvedFileName?.trim().isEmpty ?? true ? material.title : resolvedFileName,
         mimeType: resolvedMimeType?.trim().isEmpty ?? true ? null : resolvedMimeType,
+        downloadKey: _downloadKeyFor(material),
       );
     } catch (_) {
       if (!mounted) return;
@@ -431,6 +435,7 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
   }
 
   Widget _buildMaterialCard(_Material material, int index) {
+    final downloadKey = _downloadKeyFor(material);
     return CPPressable(
           onTap: () {
             if (material.type == 'video' || material.type == 'link') {
@@ -533,14 +538,43 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                       style: IconButton.styleFrom(backgroundColor: CT.bg(context)),
                     ),
                     const SizedBox(height: 8),
-                    IconButton(
-                      onPressed: () => _openMaterial(material, action: 'download'),
-                      icon: const Icon(
-                        Icons.file_download_outlined,
-                        color: AppColors.primary,
-                        size: 26,
-                      ),
-                      style: IconButton.styleFrom(backgroundColor: CT.bg(context)),
+                    AnimatedBuilder(
+                      animation: DownloadRegistry.instance,
+                      builder: (context, _) {
+                        final registry = DownloadRegistry.instance;
+                        final isDownloading = registry.isDownloading(downloadKey);
+                        final isDownloaded = registry.isDownloaded(downloadKey);
+
+                        return IconButton(
+                          tooltip: isDownloaded
+                              ? 'Downloaded'
+                              : isDownloading
+                                  ? 'Downloading'
+                                  : 'Download note',
+                          onPressed: isDownloading
+                              ? null
+                              : () => _openMaterial(material, action: 'download'),
+                          icon: isDownloading
+                              ? SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              : Icon(
+                                  isDownloaded
+                                      ? Icons.check_circle_rounded
+                                      : Icons.file_download_outlined,
+                                  color: isDownloaded
+                                      ? AppColors.mintGreen
+                                      : AppColors.primary,
+                                  size: 26,
+                                ),
+                          style: IconButton.styleFrom(backgroundColor: CT.bg(context)),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -551,6 +585,16 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
         .animate(delay: Duration(milliseconds: 100 * index))
         .fadeIn(duration: 400.ms)
         .slideY(begin: 0.05, end: 0);
+  }
+
+  String _downloadKeyFor(_Material material) {
+    if (material.noteId.isNotEmpty && material.fileId.isNotEmpty) {
+      return 'note:${material.noteId}:${material.fileId}';
+    }
+    if (material.url.trim().isNotEmpty) {
+      return 'note-url:${stableToken(material.url.trim())}';
+    }
+    return 'note:${stableToken(material.title)}';
   }
 }
 

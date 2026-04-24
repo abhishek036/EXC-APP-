@@ -70,6 +70,13 @@ export class AuthService {
         }
     }
 
+    private _otpResendCooldownMs(): number {
+        const raw = String(process.env.OTP_RESEND_COOLDOWN_SECONDS || '45').trim();
+        if (!raw) return 45 * 1000;
+        if (raw === '0') return 0;
+        return this._durationToMs(raw, 45 * 1000);
+    }
+
     private _refreshExpiryMs(): number {
         // Keep DB expiry in sync with JWT_REFRESH_EXPIRES_IN with strict bounds.
         // Allowed: 7d to 30d.
@@ -341,6 +348,36 @@ export class AuthService {
 
         // Validate account disambiguation early so OTP is not sent to ambiguous identities.
         this._selectUserForInstitute(users, joinInstitute?.id);
+
+        const cooldownMs = this._otpResendCooldownMs();
+        if (cooldownMs > 0) {
+            const cooldownThreshold = new Date(Date.now() - cooldownMs);
+            const recentOtp = await prisma.otpCode.findFirst({
+                where: {
+                    phone: { in: phonesToSearch },
+                    purpose,
+                    created_at: {
+                        gt: cooldownThreshold,
+                    },
+                },
+                orderBy: { created_at: 'desc' },
+                select: { created_at: true },
+            });
+
+            if (recentOtp?.created_at) {
+                const createdAtMs = new Date(recentOtp.created_at).getTime();
+                const remainingMs = cooldownMs - (Date.now() - createdAtMs);
+                if (remainingMs > 0) {
+                    const remainingSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
+                    throw new ApiError(
+                        `Please wait ${remainingSeconds} seconds before requesting another OTP.`,
+                        429,
+                        'OTP_RESEND_COOLDOWN',
+                        { retry_after_seconds: String(remainingSeconds) },
+                    );
+                }
+            }
+        }
 
         // Do not block OTP sending on institute resolution.
         // Institute is resolved during verify/login flow.

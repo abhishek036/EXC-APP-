@@ -8,7 +8,6 @@ import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/otp_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
-import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/admin/presentation/pages/student_list_page.dart';
 import '../../features/admin/presentation/pages/student_profile_page.dart';
 import '../../features/admin/presentation/pages/batch_management_page.dart';
@@ -73,6 +72,7 @@ import '../../features/admin/presentation/pages/institute_settings_page.dart';
 import '../../features/admin/presentation/pages/academic_oversight_page.dart';
 import '../../features/admin/presentation/pages/staff_management_page.dart';
 import '../../features/admin/presentation/pages/certificate_generator_page.dart';
+import '../../features/admin/presentation/pages/admin_control_center_page.dart';
 import '../../features/auth/presentation/pages/profile_completion_page.dart';
 import '../../features/auth/presentation/pages/change_password_page.dart';
 import '../../features/admin/presentation/pages/user_management_page.dart';
@@ -128,7 +128,6 @@ class AppRouter {
   static const _publicPaths = <String>{
     '/splash',
     '/login',
-    '/register',
     '/otp',
     '/forgot-password',
     '/terms-of-service',
@@ -308,22 +307,19 @@ class AppRouter {
       ),
       GoRoute(
         path: '/register',
-        name: 'register',
-        pageBuilder: (c, s) => _page(s, const RegisterPage()),
+        redirect: (c, s) => '/login',
       ),
       GoRoute(
         path: '/otp',
         name: 'otp',
         pageBuilder: (c, s) {
           String? phone;
-          AppRole? role;
           String? infoMessage;
           String? debugOtp;
           final extra = s.extra;
 
           if (extra is OtpRouteArgs) {
             phone = extra.phoneNumber;
-            role = extra.role;
             infoMessage = extra.infoMessage;
             debugOtp = extra.debugOtp;
           } else if (extra is String) {
@@ -334,7 +330,6 @@ class AppRouter {
             s,
             OtpPage(
               phoneNumber: phone,
-              role: role,
               infoMessage: infoMessage,
               debugOtp: debugOtp,
             ),
@@ -664,6 +659,11 @@ class AppRouter {
                     ),
                   ),
                 ],
+              ),
+              GoRoute(
+                path: '/admin/all-functions',
+                name: 'admin-control-center',
+                pageBuilder: (c, s) => _page(s, const AdminControlCenterPage()),
               ),
             ],
           ),

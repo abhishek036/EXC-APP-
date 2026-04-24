@@ -4,10 +4,12 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:html' as html;
 
-Future<void> saveAndOpenBytes({
+Future<String> saveAndOpenBytes({
   required Uint8List bytes,
   required String fileName,
   String? mimeType,
+  String? storageKey,
+  required bool persistToCache,
 }) async {
   final blob = html.Blob([
     bytes,
@@ -27,4 +29,13 @@ Future<void> saveAndOpenBytes({
   Timer(const Duration(minutes: 2), () {
     html.Url.revokeObjectUrl(objectUrl);
   });
+
+  return '';
+}
+
+Future<void> openSavedFile({
+  required String path,
+  String? mimeType,
+}) async {
+  throw UnsupportedError('Opening previously saved files is not supported on web');
 }

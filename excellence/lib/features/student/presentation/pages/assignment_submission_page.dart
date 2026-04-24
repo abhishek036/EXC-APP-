@@ -8,6 +8,7 @@ import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/services/app_permission_service.dart';
+import '../../../../core/services/download_registry.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import 'dart:io';
@@ -15,6 +16,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
 import '../../../../core/services/cloud_storage_service.dart';
 import '../../../../core/utils/file_opener.dart';
+import '../../../../core/utils/stable_token.dart';
+import '../../../../core/widgets/download_status_icon.dart';
 import '../../data/repositories/student_repository.dart';
 
 class AssignmentSubmissionPage extends StatefulWidget {
@@ -55,6 +58,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
   @override
   void initState() {
     super.initState();
+    DownloadRegistry.instance.ensureLoaded();
     _assignmentFileUrl = widget.initialFileUrl;
     _submissionTextCtrl.addListener(_onDraftInputChanged);
     _startDraftTimer();
@@ -202,6 +206,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
         url: trimmedUrl,
         fileName: fallbackFileName,
         mimeType: (mimeType ?? '').trim().isEmpty ? null : mimeType,
+        downloadKey: 'assignment-resource:${stableToken(trimmedUrl)}',
       );
     } catch (_) {
       if (!mounted) return;
@@ -285,6 +290,10 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
             .toString();
     final dueDateRaw = (assignment?['due_date'] ?? '').toString();
     final dueLabel = _formatDueLabel(dueDateRaw);
+    final instructionDownloadKey =
+      (_assignmentFileUrl != null && _assignmentFileUrl!.isNotEmpty)
+        ? 'assignment-resource:${stableToken(_assignmentFileUrl!)}'
+        : '';
 
     return Scaffold(
       backgroundColor: CT.bg(context),
@@ -485,7 +494,16 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                                 ),
                               ),
                             ),
-                            const Icon(Icons.download_for_offline_rounded, size: 20, color: AppColors.elitePrimary),
+                              DownloadStatusIcon(
+                                downloadKey: instructionDownloadKey,
+                                idleIcon: Icons.download_for_offline_rounded,
+                                downloadedIcon: Icons.check_circle_rounded,
+                                idleColor: AppColors.elitePrimary,
+                                downloadedColor: AppColors.success,
+                                size: 20,
+                                spinnerSize: 20,
+                                strokeWidth: 2,
+                              ),
                           ],
                         ),
                       ),
