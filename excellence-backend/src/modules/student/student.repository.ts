@@ -296,21 +296,21 @@ export class StudentRepository {
                  name: data.name,
                  phone: data.phone,
                  dob: data.dob ? new Date(data.dob) : null,
-                 gender: data.gender,
-                 address: data.address,
-                 blood_group: data.blood_group,
-                 prev_institute: data.prev_institute
+                 gender: typeof data.gender === 'string' && data.gender.trim() === '' ? null : (data.gender || null),
+                 address: typeof data.address === 'string' && data.address.trim() === '' ? null : (data.address || null),
+                 blood_group: typeof data.blood_group === 'string' && data.blood_group.trim() === '' ? null : (data.blood_group || null),
+                 prev_institute: typeof data.prev_institute === 'string' && data.prev_institute.trim() === '' ? null : (data.prev_institute || null)
              }
          });
 
          // 2. Link/Create Parent by normalized phone
          const hasParentPhone = typeof data.parent_phone === 'string' && data.parent_phone.trim().length > 0;
          if (hasParentPhone) {
-           const parent = await this.findOrCreateParentByPhone(tx, instituteId, data.parent_phone!, {
-             parentName: data.parent_name,
-             studentName: data.name,
-           });
-           await this.linkParentToStudent(tx, instituteId, parent.id, student.id, data.parent_relation);
+            const parent = await this.findOrCreateParentByPhone(tx, instituteId, data.parent_phone!, {
+              parentName: data.parent_name || undefined,
+              studentName: data.name,
+            });
+            await this.linkParentToStudent(tx, instituteId, parent.id, student.id, data.parent_relation || undefined);
          }
 
          // 3. Assign student to batches if provided
@@ -352,8 +352,15 @@ export class StudentRepository {
     ];
 
     const studentBaseData = Object.fromEntries(
-      Object.entries(rest).filter(([key, value]) => allowedStudentFields.includes(key) && value !== undefined),
+      Object.entries(rest)
+        .map(([key, value]) => {
+          const cleanedValue = typeof value === 'string' && value.trim() === '' ? null : value;
+          return [key, cleanedValue];
+        })
+        .filter(([key, value]) => allowedStudentFields.includes(key as string) && value !== undefined),
     );
+
+    const cleanedDob = typeof dob === 'string' && dob.trim() === '' ? null : dob;
 
     return prisma.$transaction(async (tx: any) => {
       const existingStudent = await tx.student.findFirst({
@@ -370,7 +377,7 @@ export class StudentRepository {
         data: {
           ...studentBaseData,
           ...(studentBaseData.enrollment_date ? { enrollment_date: new Date(studentBaseData.enrollment_date as string) } : {}),
-          ...(dob ? { dob: new Date(dob) } : {}),
+          ...(cleanedDob ? { dob: new Date(cleanedDob) } : { dob: cleanedDob === null ? null : undefined }),
         },
       });
 
