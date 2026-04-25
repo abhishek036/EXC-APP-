@@ -604,8 +604,6 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                     ),
                   ),
                   const SizedBox(height: 40),
-aleXY(begin: 0.98),
-
                   const SizedBox(height: 60),
                 ],
               ),

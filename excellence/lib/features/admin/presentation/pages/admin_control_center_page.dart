@@ -240,10 +240,10 @@ class _AdminControlCenterPageState extends State<AdminControlCenterPage>
   }
 
   void _handleBack() {
-    if (context.canPop()) {
-      context.pop();
+    if (GoRouter.of(context).canPop()) {
+      GoRouter.of(context).pop();
     } else {
-      context.go('/admin');
+      GoRouter.of(context).go('/admin');
     }
   }
 
@@ -696,7 +696,7 @@ class _FunctionCard extends StatelessWidget {
       child: CPPressable(
         onTap: () {
           if (route.isNotEmpty) {
-            context.go(route);
+            GoRouter.of(context).go(route);
           }
         },
         child: Container(
@@ -761,3 +761,4 @@ class _FunctionCard extends StatelessWidget {
     ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1);
   }
 }
+

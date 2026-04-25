@@ -117,10 +117,10 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
         children: [
           CPPressable(
             onTap: () {
-              if (context.canPop()) {
-                context.pop();
+              if (GoRouter.of(context).canPop()) {
+                GoRouter.of(context).pop();
               } else {
-                context.go('/admin');
+                GoRouter.of(context).go('/admin');
               }
             },
             child: Icon(
@@ -448,4 +448,5 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
     }
   }
 }
+
 

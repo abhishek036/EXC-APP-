@@ -385,7 +385,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     const SizedBox(height: 48),
                     _buildSectionHeader(
                       "Management Hub",
-                      () => context.push('/admin/students'),
+                      () => GoRouter.of(context).push('/admin/students'),
                       isDark,
                     ),
                     const SizedBox(height: 16),
@@ -395,7 +395,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     const SizedBox(height: 16),
                     _buildSectionHeader(
                       "Academic Flow",
-                      () => context.push('/admin/attendance'),
+                      () => GoRouter.of(context).push('/admin/attendance'),
                       isDark,
                     ),
                     const SizedBox(height: 16),
@@ -403,7 +403,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     const SizedBox(height: 40),
                     _buildSectionHeader(
                       "Revenue Stream",
-                      () => context.push('/admin/fees'),
+                      () => GoRouter.of(context).push('/admin/fees'),
                       isDark,
                     ),
                     const SizedBox(height: 16),
@@ -411,7 +411,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     const SizedBox(height: 40),
                     _buildSectionHeader(
                       "Activity Timeline",
-                      () => context.push('/admin/audit-logs'),
+                      () => GoRouter.of(context).push('/admin/audit-logs'),
                       isDark,
                     ),
                     const SizedBox(height: 16),
@@ -445,7 +445,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             CPPressable(
               onTap: () {
                 Navigator.pop(context);
-                context.push('/admin/profile?edit=true');
+                GoRouter.of(context).push('/admin/profile?edit=true');
               },
               child: Container(
                 color: Colors.transparent,
@@ -527,15 +527,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             }),
             _drawerItem(Icons.settings_rounded, 'App Settings', () {
               Navigator.pop(context);
-              context.push('/admin/settings');
+              GoRouter.of(context).push('/admin/settings');
             }),
             _drawerItem(Icons.notifications_rounded, 'Notifications', () {
               Navigator.pop(context);
-              context.push('/admin/notifications');
+              GoRouter.of(context).push('/admin/notifications');
             }),
             _drawerItem(Icons.bolt_rounded, 'Quick Shortcuts', () {
               Navigator.pop(context);
-              context.push('/admin/auto-notifications');
+              GoRouter.of(context).push('/admin/auto-notifications');
             }),
             const Spacer(),
             const Divider(color: AppColors.elitePrimary, height: 1),
@@ -609,7 +609,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
             ),
             CPPressable(
-              onTap: () => context.push('/admin/profile'),
+              onTap: () => GoRouter.of(context).push('/admin/profile'),
               child: CpUserAvatar(
                 name: userName,
                 avatarUrl: avatarUrl,
@@ -646,7 +646,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               Icons.notifications_none_rounded,
               () {
                 HapticFeedback.mediumImpact();
-                context.push('/admin/notifications');
+                GoRouter.of(context).push('/admin/notifications');
               },
               isDark,
               badge: _unreadNotifications > 0,
@@ -768,7 +768,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               AppColors.elitePrimary,
               isDark,
               Icons.groups_2_rounded,
-              onTap: () => context.push('/admin/batches'),
+              onTap: () => GoRouter.of(context).push('/admin/batches'),
             ),
             const SizedBox(width: 14),
             _glassStat(
@@ -777,7 +777,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               AppColors.coralRed,
               isDark,
               Icons.warning_amber_rounded,
-              onTap: () => context.push('/admin/fees'),
+              onTap: () => GoRouter.of(context).push('/admin/fees'),
             ),
             const SizedBox(width: 14),
             _glassStat(
@@ -786,7 +786,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               AppColors.electricBlue,
               isDark,
               Icons.fact_check_rounded,
-              onTap: () => context.push('/admin/fees'),
+              onTap: () => GoRouter.of(context).push('/admin/fees'),
             ),
           ],
         ),
@@ -928,7 +928,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Expanded(
               flex: 62,
               child: CPPressable(
-                onTap: () => context.push('/admin/add-student'),
+                onTap: () => GoRouter.of(context).push('/admin/add-student'),
                 child: Container(
                   height: 96,
                   padding: const EdgeInsets.all(16),
@@ -993,7 +993,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Expanded(
               flex: 38,
               child: CPPressable(
-                onTap: () => context.push('/admin/fees'),
+                onTap: () => GoRouter.of(context).push('/admin/fees'),
                 child: Container(
                   height: 96,
                   padding: const EdgeInsets.all(12),
@@ -1038,7 +1038,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Expanded(
               flex: 38,
               child: CPPressable(
-                onTap: () => context.push('/admin/attendance'),
+                onTap: () => GoRouter.of(context).push('/admin/attendance'),
                 child: Container(
                   height: 96,
                   padding: const EdgeInsets.all(12),
@@ -1079,7 +1079,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Expanded(
               flex: 62,
               child: CPPressable(
-                onTap: () => context.push('/admin/announcements'),
+                onTap: () => GoRouter.of(context).push('/admin/announcements'),
                 child: Container(
                   height: 96,
                   padding: const EdgeInsets.all(16),
@@ -1214,7 +1214,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         final m = modules[i];
         final col = m['color'] as Color;
         return CPPressable(
-          onTap: () => context.push(m['route'] as String),
+          onTap: () => GoRouter.of(context).push(m['route'] as String),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -1489,7 +1489,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
           ),
           CPPressable(
-            onTap: () => context.push('/admin/fees'),
+            onTap: () => GoRouter.of(context).push('/admin/fees'),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
@@ -1735,7 +1735,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       children: [
         _buildSectionHeader(
           "Critical Absences",
-          () => context.push('/admin/attendance'),
+          () => GoRouter.of(context).push('/admin/attendance'),
           isDark,
         ),
         const SizedBox(height: 16),
@@ -1826,7 +1826,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       children: [
         _buildSectionHeader(
           "Financial Pulse",
-          () => context.push('/admin/fees'),
+          () => GoRouter.of(context).push('/admin/fees'),
           isDark,
         ),
         const SizedBox(height: 16),
@@ -1977,4 +1977,5 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     ),
   );
 }
+
 

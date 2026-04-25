@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -20,6 +19,9 @@ class _DoubtThreadMessage {
   final String? imageUrl;
   final DateTime? timestamp;
   final bool isStudent;
+
+  String get senderName => label;
+  String get senderRole => isStudent ? 'student' : 'teacher';
 
   const _DoubtThreadMessage({
     required this.label,
@@ -651,82 +653,6 @@ class _ParentDoubtsPageState extends State<ParentDoubtsPage> {
       ),
     );
   }
-
-  Widget _buildThreadBubble(_DoubtThreadMessage msg, bool isDark) {
-    final isTeacher = msg.senderRole == 'teacher';
-    final hasImage = msg.imageUrl != null && msg.imageUrl!.isNotEmpty;
-
-    return Column(
-      crossAxisAlignment: isTeacher ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-      children: [
-        if (msg.senderName != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4, left: 4, right: 4),
-            child: Text(
-              msg.senderName!.toUpperCase(),
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 9,
-                fontWeight: FontWeight.w900,
-                color: isDark ? AppColors.paleSlate2 : Colors.black38,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-        Container(
-          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isTeacher
-                ? (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white)
-                : AppColors.electricBlue,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(16),
-              topRight: const Radius.circular(16),
-              bottomLeft: Radius.circular(isTeacher ? 0 : 16),
-              bottomRight: Radius.circular(isTeacher ? 16 : 0),
-            ),
-            border: isTeacher && !isDark
-                ? Border.all(color: Colors.black.withValues(alpha: 0.05))
-                : null,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (hasImage) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    msg.imageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (c, e, s) => const Icon(Icons.broken_image),
-                  ),
-                ),
-                if (msg.text.isNotEmpty) const SizedBox(height: 8),
-              ],
-              if (msg.text.isNotEmpty)
-                Text(
-                  msg.text,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isTeacher
-                        ? (isDark ? AppColors.paleSlate1 : AppColors.deepNavy)
-                        : Colors.white,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class _DoubtChatSheet extends StatelessWidget {
@@ -819,19 +745,18 @@ class _DoubtChatSheet extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: isTeacher ? CrossAxisAlignment.start : CrossAxisAlignment.end,
                     children: [
-                      if (msg.senderName != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 6, left: 4, right: 4),
-                          child: Text(
-                            msg.senderName!.toUpperCase(),
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              color: isDark ? AppColors.paleSlate2 : Colors.black38,
-                              letterSpacing: 0.5,
-                            ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6, left: 4, right: 4),
+                        child: Text(
+                          msg.senderName.toUpperCase(),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: isDark ? AppColors.paleSlate2 : Colors.black38,
+                            letterSpacing: 0.5,
                           ),
                         ),
+                      ),
                       Container(
                         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
                         padding: const EdgeInsets.all(16),

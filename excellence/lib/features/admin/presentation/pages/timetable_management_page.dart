@@ -384,7 +384,7 @@ class _TimetableManagementPageState extends State<TimetableManagementPage> {
       backgroundColor: CT.bg(context),
       appBar: AppBar(
         leading: CPPressable(
-          onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
+          onTap: () { if (GoRouter.of(context).canPop()) { GoRouter.of(context).pop(); } else { GoRouter.of(context).go('/admin'); } },
           child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
         ),
         title: Text(
@@ -558,3 +558,4 @@ class _TimetableManagementPageState extends State<TimetableManagementPage> {
     );
   }
 }
+

@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -486,10 +488,10 @@ class _CreateQuizPageState extends State<CreateQuizPage> with ThemeAware<CreateQ
             size: 22,
           ),
           onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+            if (GoRouter.of(context).canPop()) {
+              GoRouter.of(context).pop();
             } else {
-              context.go('/teacher');
+              GoRouter.of(context).go('/teacher');
             }
           },
         ),

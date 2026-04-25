@@ -81,7 +81,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       });
       if (mounted) {
         CPToast.success(context, 'Password reset! Please log in.');
-        context.go('/login');
+        GoRouter.of(context).go('/login');
       }
     } catch (e) {
       if (mounted) CPToast.error(context, e.toString().replaceAll(RegExp(r'.*\]'), ''));
@@ -98,7 +98,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         leading: CPPressable(
           onTap: () {
             if (_step == _Step.phone) {
-              context.pop();
+              GoRouter.of(context).pop();
             } else {
               setState(() => _step = _Step.values[_step.index - 1]);
             }
@@ -316,3 +316,4 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     );
   }
 }
+

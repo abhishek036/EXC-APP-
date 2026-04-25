@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -6,10 +7,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../core/di/injection_container.dart';
-import '../../../../core/widgets/cp_pressable.dart';
-import '../../data/repositories/admin_repository.dart';
-import '../../../../core/theme/theme_aware.dart';
+import 'package:excellence/core/di/injection_container.dart';
+import 'package:excellence/core/widgets/cp_pressable.dart';
+import 'package:excellence/features/admin/data/repositories/admin_repository.dart';
+import 'package:excellence/core/theme/theme_aware.dart';
+import 'package:excellence/core/services/realtime_sync_service.dart';
 class StudentProfilePage extends StatefulWidget {
   final String studentId;
   const StudentProfilePage({super.key, required this.studentId});
@@ -21,7 +23,7 @@ class StudentProfilePage extends StatefulWidget {
 class _StudentProfilePageState extends State<StudentProfilePage> with SingleTickerProviderStateMixin, ThemeAware<StudentProfilePage> {
   final _adminRepo = sl<AdminRepository>();
   final _syncService = sl<RealtimeSyncService>();
-  StreamSubscription? _syncSubscription;
+  StreamSubscription<Map<String, dynamic>>? _syncSubscription;
 
   Map<String, dynamic>? _student;
   List<Map<String, dynamic>> _feeHistory = [];
@@ -426,10 +428,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
   }
 
   void _goBackToStudentsList() {
-    if (context.canPop()) {
-      context.pop();
+    if (GoRouter.of(context).canPop()) {
+      GoRouter.of(context).pop();
     } else {
-      context.go('/admin/students');
+      GoRouter.of(context).go('/admin/students');
     }
   }
 
@@ -2207,6 +2209,7 @@ class _ProfileBatchPickerSheet extends StatelessWidget {
     );
   }
 }
+
 
 
 

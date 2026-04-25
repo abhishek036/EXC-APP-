@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
@@ -480,10 +481,10 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> with ThemeAware<D
             size: 22,
           ),
           onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+            if (GoRouter.of(context).canPop()) {
+              GoRouter.of(context).pop();
             } else {
-              context.go('/teacher');
+              GoRouter.of(context).go('/teacher');
             }
           },
         ),
@@ -636,6 +637,7 @@ class _DoubtResponsePageState extends State<DoubtResponsePage> with ThemeAware<D
     );
   }
 }
+
 
 
 

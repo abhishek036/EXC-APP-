@@ -442,7 +442,7 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
               final summary = material.chapterTitle.toLowerCase() == 'general'
                   ? ''
                   : material.chapterTitle;
-              context.push('/student/video-player', extra: {
+              GoRouter.of(context).push('/student/video-player', extra: {
                 'videoUrl': material.url,
                 'title': material.title,
                 'summary': summary,
@@ -665,3 +665,4 @@ class _Material {
     );
   }
 }
+

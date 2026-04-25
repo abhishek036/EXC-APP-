@@ -246,10 +246,10 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
             backgroundColor: const Color(0xFF354388),
             leading: CPPressable(
               onTap: () {
-                if (context.canPop()) {
-                  context.pop();
+                if (GoRouter.of(context).canPop()) {
+                  GoRouter.of(context).pop();
                 } else {
-                  context.go('/admin');
+                  GoRouter.of(context).go('/admin');
                 }
               },
               child: const Icon(
@@ -505,7 +505,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
         ).toInt();
         return CPPressable(
           onTap: () {
-            context.push('/admin/batches/${batch['id']}').then((_) {
+            GoRouter.of(context).push('/admin/batches/${batch['id']}').then((_) {
               if (!mounted) return;
               _loadTeacherDashboard();
             });
@@ -942,4 +942,5 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
     );
   }
 }
+
 

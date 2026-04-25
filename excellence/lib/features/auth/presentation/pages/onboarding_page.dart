@@ -82,7 +82,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   child: Padding(
                     padding: const EdgeInsets.only(top: 4, right: 4),
                     child: TextButton(
-                      onPressed: () => context.go('/login'),
+                      onPressed: () => GoRouter.of(context).go('/login'),
                       child: Text('skip', style: GoogleFonts.plusJakartaSans(color: CT.textM(context), fontWeight: FontWeight.w600, fontSize: 14)),
                     ),
                   ),
@@ -126,7 +126,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         icon: _currentPage == _items.length - 1 ? Icons.arrow_forward : null,
                         onPressed: () {
                           if (_currentPage == _items.length - 1) {
-                            context.go('/login');
+                            GoRouter.of(context).go('/login');
                           } else {
                             _pageController.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
                           }
@@ -202,3 +202,4 @@ class _OnboardingItem {
   final Color accent;
   _OnboardingItem({required this.icon, required this.title, required this.subtitle, required this.gradient, required this.accent});
 }
+

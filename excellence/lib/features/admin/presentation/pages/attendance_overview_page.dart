@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -276,10 +277,10 @@ class _AttendanceOverviewPageState extends State<AttendanceOverviewPage> {
         children: [
           CPPressable(
             onTap: () {
-              if (context.canPop()) {
-                context.pop();
+              if (GoRouter.of(context).canPop()) {
+                GoRouter.of(context).pop();
               } else {
-                context.go('/admin');
+                GoRouter.of(context).go('/admin');
               }
             },
             child: Icon(
@@ -791,4 +792,5 @@ class _BatchOption {
   final String name;
   const _BatchOption({required this.id, required this.name});
 }
+
 

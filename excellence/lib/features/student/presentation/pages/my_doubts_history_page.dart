@@ -433,7 +433,7 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           HapticFeedback.lightImpact();
-          context.push('/student/doubts/ask').then((_) => _loadDoubts());
+          GoRouter.of(context).push('/student/doubts/ask').then((_) => _loadDoubts());
         },
         backgroundColor: AppColors.electricBlue,
         icon: const Icon(Icons.add_comment_rounded, color: Colors.white),
@@ -658,3 +658,4 @@ class _MyDoubtsHistoryPageState extends State<MyDoubtsHistoryPage> {
     );
   }
 }
+

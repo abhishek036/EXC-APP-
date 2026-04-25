@@ -65,7 +65,7 @@ class _BatchesPageState extends State<BatchesPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
           onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/student'),
+              GoRouter.of(context).canPop() ? GoRouter.of(context).pop() : GoRouter.of(context).go('/student'),
         ),
         title: Text(
           'My Batches',
@@ -217,7 +217,7 @@ class _BatchesPageState extends State<BatchesPage> {
     final isDark = CT.isDark(context);
 
     return CPPressable(
-      onTap: () => context.push('/student/batches/${b['id']}', extra: b),
+      onTap: () => GoRouter.of(context).push('/student/batches/${b['id']}', extra: b),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(AppDimensions.md),
@@ -438,4 +438,5 @@ class _BatchesPageState extends State<BatchesPage> {
     );
   }
 }
+
 

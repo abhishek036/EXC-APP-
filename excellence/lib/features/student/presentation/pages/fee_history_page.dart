@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -106,10 +107,10 @@ class _FeeHistoryPageState extends State<FeeHistoryPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+            if (GoRouter.of(context).canPop()) {
+              GoRouter.of(context).pop();
             } else {
-              context.go('/student');
+              GoRouter.of(context).go('/student');
             }
           },
         ),
@@ -353,4 +354,5 @@ class _FeeHistoryPageState extends State<FeeHistoryPage> {
         .slideX(begin: 0.05, end: 0);
   }
 }
+
 

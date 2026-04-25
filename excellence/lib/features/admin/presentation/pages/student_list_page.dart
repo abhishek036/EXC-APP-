@@ -326,7 +326,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
           ? null
           : FloatingActionButton(
               onPressed: () async {
-                final result = await context.push('/admin/add-student');
+                final result = await GoRouter.of(context).push('/admin/add-student');
                 if (!mounted || result == null) return;
                 if (result is Map<String, dynamic>) {
                   // Optimistic update
@@ -415,10 +415,10 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
         children: [
           CPPressable(
             onTap: () {
-              if (context.canPop()) {
-                context.pop();
+              if (GoRouter.of(context).canPop()) {
+                GoRouter.of(context).pop();
               } else {
-                context.go('/admin');
+                GoRouter.of(context).go('/admin');
               }
             },
             child: Container(
@@ -890,7 +890,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
           if (noStudentsAtAll)
             CPPressable(
               onTap: () async {
-                final created = await context.push('/admin/add-student');
+                final created = await GoRouter.of(context).push('/admin/add-student');
                 if (!context.mounted) return;
                 if (created == true) {
                   await _loadAll();
@@ -1062,7 +1062,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               return;
             }
             HapticFeedback.lightImpact();
-            context.push('/admin/students/${student.docId}').then((_) {
+            GoRouter.of(context).push('/admin/students/${student.docId}').then((_) {
               if (!mounted) return;
               _loadAll();
             });
@@ -1574,6 +1574,7 @@ class _BatchPickerSheet extends StatelessWidget {
     );
   }
 }
+
 
 
 

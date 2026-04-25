@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -187,10 +188,10 @@ class _AddStudentPageState extends State<AddStudentPage> {
         elevation: 0,
         leading: CPPressable(
           onTap: () {
-            if (context.canPop()) {
-              context.pop();
+            if (GoRouter.of(context).canPop()) {
+              GoRouter.of(context).pop();
             } else {
-              context.go('/admin/students');
+              GoRouter.of(context).go('/admin/students');
             }
           },
           child: const Icon(
@@ -632,3 +633,4 @@ class CPBatchChip extends StatelessWidget {
     );
   }
 }
+

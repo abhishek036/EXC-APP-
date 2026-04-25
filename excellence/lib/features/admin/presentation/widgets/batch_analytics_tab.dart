@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'batch_detail_common_widgets.dart';
 
 class BatchAnalyticsTab extends StatelessWidget {

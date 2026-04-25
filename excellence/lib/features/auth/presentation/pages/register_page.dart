@@ -128,10 +128,10 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
                       const SizedBox(height: 24),
                       CPPressable(
                         onTap: () {
-                          if (context.canPop()) {
-                            context.pop();
+                          if (GoRouter.of(context).canPop()) {
+                            GoRouter.of(context).pop();
                           } else {
-                            context.go('/login');
+                            GoRouter.of(context).go('/login');
                           }
                         },
                         child: Container(
@@ -290,7 +290,7 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
                             const SizedBox(height: 14),
                             Center(
                               child: CPPressable(
-                                onTap: () => context.go('/login'),
+                                onTap: () => GoRouter.of(context).go('/login'),
                                 child: Text(
                                   'Already have an account? Login',
                                   style: GoogleFonts.plusJakartaSans(
@@ -372,3 +372,4 @@ class _RegisterPageState extends State<RegisterPage> with ThemeAware<RegisterPag
     );
   }
 }
+

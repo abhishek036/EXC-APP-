@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -228,10 +229,10 @@ class _QuizResultsPageState extends State<QuizResultsPage> with ThemeAware<QuizR
             size: 20,
           ),
           onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+            if (GoRouter.of(context).canPop()) {
+              GoRouter.of(context).pop();
             } else {
-              context.go('/teacher');
+              GoRouter.of(context).go('/teacher');
             }
           },
         ),
@@ -844,6 +845,7 @@ class _QuizResultsPageState extends State<QuizResultsPage> with ThemeAware<QuizR
     );
   }
 }
+
 
 
 

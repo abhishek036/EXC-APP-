@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -253,10 +254,10 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
             size: 22,
           ),
           onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+            if (GoRouter.of(context).canPop()) {
+              GoRouter.of(context).pop();
             } else {
-              context.go('/teacher');
+              GoRouter.of(context).go('/teacher');
             }
           },
         ),
@@ -490,6 +491,7 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
     );
   }
 }
+
 
 
 

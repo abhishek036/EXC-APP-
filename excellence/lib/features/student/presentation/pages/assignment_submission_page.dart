@@ -268,7 +268,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
       );
       await _loadAssignments();
       if (!mounted) return;
-      context.pop();
+      GoRouter.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -765,7 +765,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/student'); } },
+                              onPressed: () { if (GoRouter.of(context).canPop()) { GoRouter.of(context).pop(); } else { GoRouter.of(context).go('/student'); } },
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
@@ -819,3 +819,4 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
     return 'Due in $days days';
   }
 }
+

@@ -682,7 +682,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                               currentRolePrefix: context.rolePrefix,
                             );
                             if (route != null && route.isNotEmpty) {
-                              context.push(route);
+                              GoRouter.of(context).push(route);
                             }
                           },
                           child: AnimatedContainer(
@@ -1077,3 +1077,4 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 }
+

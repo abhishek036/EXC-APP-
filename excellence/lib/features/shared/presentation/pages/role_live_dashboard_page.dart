@@ -206,7 +206,7 @@ class RoleLiveDashboardPage extends StatelessWidget {
                           ),
 
                           CPPressable(
-                            onTap: () => context.go('${user.dashboardPath}/notifications'),
+                            onTap: () => GoRouter.of(context).go('${user.dashboardPath}/notifications'),
                             child: Icon(Icons.notifications_outlined, color: CT.textH(context), size: 24),
                           ),
                         ],
@@ -258,7 +258,7 @@ class RoleLiveDashboardPage extends StatelessWidget {
                         runSpacing: AppDimensions.step,
                         children: _actions(role).map((action) {
                           return CPPressable(
-                            onTap: () => context.go(action.path),
+                            onTap: () => GoRouter.of(context).go(action.path),
                             child: Container(
                               width: (MediaQuery.of(context).size.width - 2 * AppDimensions.pagePaddingH - AppDimensions.step) / 2,
                               padding: const EdgeInsets.all(AppDimensions.md),
@@ -332,3 +332,4 @@ class _ActionConfig {
 
   const _ActionConfig({required this.label, required this.path, required this.icon});
 }
+

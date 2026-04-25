@@ -52,7 +52,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         backgroundColor: CT.bg(context),
         elevation: 0,
         leading: IconButton(
-          onPressed: () { if (context.canPop()) { context.pop(); } else { context.go('/parent'); } },
+          onPressed: () { if (GoRouter.of(context).canPop()) { GoRouter.of(context).pop(); } else { GoRouter.of(context).go('/parent'); } },
           icon: Icon(Icons.arrow_back_rounded, color: CT.textH(context)),
         ),
         title: Text(
@@ -409,3 +409,4 @@ class _PaymentItem {
     return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 }
+

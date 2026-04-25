@@ -233,10 +233,10 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                   scrolledUnderElevation: 0,
                   leading: IconButton(
                     onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
+                      if (GoRouter.of(context).canPop()) {
+                        GoRouter.of(context).pop();
                       } else {
-                        context.go('/admin');
+                        GoRouter.of(context).go('/admin');
                       }
                     },
                     icon: Icon(
@@ -258,7 +258,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                     IconButton(
                       onPressed: () {
                         HapticFeedback.lightImpact();
-                        context.push('/admin/data-export');
+                        GoRouter.of(context).push('/admin/data-export');
                       },
                       icon: Icon(
                         Icons.get_app_rounded,
@@ -1965,4 +1965,5 @@ class _AdminReportsPageState extends State<AdminReportsPage>
     );
   }
 }
+
 

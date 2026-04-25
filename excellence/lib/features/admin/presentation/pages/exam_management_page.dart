@@ -891,7 +891,7 @@ class _ExamManagementPageState extends State<ExamManagementPage>
               icon: Icons.edit_note_rounded,
               onPressed: () {
                 Navigator.pop(ctx);
-                context.push('/admin/exams/bulk-results', extra: exam);
+                GoRouter.of(context).push('/admin/exams/bulk-results', extra: exam);
               },
             ),
             const SizedBox(height: 12),
@@ -1179,4 +1179,5 @@ class _ExamManagementPageState extends State<ExamManagementPage>
     );
   }
 }
+
 

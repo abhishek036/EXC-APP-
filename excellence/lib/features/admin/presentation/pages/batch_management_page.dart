@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
-import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_glass_card.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_shimmer.dart';
@@ -176,10 +175,10 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
             size: 20,
           ),
           onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+            if (GoRouter.of(context).canPop()) {
+              GoRouter.of(context).pop();
             } else {
-              context.go('/admin');
+              GoRouter.of(context).go('/admin');
             }
           },
         ),
@@ -328,7 +327,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
 
     return CPPressable(
       onTap: () {
-        context.push('/admin/batches/${batch['id']}').then((_) {
+        GoRouter.of(context).push('/admin/batches/${batch['id']}').then((_) {
           if (!mounted) return;
           _loadData();
         });
@@ -414,7 +413,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                         ),
                         onSelected: (value) {
                           if (value == 'open') {
-                            context.push('/admin/batches/${batch['id']}').then((_) {
+                            GoRouter.of(context).push('/admin/batches/${batch['id']}').then((_) {
                               if (!mounted) return;
                               _loadData();
                             });
@@ -510,7 +509,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            context.push('/admin/batches/${batch['id']}').then((_) {
+                            GoRouter.of(context).push('/admin/batches/${batch['id']}').then((_) {
                               if (!mounted) return;
                               _loadData();
                             });
@@ -537,7 +536,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                       const SizedBox(width: 10),
                       GestureDetector(
                         onTap: () {
-                          context.push('/admin/batches/${batch['id']}').then((_) {
+                          GoRouter.of(context).push('/admin/batches/${batch['id']}').then((_) {
                             if (!mounted) return;
                             _loadData();
                           });
@@ -561,7 +560,7 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
                       const SizedBox(width: 10),
                       GestureDetector(
                         onTap: () {
-                          context.push('/admin/batches/${batch['id']}').then((_) {
+                          GoRouter.of(context).push('/admin/batches/${batch['id']}').then((_) {
                             if (!mounted) return;
                             _loadData();
                           });
@@ -1162,4 +1161,5 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
     );
   }
 }
+
 

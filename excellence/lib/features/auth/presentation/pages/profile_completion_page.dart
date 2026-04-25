@@ -84,10 +84,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
   void _routeToDashboard(String role) {
     switch (role) {
-      case 'admin': context.go('/admin'); break;
-      case 'teacher': context.go('/teacher'); break;
-      case 'parent': context.go('/parent'); break;
-      default: context.go('/student');
+      case 'admin': GoRouter.of(context).go('/admin'); break;
+      case 'teacher': GoRouter.of(context).go('/teacher'); break;
+      case 'parent': GoRouter.of(context).go('/parent'); break;
+      default: GoRouter.of(context).go('/student');
     }
   }
 
@@ -276,3 +276,4 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     );
   }
 }
+

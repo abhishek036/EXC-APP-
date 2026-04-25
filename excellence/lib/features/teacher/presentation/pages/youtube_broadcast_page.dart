@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:apivideo_live_stream/apivideo_live_stream.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
@@ -228,10 +229,10 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> with ThemeA
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () {
-                        if (context.canPop()) {
-                          context.pop();
+                        if (GoRouter.of(context).canPop()) {
+                          GoRouter.of(context).pop();
                         } else {
-                          context.go('/teacher');
+                          GoRouter.of(context).go('/teacher');
                         }
                       },
                     ),
@@ -369,5 +370,6 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> with ThemeA
     );
   }
 }
+
 
 

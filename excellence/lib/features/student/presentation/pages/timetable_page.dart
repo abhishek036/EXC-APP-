@@ -119,7 +119,7 @@ class _TimetablePageState extends State<TimetablePage> {
       children: [
         CPPressable(
           onTap: () =>
-              context.canPop() ? context.pop() : context.go('/student'),
+              GoRouter.of(context).canPop() ? GoRouter.of(context).pop() : GoRouter.of(context).go('/student'),
           child: Container(
             padding: const EdgeInsets.all(AppDimensions.step),
             decoration: CT.cardDecor(context, radius: AppDimensions.radiusSM),
@@ -469,3 +469,4 @@ class _TimetablePageState extends State<TimetablePage> {
     );
   }
 }
+

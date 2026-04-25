@@ -12,7 +12,6 @@ import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_toast.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../data/repositories/admin_repository.dart';
-import '../widgets/batch_detail_common_widgets.dart';
 import '../widgets/batch_overview_tab.dart';
 import '../widgets/batch_content_tab.dart';
 import '../widgets/batch_students_tab.dart';
@@ -53,9 +52,9 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
   String? _error;
 
   int _activeTab = 0;
-  int _activeContentTab = 0;
-  String _studentFilter = 'All';
-  String _feeFilter = 'All';
+  final int _activeContentTab = 0;
+  final String _studentFilter = 'All';
+  final String _feeFilter = 'All';
   bool _fabExpanded = false;
   String? _selectedSubject;
   List<String> _batchSubjects = [];
@@ -1188,10 +1187,10 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
           onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+            if (GoRouter.of(context).canPop()) {
+              GoRouter.of(context).pop();
             } else {
-              context.go('/admin');
+              GoRouter.of(context).go('/admin');
             }
           },
         ),
@@ -1987,8 +1986,8 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
           batch: _batch,
           getStudentAttendance: _studentAttendance,
           getStudentFeeStatus: _studentFeeStatus,
-          onAddStudent: () => context.push('/admin/add-student').then((_) => _loadBatch()),
-          onViewStudent: (id) => context.push('/admin/students/$id').then((_) => _loadBatch()),
+          onAddStudent: () => GoRouter.of(context).push('/admin/add-student').then((_) => _loadBatch()),
+          onViewStudent: (id) => GoRouter.of(context).push('/admin/students/$id').then((_) => _loadBatch()),
           onRefresh: _loadBatch,
         );
       case 3:
@@ -2011,7 +2010,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
           dateLabel: _dateLabel,
           onGenerateFees: _showGenerateFeesDialog,
           onMarkAsPaid: _markAsPaid,
-          onSendWhatsAppReminder: () => context.push('/admin/whatsapp-broadcast'),
+          onSendWhatsAppReminder: () => GoRouter.of(context).push('/admin/whatsapp-broadcast'),
           onSendPushReminder: _sendFeeReminder,
         );
       case 5:
@@ -2206,7 +2205,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<int>(
-                      value: month,
+                      initialValue: month,
                       items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(_getMonthName(i + 1)))).toList(),
                       onChanged: (v) => setS(() => month = v ?? month),
                       decoration: const InputDecoration(labelText: 'Month'),
@@ -2215,7 +2214,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<int>(
-                      value: year,
+                      initialValue: year,
                       items: [year - 1, year, year + 1].map((y) => DropdownMenuItem(value: y, child: Text(y.toString()))).toList(),
                       onChanged: (v) => setS(() => year = v ?? year),
                       decoration: const InputDecoration(labelText: 'Year'),
@@ -2301,7 +2300,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: (selectedTeacherId ?? '').isEmpty ? null : selectedTeacherId,
+                      initialValue: (selectedTeacherId ?? '').isEmpty ? null : selectedTeacherId,
                       decoration: const InputDecoration(labelText: 'Teacher'),
                       items: _teachers.map((t) {
                         return DropdownMenuItem(
@@ -2554,7 +2553,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     TextField(controller: bodyCtrl, maxLines: 4, decoration: const InputDecoration(labelText: 'Content')),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
-                      value: category,
+                      initialValue: category,
                       items: ['Batch', 'Urgent', 'Holiday', 'Exam'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                       onChanged: (val) => setS(() => category = val ?? category),
                       decoration: const InputDecoration(labelText: 'Category'),
@@ -2713,7 +2712,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: status,
+                  initialValue: status,
                   items: ['pending', 'reviewed', 'rejected'].map((s) => DropdownMenuItem(value: s, child: Text(s.toUpperCase()))).toList(),
                   onChanged: (val) => setS(() => status = val ?? status),
                   decoration: const InputDecoration(labelText: 'Status'),
@@ -2785,7 +2784,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                       _fabMenuItem(
                         'Lecture',
                         Icons.ondemand_video_rounded,
-                        () => context.push('/admin/timetable'),
+                        () => GoRouter.of(context).push('/admin/timetable'),
                       ),
                       _fabMenuItem(
                         'Material',
@@ -2805,17 +2804,17 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                       _fabMenuItem(
                         'Test',
                         Icons.quiz_rounded,
-                        () => context.push('/admin/exams'),
+                        () => GoRouter.of(context).push('/admin/exams'),
                       ),
                       _fabMenuItem(
                         'Student',
                         Icons.person_add_alt_rounded,
-                        () => context.push('/admin/add-student'),
+                        () => GoRouter.of(context).push('/admin/add-student'),
                       ),
                       _fabMenuItem(
                         'Fee',
                         Icons.payments_rounded,
-                        () => context.push('/admin/fees'),
+                        () => GoRouter.of(context).push('/admin/fees'),
                       ),
                     ],
                   ),
@@ -2990,7 +2989,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       await _adminRepo.deleteBatch(widget.batchId);
       if (!mounted) return;
       CPToast.success(context, 'Batch deleted');
-      context.pop();
+      GoRouter.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       CPToast.error(context, 'Delete failed: $e');
@@ -3365,4 +3364,5 @@ extension _BatchDetailUtils on _BatchDetailPageState {
   double _toDouble(dynamic v) => double.tryParse(v?.toString() ?? '0') ?? 0.0;
   int _toInt(dynamic v, {int fallback = 0}) => int.tryParse(v?.toString() ?? '') ?? fallback;
 }
+
 

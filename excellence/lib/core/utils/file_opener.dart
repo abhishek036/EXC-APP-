@@ -213,12 +213,10 @@ Future<bool> _isOfflineCacheEnabled() async {
 Future<bool> _isOnWifi() async {
   try {
     final result = await Connectivity().checkConnectivity();
-    if (result is List<ConnectivityResult>) {
-      return result.any(
-        (item) => item == ConnectivityResult.wifi || item == ConnectivityResult.ethernet,
-      );
-    }
-    if (result is ConnectivityResult) {
+    return result.any(
+      (item) => item == ConnectivityResult.wifi || item == ConnectivityResult.ethernet,
+    );
+      if (result is ConnectivityResult) {
       return result == ConnectivityResult.wifi || result == ConnectivityResult.ethernet;
     }
   } catch (_) {}

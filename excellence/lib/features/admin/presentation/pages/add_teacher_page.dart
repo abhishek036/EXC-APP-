@@ -119,7 +119,7 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
       backgroundColor: CT.bg(context),
       appBar: AppBar(
         leading: CPPressable(
-          onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
+          onTap: () { if (GoRouter.of(context).canPop()) { GoRouter.of(context).pop(); } else { GoRouter.of(context).go('/admin'); } },
           child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
         ),
         title: Column(
@@ -229,7 +229,7 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
                     child: SizedBox(
                       height: 56,
                       child: OutlinedButton(
-                        onPressed: _isSaving ? null : () => context.pop(),
+                        onPressed: _isSaving ? null : () => GoRouter.of(context).pop(),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(
                             color: Color(0xFF354388),
@@ -353,4 +353,5 @@ class _AddTeacherPageState extends State<AddTeacherPage> {
     );
   }
 }
+
 

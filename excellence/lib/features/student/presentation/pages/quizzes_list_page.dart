@@ -185,7 +185,7 @@ class _QuizzesListPageState extends State<QuizzesListPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
           onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/student'),
+              GoRouter.of(context).canPop() ? GoRouter.of(context).pop() : GoRouter.of(context).go('/student'),
         ),
         title: Text(
           'Available Quizzes',
@@ -199,7 +199,7 @@ class _QuizzesListPageState extends State<QuizzesListPage> {
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: () => context.push('/student/results'),
+            onPressed: () => GoRouter.of(context).push('/student/results'),
             icon: Icon(Icons.history_rounded, size: 22, color: CT.textH(context)),
             tooltip: 'View Results',
           ),
@@ -565,7 +565,7 @@ class _QuizzesListPageState extends State<QuizzesListPage> {
     }
 
     if (state.resultReleased) {
-      context.push(_quizResultRoute(quizId));
+      GoRouter.of(context).push(_quizResultRoute(quizId));
       return;
     }
 
@@ -615,7 +615,7 @@ class _QuizzesListPageState extends State<QuizzesListPage> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(ctx);
-                      context.push(_quizTakingRoute(quizId));
+                      GoRouter.of(context).push(_quizTakingRoute(quizId));
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: CT.accent(ctx),
@@ -693,7 +693,7 @@ class _QuizzesListPageState extends State<QuizzesListPage> {
     try {
       await _studentRepo.startQuizAttempt(quizId);
       if (!mounted) return;
-      context.push(_quizTakingRoute(quizId));
+      GoRouter.of(context).push(_quizTakingRoute(quizId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -758,7 +758,7 @@ class _QuizzesListPageState extends State<QuizzesListPage> {
                     onPressed: state.resultReleased && quizId.isNotEmpty
                         ? () {
                             Navigator.pop(ctx);
-                            context.push(_quizResultRoute(quizId));
+                            GoRouter.of(context).push(_quizResultRoute(quizId));
                           }
                         : null,
                     style: ElevatedButton.styleFrom(
@@ -797,3 +797,4 @@ class _QuizzesListPageState extends State<QuizzesListPage> {
     );
   }
 }
+

@@ -231,7 +231,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           ),
         ),
         CPPressable(
-          onTap: () => context.go('/parent/profile'),
+          onTap: () => GoRouter.of(context).go('/parent/profile'),
           child: CpUserAvatar(
             name: parentName,
             avatarUrl: avatarUrl,
@@ -280,11 +280,11 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           ),
         ),
         _appBarAction(Icons.notifications_none_rounded, () {
-          context.go('/parent/notifications');
+          GoRouter.of(context).go('/parent/notifications');
         }, isDark),
         const SizedBox(width: 8),
         _appBarAction(Icons.settings_outlined, () {
-          context.go('/parent/settings');
+          GoRouter.of(context).go('/parent/settings');
         }, isDark),
       ],
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);
@@ -352,7 +352,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                         );
                         return;
                       }
-                      context.go('/parent/weekly-report/${_children[_selectedChild]['id']}');
+                      GoRouter.of(context).go('/parent/weekly-report/${_children[_selectedChild]['id']}');
                     },
                   ),
                   _drawerTile(
@@ -361,7 +361,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.go('/parent/payment-history');
+                      GoRouter.of(context).go('/parent/payment-history');
                     },
                   ),
                   _drawerTile(
@@ -370,7 +370,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.go('/parent/notifications');
+                      GoRouter.of(context).go('/parent/notifications');
                     },
                   ),
                   _drawerTile(
@@ -379,7 +379,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.go('/parent/profile');
+                      GoRouter.of(context).go('/parent/profile');
                     },
                   ),
                   _drawerTile(
@@ -388,7 +388,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.go('/parent/settings');
+                      GoRouter.of(context).go('/parent/settings');
                     },
                   ),
                 ],
@@ -515,7 +515,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
       onTap: () {
         final id = child['id'] ?? child['uid'] ?? '';
         if (id.isNotEmpty) {
-          context.push('/parent/weekly-report/$id');
+          GoRouter.of(context).push('/parent/weekly-report/$id');
         }
       },
       child: Container(
@@ -886,7 +886,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
             ),
             const Spacer(),
             CPPressable(
-              onTap: () => context.go('/parent/weekly-report/$childId'),
+              onTap: () => GoRouter.of(context).go('/parent/weekly-report/$childId'),
               child: Text(
                 'View all',
                 style: GoogleFonts.plusJakartaSans(
@@ -1021,11 +1021,11 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
             onTap: () {
               final recordId = child['pendingFeeRecordId'];
               if (pendingFee > 0 && recordId != null) {
-                context.go('/parent/fee-payment/$recordId');
+                GoRouter.of(context).go('/parent/fee-payment/$recordId');
               } else if (pendingFee > 0) {
-                context.go('/parent/fee-payment');
+                GoRouter.of(context).go('/parent/fee-payment');
               } else {
-                context.go('/parent/payment-history');
+                GoRouter.of(context).go('/parent/payment-history');
               }
             },
             child: Container(
@@ -1115,7 +1115,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
         CPPressable(
           onTap: () {
             if (_children.isNotEmpty) {
-              context.go('/parent/weekly-report/${_children[_selectedChild]['id']}');
+              GoRouter.of(context).go('/parent/weekly-report/${_children[_selectedChild]['id']}');
             }
           },
           child: Container(
@@ -1212,7 +1212,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
               color: AppColors.primary,
               onTap: () {
                 if (_children.isNotEmpty) {
-                  context.go(
+                  GoRouter.of(context).go(
                     '/parent/weekly-report/${_children[_selectedChild]['id']}',
                   );
                 }
@@ -1226,7 +1226,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
               title: 'Payment History',
               subtitle: 'Paid, pending, overdue',
               color: AppColors.warning,
-              onTap: () => context.go('/parent/payment-history'),
+              onTap: () => GoRouter.of(context).go('/parent/payment-history'),
             ),
           ),
         ],
@@ -1242,7 +1242,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
               color: AppColors.success,
               onTap: () {
                 if (_children.isNotEmpty) {
-                  context.go('/parent/weekly-report/${_children[_selectedChild]['id']}');
+                  GoRouter.of(context).go('/parent/weekly-report/${_children[_selectedChild]['id']}');
                 }
               },
             ),
@@ -1258,9 +1258,9 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                 final child = _children[_selectedChild];
                 final recordId = child['pendingFeeRecordId'];
                 if (recordId != null) {
-                  context.go('/parent/fee-payment/$recordId');
+                  GoRouter.of(context).go('/parent/fee-payment/$recordId');
                 } else {
-                  context.go('/parent/fee-payment');
+                  GoRouter.of(context).go('/parent/fee-payment');
                 }
               },
             ),
@@ -1276,7 +1276,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
               title: 'Video Library',
               subtitle: 'Recorded lectures',
               color: AppColors.electricBlue,
-              onTap: () => context.go('/parent/video-lectures'),
+              onTap: () => GoRouter.of(context).go('/parent/video-lectures'),
             ),
           ),
           const SizedBox(width: AppDimensions.step),
@@ -1286,7 +1286,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
               title: 'Notice Board',
               subtitle: 'School announcements',
               color: AppColors.mintGreen,
-              onTap: () => context.go('/parent/notifications'),
+              onTap: () => GoRouter.of(context).go('/parent/notifications'),
             ),
           ),
         ],
@@ -1368,7 +1368,7 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
   }
 
   Widget _schedItem(String time, String sub, String info, bool isDark) => CPPressable(
-    onTap: () => context.push('/parent/reports'),
+    onTap: () => GoRouter.of(context).push('/parent/reports'),
     child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1527,3 +1527,4 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
     );
   }
 }
+

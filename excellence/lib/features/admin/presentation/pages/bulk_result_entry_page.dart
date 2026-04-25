@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -116,10 +117,10 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
 
       if (!mounted) return;
       CPToast.success(context, 'Batch results deployed successfully');
-      if (context.canPop()) {
+      if (GoRouter.of(context).canPop()) {
         context.pop(true);
       } else {
-        context.go('/admin/batches');
+        GoRouter.of(context).go('/admin/batches');
       }
     } catch (_) {
       if (!mounted) return;
@@ -265,10 +266,10 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
         children: [
           CPPressable(
             onTap: () {
-              if (context.canPop()) {
-                context.pop();
+              if (GoRouter.of(context).canPop()) {
+                GoRouter.of(context).pop();
               } else {
-                context.go('/admin/batches');
+                GoRouter.of(context).go('/admin/batches');
               }
             },
             child: Icon(
@@ -415,3 +416,4 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
     );
   }
 }
+

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -113,10 +114,10 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
         children: [
           CPPressable(
             onTap: () {
-              if (context.canPop()) {
-                context.pop();
+              if (GoRouter.of(context).canPop()) {
+                GoRouter.of(context).pop();
               } else {
-                context.go('/admin');
+                GoRouter.of(context).go('/admin');
               }
             },
             child: Icon(
@@ -458,4 +459,5 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
     ),
   );
 }
+
 

@@ -157,7 +157,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
       child: Row(
         children: [
           CPPressable(
-            onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
+            onTap: () { if (GoRouter.of(context).canPop()) { GoRouter.of(context).pop(); } else { GoRouter.of(context).go('/admin'); } },
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,
@@ -179,7 +179,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
           _appBarAction(
             Icons.add_rounded,
             () async {
-              final created = await context.push('/admin/teachers/add');
+              final created = await GoRouter.of(context).push('/admin/teachers/add');
               if (!mounted) return;
               if (created == true) {
                 await _loadTeachers();
@@ -348,7 +348,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
           },
           onTap: () {
             HapticFeedback.lightImpact();
-            context.push('/admin/teachers/$teacherId').then((_) {
+            GoRouter.of(context).push('/admin/teachers/$teacherId').then((_) {
               if (!mounted) return;
               _loadTeachers();
             });
@@ -567,4 +567,5 @@ class _TeacherListPageState extends State<TeacherListPage> {
     );
   }
 }
+
 

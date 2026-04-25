@@ -4,10 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import '../../../../core/di/injection_container.dart';
-import '../../../../core/services/app_update_service.dart';
+import 'package:excellence/core/di/injection_container.dart';
+import 'package:excellence/core/services/app_update_service.dart';
 import '../bloc/auth_bloc.dart';
-import '../../../../core/theme/theme_aware.dart';
+import 'package:excellence/core/theme/theme_aware.dart';
+import 'package:excellence/core/services/app_permission_service.dart';
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -47,7 +48,7 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
         'min': updateDecision.minSupportedVersion,
         if (updateDecision.storeUrl.isNotEmpty) 'storeUrl': updateDecision.storeUrl,
       };
-      context.go(Uri(path: '/update', queryParameters: params).toString());
+      GoRouter.of(context).go(Uri(path: '/update', queryParameters: params).toString());
       return;
     }
 
@@ -129,5 +130,6 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
     );
   }
 }
+
 
 

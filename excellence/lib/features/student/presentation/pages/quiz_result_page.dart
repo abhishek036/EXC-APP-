@@ -90,7 +90,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        context.go(_returnTo);
+        GoRouter.of(context).go(_returnTo);
       },
       child: Scaffold(
         backgroundColor: CT.bg(context),
@@ -98,7 +98,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
           backgroundColor: CT.bg(context),
           elevation: 0,
           leading: IconButton(
-            onPressed: () => context.go(_returnTo),
+            onPressed: () => GoRouter.of(context).go(_returnTo),
             icon: Icon(Icons.arrow_back_ios_new_rounded, color: CT.textH(context)),
           ),
           title: Text(
@@ -216,7 +216,7 @@ class _QuizResultPageState extends State<QuizResultPage> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => context.go(_returnTo),
+                  onPressed: () => GoRouter.of(context).go(_returnTo),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     side: const BorderSide(color: Colors.white, width: 1.4),
@@ -534,4 +534,5 @@ class _QuizResultPageState extends State<QuizResultPage> {
     );
   }
 }
+
 

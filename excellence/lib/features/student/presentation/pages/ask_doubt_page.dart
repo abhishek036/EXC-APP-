@@ -140,7 +140,7 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-      context.pop();
+      GoRouter.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -165,10 +165,10 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
           onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+            if (GoRouter.of(context).canPop()) {
+              GoRouter.of(context).pop();
             } else {
-              context.go('/student');
+              GoRouter.of(context).go('/student');
             }
           },
         ),
@@ -413,4 +413,5 @@ class _AskDoubtPageState extends State<AskDoubtPage> {
     );
   }
 }
+
 

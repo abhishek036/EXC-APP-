@@ -87,7 +87,7 @@ class _ChatListPageState extends State<ChatListPage> {
                       onTap: () {
                         HapticFeedback.selectionClick();
                         final loc = GoRouterState.of(context).matchedLocation;
-                        context.go('$loc/chat/$batchId');
+                        GoRouter.of(context).go('$loc/chat/$batchId');
                       },
                       child: Container(
                         padding: const EdgeInsets.all(AppDimensions.md),
@@ -150,3 +150,4 @@ class _ChatListPageState extends State<ChatListPage> {
     }
   }
 }
+

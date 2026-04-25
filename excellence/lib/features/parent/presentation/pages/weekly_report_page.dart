@@ -229,10 +229,10 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
         centerTitle: true,
         leading: IconButton(
           onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+            if (GoRouter.of(context).canPop()) {
+              GoRouter.of(context).pop();
             } else {
-              context.go('/parent');
+              GoRouter.of(context).go('/parent');
             }
           },
           icon: Icon(Icons.arrow_back_rounded, color: CT.textH(context)),
@@ -1040,7 +1040,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       ListView.separated(
         padding: const EdgeInsets.all(24),
         itemCount: daily.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, i) {
           final item = daily[i];
           final percent = _toDouble(item['attendance_percent']);
@@ -1107,7 +1107,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       ListView.separated(
         padding: const EdgeInsets.all(24),
         itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, i) {
           final item = items[i];
           final percent = _toInt(item['percentage']);
@@ -1174,7 +1174,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
           : ListView.separated(
               padding: const EdgeInsets.all(24),
               itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
                 final item = items[i];
                 return Container(
@@ -1228,7 +1228,7 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
       ListView.separated(
         padding: const EdgeInsets.all(24),
         itemCount: records.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, i) {
           final item = records[i];
           final status = (item['status'] ?? '').toString().toUpperCase();
@@ -1384,3 +1384,4 @@ class _WeeklyReportPageState extends State<WeeklyReportPage> {
     ).animate(delay: 240.ms).fadeIn();
   }
 }
+

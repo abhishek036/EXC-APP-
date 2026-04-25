@@ -233,7 +233,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       const SizedBox(height: 32),
                       _buildSectionHeader(
                         "Today's Schedule",
-                        () => context.push('/student/timetable'),
+                        () => GoRouter.of(context).push('/student/timetable'),
                         isDark,
                       ),
                       const SizedBox(height: 16),
@@ -241,7 +241,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       const SizedBox(height: 32),
                       _buildSectionHeader(
                         "Exam Center",
-                        () => context.push('/student/exam-calendar'),
+                        () => GoRouter.of(context).push('/student/exam-calendar'),
                         isDark,
                       ),
                       const SizedBox(height: 16),
@@ -249,7 +249,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       const SizedBox(height: 32),
                       _buildSectionHeader(
                         "Academic Flow",
-                        () => context.push('/student/batches'),
+                        () => GoRouter.of(context).push('/student/batches'),
                         isDark,
                       ),
                       const SizedBox(height: 16),
@@ -257,7 +257,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       const SizedBox(height: 48),
                       _buildSectionHeader(
                         "Performance Stats",
-                        () => context.push('/student/results'),
+                        () => GoRouter.of(context).push('/student/results'),
                         isDark,
                       ),
                       const SizedBox(height: 16),
@@ -267,7 +267,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       const SizedBox(height: 32),
                       _buildSectionHeader(
                         "Notice Board",
-                        () => context.push('/student/announcements'),
+                        () => GoRouter.of(context).push('/student/announcements'),
                         isDark,
                       ),
                       const SizedBox(height: 16),
@@ -275,7 +275,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       const SizedBox(height: 40),
                       _buildSectionHeader(
                         "Connect",
-                        () => context.push('/student/profile'),
+                        () => GoRouter.of(context).push('/student/profile'),
                         isDark,
                       ),
                       const SizedBox(height: 16),
@@ -470,7 +470,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.push('/student/materials');
+                      GoRouter.of(context).push('/student/materials');
                     },
                   ),
                   _drawerTile(
@@ -479,7 +479,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.push('/student/video-lectures');
+                      GoRouter.of(context).push('/student/video-lectures');
                     },
                   ),
                   _drawerTile(
@@ -488,7 +488,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.push('/student/exam-calendar');
+                      GoRouter.of(context).push('/student/exam-calendar');
                     },
                   ),
                   _drawerTile(
@@ -497,7 +497,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.push('/student/fee-history');
+                      GoRouter.of(context).push('/student/fee-history');
                     },
                   ),
                   _drawerTile(
@@ -506,7 +506,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.push('/student/profile');
+                      GoRouter.of(context).push('/student/profile');
                     },
                   ),
                   _drawerTile(
@@ -515,7 +515,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     AppColors.elitePrimary,
                     () {
                       Navigator.pop(context);
-                      context.push('/student/settings');
+                      GoRouter.of(context).push('/student/settings');
                     },
                   ),
                 ],
@@ -597,7 +597,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           ),
         ),
         CPPressable(
-          onTap: () => context.push('/student/profile'),
+          onTap: () => GoRouter.of(context).push('/student/profile'),
           child: CpUserAvatar(
             name: name,
             avatarUrl: avatarUrl,
@@ -636,7 +636,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           Icons.notifications_none_rounded,
           () async {
             HapticFeedback.mediumImpact();
-            await context.push('/student/notifications');
+            await GoRouter.of(context).push('/student/notifications');
             if (mounted) {
               _checkNotifications();
             }
@@ -1011,7 +1011,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     final diff = diffRaw.abs();
 
     return CPPressable(
-          onTap: () => context.push('/student/exam-calendar'),
+          onTap: () => GoRouter.of(context).push('/student/exam-calendar'),
           child: _neoContainer(
             isDark: isDark,
             bgColor: AppColors.elitePrimary,
@@ -1178,7 +1178,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       itemBuilder: (context, index) {
         final item = items[index];
         return CPPressable(
-            onTap: () => context.push(item['route'] as String),
+            onTap: () => GoRouter.of(context).push(item['route'] as String),
               child: _neoContainer(
                 isDark: isDark,
                 padding: const EdgeInsets.all(8),
@@ -1252,7 +1252,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         const SizedBox(width: 12),
         Expanded(
           child: CPPressable(
-            onTap: () => context.push('/student/results'),
+            onTap: () => GoRouter.of(context).push('/student/results'),
             child: _neoContainer(
               isDark: isDark,
               padding: const EdgeInsets.all(12),
@@ -1353,7 +1353,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     final totalVal = _dashboardData?['stats']?['pending_fees_total'] ?? 0;
 
     return CPPressable(
-      onTap: () => context.push('/student/fee-history'),
+      onTap: () => GoRouter.of(context).push('/student/fee-history'),
       child: _neoContainer(
         isDark: isDark,
         bgColor: AppColors.coralRed,
@@ -1656,3 +1656,4 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     }
   }
 }
+

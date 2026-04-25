@@ -172,8 +172,8 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
   }
 
   void _handleBack() {
-    if (context.canPop()) {
-      context.pop();
+    if (GoRouter.of(context).canPop()) {
+      GoRouter.of(context).pop();
       return;
     }
     final shellBack = CPRoleShellBack.maybeOf(context);
@@ -1353,6 +1353,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
     }
   }
 }
+
 
 
 

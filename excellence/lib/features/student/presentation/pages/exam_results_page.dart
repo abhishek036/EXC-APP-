@@ -192,10 +192,10 @@ class _ExamResultsPageState extends State<ExamResultsPage> {
           children: [
             CPPressable(
               onTap: () {
-                if (context.canPop()) {
-                  context.pop();
+                if (GoRouter.of(context).canPop()) {
+                  GoRouter.of(context).pop();
                 } else {
-                  context.go('/student');
+                  GoRouter.of(context).go('/student');
                 }
               },
               child: Container(
@@ -567,4 +567,5 @@ class _ExamResultsPageState extends State<ExamResultsPage> {
     );
   }
 }
+
 

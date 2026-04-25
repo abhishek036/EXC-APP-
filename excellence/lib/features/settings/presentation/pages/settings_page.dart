@@ -62,10 +62,10 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(
         leading: CPPressable(
           onTap: () {
-            if (context.canPop()) {
-              context.pop();
+            if (GoRouter.of(context).canPop()) {
+              GoRouter.of(context).pop();
             } else {
-              context.go(context.rolePrefix);
+              GoRouter.of(context).go(context.rolePrefix);
             }
           },
           child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context)),
@@ -78,7 +78,7 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           _sectionTitle('Account'),
-          _settingsTile(Icons.person_outline, 'Edit Profile', subtitle: 'Name, phone, email', onTap: () => context.go('${context.rolePrefix}/profile?edit=true'), isDark: isDark),
+          _settingsTile(Icons.person_outline, 'Edit Profile', subtitle: 'Name, phone, email', onTap: () => GoRouter.of(context).go('${context.rolePrefix}/profile?edit=true'), isDark: isDark),
           const SizedBox(height: AppDimensions.lg),
 
           _sectionTitle('Content & Downloads'),
@@ -418,11 +418,11 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showTermsSheet() {
-    context.push('/terms-of-service');
+    GoRouter.of(context).push('/terms-of-service');
   }
 
   void _showPrivacySheet() {
-    context.push('/privacy-policy');
+    GoRouter.of(context).push('/privacy-policy');
   }
 
   void _showSnack(String msg) {
@@ -550,3 +550,4 @@ class _DataExportDialogState extends State<_DataExportDialog> with SingleTickerP
     ]),
   );
 }
+

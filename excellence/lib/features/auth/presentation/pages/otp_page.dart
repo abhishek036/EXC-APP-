@@ -308,10 +308,10 @@ class _OtpPageState extends State<OtpPage> with ThemeAware<OtpPage> {
                         alignment: Alignment.centerLeft,
                         child: CPPressable(
                           onTap: () {
-                            if (context.canPop()) {
-                              context.pop();
+                            if (GoRouter.of(context).canPop()) {
+                              GoRouter.of(context).pop();
                             } else {
-                              context.go('/login');
+                              GoRouter.of(context).go('/login');
                             }
                           },
                           child: Container(

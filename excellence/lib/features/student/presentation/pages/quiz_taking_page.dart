@@ -235,7 +235,7 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
       appBar: AppBar(
         backgroundColor: CT.card(context),
         leading: IconButton(
-          onPressed: () => context.go(_returnTo),
+          onPressed: () => GoRouter.of(context).go(_returnTo),
           icon: const Icon(Icons.arrow_back),
         ),
         title: Text(
@@ -317,7 +317,7 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => context.go(_returnTo),
+                        onPressed: () => GoRouter.of(context).go(_returnTo),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           side: const BorderSide(color: AppColors.primary, width: 1.4),
@@ -329,7 +329,7 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _resultReleased
-                            ? () => context.go(_resultRoute)
+                            ? () => GoRouter.of(context).go(_resultRoute)
                             : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: CT.accent(context),
@@ -938,7 +938,7 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              context.go(_returnTo);
+              GoRouter.of(context).go(_returnTo);
             },
             child: Text('Quit', style: TextStyle(color: AppColors.error)),
           ),
@@ -947,3 +947,4 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
     );
   }
 }
+

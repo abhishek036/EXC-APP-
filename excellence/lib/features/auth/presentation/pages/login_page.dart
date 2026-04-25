@@ -53,7 +53,7 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
           ));
         }
         if (state is AuthOtpSent) {
-          context.push('/otp', extra: OtpRouteArgs(
+          GoRouter.of(context).push('/otp', extra: OtpRouteArgs(
             phoneNumber: _phoneController.text.trim(),
             infoMessage: state.infoMessage,
             debugOtp: state.debugOtp,
@@ -281,5 +281,6 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
     );
   }
 }
+
 
 

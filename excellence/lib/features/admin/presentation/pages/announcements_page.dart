@@ -112,7 +112,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                   child: Row(
                     children: [
                       CPPressable(
-                        onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
+                        onTap: () { if (GoRouter.of(context).canPop()) { GoRouter.of(context).pop(); } else { GoRouter.of(context).go('/admin'); } },
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -1157,4 +1157,5 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
     );
   }
 }
+
 

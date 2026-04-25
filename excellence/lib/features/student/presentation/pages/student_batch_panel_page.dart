@@ -244,7 +244,7 @@ class _StudentBatchPanelPageState extends State<StudentBatchPanelPage> with Them
               if (_subjects.isNotEmpty && _selectedSubject != null) {
                 setState(() => _selectedSubject = null);
               } else {
-                context.pop();
+                GoRouter.of(context).pop();
               }
             },
           ),
@@ -357,10 +357,10 @@ class _StudentBatchPanelPageState extends State<StudentBatchPanelPage> with Them
             size: 20,
           ),
           onPressed: () {
-            if (context.canPop()) {
-              context.pop();
+            if (GoRouter.of(context).canPop()) {
+              GoRouter.of(context).pop();
             } else {
-              context.go('/student');
+              GoRouter.of(context).go('/student');
             }
           },
         ),
@@ -676,7 +676,7 @@ class _LecturesPaneState extends State<_LecturesPane> with ThemeAware<_LecturesP
 
                   // Unified video player — handles both YouTube and
                   // direct links with zero YouTube branding.
-                  context.push(
+                  GoRouter.of(context).push(
                     '/student/video-player',
                     extra: {
                       'videoUrl': url,
@@ -1109,7 +1109,7 @@ class _AssignmentsPaneState extends State<_AssignmentsPane> with ThemeAware<_Ass
                         .toString(),
                 meta: 'SUBMIT',
                 onTap: () {
-                  context.push(
+                  GoRouter.of(context).push(
                     '/student/assignment-submit',
                     extra: {
                       'assignmentId': assignment['id']?.toString() ?? '',
@@ -1659,7 +1659,7 @@ class _QuizPaneState extends State<_QuizPane> with ThemeAware<_QuizPane> {
     }
 
     if (state.resultReleased) {
-      context.push(_quizResultRoute(quizId));
+      GoRouter.of(context).push(_quizResultRoute(quizId));
       return;
     }
 
@@ -1711,7 +1711,7 @@ class _QuizPaneState extends State<_QuizPane> with ThemeAware<_QuizPane> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(ctx);
-                      context.push(_quizTakingRoute(quizId));
+                      GoRouter.of(context).push(_quizTakingRoute(quizId));
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _StudentBatchPanelPageState.primaryBlue,
@@ -1791,7 +1791,7 @@ class _QuizPaneState extends State<_QuizPane> with ThemeAware<_QuizPane> {
     try {
       await _repo.startQuizAttempt(quizId);
       if (!mounted) return;
-      context.push(_quizTakingRoute(quizId));
+      GoRouter.of(context).push(_quizTakingRoute(quizId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1985,7 +1985,7 @@ class _ScheduleTabState extends State<_ScheduleTab> with ThemeAware<_ScheduleTab
                       ),
                     ),
                     ElevatedButton(
-                      onPressed: () => context.push(
+                      onPressed: () => GoRouter.of(context).push(
                         '/student/live-session',
                         extra: {
                           'batchId': widget.batchId,
@@ -2438,7 +2438,7 @@ class _ResultsTabState extends State<_ResultsTab> with ThemeAware<_ResultsTab> {
                     meta: (res['meta'] ?? 'RESULT').toString(),
                     onTap: () {
                       if (quizId.isEmpty) return;
-                      context.push(_quizResultRoute(quizId));
+                      GoRouter.of(context).push(_quizResultRoute(quizId));
                     },
                   );
                 },
@@ -3514,7 +3514,7 @@ class _DoubtsTabState extends State<_DoubtsTab> with ThemeAware<_DoubtsTab> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  await context.push(
+                  await GoRouter.of(context).push(
                     '/student/doubts/ask',
                     extra: {
                       'batchId': widget.batchId,
@@ -4017,5 +4017,6 @@ class _SyllabusPaneState extends State<_SyllabusPane> with ThemeAware<_SyllabusP
     );
   }
 }
+
 
 

@@ -206,7 +206,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
               content: Text('This batch is no longer assigned to you.'),
             ),
           );
-          context.go('/teacher/batches');
+          GoRouter.of(context).go('/teacher/batches');
         });
         return;
       }
@@ -1583,7 +1583,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                           return;
                         }
                         if (value == 'view_attendance') {
-                          context.push('/teacher/attendance');
+                          GoRouter.of(context).push('/teacher/attendance');
                           return;
                         }
                         if (value == 'mark_weak') {
@@ -1607,7 +1607,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                           return;
                         }
                         if (value == 'message_parent') {
-                          context.push('/teacher/chat-list');
+                          GoRouter.of(context).push('/teacher/chat-list');
                         }
                       },
                       itemBuilder: (ctx) {
@@ -3432,6 +3432,7 @@ class _ActionBtn extends StatelessWidget {
     );
   }
 }
+
 
 
 

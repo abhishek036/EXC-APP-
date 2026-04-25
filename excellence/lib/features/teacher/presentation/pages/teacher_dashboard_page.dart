@@ -220,21 +220,21 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                     const SizedBox(height: 48),
                     _buildSectionHeader(
                       "Command Center",
-                      () => context.push('/teacher/batches'),
+                      () => GoRouter.of(context).push('/teacher/batches'),
                     ),
                     const SizedBox(height: 16),
                     _buildManagementHub(),
                     const SizedBox(height: 40),
                     _buildSectionHeader(
                       "Academic Flow",
-                      () => context.push('/teacher/schedule'),
+                      () => GoRouter.of(context).push('/teacher/schedule'),
                     ),
                     const SizedBox(height: 16),
                     _buildScheduleList(),
                     const SizedBox(height: 40),
                     _buildSectionHeader(
                       "Pending Doubts Alerts",
-                      () => context.push('/teacher/doubts'),
+                      () => GoRouter.of(context).push('/teacher/doubts'),
                     ),
                     const SizedBox(height: 16),
                     _buildDoubtsSection(),
@@ -276,7 +276,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
           ),
         ),
         CPPressable(
-          onTap: () => context.push('/teacher/profile'),
+          onTap: () => GoRouter.of(context).push('/teacher/profile'),
           child: CpUserAvatar(
             name: userName,
             avatarUrl: avatarUrl,
@@ -312,12 +312,12 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         ),
         _appBarAction(Icons.search_rounded, () {
           HapticFeedback.mediumImpact();
-          context.push('/teacher/batches');
+          GoRouter.of(context).push('/teacher/batches');
         }),
         const SizedBox(width: 8),
         _appBarAction(Icons.notifications_none_rounded, () async {
           HapticFeedback.mediumImpact();
-          await context.push('/teacher/notifications');
+          await GoRouter.of(context).push('/teacher/notifications');
           if (mounted) {
             _loadDashboard(silent: true);
           }
@@ -535,7 +535,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
             Expanded(
               flex: 62,
               child: CPPressable(
-                onTap: () => context.push('/teacher/attendance'),
+                onTap: () => GoRouter.of(context).push('/teacher/attendance'),
                 child: Container(
                   height: 88,
                   padding: const EdgeInsets.all(16),
@@ -603,7 +603,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
             Expanded(
               flex: 38,
               child: CPPressable(
-                onTap: () => context.push('/teacher/upload-material'),
+                onTap: () => GoRouter.of(context).push('/teacher/upload-material'),
                 child: Container(
                   height: 88,
                   padding: const EdgeInsets.all(12),
@@ -762,7 +762,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         final m = modules[i];
         final col = m['color'] as Color;
         return CPPressable(
-          onTap: () => context.push(m['route'] as String),
+          onTap: () => GoRouter.of(context).push(m['route'] as String),
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -848,7 +848,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       child: CPPressable(
         onTap: batchId.isEmpty
             ? null
-            : () => context.push('/teacher/batches/$batchId'),
+            : () => GoRouter.of(context).push('/teacher/batches/$batchId'),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -953,7 +953,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                   .toString();
           final qText = (d['question_text'] ?? d['question'] ?? '').toString();
           return InkWell(
-            onTap: () => context.push('/teacher/doubts'),
+            onTap: () => GoRouter.of(context).push('/teacher/doubts'),
             child: Container(
               width: 240,
               margin: const EdgeInsets.only(right: 14),
@@ -1124,7 +1124,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               AppColors.elitePrimary,
               () {
                 Navigator.pop(context);
-                context.push('/teacher/schedule');
+                GoRouter.of(context).push('/teacher/schedule');
               },
             ),
             _drawerTile(
@@ -1133,7 +1133,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               AppColors.elitePrimary,
               () {
                 Navigator.pop(context);
-                context.push('/teacher/batches');
+                GoRouter.of(context).push('/teacher/batches');
               },
             ),
             _drawerTile(
@@ -1142,7 +1142,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               AppColors.elitePrimary,
               () {
                 Navigator.pop(context);
-                context.push('/teacher/notifications');
+                GoRouter.of(context).push('/teacher/notifications');
               },
             ),
             _drawerTile(
@@ -1151,7 +1151,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
               AppColors.elitePrimary,
               () {
                 Navigator.pop(context);
-                context.push('/teacher/profile');
+                GoRouter.of(context).push('/teacher/profile');
               },
             ),
             const Spacer(),
@@ -1202,3 +1202,4 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     ),
   );
 }
+

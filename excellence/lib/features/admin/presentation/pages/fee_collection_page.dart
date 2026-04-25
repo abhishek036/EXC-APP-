@@ -229,10 +229,10 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                   pinned: true,
                   leading: CPPressable(
                     onTap: () {
-                      if (context.canPop()) {
-                        context.pop();
+                      if (GoRouter.of(context).canPop()) {
+                        GoRouter.of(context).pop();
                       } else {
-                        context.go('/admin');
+                        GoRouter.of(context).go('/admin');
                       }
                     },
                     child: Icon(
@@ -256,7 +256,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                   actions: [
                     _appBarAction(
                       Icons.fact_check_outlined,
-                      () => context.push('/admin/fee-payment'),
+                      () => GoRouter.of(context).push('/admin/fee-payment'),
                       isDark,
                     ),
                     const SizedBox(width: 12),
@@ -1870,4 +1870,5 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     return '';
   }
 }
+
 

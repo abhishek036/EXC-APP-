@@ -211,15 +211,15 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> with ThemeAware
                       index: i,
                       onManageTap: () {
                         if (id.isEmpty) return;
-                        context.go('/teacher/batches/$id?tab=overview');
+                        GoRouter.of(context).go('/teacher/batches/$id?tab=overview');
                       },
                       onArrowTap: () {
                         if (id.isEmpty) return;
-                        context.go('/teacher/batches/$id?tab=content');
+                        GoRouter.of(context).go('/teacher/batches/$id?tab=content');
                       },
                       onStudentsTap: () {
                         if (id.isEmpty) return;
-                        context.go('/teacher/batches/$id?tab=students');
+                        GoRouter.of(context).go('/teacher/batches/$id?tab=students');
                       },
                       blue: primaryBlue,
                       yellow: accentYellow,
@@ -577,6 +577,7 @@ class _ActionBtn extends StatelessWidget {
     );
   }
 }
+
 
 
 

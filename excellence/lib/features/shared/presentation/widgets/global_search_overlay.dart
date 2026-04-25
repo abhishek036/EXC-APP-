@@ -162,7 +162,7 @@ class _GlobalSearchOverlayState extends State<GlobalSearchOverlay> {
               return CPPressable(
                 onTap: () {
                   Navigator.pop(context);
-                  context.go(item['route'] as String);
+                  GoRouter.of(context).go(item['route'] as String);
                 },
                 child: CPGlassCard(
                   isDark: isDark,
@@ -239,13 +239,13 @@ class _GlobalSearchOverlayState extends State<GlobalSearchOverlay> {
               onTap: () {
                 Navigator.pop(context);
                 if (type == 'student') {
-                  context.go('/admin/students/${item['id']}');
+                  GoRouter.of(context).go('/admin/students/${item['id']}');
                 } else if (type == 'teacher') {
-                  context.go('/admin/teachers'); // Navigate to list since no profile yet
+                  GoRouter.of(context).go('/admin/teachers'); // Navigate to list since no profile yet
                 } else if (type == 'batch') {
-                  context.go('/admin/batches');
+                  GoRouter.of(context).go('/admin/batches');
                 } else if (type == 'lead') {
-                  context.go('/admin/leads');
+                  GoRouter.of(context).go('/admin/leads');
                 }
               },
               child: CPGlassCard(
@@ -300,3 +300,4 @@ class _GlobalSearchOverlayState extends State<GlobalSearchOverlay> {
     }
   }
 }
+

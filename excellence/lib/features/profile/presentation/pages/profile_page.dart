@@ -57,7 +57,7 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
     }
 
     // Final fallback for direct deep-link entry when no local/shell history exists.
-    context.go(context.rolePrefix);
+    GoRouter.of(context).go(context.rolePrefix);
   }
 
   bool _uploadingAvatar = false;
@@ -580,7 +580,7 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
         return;
       }
       if (route != null && route.isNotEmpty) {
-        context.go(route);
+        GoRouter.of(context).go(route);
       }
     },
     child: Padding(
@@ -614,4 +614,5 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
     ),
   );
 }
+
 

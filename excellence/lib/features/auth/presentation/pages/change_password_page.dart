@@ -47,7 +47,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       });
       if (mounted) {
         CPToast.success(context, 'Password changed successfully!');
-        context.pop();
+        GoRouter.of(context).pop();
       }
     } catch (e) {
       if (mounted) CPToast.error(context, e.toString().split(']').last);
@@ -61,7 +61,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     return Scaffold(
       backgroundColor: CT.bg(context),
       appBar: AppBar(
-        leading: CPPressable(onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/login'); } }, child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context))),
+        leading: CPPressable(onTap: () { if (GoRouter.of(context).canPop()) { GoRouter.of(context).pop(); } else { GoRouter.of(context).go('/login'); } }, child: Icon(Icons.arrow_back_ios, size: 18, color: CT.textH(context))),
         title: Text('Change Password', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: CT.textH(context))),
         backgroundColor: CT.bg(context), elevation: 0,
       ),
@@ -167,3 +167,4 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     ).animate().fadeIn(duration: 300.ms);
   }
 }
+

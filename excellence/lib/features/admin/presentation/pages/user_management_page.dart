@@ -407,7 +407,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       child: Row(
         children: [
           CPPressable(
-            onTap: () { if (context.canPop()) { context.pop(); } else { context.go('/admin'); } },
+            onTap: () { if (GoRouter.of(context).canPop()) { GoRouter.of(context).pop(); } else { GoRouter.of(context).go('/admin'); } },
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -828,3 +828,4 @@ class _UserManagementPageState extends State<UserManagementPage> {
     ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9));
   }
 }
+
