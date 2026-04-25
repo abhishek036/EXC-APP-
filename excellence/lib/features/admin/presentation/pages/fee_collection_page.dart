@@ -415,7 +415,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
             ),
           ],
         ),
-        child: const Icon(icon, size: 22, color: AppColors.chambrayBlue),
+        child: Icon(icon, size: 22, color: AppColors.chambrayBlue),
       ),
     );
   }

@@ -12,6 +12,7 @@ import 'package:excellence/core/widgets/cp_pressable.dart';
 import 'package:excellence/features/admin/data/repositories/admin_repository.dart';
 import 'package:excellence/core/theme/theme_aware.dart';
 import 'package:excellence/core/services/realtime_sync_service.dart';
+import 'package:excellence/core/constants/app_colors.dart';
 class StudentProfilePage extends StatefulWidget {
   final String studentId;
   const StudentProfilePage({super.key, required this.studentId});
@@ -755,14 +756,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
     final address = (s['address'] ?? '').toString();
     final parentName = (s['parentName'] ?? '').toString();
     final parentPhone = (s['parentPhone'] ?? '').toString();
-    final studentBatches = (s['student_batches'] as List<dynamic>? ?? [])
-        .whereType<Map>()
-        .map((e) {
-          final batch = e['batch'] as Map?;
-          return (batch?['name'] ?? e['batch_id'] ?? '').toString();
-        })
-        .where((e) => e.isNotEmpty)
-        .toList();
 
     final attColor = attendance >= 80
         ? const Color(0xFFE5A100)

@@ -11,6 +11,7 @@ import '../../data/repositories/admin_repository.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_shimmer.dart';
 import '../../../../core/theme/theme_aware.dart';
+import '../../../../core/constants/app_colors.dart';
 class StudentListPage extends StatefulWidget {
   const StudentListPage({super.key});
 
