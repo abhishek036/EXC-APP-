@@ -179,6 +179,7 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> with ThemeA
         fileUrl: streamLink,
         description: description.isEmpty ? 'Live class stream' : description,
         youtubeVisibility: 'unlisted',
+        isLive: true,
       );
       _isBroadcastPersisted = true;
     } catch (e) {

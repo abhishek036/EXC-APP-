@@ -108,12 +108,12 @@ flutter_launcher_icons:
   adaptive_icon_foreground: assets/images/logo.png
 
 flutter_native_splash:
-  color: "#FF0B66"
+  color: "#ffe46e"
   image: assets/images/splash_logo.png
   branding: assets/images/splash_tagline.png
   branding_bottom_padding: 240
   android_12:
-    color: "#FF0B66"
+    color: "#ffe46e"
     image: assets/images/splash_logo.png
   web: false
   fullscreen: true

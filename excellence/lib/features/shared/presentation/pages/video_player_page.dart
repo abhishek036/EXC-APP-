@@ -20,6 +20,7 @@ class VideoPlayerPage extends StatefulWidget {
   final String? summary;
   final String? teacherName;
   final String? subject;
+  final bool isLive;
 
   const VideoPlayerPage({
     super.key,
@@ -29,6 +30,7 @@ class VideoPlayerPage extends StatefulWidget {
     this.summary,
     this.teacherName,
     this.subject,
+    this.isLive = false,
   });
 
   @override
@@ -486,17 +488,26 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.moltenAmber,
+              color: widget.isLive ? AppColors.coralRed : AppColors.moltenAmber,
               borderRadius: BorderRadius.circular(4),
             ),
-            child: Text(
-              'LECTURE',
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                color: Colors.black,
-                letterSpacing: 1.5,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.isLive) ...[
+                  const Icon(Icons.sensors_rounded, color: Colors.white, size: 10),
+                  const SizedBox(width: 4),
+                ],
+                Text(
+                  widget.isLive ? 'LIVE' : 'LECTURE',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: widget.isLive ? Colors.white : Colors.black,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ],
             ),
           ),
           const Spacer(),
@@ -644,7 +655,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
                       // ── Bottom seek bar or LIVE badge ──
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-                        child: _durationSeconds <= 0
+                        child: (widget.isLive && _durationSeconds <= 0)
                             ? Row(
                                 children: [
                                   Container(

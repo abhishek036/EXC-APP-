@@ -685,6 +685,7 @@ class _LecturesPaneState extends State<_LecturesPane> with ThemeAware<_LecturesP
                       'summary': summary,
                       'teacherName': teacher,
                       'subject': subject,
+                      'isLive': lec['is_live'] == true,
                     },
                   );
                 },

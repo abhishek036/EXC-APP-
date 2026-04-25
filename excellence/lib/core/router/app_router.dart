@@ -511,6 +511,7 @@ class AppRouter {
                           summary: args['summary']?.toString(),
                           teacherName: args['teacherName']?.toString(),
                           subject: args['subject']?.toString(),
+                          isLive: args['isLive'] == true,
                         ),
                       );
                     },
@@ -829,6 +830,7 @@ class AppRouter {
                           summary: args['summary']?.toString(),
                           teacherName: args['teacherName']?.toString(),
                           subject: args['subject']?.toString(),
+                          isLive: args['isLive'] == true,
                         ),
                       );
                     },
@@ -1219,6 +1221,7 @@ class AppRouter {
                           summary: args['summary']?.toString(),
                           teacherName: args['teacherName']?.toString(),
                           subject: args['subject']?.toString(),
+                          isLive: args['isLive'] == true,
                         ),
                       );
                     },
@@ -1432,6 +1435,7 @@ class AppRouter {
                           summary: args['summary']?.toString(),
                           teacherName: args['teacherName']?.toString(),
                           subject: args['subject']?.toString(),
+                          isLive: args['isLive'] == true,
                         ),
                       );
                     },

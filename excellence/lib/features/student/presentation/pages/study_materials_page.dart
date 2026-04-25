@@ -448,6 +448,7 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                 'summary': summary,
                 'teacherName': material.teacher,
                 'subject': material.subject,
+                'isLive': false,
               });
               return;
             }

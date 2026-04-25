@@ -3,7 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
@@ -301,19 +301,27 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
     );
   }
 
-  Future<void> _launchURL(String? url) async {
-    if (url == null || url.isEmpty) {
+  void _openVideoPlayer(Map<String, dynamic> lecture) {
+    final url = lecture['link']?.toString() ?? '';
+    if (url.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Video link not available.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Video link not available.')),
+      );
       return;
     }
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not open link: $url')));
-    }
+    GoRouter.of(context).push(
+      '/student/video-player',
+      extra: {
+        'videoUrl': url,
+        'title': lecture['title']?.toString() ?? 'Lecture',
+        'lectureId': lecture['id']?.toString() ?? '',
+        'summary': lecture['chapter']?.toString() ?? '',
+        'teacherName': lecture['teacher']?.toString() ?? '',
+        'subject': lecture['subject']?.toString() ?? '',
+        'isLive': false,
+      },
+    );
   }
 
   Widget _buildContinueCard(Map<String, dynamic> lecture, Color accent) {
@@ -322,7 +330,7 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
     final totalMin = ((lecture['durationSec'] as int) / 60).round();
 
     return CPPressable(
-      onTap: () => _launchURL(lecture['link']?.toString()),
+      onTap: () => _openVideoPlayer(lecture),
       child: Container(
         width: 260,
       margin: const EdgeInsets.only(right: 12),
@@ -397,7 +405,7 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
     final isStarted = (lecture['watchedSec'] as int) > 0;
 
     return CPPressable(
-      onTap: () => _launchURL(lecture['link']?.toString()),
+      onTap: () => _openVideoPlayer(lecture),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),

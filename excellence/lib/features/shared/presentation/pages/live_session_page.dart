@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
@@ -60,8 +60,9 @@ class _LiveSessionPageState extends State<LiveSessionPage>
     }
   }
 
-  Future<void> _launchSession(String? link) async {
-    if (link == null || link.isEmpty) {
+  void _launchSession(Map<String, dynamic> session) {
+    final link = (session['link'] ?? '').toString();
+    if (link.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -72,10 +73,30 @@ class _LiveSessionPageState extends State<LiveSessionPage>
       }
       return;
     }
-    final uri = Uri.tryParse(link);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    
+    // Determine the correct route prefix based on current location
+    final location = GoRouterState.of(context).uri.toString();
+    String routePrefix = '/student';
+    if (location.startsWith('/teacher')) {
+      routePrefix = '/teacher';
+    } else if (location.startsWith('/admin')) {
+      routePrefix = '/admin';
+    } else if (location.startsWith('/parent')) {
+      routePrefix = '/parent';
     }
+    
+    GoRouter.of(context).push(
+      '$routePrefix/video-player',
+      extra: {
+        'videoUrl': link,
+        'title': session['title']?.toString() ?? 'Live Class',
+        'lectureId': session['id']?.toString() ?? '',
+        'summary': '',
+        'teacherName': session['teacher_name']?.toString() ?? 'Teacher',
+        'subject': session['subject']?.toString() ?? '',
+        'isLive': true,
+      },
+    );
   }
 
   @override
@@ -551,7 +572,7 @@ class _LiveSessionPageState extends State<LiveSessionPage>
                   child: CPPressable(
                     onTap: () {
                       HapticFeedback.mediumImpact();
-                      _launchSession(link);
+                      _launchSession(session);
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),

@@ -370,6 +370,7 @@ class TeacherRepository {
     String? description,
     String? youtubeVisibility,
     DateTime? dueDate,
+    bool isLive = false,
   }) async {
     final trimmedSubject = subject.trim();
     final trimmedFileUrl = fileUrl?.trim();
@@ -405,6 +406,7 @@ class TeacherRepository {
                 'description': description.trim(),
               if (youtubeVisibility != null && youtubeVisibility.trim().isNotEmpty)
                 'youtube_visibility': youtubeVisibility.trim().toLowerCase(),
+              if (isLive) 'is_live': true,
             },
           );
     if (response.statusCode == 200 || response.statusCode == 201) {
