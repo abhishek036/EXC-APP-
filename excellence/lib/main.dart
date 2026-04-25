@@ -12,6 +12,8 @@ import 'core/constants/app_colors.dart';
 import 'core/di/injection_container.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
+import 'core/services/app_update_service.dart';
+import 'core/services/app_permission_service.dart';
 import 'core/widgets/cp_network_activity_overlay.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/notification_route.dart';
@@ -132,9 +134,11 @@ class _ExcellenceAcademyAppState extends State<ExcellenceAcademyApp> with Widget
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // Create the BLoC and Router once.
-    // Splash page will fire the first AuthCheckRequested.
     _authBloc = sl<AuthBloc>();
     _router = AppRouter.router(_authBloc);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_bootstrapStartup());
+    });
     _startAuthSyncTimer();
     _notificationTapSub = sl<PushNotificationService>().onNotificationTap.listen((payload) {
       final route = resolveNotificationRoute(payload);
@@ -157,6 +161,69 @@ class _ExcellenceAcademyAppState extends State<ExcellenceAcademyApp> with Widget
     _authSyncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       _authBloc.add(const AuthRefreshRequested());
     });
+  }
+
+  Future<void> _bootstrapStartup() async {
+    try {
+      final updateDecision = await sl<AppUpdateService>().checkPolicy();
+      if (!mounted) return;
+
+      if (updateDecision.forceUpdate) {
+        final params = <String, String>{
+          'latest': updateDecision.latestVersion,
+          'min': updateDecision.minSupportedVersion,
+          if (updateDecision.storeUrl.isNotEmpty) 'storeUrl': updateDecision.storeUrl,
+        };
+        _router.go(Uri(path: '/update', queryParameters: params).toString());
+        return;
+      }
+
+      if (updateDecision.recommendUpdate &&
+          await sl<AppUpdateService>().shouldShowOptionalPrompt(updateDecision.latestVersion) &&
+          mounted) {
+        final updateNow =
+            await showDialog<bool>(
+              context: context,
+              barrierDismissible: true,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Update available'),
+                content: Text(
+                  'A newer version (${updateDecision.latestVersion}) is available. Update now for the latest fixes and improvements.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text('Later'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: const Text('Update now'),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+
+        if (!mounted) return;
+
+        if (updateNow) {
+          await sl<AppUpdateService>().openStore(updateDecision.storeUrl);
+        } else {
+          await sl<AppUpdateService>().markOptionalPromptSkipped(updateDecision.latestVersion);
+        }
+      }
+
+      if (!mounted) return;
+      await AppPermissionService.requestNotificationAccess(context);
+      if (mounted) {
+        _authBloc.add(const AuthCheckRequested());
+      }
+    } catch (e, st) {
+      debugPrint('[main] Startup bootstrap failed: $e\n$st');
+      if (mounted) {
+        _authBloc.add(const AuthCheckRequested());
+      }
+    }
   }
 
   @override

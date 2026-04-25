@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/domain/entities/user_entity.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
-import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/otp_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
@@ -127,7 +126,6 @@ class AppRouter {
 
   // ── Path sets for redirect logic ─────────────────────────────────
   static const _publicPaths = <String>{
-    '/splash',
     '/login',
     '/otp',
     '/forgot-password',
@@ -175,7 +173,7 @@ class AppRouter {
   // ── Router factory ────────────────────────────────────────────────
   static GoRouter router(AuthBloc authBloc) => GoRouter(
     navigatorKey: _rootKey,
-    initialLocation: '/splash',
+    initialLocation: '/login',
     refreshListenable: _AuthNotifier(authBloc),
     errorPageBuilder: (context, state) => _page(
       state,
@@ -244,10 +242,7 @@ class AppRouter {
       // 1. Initial/Loading: Save where we wanted to go
       if (authState is AuthInitial || authState is AuthLoading) {
         if (_publicPaths.contains(location)) return null;
-        // Prevent splash recursion
-        if (location == '/splash') return null;
-        // Append target location to splash
-        return '/splash?from=${Uri.encodeComponent(uri.toString())}';
+        return '/login?from=${Uri.encodeComponent(uri.toString())}';
       }
 
       final isPublic = _publicPaths.contains(location);
@@ -259,14 +254,13 @@ class AppRouter {
 
       // 3. Unauthenticated: Redirect to onboarding/login
       if (authState is AuthUnauthenticated || authState is AuthError) {
-        if (location == '/splash') return '/login';
         return isPublic ? null : '/login';
       }
 
-      // 4. Authenticated: Respect deep links if on splash
+      // 4. Authenticated: Respect deep links if on login
       if (authState is AuthAuthenticated) {
         // Restore deep link or go to dashboard
-        if (location == '/splash' || location == '/login') {
+        if (location == '/login') {
           final from = uri.queryParameters['from'];
           if (from != null && from.isNotEmpty) {
             return Uri.decodeComponent(from);
@@ -293,14 +287,9 @@ class AppRouter {
       return null;
     },
     routes: [
-      // ── Redirect root to splash ───────────────────────────────
-      GoRoute(path: '/', redirect: (_, _) => '/splash'),
+      // ── Redirect root to login ────────────────────────────────
+      GoRoute(path: '/', redirect: (_, _) => '/login'),
       // ── Public / Auth routes ─────────────────────────────────
-      GoRoute(
-        path: '/splash',
-        name: 'splash',
-        pageBuilder: (c, s) => _page(s, const SplashPage()),
-      ),
       GoRoute(
         path: '/login',
         name: 'login',
