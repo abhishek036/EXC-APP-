@@ -34,10 +34,9 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
     } catch (_) {}
   }
 
-  /// Play animations for 2.8 s then tell AuthBloc to check stored session.
+  /// Tell AuthBloc to check stored session after checking updates.
   /// GoRouter redirect handles the navigation based on the resulting state.
   Future<void> _initAuth() async {
-    await Future.delayed(const Duration(milliseconds: 800));
 
     final updateDecision = await sl<AppUpdateService>().checkPolicy();
     if (!mounted) return;
@@ -87,7 +86,11 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
     }
 
     if (mounted) {
-      context.read<AuthBloc>().add(AuthCheckRequested());
+      // Request notifications on launch to ensure they are wired.
+      await AppPermissionService.requestNotificationAccess(context);
+      if (mounted) {
+        context.read<AuthBloc>().add(AuthCheckRequested());
+      }
     }
   }
 
@@ -103,7 +106,7 @@ class _SplashPageState extends State<SplashPage> with ThemeAware<SplashPage> {
             fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
-          ).animate().fadeIn(duration: 800.ms),
+          ).animate().fadeIn(duration: 200.ms),
 
 
           // Bottom version text

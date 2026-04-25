@@ -162,4 +162,11 @@ export class FeeController {
       return sendResponse({ res, data, message: 'Fee adjustment applied successfully' });
     } catch (e) { next(e); }
   }
+
+  sendReminder = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.service.sendReminder(req.instituteId!, req.params.recordId);
+      return sendResponse({ res, data, message: 'Fee reminder push notification sent' });
+    } catch (e) { next(e); }
+  }
 }

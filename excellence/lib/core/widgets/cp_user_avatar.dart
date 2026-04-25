@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../constants/app_colors.dart';
 
 /// Reusable avatar widget that shows a network image if [avatarUrl] is available,
@@ -82,12 +83,14 @@ class CpUserAvatar extends StatelessWidget {
       ),
       child: ClipOval(
         child: _hasAvatar
-            ? Image.network(
-                avatarUrl!,
+            ? CachedNetworkImage(
+                imageUrl: avatarUrl!,
                 width: size,
                 height: size,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _buildInitialsSurface(bgColor, fgColor),
+                placeholder: (context, url) => _buildInitialsSurface(bgColor, fgColor),
+                errorWidget: (context, url, error) =>
+                    _buildInitialsSurface(bgColor, fgColor),
               )
             : _buildInitialsSurface(bgColor, fgColor),
       ),

@@ -9,7 +9,7 @@ class BatchTestsTab extends StatelessWidget {
   final double Function(dynamic) toDouble;
   final VoidCallback onAddTest;
   final Function(Map<String, dynamic>) onEditTest;
-  final Function(String) onDeleteTest;
+  final Function(Map<String, dynamic>) onDeleteTest;
 
   const BatchTestsTab({
     super.key,
@@ -147,11 +147,11 @@ class BatchTestsTab extends StatelessWidget {
                                 icon: const Icon(Icons.edit_outlined, size: 18),
                               ),
                               IconButton(
-                                onPressed: () => onDeleteTest((quiz['id'] ?? '').toString()),
-                                icon: const Icon(
-                                  Icons.delete_outline_rounded,
-                                  size: 18,
-                                ),
+                                  onPressed: () => onDeleteTest(quiz),
+                                  icon: const Icon(
+                                    Icons.delete_outline_rounded,
+                                    size: 18,
+                                  ),
                               ),
                             ],
                           ),

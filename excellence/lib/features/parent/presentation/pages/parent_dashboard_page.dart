@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,6 +14,7 @@ import '../../../../core/theme/theme_aware.dart';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../data/repositories/parent_repository.dart';
 
 class ParentDashboardPage extends StatefulWidget {
@@ -22,8 +25,11 @@ class ParentDashboardPage extends StatefulWidget {
 
 class _ParentDashboardPageState extends State<ParentDashboardPage> {
   final ParentRepository _parentRepo = sl<ParentRepository>();
-  bool _isLoading = true;
+  final _realtime = sl<RealtimeSyncService>();
+  StreamSubscription<Map<String, dynamic>>? _syncSub;
   Map<String, dynamic>? _dashboardData;
+  bool _isLoading = true;
+  bool _isBackgroundRefreshing = false;
   int _selectedChild = 0;
   List<dynamic> _children = [];
 
@@ -31,23 +37,65 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
   void initState() {
     super.initState();
     _loadDashboard();
+    _initRealtime();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final type = (event['type'] ?? '').toString();
+      final reason = (event['reason'] ?? '').toString().toLowerCase();
+      final shouldRefresh =
+          type == 'dashboard_sync' ||
+          type == 'batch_sync' ||
+          reason.contains('attendance') ||
+          reason.contains('exam') ||
+          reason.contains('quiz') ||
+          reason.contains('result') ||
+          reason.contains('fee') ||
+          reason.contains('assignment') ||
+          reason.contains('lecture') ||
+          reason.contains('schedule') ||
+          reason.contains('student') ||
+          reason.contains('notification');
+      if (shouldRefresh) {
+        _loadDashboard();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadDashboard() async {
     try {
-      setState(() => _isLoading = true);
+      if (_dashboardData != null) {
+        setState(() => _isBackgroundRefreshing = true);
+      } else {
+        setState(() => _isLoading = true);
+      }
       final data = await _parentRepo.getDashboard();
+      if (!mounted) return;
       setState(() {
         _dashboardData = data;
         _children = data['children'] ?? [];
+        if (_selectedChild >= _children.length && _children.isNotEmpty) {
+          _selectedChild = 0;
+        }
         _isLoading = false;
+        _isBackgroundRefreshing = false;
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error loading dashboard: $e')));
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _isBackgroundRefreshing = false;
+        });
       }
     }
   }
@@ -196,22 +244,36 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '$greeting, 👋',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.paleSlate2 : Colors.black54,
-                ),
+              Row(
+                children: [
+                  Text(
+                    '$greeting, 👋',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.paleSlate2 : Colors.black54,
+                    ),
+                  ),
+                  if (_isBackgroundRefreshing)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: SizedBox(
+                        width: 10,
+                        height: 10,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                ],
               ),
               Text(
-                'Parent Dashboard',
+                parentName.toUpperCase(),
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
-                  letterSpacing: -0.5,
+                  color: isDark ? Colors.white : Colors.black,
+                  letterSpacing: 0.5,
                 ),
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -404,45 +466,68 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
     );
   }
 
-  Widget _buildChildSelector() => Row(
-    children: List.generate(_children.length, (i) {
-      final sel = _selectedChild == i;
-      final child = _children[i];
-      return Padding(
-        padding: EdgeInsets.only(right: i < _children.length - 1 ? 10 : 0),
-        child: CPPressable(
-          onTap: () => setState(() => _selectedChild = i),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            decoration: BoxDecoration(
-              color: sel ? CT.accent(context) : Colors.transparent,
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(
-                color: sel ? CT.accent(context) : CT.textM(context),
-                width: 1.5,
+  Widget _buildChildSelector() => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: Row(
+      children: List.generate(_children.length, (i) {
+        final sel = _selectedChild == i;
+        final child = _children[i];
+        return Padding(
+          padding: EdgeInsets.only(right: i < _children.length - 1 ? 12 : 0),
+          child: CPPressable(
+            onTap: () => setState(() => _selectedChild = i),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: sel ? CT.accent(context) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.black,
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black,
+                    offset: sel ? const Offset(2, 2) : const Offset(3, 3),
+                  ),
+                ],
               ),
-            ),
-            child: Text(
-              child['name'] ?? 'Child',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: sel ? Colors.white : CT.textS(context),
+              child: Text(
+                (child['name'] ?? 'Child').toString().toUpperCase(),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  color: sel ? Colors.white : Colors.black,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ),
-        ),
-      );
-    }),
+        );
+      }),
+    ),
   ).animate(delay: 100.ms).fadeIn(duration: 400.ms);
 
   Widget _buildChildOverview(bool isDark) {
     final child = _children[_selectedChild];
     return CPPressable(
+      onTap: () {
+        final id = child['id'] ?? child['uid'] ?? '';
+        if (id.isNotEmpty) {
+          context.push('/parent/weekly-report/$id');
+        }
+      },
       child: Container(
         padding: const EdgeInsets.all(AppDimensions.md),
-        decoration: CT.elevatedCardDecor(context),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black, width: 2),
+          boxShadow: const [
+            BoxShadow(color: Colors.black, offset: Offset(4, 4)),
+          ],
+        ),
         child: Row(
           children: [
             Container(
@@ -603,29 +688,36 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(AppDimensions.sm),
-      decoration: CT.cardDecor(context),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.black, width: 2),
+        boxShadow: const [
+          BoxShadow(color: Colors.black, offset: Offset(3, 3)),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: CT.textH(context),
+          Icon(icon, size: 20, color: color),
+          const SizedBox(height: 8),
+          FittedBox(
+            child: Text(
+              value,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                color: Colors.black,
+              ),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 2),
           Text(
             label,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 11,
-              color: CT.textS(context),
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Colors.grey,
             ),
           ),
         ],
@@ -886,7 +978,14 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(AppDimensions.md),
-            decoration: CT.cardDecor(context),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.black, width: 2),
+              boxShadow: const [
+                BoxShadow(color: Colors.black, offset: Offset(4, 4)),
+              ],
+            ),
             child: Column(
               children: [
                 CPAnimatedRing(
@@ -898,25 +997,18 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
                     '${(attendance * 100).toInt()}%',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w900,
                       color: AppColors.success,
                     ),
                   ),
                 ),
                 const SizedBox(height: AppDimensions.sm),
                 Text(
-                  'Attendance',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: CT.textS(context),
-                  ),
-                ),
-                Text(
-                  'Current Month',
+                  'ATTENDANCE',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
-                    color: CT.textM(context),
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black,
                   ),
                 ),
               ],
@@ -939,177 +1031,163 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
             child: Container(
               padding: const EdgeInsets.all(AppDimensions.md),
               decoration: BoxDecoration(
-                color: (pendingFee > 0 ? AppColors.warning : AppColors.success)
-                    .withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-                border: Border.all(
-                  color:
-                      (pendingFee > 0 ? AppColors.warning : AppColors.success)
-                          .withValues(alpha: 0.2),
-                ),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.black, width: 2),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black, offset: Offset(4, 4)),
+                ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        pendingFee > 0
-                            ? Icons.warning_amber_rounded
-                            : Icons.check_circle_outline,
-                        size: 16,
-                        color: pendingFee > 0
-                            ? AppColors.warning
-                            : AppColors.success,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        pendingFee > 0 ? 'Fee pending' : 'Fees Paid',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: pendingFee > 0
-                              ? AppColors.warning
-                              : AppColors.success,
-                        ),
-                      ),
-                    ],
+                  Container(
+                    width: 65,
+                    height: 65,
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.account_balance_wallet_rounded, color: AppColors.error, size: 30),
                   ),
                   const SizedBox(height: AppDimensions.sm),
+                  FittedBox(
+                    child: Text(
+                      'Rs $pendingFee',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ),
                   Text(
-                    'Rs $pendingFee',
+                    'PENDING FEE',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: CT.textH(context),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: AppDimensions.sm),
-                  if (pendingFee > 0)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: AppDimensions.sm,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning,
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Text(
-                        'Pay Now',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
                 ],
               ),
             ),
           ),
         ),
       ],
-    ).animate(delay: 300.ms).fadeIn(duration: 500.ms);
+    );
   }
 
   Widget _buildLatestResult(bool isDark) {
-    final results =
-        _dashboardData?['upcomingExams'] as List? ??
-        []; // upcomingExams already used
+    final results = _dashboardData?['upcomingExams'] as List? ?? [];
     if (results.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Upcoming Exam',
+            'UPCOMING EXAM',
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: CT.textH(context),
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: Colors.black,
+              letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: AppDimensions.step),
-          _buildEmptyState(
-            context,
-            "No upcoming exams",
-            Icons.analytics_outlined,
-          ),
+          const SizedBox(height: 12),
+          _buildEmptyState(context, "No upcoming exams", Icons.analytics_outlined),
         ],
-      ).animate(delay: 400.ms).fadeIn(duration: 500.ms);
+      );
     }
-    if (results.isNotEmpty) {
-      final latest = results.first;
+    final latest = results.first;
 
-      return CPPressable(
-        onTap: () {
-          if (_children.isNotEmpty) {
-            context.go(
-              '/parent/weekly-report/${_children[_selectedChild]['id']}',
-            );
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.all(AppDimensions.md),
-          decoration: CT.cardDecor(context),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Upcoming Exam',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: CT.textH(context),
-                ),
-              ),
-              const SizedBox(height: AppDimensions.step),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          latest['title'] ?? 'Test',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: CT.textH(context),
-                          ),
-                        ),
-                        Text(
-                          latest['subject'] ?? '',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            color: CT.textS(context),
-                          ),
-                        ),
-                      ],
-                    ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'UPCOMING EXAM',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            color: Colors.black,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        CPPressable(
+          onTap: () {
+            if (_children.isNotEmpty) {
+              context.go('/parent/weekly-report/${_children[_selectedChild]['id']}');
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.black, width: 2),
+              boxShadow: const [
+                BoxShadow(color: Colors.black, offset: Offset(4, 4)),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  child: Icon(Icons.event_note_rounded, color: AppColors.primary, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Marks: ${latest['total_marks']}',
+                        (latest['title'] ?? 'Assessment').toString(),
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: CT.accent(context),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                        ),
+                      ),
+                      Text(
+                        latest['subject'] ?? 'General',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: Colors.grey[600],
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Marks: ${latest['total_marks']}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.black,
+                      ),
+                    ),
+                    Text(
+                      latest['exam_date'] ?? '',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-      ).animate(delay: 400.ms).fadeIn(duration: 500.ms);
-    }
-    return const SizedBox.shrink();
+      ],
+    );
   }
 
   Widget _buildQuickTools(bool isDark) => Column(
@@ -1189,6 +1267,30 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
           ),
         ],
       ),
+      const SizedBox(height: AppDimensions.step),
+      Row(
+        children: [
+          Expanded(
+            child: _quickTool(
+              icon: Icons.play_circle_fill_rounded,
+              title: 'Video Library',
+              subtitle: 'Recorded lectures',
+              color: AppColors.electricBlue,
+              onTap: () => context.go('/parent/video-lectures'),
+            ),
+          ),
+          const SizedBox(width: AppDimensions.step),
+          Expanded(
+            child: _quickTool(
+              icon: Icons.campaign_rounded,
+              title: 'Notice Board',
+              subtitle: 'School announcements',
+              color: AppColors.mintGreen,
+              onTap: () => context.go('/parent/notifications'),
+            ),
+          ),
+        ],
+      ),
     ],
   ).animate(delay: 360.ms).fadeIn(duration: 500.ms);
 
@@ -1235,86 +1337,98 @@ class _ParentDashboardPageState extends State<ParentDashboardPage> {
   );
 
   Widget _buildTodaySchedule(bool isDark) {
-    final schedules =
-        (_dashboardData?['todaySchedule'] as List? ?? []).cast<dynamic>();
+    final schedules = (_dashboardData?['todaySchedule'] as List? ?? []).cast<dynamic>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Upcoming Schedule',
+          'UPCOMING SCHEDULE',
           style: GoogleFonts.plusJakartaSans(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: CT.textH(context),
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            color: Colors.black,
+            letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: AppDimensions.step),
+        const SizedBox(height: 12),
         if (schedules.isEmpty)
-          _buildEmptyState(
-            context,
-            'No classes scheduled',
-            Icons.calendar_today_rounded,
-          )
+          _buildEmptyState(context, 'No classes scheduled', Icons.calendar_today_rounded)
         else
-          ...schedules
-              .take(4)
-              .map(
-                (item) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                  child: _schedItem(
-                    _fmtTime(item['start_time']),
-                    (item['name'] ?? item['subject'] ?? 'Class').toString(),
-                    '${item['batch_name'] ?? 'Batch'} | ${item['teacher_name'] ?? 'Teacher'}',
-                    isDark,
-                  ),
-                ),
-              ),
+          ...schedules.take(4).map((item) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _schedItem(
+              _fmtTime(item['start_time']),
+              (item['name'] ?? item['subject'] ?? 'Class').toString(),
+              '${item['batch_name'] ?? 'Batch'} | ${item['teacher_name'] ?? 'Teacher'}',
+              isDark,
+            ),
+          )),
       ],
-    ).animate(delay: 500.ms).fadeIn(duration: 500.ms);
+    );
   }
 
-  Widget _schedItem(String time, String sub, String info, bool isDark) =>
-      CPPressable(
-        child: Container(
-          padding: const EdgeInsets.all(AppDimensions.step),
-          decoration: CT.cardDecor(context),
-          child: Row(
+  Widget _schedItem(String time, String sub, String info, bool isDark) => CPPressable(
+    onTap: () => context.push('/parent/reports'),
+    child: Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black, width: 2),
+        boxShadow: const [
+          BoxShadow(color: Colors.black, offset: Offset(3, 3)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Column(
             children: [
               Text(
-                time,
+                time.split(' ')[0],
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: CT.accent(context),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
                 ),
               ),
-              const SizedBox(width: AppDimensions.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      sub,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: CT.textH(context),
-                      ),
-                    ),
-                    Text(
-                      info,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        color: CT.textS(context),
-                      ),
-                    ),
-                  ],
+              Text(
+                time.split(' ').length > 1 ? time.split(' ')[1] : 'AM',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.grey,
                 ),
               ),
             ],
           ),
-        ),
-      );
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  sub.toUpperCase(),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primary,
+                  ),
+                ),
+                Text(
+                  info,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.black26),
+        ],
+      ),
+    ),
+  );
 
   Widget _buildAnnouncement(bool isDark) {
     final announcements = _dashboardData?['announcements'] as List? ?? [];

@@ -383,7 +383,13 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
             color: CT.textH(context),
             size: 22,
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/teacher');
+            }
+          },
         ),
         title: Text(
           _isEditMode ? 'EDIT CONTENT' : 'UPLOAD CONTENT',
@@ -536,7 +542,13 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           _selectedType == 'video'
               ? _inputLabel('YOUTUBE VIDEO LINK', primary)
               : _inputLabel('ATTACHMENT LINK', primary),
-          _textField(_linkCtrl, 'https://...', primary),
+          _textField(
+            _linkCtrl,
+            'https://...',
+            primary,
+            obscureText: true,
+            keyboardType: TextInputType.url,
+          ),
           if (_selectedType == 'video') ...[
             const SizedBox(height: 24),
             _inputLabel('YOUTUBE VISIBILITY', primary),
@@ -580,12 +592,20 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     String hint,
     Color primary, {
     int maxLines = 1,
+    bool obscureText = false,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     final elevated = CT.elevated(context);
 
     return TextField(
       controller: ctrl,
       maxLines: maxLines,
+      obscureText: obscureText,
+      enableSuggestions: !obscureText,
+      autocorrect: !obscureText,
+      keyboardType: keyboardType,
+      textCapitalization:
+          obscureText ? TextCapitalization.none : TextCapitalization.sentences,
       style: GoogleFonts.plusJakartaSans(
         fontWeight: FontWeight.w800,
         color: primary,

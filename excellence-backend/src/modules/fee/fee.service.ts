@@ -8,6 +8,7 @@ import {
   AdjustFeeRecordInput,
 } from './fee.validator';
 import { ApiError } from '../../middleware/error.middleware';
+import { NotificationService } from '../notification/notification.service';
 
 export class FeeService {
   private repo: FeeRepository;
@@ -110,5 +111,58 @@ export class FeeService {
 
   async adjustFeeRecord(instituteId: string, actorUserId: string, data: AdjustFeeRecordInput) {
     return this.repo.adjustFeeRecord(instituteId, actorUserId, data);
+  }
+
+  async sendReminder(instituteId: string, recordId: string) {
+    const record = await this.repo.findFeeRecordWithUsers(recordId, instituteId);
+    if (!record) throw new ApiError('Fee record not found', 404, 'NOT_FOUND');
+    if (record.status === 'paid') throw new ApiError('Fee is already paid', 400, 'ALREADY_PAID');
+
+    const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthStr = monthNames[record.month] || record.month.toString();
+    const batchName = record.batch.name;
+    const amount = Number(record.final_amount);
+    const paid = Number(record.paid_amount);
+    const pending = amount - paid;
+
+    const title = 'Fee Payment Reminder';
+    const body = `Reminder: Fee of ₹${pending} is pending for ${monthStr} (${batchName}). Please ignore if already paid.`;
+    
+    const targetUserIds: string[] = [];
+    if (record.student.user?.id) targetUserIds.push(record.student.user.id);
+    
+    record.student.parent_students.forEach(ps => {
+        if (ps.parent.user?.id) targetUserIds.push(ps.parent.user.id);
+    });
+
+    if (targetUserIds.length === 0) {
+        throw new ApiError('No associated users found for notification', 404, 'USERS_NOT_FOUND');
+    }
+
+    const payload = {
+        title,
+        body,
+        type: 'fee_reminder',
+        institute_id: instituteId,
+        meta: {
+            fee_record_id: record.id,
+            batch_id: record.batch_id,
+            month: record.month,
+            year: record.year
+        }
+    };
+
+    let delivered = 0;
+    for(const userId of targetUserIds) {
+        try {
+            await NotificationService.sendNotificationToUser(userId, payload);
+            delivered++;
+        } catch (e) {
+            // Log and continue
+            console.error(`Failed to send fee reminder to user ${userId}:`, e);
+        }
+    }
+
+    return { success: true, deliveredCount: delivered };
   }
 }

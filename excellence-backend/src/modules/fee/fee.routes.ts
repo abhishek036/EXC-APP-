@@ -9,6 +9,7 @@ import {
 	submitFeeProofSchema,
 	reviewFeePaymentSchema,
 	adjustFeeRecordSchema,
+	sendFeeReminderSchema,
 } from './fee.validator';
 import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
 import { tenantMiddleware } from '../../middleware/tenant.middleware';
@@ -57,5 +58,7 @@ router.get('/payments/my', requireRole('student', 'parent'), controller.getMyPay
 router.get('/payments/review', requireRole('admin', 'sub_admin'), controller.getPaymentsForReview);
 router.post('/payments/:paymentId/approve', requireRole('admin'), validate(reviewFeePaymentSchema), controller.approvePaymentProof);
 router.post('/payments/:paymentId/reject', requireRole('admin'), validate(reviewFeePaymentSchema), controller.rejectPaymentProof);
+
+router.post('/records/:recordId/remind', requireRole('admin'), validate(sendFeeReminderSchema), controller.sendReminder);
 
 export default router;

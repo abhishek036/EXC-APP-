@@ -36,4 +36,11 @@ export class ParentController {
        return sendResponse({ res, data, message: 'Report fetched' });
     } catch (error) { next(error); }
   };
+
+  getChildrenDoubts = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+       const data = await this.parentService.getChildrenDoubts(req.user!.userId, req.instituteId!);
+       return sendResponse({ res, data, message: 'Doubts fetched' });
+    } catch (error) { next(error); }
+  };
 }

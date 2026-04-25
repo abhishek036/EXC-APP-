@@ -9,6 +9,10 @@ class BatchOverviewTab extends StatelessWidget {
   final List<Map<String, dynamic>> quizzes;
   final List<Map<String, dynamic>> feeRecords;
   final List<Map<String, dynamic>> students;
+  final List<Map<String, dynamic>> assignments;
+  final List<Map<String, dynamic>> materials;
+  final List<Map<String, dynamic>> announcements;
+  final List<Map<String, dynamic>> attendanceSessions;
   final Map<String, dynamic> attendanceStats;
   final String Function(dynamic) dateLabel;
 
@@ -20,6 +24,10 @@ class BatchOverviewTab extends StatelessWidget {
     required this.quizzes,
     required this.feeRecords,
     required this.students,
+    required this.assignments,
+    required this.materials,
+    required this.announcements,
+    required this.attendanceSessions,
     required this.attendanceStats,
     required this.dateLabel,
   });
@@ -34,41 +42,57 @@ class BatchOverviewTab extends StatelessWidget {
       );
     final nextSlot = upcoming.isEmpty ? null : upcoming.first;
 
-    final timelineItems = <Map<String, String>>[];
-    timelineItems.addAll(
-      lectures
-          .take(2)
-          .map(
-            (e) => {
-              'title': 'Lecture uploaded',
-              'subtitle': (e['title'] ?? 'Lecture').toString(),
-              'time': dateLabel(e['created_at'] ?? e['scheduled_at']),
-            },
-          ),
-    );
-    timelineItems.addAll(
-      quizzes
-          .take(2)
-          .map(
-            (e) => {
-              'title': 'Test created',
-              'subtitle': (e['title'] ?? 'Test').toString(),
-              'time': dateLabel(e['created_at'] ?? e['scheduled_at']),
-            },
-          ),
-    );
-    timelineItems.addAll(
-      feeRecords
-          .take(2)
-          .map(
-            (e) => {
-              'title': 'Fee collected',
-              'subtitle': ((e['student'] as Map?)?['name'] ?? 'Student')
-                  .toString(),
-              'time': dateLabel(e['updated_at'] ?? e['created_at']),
-            },
-          ),
-    );
+    final allActivities = [
+      ...lectures.map((e) => {
+            'title': 'Lecture uploaded',
+            'subtitle': (e['title'] ?? 'Lecture').toString(),
+            'date': _toDate(e['created_at'] ?? e['scheduled_at']),
+            'time': dateLabel(e['created_at'] ?? e['scheduled_at']),
+          }),
+      ...quizzes.map((e) => {
+            'title': e['item_type'] == 'exam' ? 'Exam created' : 'Test created',
+            'subtitle': (e['title'] ?? e['name'] ?? 'Test').toString(),
+            'date': _toDate(e['created_at'] ?? e['scheduled_at'] ?? e['exam_date']),
+            'time': dateLabel(e['created_at'] ?? e['scheduled_at'] ?? e['exam_date']),
+          }),
+      ...feeRecords.map((e) => {
+            'title': 'Fee collected',
+            'subtitle': ((e['student'] as Map?)?['name'] ?? 'Student').toString(),
+            'date': _toDate(e['updated_at'] ?? e['created_at']),
+            'time': dateLabel(e['updated_at'] ?? e['created_at']),
+          }),
+      ...assignments.map((e) => {
+            'title': 'Assignment added',
+            'subtitle': (e['title'] ?? 'Assignment').toString(),
+            'date': _toDate(e['created_at']),
+            'time': dateLabel(e['created_at']),
+          }),
+      ...materials.map((e) => {
+            'title': 'Material uploaded',
+            'subtitle': (e['title'] ?? 'Material').toString(),
+            'date': _toDate(e['created_at']),
+            'time': dateLabel(e['created_at']),
+          }),
+      ...announcements.map((e) => {
+            'title': 'Announcement',
+            'subtitle': (e['title'] ?? 'Message').toString(),
+            'date': _toDate(e['created_at']),
+            'time': dateLabel(e['created_at']),
+          }),
+      ...attendanceSessions.map((e) => {
+            'title': 'Attendance marked',
+            'subtitle': (e['subject'] ?? 'General').toString(),
+            'date': _toDate(e['date'] ?? e['created_at']),
+            'time': dateLabel(e['date'] ?? e['created_at']),
+          }),
+    ];
+
+    allActivities.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+    final timelineItems = allActivities.take(8).map((e) => {
+      'title': e['title'].toString(),
+      'subtitle': e['subtitle'].toString(),
+      'time': e['time'].toString(),
+    }).toList();
 
     return Column(
       key: const ValueKey('overview-tab'),

@@ -12,8 +12,9 @@ import 'api_endpoints.dart';
 class ApiClient {
   late final Dio _dio;
 
-  // Separate Dio instance for refresh token calls (avoids interceptor loop)
   late final Dio _refreshDio;
+
+  final _SmartCacheInterceptor _cacheInterceptor = _SmartCacheInterceptor();
 
   Completer<String?>? _refreshCompleter;
 
@@ -46,6 +47,7 @@ class ApiClient {
     ));
 
     _dio.interceptors.addAll([
+      _cacheInterceptor,
       _AuthInterceptor(sl<SecureStorageService>(), this),
       if (kDebugMode) _LoggingInterceptor(),
     ]);
@@ -97,6 +99,11 @@ class ApiClient {
   /// Clear auth token (on logout).
   void clearAuthToken() {
     _dio.options.headers.remove('Authorization');
+  }
+
+  /// Clears the in-memory GET cache.
+  void clearCache() {
+    _cacheInterceptor.clear();
   }
 }
 
@@ -211,3 +218,42 @@ class _LoggingInterceptor extends Interceptor {
     handler.next(err);
   }
 }
+
+class _SmartCacheInterceptor extends Interceptor {
+  final Map<String, _CacheEntry> _cache = {};
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    if (options.method == 'GET') {
+      final key = options.uri.toString();
+      final entry = _cache[key];
+      // Cache valid for 30 seconds to massively reduce DB load on quick navigation
+      if (entry != null && DateTime.now().difference(entry.timestamp) < const Duration(seconds: 30)) {
+        handler.resolve(entry.response);
+        return;
+      }
+    }
+    handler.next(options);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    if (response.requestOptions.method != 'GET' && response.statusCode != null && response.statusCode! >= 200 && response.statusCode! < 300) {
+      // Clear cache on any successful mutation to ensure fresh data
+      _cache.clear();
+    } else if (response.requestOptions.method == 'GET' && response.statusCode == 200) {
+      final key = response.requestOptions.uri.toString();
+      _cache[key] = _CacheEntry(response, DateTime.now());
+    }
+    handler.next(response);
+  }
+
+  void clear() => _cache.clear();
+}
+
+class _CacheEntry {
+  final Response response;
+  final DateTime timestamp;
+  _CacheEntry(this.response, this.timestamp);
+}
+

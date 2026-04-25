@@ -458,23 +458,29 @@ class _TeacherProfilePageState extends State<TeacherProfilePage>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _metricItem(
-                avgRating,
-                'Rating',
-                Icons.star_rounded,
-                Colors.orange,
+              Expanded(
+                child: _metricItem(
+                  avgRating,
+                  'Rating',
+                  Icons.star_rounded,
+                  Colors.orange,
+                ),
               ),
-              _metricItem(
-                '$classesWeek',
-                'Classes (7d)',
-                Icons.event_available_rounded,
-                Colors.green,
+              Expanded(
+                child: _metricItem(
+                  '$classesWeek',
+                  'Classes (7d)',
+                  Icons.event_available_rounded,
+                  Colors.green,
+                ),
               ),
-              _metricItem(
-                '$pendingDoubts',
-                'Pending Doubts',
-                Icons.help_center_rounded,
-                Colors.blue,
+              Expanded(
+                child: _metricItem(
+                  '$pendingDoubts',
+                  'Pending Doubts',
+                  Icons.help_center_rounded,
+                  Colors.blue,
+                ),
               ),
             ],
           ),

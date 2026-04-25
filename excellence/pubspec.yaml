@@ -85,6 +85,8 @@ dependencies:
   path: ^1.9.1
   webview_flutter_platform_interface: ^2.15.1
   webview_flutter_web: ^0.2.3+4
+  dio_cache_interceptor: ^3.5.1
+  dio_cache_interceptor_hive_store: ^4.0.0
 
 dev_dependencies:
   flutter_test:
@@ -106,9 +108,9 @@ flutter_launcher_icons:
   adaptive_icon_foreground: assets/images/logo.png
 
 flutter_native_splash:
-  color: "#ffffff"
+  color: "#354388"
   android_12:
-    color: "#ffffff"
+    color: "#354388"
   web: false
   fullscreen: true
 

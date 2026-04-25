@@ -1895,6 +1895,11 @@ class _ScheduleTabState extends State<_ScheduleTab> with ThemeAware<_ScheduleTab
     }
   }
 
+  Future<void> _refresh() async {
+    setState(() => _load());
+    await _future;
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
@@ -1909,94 +1914,109 @@ class _ScheduleTabState extends State<_ScheduleTab> with ThemeAware<_ScheduleTab
         }
         final schedule = snapshot.data ?? [];
         if (schedule.isEmpty) {
-          return _EmptyState(
-            message: 'No classes scheduled for today.',
-            icon: Icons.event_available_rounded,
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            color: _StudentBatchPanelPageState.accentYellow,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+                const _EmptyState(
+                  message: 'No classes scheduled for today.',
+                  icon: Icons.event_available_rounded,
+                ),
+              ],
+            ),
           );
         }
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: schedule.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
-          itemBuilder: (context, i) {
-            final item = schedule[i];
-            return _PremiumCard(
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF5C7CFA),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: _StudentBatchPanelPageState.primaryBlue,
-                        width: 2,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.schedule_rounded,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          (item['subject'] ?? 'Class').toString().toUpperCase(),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 14,
-                            color: _StudentBatchPanelPageState.primaryBlue,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${item['start_time'] ?? 'TBA'} - ${item['end_time'] ?? 'TBA'}',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                            color: _StudentBatchPanelPageState.primaryBlue
-                                .withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => context.push(
-                      '/student/live-session',
-                      extra: {
-                        'batchId': widget.batchId,
-                        'sessionId': item['id'],
-                        'subject': item['subject'],
-                      },
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _StudentBatchPanelPageState.accentYellow,
-                      foregroundColor: _StudentBatchPanelPageState.primaryBlue,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          color: _StudentBatchPanelPageState.accentYellow,
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            itemCount: schedule.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, i) {
+              final item = schedule[i];
+              return _PremiumCard(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5C7CFA),
                         borderRadius: BorderRadius.circular(8),
-                        side: const BorderSide(
+                        border: Border.all(
                           color: _StudentBatchPanelPageState.primaryBlue,
                           width: 2,
                         ),
                       ),
-                    ),
-                    child: Text(
-                      'JOIN',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w900,
+                      child: const Icon(
+                        Icons.schedule_rounded,
+                        color: Colors.white,
+                        size: 28,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            (item['subject'] ?? 'Class').toString().toUpperCase(),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 14,
+                              color: _StudentBatchPanelPageState.primaryBlue,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${item['start_time'] ?? 'TBA'} - ${item['end_time'] ?? 'TBA'}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                              color: _StudentBatchPanelPageState.primaryBlue
+                                  .withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => context.push(
+                        '/student/live-session',
+                        extra: {
+                          'batchId': widget.batchId,
+                          'sessionId': item['id'],
+                          'subject': item['subject'],
+                        },
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _StudentBatchPanelPageState.accentYellow,
+                        foregroundColor: _StudentBatchPanelPageState.primaryBlue,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: const BorderSide(
+                            color: _StudentBatchPanelPageState.primaryBlue,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        'JOIN',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -3872,7 +3892,7 @@ class _EmptyState extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Checking for updates...',
+                'Swipe down to refresh',
                 style: GoogleFonts.plusJakartaSans(
                   color: _StudentBatchPanelPageState.primaryBlue.withValues(alpha: 0.6),
                   fontWeight: FontWeight.w600,

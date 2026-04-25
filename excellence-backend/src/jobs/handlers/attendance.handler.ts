@@ -58,7 +58,7 @@ export class AttendanceHandler {
           role_target: 'parent',
           institute_id: instituteId,
           meta: {
-            route: '/parent/attendance',
+            route: `/parent/weekly-report/${student.id}`,
             student_id: student.id,
             dedupe_key: `absent:${session.id}:${student.id}:parent`,
           },
@@ -74,7 +74,8 @@ export class AttendanceHandler {
           role_target: 'student',
           institute_id: instituteId,
           meta: {
-            route: '/student/attendance',
+            route: '/student/performance',
+            student_id: student.id,
             dedupe_key: `absent:${session.id}:${student.id}:student`,
           },
         });
@@ -96,7 +97,8 @@ export class AttendanceHandler {
                 role_target: 'student',
                 institute_id: instituteId,
                 meta: {
-                    route: '/student/attendance',
+                  route: '/student/performance',
+                  student_id: record.student_id,
                     status: record.status || 'present',
                     dedupe_key: `attend:${session.id}:${record.student_id}`,
                 },

@@ -227,7 +227,13 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> with ThemeA
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/teacher');
+                        }
+                      },
                     ),
                     if (_isStreaming)
                       Container(

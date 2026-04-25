@@ -58,6 +58,12 @@ export const adjustFeeRecordSchema = z.object({
   }),
 });
 
+export const sendFeeReminderSchema = z.object({
+  params: z.object({
+    recordId: z.string().uuid(),
+  }),
+});
+
 export type DefineFeeStructureInput = z.infer<typeof defineFeeStructureSchema>['body'];
 export type RecordFeePaymentInput = z.infer<typeof recordFeePaymentSchema>['body'];
 export type GenerateMonthlyFeesInput = z.infer<typeof generateMonthlyFeesSchema>['body'];

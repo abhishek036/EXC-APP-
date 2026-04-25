@@ -252,7 +252,13 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
             color: Colors.white,
             size: 22,
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/teacher');
+            }
+          },
         ),
         title: Text(
           'ASSIGNMENT REVIEW',

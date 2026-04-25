@@ -103,6 +103,16 @@ class _FeeHistoryPageState extends State<FeeHistoryPage> {
     return Scaffold(
       backgroundColor: CT.bg(context),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/student');
+            }
+          },
+        ),
         title: Text(
           'Fee History',
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),

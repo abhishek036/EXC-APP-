@@ -240,10 +240,10 @@ class _AdminControlCenterPageState extends State<AdminControlCenterPage>
   }
 
   void _handleBack() {
-    final nav = Navigator.of(context);
-    if (nav.canPop()) {
-      nav.pop();
-      return;
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/admin');
     }
   }
 

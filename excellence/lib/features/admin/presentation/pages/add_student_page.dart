@@ -186,7 +186,13 @@ class _AddStudentPageState extends State<AddStudentPage> {
         backgroundColor: AppColors.elitePrimary,
         elevation: 0,
         leading: CPPressable(
-          onTap: () => Navigator.pop(context),
+          onTap: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/admin/students');
+            }
+          },
           child: const Icon(
             Icons.arrow_back_ios_new_rounded,
             color: Colors.white,

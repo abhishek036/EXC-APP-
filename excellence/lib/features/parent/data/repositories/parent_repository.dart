@@ -97,4 +97,12 @@ class ParentRepository {
     }
     throw Exception(response.data['message'] ?? 'Failed to fetch payment proofs');
   }
+
+  Future<List<Map<String, dynamic>>> getChildrenDoubts() async {
+    final response = await _api.dio.get('parents/me/children/doubts');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch doubts');
+  }
 }

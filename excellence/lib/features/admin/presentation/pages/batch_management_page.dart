@@ -175,7 +175,13 @@ class _BatchManagementPageState extends State<BatchManagementPage> {
             color: Colors.white,
             size: 20,
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/admin');
+            }
+          },
         ),
         title: Text(
           'BATCHES',

@@ -14,6 +14,7 @@ class BatchFeesTab extends StatefulWidget {
   final VoidCallback onGenerateFees;
   final Function(Map<String, dynamic>) onMarkAsPaid;
   final VoidCallback onSendWhatsAppReminder;
+  final Function(Map<String, dynamic>)? onSendPushReminder;
 
   const BatchFeesTab({
     super.key,
@@ -27,6 +28,7 @@ class BatchFeesTab extends StatefulWidget {
     required this.onGenerateFees,
     required this.onMarkAsPaid,
     required this.onSendWhatsAppReminder,
+    this.onSendPushReminder,
   });
 
   @override
@@ -185,8 +187,12 @@ class _BatchFeesTabState extends State<BatchFeesTab> {
                               child: const Text('Mark paid'),
                             ),
                             OutlinedButton(
+                              onPressed: () => widget.onSendPushReminder?.call(record),
+                              child: const Text('Fees Reminder'),
+                            ),
+                            OutlinedButton(
                               onPressed: widget.onSendWhatsAppReminder,
-                              child: const Text('Send reminder'),
+                              child: const Text('WhatsApp'),
                             ),
                           ],
                         ),

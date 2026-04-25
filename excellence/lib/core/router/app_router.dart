@@ -42,6 +42,7 @@ import '../../features/student/presentation/pages/batches_page.dart';
 import '../../features/student/presentation/pages/student_batch_panel_page.dart';
 import '../../features/parent/presentation/pages/weekly_report_page.dart';
 import '../../features/parent/presentation/pages/payment_history_page.dart';
+import '../../features/parent/presentation/pages/parent_doubts_page.dart';
 import '../../features/chat/presentation/pages/chat_page.dart';
 import '../../features/chat/presentation/pages/chat_list_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
@@ -480,7 +481,12 @@ class AppRouter {
                   GoRoute(
                     path: 'profile',
                     name: 'admin-profile',
-                    pageBuilder: (c, s) => _page(s, const ProfilePage()),
+                    pageBuilder: (c, s) => _page(
+                      s,
+                      ProfilePage(
+                        edit: s.uri.queryParameters['edit'] == 'true',
+                      ),
+                    ),
                   ),
                   GoRoute(
                     path: 'chat-list',
@@ -1057,7 +1063,12 @@ class AppRouter {
               GoRoute(
                 path: '/teacher/profile',
                 name: 'teacher-profile-self',
-                pageBuilder: (c, s) => _page(s, const ProfilePage()),
+                pageBuilder: (c, s) => _page(
+                  s,
+                  ProfilePage(
+                    edit: s.uri.queryParameters['edit'] == 'true',
+                  ),
+                ),
                 routes: [
                   GoRoute(
                     path: 'settings',
@@ -1348,7 +1359,12 @@ class AppRouter {
               GoRoute(
                 path: '/student/profile',
                 name: 'student-self-profile',
-                pageBuilder: (c, s) => _page(s, const ProfilePage()),
+                pageBuilder: (c, s) => _page(
+                  s,
+                  ProfilePage(
+                    edit: s.uri.queryParameters['edit'] == 'true',
+                  ),
+                ),
               ),
             ],
           ),
@@ -1472,7 +1488,7 @@ class AppRouter {
               GoRoute(
                 path: '/parent/chat-list',
                 name: 'parent-chat-list',
-                pageBuilder: (c, s) => _page(s, const ChatListPage()),
+                pageBuilder: (c, s) => _page(s, const ParentDoubtsPage()),
                 routes: [
                   GoRoute(
                     path: 'chat/:id',
@@ -1517,7 +1533,12 @@ class AppRouter {
               GoRoute(
                 path: '/parent/profile',
                 name: 'parent-self-profile',
-                pageBuilder: (c, s) => _page(s, const ProfilePage()),
+                pageBuilder: (c, s) => _page(
+                  s,
+                  ProfilePage(
+                    edit: s.uri.queryParameters['edit'] == 'true',
+                  ),
+                ),
               ),
             ],
           ),

@@ -364,7 +364,13 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> with Them
                 color: Colors.white,
                 size: 20,
               ),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/teacher');
+                }
+              },
             ),
             title: Text(
               'ATTENDANCE',

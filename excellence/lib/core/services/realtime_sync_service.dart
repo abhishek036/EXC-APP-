@@ -51,12 +51,14 @@ class RealtimeSyncService {
     });
 
     _socket!.on('dashboard_sync', (dynamic data) {
+      _apiClient.clearCache();
       if (!_controller.isClosed) {
         _controller.add(_normalizeEvent('dashboard_sync', data));
       }
     });
 
     _socket!.on('batch_sync', (dynamic data) {
+      _apiClient.clearCache();
       if (!_controller.isClosed) {
         _controller.add(_normalizeEvent('batch_sync', data));
       }
@@ -69,6 +71,7 @@ class RealtimeSyncService {
     });
 
     _socket!.on('new_message', (dynamic data) {
+      _apiClient.clearCache();
       if (!_controller.isClosed) {
         _controller.add(_normalizeEvent('new_message', data));
       }

@@ -170,6 +170,10 @@ export class ExamService {
       .filter((value): value is string => Boolean(value));
 
     for (const parentUserId of parentUserIds) {
+      const parentRoute = data.studentId
+        ? `/parent/weekly-report/${data.studentId}`
+        : '/parent';
+
       await NotificationService.sendNotificationToUser(parentUserId, {
         title: 'Result Published',
         body,
@@ -177,7 +181,8 @@ export class ExamService {
         role_target: 'parent',
         institute_id: instituteId,
         meta: {
-          route: '/parent/results',
+          route: parentRoute,
+          student_id: data.studentId,
           exam_id: data.examId,
           dedupe_key: `result:parent:${parentUserId}:${data.examId}:${data.studentId}`,
         },

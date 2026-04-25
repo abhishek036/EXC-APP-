@@ -116,7 +116,11 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
 
       if (!mounted) return;
       CPToast.success(context, 'Batch results deployed successfully');
-      Navigator.pop(context, true);
+      if (context.canPop()) {
+        context.pop(true);
+      } else {
+        context.go('/admin/batches');
+      }
     } catch (_) {
       if (!mounted) return;
       CPToast.error(context, 'System failure during bulk persistence');
@@ -260,7 +264,13 @@ class _BulkResultEntryPageState extends State<BulkResultEntryPage> {
       child: Row(
         children: [
           CPPressable(
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/admin/batches');
+              }
+            },
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,

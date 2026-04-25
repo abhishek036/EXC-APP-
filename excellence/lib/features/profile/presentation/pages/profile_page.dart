@@ -21,7 +21,8 @@ import '../../../auth/domain/entities/user_entity.dart';
 import '../../../auth/data/models/user_model.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  final bool edit;
+  const ProfilePage({super.key, this.edit = false});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -37,6 +38,9 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
   late TextEditingController _emailCtrl;
   late TextEditingController _dobCtrl;
   late TextEditingController _addressCtrl;
+
+  final ScrollController _scrollController = ScrollController();
+  final FocusNode _nameFocus = FocusNode();
 
   UserModel? _user;
 
@@ -146,14 +150,24 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
     _nameCtrl    = TextEditingController(text: _user?.name ?? '');
     _phoneCtrl   = TextEditingController(text: _user?.phone ?? '');
     _emailCtrl   = TextEditingController(text: _user?.email ?? '');
+    // Add these if we have them in the future, for now placeholder
     _dobCtrl     = TextEditingController(text: '');
     _addressCtrl = TextEditingController(text: '');
+    
+    if (widget.edit) {
+      _editMode = true;
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) _nameFocus.requestFocus();
+      });
+    }
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose(); _phoneCtrl.dispose();
     _emailCtrl.dispose(); _dobCtrl.dispose(); _addressCtrl.dispose();
+    _scrollController.dispose();
+    _nameFocus.dispose();
     super.dispose();
   }
 
@@ -221,20 +235,43 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
     }
   }
 
+  void _enableEditMode() {
+    if (_editMode) return;
+    HapticFeedback.heavyImpact();
+    setState(() => _editMode = true);
+    
+    _scrollController.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutCubic,
+    );
+    
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Edit Mode Enabled — You can now update your details', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: Colors.white)),
+      backgroundColor: const Color(0xFF354388),
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ));
+
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) _nameFocus.requestFocus();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, authState) {
-        final user = authState is AuthAuthenticated ? authState.user : null;
-        final role = user?.role ?? AppRole.admin;
-        final isAdmin = role == AppRole.admin;
-        final displayName = user?.name ?? _user?.name ?? 'Admin User';
-        final roleLabel = switch (role) {
-          AppRole.admin => 'Administrator',
-          AppRole.teacher => 'Faculty',
-          AppRole.student => 'Student',
-          AppRole.parent => 'Parent',
-        };
+    final authState = context.watch<AuthBloc>().state;
+    final user = authState is AuthAuthenticated ? authState.user : null;
+    final role = user?.role ?? AppRole.admin;
+    final isAdmin = role == AppRole.admin;
+    final displayName = user?.name ?? _user?.name ?? 'Admin User';
+    final roleLabel = switch (role) {
+      AppRole.admin => 'Administrator',
+      AppRole.teacher => 'Faculty',
+      AppRole.student => 'Student',
+      AppRole.parent => 'Parent',
+    };
 
         final initials = displayName.trim().isEmpty ? 'U'
             : displayName.trim().split(' ').where((s) => s.isNotEmpty).map((w) => w[0]).take(2).join().toUpperCase();
@@ -242,6 +279,7 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
         return Scaffold(
           backgroundColor: bg,
           body: CustomScrollView(
+            controller: _scrollController,
             slivers: [
               // ── Sliver App Bar / Hero Header ───────────────
               SliverAppBar(
@@ -255,18 +293,25 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
                 actions: [
                   if (!_editMode)
                     CPPressable(
-                      onTap: () => setState(() => _editMode = true),
+                      onTap: _enableEditMode,
                       child: Container(
                         margin: const EdgeInsets.only(right: 16),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
                           color: const Color(0xFFE5A100),
                           borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.edit_rounded, size: 14, color: Color(0xFF354388)),
-                          const SizedBox(width: 6),
-                          Text('Edit', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFF354388))),
+                          const Icon(Icons.edit_rounded, size: 16, color: Color(0xFF354388)),
+                          const SizedBox(width: 8),
+                          Text('Edit', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFF354388))),
                         ]),
                       ),
                     )
@@ -342,7 +387,7 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
 
                 // ── Personal Information ──────────────────────
                 _section('Personal Information', [
-                  _editableField(label: 'Full Name', icon: Icons.person_rounded, controller: _nameCtrl, editing: _editMode),
+                  _editableField(label: 'Full Name', icon: Icons.person_rounded, controller: _nameCtrl, editing: _editMode, focusNode: _nameFocus),
                   _editableField(label: 'Phone', icon: Icons.phone_android_rounded, controller: _phoneCtrl, editing: _editMode, editable: false, type: TextInputType.phone),
                   _editableField(label: 'Email', icon: Icons.email_rounded, controller: _emailCtrl, editing: _editMode, type: TextInputType.emailAddress),
                   _editableField(label: 'Date of Birth', icon: Icons.cake_rounded, controller: _dobCtrl, editing: _editMode, editable: false),
@@ -360,7 +405,7 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
                           _quickRow(context, Icons.settings_rounded, 'App Settings', route: '/admin/settings'),
                         ]
                       : [
-                          _quickRow(context, Icons.person_outline_rounded, 'Edit Profile', onTap: () => setState(() => _editMode = true)),
+                          _quickRow(context, Icons.person_outline_rounded, 'Edit Profile', onTap: _enableEditMode),
                           _quickRow(context, Icons.settings_rounded, 'Settings', route: '${context.rolePrefix}/settings'),
                           _quickRow(context, Icons.notifications_outlined, 'Notification Settings', route: '${context.rolePrefix}/notification-settings'),
                           _quickRow(context, Icons.lock_reset_rounded, 'Change Password', route: '/change-password'),
@@ -425,8 +470,6 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
             ],
           ),
         );
-      },
-    );
   }
 
   // ── Helpers ─────────────────────────────────────────────────
@@ -466,6 +509,7 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
     required bool editing,
     bool editable = true,
     TextInputType? type,
+    FocusNode? focusNode,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -485,6 +529,7 @@ class _ProfilePageState extends State<ProfilePage> with ThemeAware<ProfilePage> 
           (editing && editable)
             ? TextField(
                 controller: controller,
+                focusNode: focusNode,
                 keyboardType: type,
                 onChanged: (_) => setState(() {}),
                 style: GoogleFonts.plusJakartaSans(

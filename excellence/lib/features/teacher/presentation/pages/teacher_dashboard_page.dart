@@ -726,11 +726,25 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         'desc': 'Unresolved',
       },
       {
-        'label': 'Notice Board',
+        'label': 'Broadcasts',
         'icon': Icons.campaign_rounded,
         'color': AppColors.mintGreen,
+        'route': '/teacher/announcements',
+        'desc': 'Batch updates',
+      },
+      {
+        'label': 'Video Library',
+        'icon': Icons.play_circle_fill_rounded,
+        'color': AppColors.electricBlue,
+        'route': '/teacher/video-lectures',
+        'desc': 'Lecture history',
+      },
+      {
+        'label': 'Notice Board',
+        'icon': Icons.notifications_active_rounded,
+        'color': AppColors.coralRed,
         'route': '/teacher/notifications',
-        'desc': 'Announcements',
+        'desc': 'App alerts',
       },
     ];
 

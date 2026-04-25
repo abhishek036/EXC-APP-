@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../di/injection_container.dart';
 import '../network/api_client.dart';
@@ -37,6 +39,10 @@ Future<String> downloadAndOpenFromUrl({
 
   Response<List<int>>? response;
   Object? lastError;
+  final browserUri = _resolveBrowserUri(
+    url,
+    baseUrl: apiClient.dio.options.baseUrl,
+  );
 
   if (storageKey != null && storageKey.isNotEmpty) {
     await DownloadRegistry.instance.markDownloading(
@@ -68,8 +74,23 @@ Future<String> downloadAndOpenFromUrl({
     }
 
     if (response == null) {
+      if (browserUri != null && await _launchExternalUrl(browserUri)) {
+        if (storageKey != null && storageKey.isNotEmpty) {
+          await DownloadRegistry.instance.clear(storageKey);
+        }
+        return browserUri.toString();
+      }
       if (lastError is Exception) throw lastError;
       throw Exception('Unable to download file');
+    }
+
+    if (_looksLikeWebPage(response)) {
+      if (await _launchExternalUrl(response.requestOptions.uri)) {
+        if (storageKey != null && storageKey.isNotEmpty) {
+          await DownloadRegistry.instance.clear(storageKey);
+        }
+        return response.requestOptions.uri.toString();
+      }
     }
 
     final bytes = Uint8List.fromList(response.data ?? const <int>[]);
@@ -103,6 +124,13 @@ Future<String> downloadAndOpenFromUrl({
 
     return savedPath;
   } catch (error) {
+    final fallbackUri = response?.requestOptions.uri ?? browserUri;
+    if (fallbackUri != null && await _launchExternalUrl(fallbackUri)) {
+      if (storageKey != null && storageKey.isNotEmpty) {
+        await DownloadRegistry.instance.clear(storageKey);
+      }
+      return fallbackUri.toString();
+    }
     if (storageKey != null && storageKey.isNotEmpty) {
       await DownloadRegistry.instance.markFailed(
         storageKey,
@@ -114,6 +142,61 @@ Future<String> downloadAndOpenFromUrl({
     }
     rethrow;
   }
+}
+
+Uri? _resolveBrowserUri(String rawUrl, {required String baseUrl}) {
+  final trimmed = rawUrl.trim();
+  if (trimmed.isEmpty) return null;
+
+  final parsed = Uri.tryParse(trimmed);
+  if (parsed != null && parsed.hasScheme) {
+    return parsed;
+  }
+
+  final baseUri = Uri.tryParse(baseUrl);
+  if (baseUri == null) return null;
+
+  final cleaned = trimmed.startsWith('/') ? trimmed.substring(1) : trimmed;
+  if (cleaned.isEmpty) return baseUri;
+
+  return baseUri.resolve(cleaned);
+}
+
+bool _looksLikeWebPage(Response<List<int>> response) {
+  final contentType = response.headers.value('content-type')?.toLowerCase() ?? '';
+  if (contentType.contains('text/html') ||
+      contentType.contains('application/json') ||
+      contentType.contains('text/plain')) {
+    return true;
+  }
+
+  final body = response.data;
+  if (body == null || body.isEmpty) return false;
+
+  final preview = utf8
+      .decode(body.take(512).toList(), allowMalformed: true)
+      .trimLeft()
+      .toLowerCase();
+
+  return preview.startsWith('<!doctype html') ||
+      preview.startsWith('<html') ||
+      preview.contains('<html');
+}
+
+Future<bool> _launchExternalUrl(Uri uri) async {
+  if (!uri.hasScheme || (uri.scheme != 'http' && uri.scheme != 'https')) {
+    return false;
+  }
+
+  try {
+    if (await canLaunchUrl(uri)) {
+      return launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  } catch (_) {
+    return false;
+  }
+
+  return false;
 }
 
 Future<bool> _isOfflineCacheEnabled() async {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_toast.dart';
 import '../../../../core/widgets/custom_button.dart';
@@ -30,6 +32,8 @@ class BatchDetailPage extends StatefulWidget {
 
 class _BatchDetailPageState extends State<BatchDetailPage> {
   final _adminRepo = sl<AdminRepository>();
+  final _syncService = sl<RealtimeSyncService>();
+  StreamSubscription? _syncSubscription;
 
   Map<String, dynamic>? _batch;
   List<Map<String, dynamic>> _students = [];
@@ -78,6 +82,28 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
   void initState() {
     super.initState();
     _loadBatch();
+    _initSync();
+  }
+
+  void _initSync() {
+    _syncService.connect();
+    _syncService.joinBatch(widget.batchId);
+    _syncSubscription = _syncService.updates.listen((event) {
+      final type = event['type'] as String?;
+      final eventBatchId = (event['batch_id'] ?? event['batchId'] ?? event['id'] ?? '').toString();
+
+      if (type == 'batch_sync' || type == 'dashboard_sync') {
+        if (eventBatchId.isEmpty || eventBatchId == widget.batchId) {
+          _loadBatch(silent: true);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncSubscription?.cancel();
+    super.dispose();
   }
 
   int _toInt(dynamic value, {int fallback = 0}) {
@@ -296,6 +322,11 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     const SizedBox(height: 10),
                     TextField(
                       controller: urlCtrl,
+                      obscureText: true,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      keyboardType: TextInputType.url,
+                      textCapitalization: TextCapitalization.none,
                       decoration: const InputDecoration(labelText: 'File URL'),
                     ),
                     const SizedBox(height: 10),
@@ -533,6 +564,11 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                     const SizedBox(height: 10),
                     TextField(
                       controller: fileUrlCtrl,
+                      obscureText: true,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      keyboardType: TextInputType.url,
+                      textCapitalization: TextCapitalization.none,
                       decoration: const InputDecoration(
                         labelText: 'Question/File URL (optional)',
                       ),
@@ -809,13 +845,15 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
   }
 
 
-  Future<void> _loadBatch() async {
+  Future<void> _loadBatch({bool silent = false}) async {
     try {
       if (!mounted) return;
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
+      if (!silent) {
+        setState(() {
+          _isLoading = true;
+          _error = null;
+        });
+      }
 
       final batch = await _adminRepo.getBatchById(widget.batchId);
       final now = DateTime.now();
@@ -856,15 +894,34 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         _adminRepo
             .getAnnouncements()
             .catchError((_) => <Map<String, dynamic>>[]),
+        _adminRepo
+            .getExams()
+            .catchError((_) => <Map<String, dynamic>>[]),
       ]);
 
       if (!mounted) return;
-      final batchStudents = ((batch['students'] as List?) ?? const [])
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
+      final batchStudents = List<Map<String, dynamic>>.from(batch['students'] as List? ?? []);
       final studentsFromApi = List<Map<String, dynamic>>.from(results[9] as List);
-      final quizzes = List<Map<String, dynamic>>.from(results[2] as List);
+      
+      final loadedQuizzes = List<Map<String, dynamic>>.from(results[2] as List);
+      for (var q in loadedQuizzes) {
+        q['item_type'] = 'quiz';
+      }
+      
+      final loadedExams = List<Map<String, dynamic>>.from(results[11] as List)
+          .where((e) => e['batchId'] == widget.batchId || e['batch_id'] == widget.batchId)
+          .toList();
+      for (var e in loadedExams) {
+        e['item_type'] = 'exam';
+      }
+      
+      final quizzes = [...loadedQuizzes, ...loadedExams];
+      quizzes.sort((a, b) {
+        final dateA = DateTime.tryParse((a['scheduled_at'] ?? a['exam_date'] ?? '').toString()) ?? DateTime(2000);
+        final dateB = DateTime.tryParse((b['scheduled_at'] ?? b['exam_date'] ?? '').toString()) ?? DateTime(2000);
+        return dateB.compareTo(dateA);
+      });
+
       final attendanceSessions = List<Map<String, dynamic>>.from(results[8] as List);
       final mergedSubjects = <String>{
         ..._extractSubjectsFromBatchMeta(batch),
@@ -1128,6 +1185,16 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       appBar: AppBar(
         backgroundColor: AppColors.elitePrimary,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/admin');
+            }
+          },
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           _batch?['name']?.toString() ?? 'Batch Control Panel',
@@ -1885,6 +1952,10 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
           quizzes: _quizzes,
           feeRecords: _feeRecords,
           students: _students,
+          assignments: _assignments,
+          materials: _materials,
+          announcements: _announcements,
+          attendanceSessions: _attendanceSessions,
           attendanceStats: _attendanceStats,
           dateLabel: _dateLabel,
         );
@@ -1927,7 +1998,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
           toDouble: _toDouble,
           onAddTest: () => _showExamEditor(),
           onEditTest: (q) => _showExamEditor(exam: q),
-          onDeleteTest: (id) => _deleteExam(id),
+          onDeleteTest: (test) => _deleteTest(test),
         );
       case 4:
         return BatchFeesTab(
@@ -1941,6 +2012,7 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
           onGenerateFees: _showGenerateFeesDialog,
           onMarkAsPaid: _markAsPaid,
           onSendWhatsAppReminder: () => context.push('/admin/whatsapp-broadcast'),
+          onSendPushReminder: _sendFeeReminder,
         );
       case 5:
         return BatchAttendanceTab(
@@ -2427,12 +2499,16 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     }
   }
 
-  Future<void> _deleteExam(String id) async {
+  Future<void> _deleteTest(Map<String, dynamic> test) async {
+    final id = (test['id'] ?? '').toString();
+    final isQuiz = test['assessment_type'] != null || test['item_type'] == 'quiz';
+    final label = isQuiz ? 'Quiz' : 'Exam';
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Exam?'),
-        content: const Text('This will delete the exam and all its results.'),
+        title: Text('Delete $label?'),
+        content: Text('This will delete the $label and all its results.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
@@ -2441,8 +2517,12 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     );
     if (confirm != true) return;
     try {
-      await _adminRepo.deleteExam(id);
-      CPToast.success(context, 'Exam deleted');
+      if (isQuiz) {
+        await _adminRepo.deleteQuiz(id);
+      } else {
+        await _adminRepo.deleteExam(id);
+      }
+      CPToast.success(context, '$label deleted');
       _loadBatch();
     } catch (e) {
       CPToast.error(context, e.toString());
@@ -2813,6 +2893,23 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _sendFeeReminder(Map<String, dynamic> record) async {
+    final recordId = (record['id'] ?? '').toString();
+    if (recordId.isEmpty) {
+      CPToast.error(context, 'Invalid fee record');
+      return;
+    }
+
+    try {
+      await _adminRepo.sendFeeReminder(recordId);
+      if (!mounted) return;
+      CPToast.success(context, 'Fee reminder notification sent');
+    } catch (e) {
+      if (!mounted) return;
+      CPToast.error(context, e.toString());
+    }
   }
 
   Future<void> _markAsPaid(Map<String, dynamic> record) async {

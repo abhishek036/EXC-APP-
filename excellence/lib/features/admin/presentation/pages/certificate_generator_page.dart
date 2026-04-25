@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
@@ -115,7 +116,13 @@ class _CertificateGeneratorPageState extends State<CertificateGeneratorPage> {
       child: Row(
         children: [
           CPPressable(
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/admin');
+              }
+            },
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
               size: 20,

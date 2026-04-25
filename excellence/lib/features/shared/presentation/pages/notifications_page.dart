@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/theme/theme_aware.dart';
+import '../../../../core/utils/notification_route.dart';
 import '../../../../core/utils/role_prefix.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../student/data/repositories/student_repository.dart';
@@ -676,42 +677,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         return CPPressable(
                           onTap: () {
                             _markRead(index, read: true);
-                            final meta = notif['meta'] as Map<String, dynamic>?;
-                            final rawRoute =
-                                meta?['route']?.toString() ??
-                                notif['route']?.toString();
-                            final route = rawRoute == '/student/quizzes'
-                                ? '/student/quiz'
-                                : rawRoute == '/teacher/quizzes'
-                                ? '/teacher/batches'
-                                : rawRoute;
-
+                            final route = resolveNotificationRoute(
+                              notif,
+                              currentRolePrefix: context.rolePrefix,
+                            );
                             if (route != null && route.isNotEmpty) {
                               context.push(route);
-                            } else {
-                              final type = notif['type']?.toString();
-                              final prefix = context.rolePrefix;
-
-                              if (type == 'doubt') {
-                                context.push('$prefix/doubts/history');
-                              } else if (type == 'class') {
-                                context.push('$prefix/timetable');
-                              } else if (type == 'exam' || type == 'quiz') {
-                                if (prefix == '/student') {
-                                  context.push('/student/quiz');
-                                } else if (prefix == '/teacher') {
-                                  context.push('/teacher/batches');
-                                } else {
-                                  context.push(prefix);
-                                }
-                              } else if (type == 'material' ||
-                                  type == 'content') {
-                                context.push('$prefix/materials');
-                              } else if (type == 'attendance') {
-                                context.push('$prefix/attendance');
-                              } else if (type == 'result') {
-                                context.push('$prefix/results');
-                              }
                             }
                           },
                           child: AnimatedContainer(

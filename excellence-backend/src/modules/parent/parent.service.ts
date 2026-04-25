@@ -745,6 +745,7 @@ export class ParentService {
             paid_amount: true,
             status: true,
             due_date: true,
+            updated_at: true,
             batch: { select: { name: true } },
           },
           orderBy: { due_date: 'desc' },
@@ -1040,5 +1041,37 @@ export class ParentService {
       activity_feed: activityFeed,
       generated_at: new Date(),
     };
+  }
+
+  async getChildrenDoubts(userId: string, instituteId: string) {
+    const parent = await prisma.parent.findFirst({
+      where: { user_id: userId, institute_id: instituteId },
+      include: { parent_students: true }
+    });
+    
+    if (!parent) {
+      throw new ApiError('Parent not found', 404, 'NOT_FOUND');
+    }
+
+    const childIds = parent.parent_students.map(ps => ps.student_id);
+
+    if (childIds.length === 0) {
+      return [];
+    }
+
+    const doubts = await prisma.doubt.findMany({
+      where: {
+        student_id: { in: childIds },
+        institute_id: instituteId
+      },
+      include: {
+        assigned_to: { select: { name: true } },
+        batch: { select: { name: true } },
+        student: { select: { name: true } }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    return doubts;
   }
 }

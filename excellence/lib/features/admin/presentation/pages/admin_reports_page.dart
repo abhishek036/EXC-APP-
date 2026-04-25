@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -7,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/widgets/cp_glass_card.dart';
+import '../../../../core/services/realtime_sync_service.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 
@@ -21,6 +24,8 @@ class _AdminReportsPageState extends State<AdminReportsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
   final _adminRepo = sl<AdminRepository>();
+  final _realtime = sl<RealtimeSyncService>();
+  StreamSubscription<Map<String, dynamic>>? _syncSub;
 
   bool _isLoading = true;
   String _loadError = '';
@@ -39,6 +44,33 @@ class _AdminReportsPageState extends State<AdminReportsPage>
     super.initState();
     _tabCtrl = TabController(length: 3, vsync: this);
     _loadData();
+    _initRealtime();
+  }
+
+  Future<void> _initRealtime() async {
+    await _realtime.connect();
+    _syncSub?.cancel();
+    _syncSub = _realtime.updates.listen((event) {
+      if (!mounted) return;
+      final type = (event['type'] ?? '').toString();
+      final reason = (event['reason'] ?? '').toString().toLowerCase();
+      final shouldRefresh =
+          type == 'dashboard_sync' ||
+          type == 'batch_sync' ||
+          reason.contains('student') ||
+          reason.contains('teacher') ||
+          reason.contains('batch') ||
+          reason.contains('fee') ||
+          reason.contains('exam') ||
+          reason.contains('attendance') ||
+          reason.contains('quiz') ||
+          reason.contains('assignment') ||
+          reason.contains('lecture') ||
+          reason.contains('notification');
+      if (shouldRefresh) {
+        _loadData();
+      }
+    });
   }
 
   Future<void> _loadData() async {
@@ -146,6 +178,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
 
   @override
   void dispose() {
+    _syncSub?.cancel();
     _tabCtrl.dispose();
     super.dispose();
   }
@@ -198,6 +231,20 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                   backgroundColor: Colors.transparent,
                   elevation: 0,
                   scrolledUnderElevation: 0,
+                  leading: IconButton(
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/admin');
+                      }
+                    },
+                    icon: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
+                      size: 20,
+                    ),
+                  ),
                   title: Text(
                     'Analytics Engine',
                     style: GoogleFonts.plusJakartaSans(

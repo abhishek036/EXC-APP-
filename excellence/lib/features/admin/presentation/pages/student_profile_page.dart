@@ -20,10 +20,13 @@ class StudentProfilePage extends StatefulWidget {
 
 class _StudentProfilePageState extends State<StudentProfilePage> with SingleTickerProviderStateMixin, ThemeAware<StudentProfilePage> {
   final _adminRepo = sl<AdminRepository>();
+  final _syncService = sl<RealtimeSyncService>();
+  StreamSubscription? _syncSubscription;
 
   Map<String, dynamic>? _student;
   List<Map<String, dynamic>> _feeHistory = [];
   List<Map<String, dynamic>> _examResults = [];
+  List<Map<String, dynamic>> _attendanceHistory = [];
   // Raw batch data for assignment: [{id, name, ...}]
   List<Map<String, dynamic>> _allBatches = [];
   List<Map<String, dynamic>> _dedupeBatchesById(
@@ -61,11 +64,13 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
   late TextEditingController _parentNameCtrl;
   late TextEditingController _parentPhoneCtrl;
   late TextEditingController _parentRelCtrl;
+  late TextEditingController _genderCtrl;
+  late TextEditingController _rollNoCtrl;
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    _tabs = TabController(length: 4, vsync: this);
     _nameCtrl = TextEditingController();
     _phoneCtrl = TextEditingController();
     _emailCtrl = TextEditingController();
@@ -73,11 +78,30 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
     _parentNameCtrl = TextEditingController();
     _parentPhoneCtrl = TextEditingController();
     _parentRelCtrl = TextEditingController();
+    _genderCtrl = TextEditingController();
+    _rollNoCtrl = TextEditingController();
     _loadAll();
+    _initRealtime();
+  }
+
+  void _initRealtime() {
+    _syncService.connect();
+    _syncSubscription = _syncService.updates.listen((event) {
+      final type = event['type'] as String?;
+      final studentId = (event['student_id'] ?? event['studentId'] ?? event['id'] ?? '').toString();
+      
+      // Refresh if it's a student sync or a batch sync (since student is in batches)
+      if (type == 'student_sync' || type == 'batch_sync' || type == 'dashboard_sync') {
+        if (studentId.isEmpty || studentId == widget.studentId) {
+          _loadAll(silent: true);
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
+    _syncSubscription?.cancel();
     _tabs.dispose();
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
@@ -86,6 +110,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
     _parentNameCtrl.dispose();
     _parentPhoneCtrl.dispose();
     _parentRelCtrl.dispose();
+    _genderCtrl.dispose();
+    _rollNoCtrl.dispose();
     super.dispose();
   }
 
@@ -143,16 +169,22 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 directParent['relationship'] ??
                 'Parent')
             .toString();
+
+    // Map Gender and Roll No
+    _genderCtrl.text = (s['gender'] ?? '').toString();
+    _rollNoCtrl.text = (s['student_code'] ?? s['rollNumber'] ?? '').toString();
   }
 
-  Future<void> _loadAll() async {
+  Future<void> _loadAll({bool silent = false}) async {
     if (!mounted) return;
-    setState(() {
-      _loading = true;
-      _loadFailed = false;
-      _loadErrorSummary = 'Unknown error';
-      _loadErrorDetails = '';
-    });
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _loadFailed = false;
+        _loadErrorSummary = 'Unknown error';
+        _loadErrorDetails = '';
+      });
+    }
     try {
       final studentResult = await _adminRepo.getStudentById(widget.studentId);
       final feesResult = await _adminRepo
@@ -163,7 +195,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
       );
       final attendanceResult = await _adminRepo
           .getStudentAttendance(studentId: widget.studentId)
-          .catchError((_) => <String, dynamic>{'attendancePercent': 76});
+          .catchError((_) => <String, dynamic>{'attendancePercent': 0});
       if (mounted) {
         final attData = attendanceResult;
         final attPct = _toInt(
@@ -203,6 +235,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                     widget.studentId,
               )
               .toList();
+          _attendanceHistory = List<Map<String, dynamic>>.from(attData['history'] ?? attData['records'] ?? []);
           _loading = false;
           _loadFailed = false;
         });
@@ -285,6 +318,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
         'parentName': _parentNameCtrl.text.trim(),
         'parentPhone': _parentPhoneCtrl.text.trim(),
         'parentRelation': _parentRelCtrl.text.trim(),
+        'gender': _genderCtrl.text.trim(),
+        'student_code': _rollNoCtrl.text.trim(),
       });
       // Update local state immediately
       if (mounted) {
@@ -295,6 +330,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
         updated['parentName'] = _parentNameCtrl.text.trim();
         updated['parentPhone'] = _parentPhoneCtrl.text.trim();
         updated['parentRelation'] = _parentRelCtrl.text.trim();
+        updated['gender'] = _genderCtrl.text.trim();
+        updated['student_code'] = _rollNoCtrl.text.trim();
         setState(() {
           _student = updated;
           _editMode = false;
@@ -744,7 +781,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
             headerSliverBuilder: (_, isScrolled) => [
               // ── Sliver App Bar ──────────────────────────────────
               SliverAppBar(
-                expandedHeight: 260,
+                expandedHeight: 320,
                 pinned: true,
                 backgroundColor: const Color(0xFF354388),
                 leading: CPPressable(
@@ -955,25 +992,30 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _heroStat('Attendance', '$attendance%', attColor),
+                              Expanded(child: _heroStat('Attendance', '$attendance%', attColor)),
                               _heroDivider(),
-                              _heroStat(
-                                'Fee Status',
-                                feeStatus == 'PAID'
-                                    ? 'Paid'
-                                    : feeStatus == 'OVERDUE'
-                                    ? 'Overdue'
-                                    : 'Pending',
-                                feeColor,
+                              Expanded(
+                                child: _heroStat(
+                                  'Fee Status',
+                                  feeStatus == 'PAID'
+                                      ? 'Paid'
+                                      : feeStatus == 'OVERDUE'
+                                      ? 'Overdue'
+                                      : 'Pending',
+                                  feeColor,
+                                ),
                               ),
                               _heroDivider(),
-                              _heroStat(
-                                'Batches',
-                                '${studentBatches.length}',
-                                Colors.white,
+                              Expanded(
+                                child: _heroStat(
+                                  'Exam Results',
+                                  '${_examResults.length}',
+                                  Colors.white,
+                                ),
                               ),
                             ],
                           ),
+                          const SizedBox(height: 70), // Prevent overlap with TabBar
                         ],
                       ),
                     ),
@@ -981,6 +1023,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 ),
                 bottom: TabBar(
                   controller: _tabs,
+                  isScrollable: true,
                   labelColor: const Color(0xFFE5A100),
                   unselectedLabelColor: Colors.white60,
                   indicatorColor: const Color(0xFFE5A100),
@@ -992,7 +1035,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                   tabs: const [
                     Tab(text: 'Profile'),
                     Tab(text: 'Fees'),
-                    Tab(text: 'Results'),
+                    Tab(text: 'Attendance'),
+                    Tab(text: 'Performance'),
                   ],
                 ),
               ),
@@ -1011,7 +1055,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 ),
                 // ── Tab 2: Fees ───────────────────────────────────
                 _buildFeesTab(feeStatus, feeColor),
-                // ── Tab 3: Results ────────────────────────────────
+                // ── Tab 3: Attendance ─────────────────────────────
+                _buildAttendanceTab(),
+                // ── Tab 4: Performance ────────────────────────────
                 _buildResultsTab(),
               ],
             ),
@@ -1099,16 +1145,18 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                 editing: _editMode,
               ),
               _dividerLine(),
-              _staticField(
+              _field(
                 label: 'Gender',
                 icon: Icons.wc_rounded,
-                value: (s['gender'] ?? '—').toString(),
+                controller: _genderCtrl,
+                editing: _editMode,
               ),
               _dividerLine(),
-              _staticField(
+              _field(
                 label: 'Roll No.',
                 icon: Icons.badge_rounded,
-                value: (s['student_code'] ?? '—').toString(),
+                controller: _rollNoCtrl,
+                editing: _editMode,
               ),
             ],
           ).animate().fadeIn(duration: 300.ms),
@@ -1518,7 +1566,115 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
     );
   }
 
-  // ── RESULTS TAB ──────────────────────────────────────────────────────────────────
+  // ── ATTENDANCE TAB ──────────────────────────────────────────────────────────────
+  Widget _buildAttendanceTab() {
+    final s = _student ?? {};
+    final pct = _toInt(s['attendancePercent'] ?? s['percentage']);
+    final presentCount = _attendanceHistory.where((r) => (r['status'] ?? '').toString().toLowerCase() == 'present').length;
+    final totalSessions = _attendanceHistory.length;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Attendance summary cards
+          Row(
+            children: [
+              _feeMetricCard(
+                'Overall',
+                '$pct%',
+                pct >= 75 ? const Color(0xFFE5A100) : const Color(0xFFB6231B),
+              ),
+              const SizedBox(width: 12),
+              _feeMetricCard(
+                'Sessions',
+                '$totalSessions',
+                const Color(0xFF354388),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          _sectionTitle('Attendance History'),
+          const SizedBox(height: 12),
+
+          if (_attendanceHistory.isEmpty)
+            _emptyState('No attendance records found', Icons.calendar_today_outlined)
+          else
+            ..._attendanceHistory.asMap().entries.map((entry) {
+              final record = entry.value;
+              final date = (record['session_date'] ?? record['date'] ?? 'Unknown').toString();
+              final status = (record['status'] ?? 'Absent').toString();
+              final subject = (record['subject'] ?? 'General').toString();
+              final isPresent = status.toLowerCase() == 'present';
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF354388).withValues(alpha: 0.1),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: (isPresent ? const Color(0xFFE5A100) : const Color(0xFFB6231B)).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isPresent ? Icons.check_circle_outline_rounded : Icons.cancel_outlined,
+                        color: isPresent ? const Color(0xFFE5A100) : const Color(0xFFB6231B),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            date,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF354388),
+                            ),
+                          ),
+                          Text(
+                            subject,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              color: const Color(0xFF354388).withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      status.toUpperCase(),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: isPresent ? const Color(0xFFE5A100) : const Color(0xFFB6231B),
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate(delay: Duration(milliseconds: entry.key * 50)).fadeIn().slideX(begin: 0.1);
+            }),
+        ],
+      ),
+    );
+  }
+
+  // ── PERFORMANCE TAB ──────────────────────────────────────────────────────────────────
   Widget _buildResultsTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
@@ -1550,11 +1706,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
+                      border: Border.all(color: const Color(0xFF354388), width: 1.5),
+                      boxShadow: const [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
+                          color: Color(0xFF354388),
                           blurRadius: 0,
-                          offset: const Offset(0, 2),
+                          offset: Offset(3, 3),
                         ),
                       ],
                     ),
@@ -1645,11 +1802,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: const Color(0xFF354388), width: 2),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.05),
+          color: const Color(0xFF354388),
           blurRadius: 0,
-          offset: const Offset(0, 3),
+          offset: const Offset(4, 4),
         ),
       ],
     ),
@@ -1657,7 +1815,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
   );
 
   Widget _dividerLine() =>
-      const Divider(height: 1, indent: 56, color: Colors.white);
+      Divider(height: 1, indent: 56, color: Colors.black.withValues(alpha: 0.1));
 
   Widget _field({
     required String label,
@@ -1777,12 +1935,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
+        border: Border.all(color: const Color(0xFF354388), width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: const Color(0xFF354388),
             blurRadius: 0,
-            offset: const Offset(0, 2),
+            offset: const Offset(4, 4),
           ),
         ],
       ),
@@ -1827,11 +1985,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF354388), width: 2.5),
           boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.35),
+            const BoxShadow(
+              color: Color(0xFF354388),
               blurRadius: 0,
-              offset: const Offset(0, 4),
+              offset: Offset(4, 4),
             ),
           ],
         ),

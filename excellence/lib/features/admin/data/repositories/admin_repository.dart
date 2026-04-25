@@ -854,6 +854,12 @@ class AdminRepository {
     throw Exception(response.data['message'] ?? 'Failed to delete exam');
   }
 
+  Future<void> deleteQuiz(String quizId) async {
+    final response = await _api.dio.delete('quizzes/$quizId');
+    if (response.statusCode == 200) return;
+    throw Exception(response.data['message'] ?? 'Failed to delete quiz');
+  }
+
   Future<Map<String, dynamic>> saveExamResult({
     required String examId,
     required String studentId,
@@ -1497,6 +1503,14 @@ class AdminRepository {
       return _extractMap(response.data);
     }
     throw Exception(response.data['message'] ?? 'Failed to reject payment proof');
+  }
+
+  Future<Map<String, dynamic>> sendFeeReminder(String recordId) async {
+    final response = await _api.dio.post('fees/records/$recordId/remind');
+    if (response.statusCode == 200) {
+      return _extractMap(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to send fee reminder');
   }
 
   // ── Attendance ─────────────────────────────────────────

@@ -320,10 +320,30 @@ export class FeeRepository {
             return records;
   }
 
-  async findFeeRecordById(recordId: string, instituteId: string) {
-      return prisma.feeRecord.findFirst({
-         where: { id: recordId, institute_id: instituteId }
       });
+  }
+  
+  async findFeeRecordWithUsers(recordId: string, instituteId: string) {
+    return prisma.feeRecord.findFirst({
+        where: { id: recordId, institute_id: instituteId },
+        include: {
+            student: {
+                include: {
+                    user: { select: { id: true } },
+                    parent_students: {
+                        include: {
+                            parent: {
+                                include: {
+                                    user: { select: { id: true } }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            batch: { select: { name: true } }
+        }
+    });
   }
 
   async getBatchStudents(batchId: string, instituteId: string) {

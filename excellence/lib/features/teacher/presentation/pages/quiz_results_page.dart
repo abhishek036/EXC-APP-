@@ -227,7 +227,13 @@ class _QuizResultsPageState extends State<QuizResultsPage> with ThemeAware<QuizR
             color: Colors.white,
             size: 20,
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/teacher');
+            }
+          },
         ),
         title: Text(
           'QUIZ ANALYTICS',

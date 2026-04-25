@@ -205,6 +205,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           'batches': activeBatches,
           'revenue': col,
           'pending': pen,
+          'pending_fees': pen, // Fixed key
+          'unverified_payments': pendingQueue.length, // Fixed key
         };
         _overdueCount = overC;
         _totalOverdue = overA;
@@ -443,7 +445,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             CPPressable(
               onTap: () {
                 Navigator.pop(context);
-                context.push('/admin/profile');
+                context.push('/admin/profile?edit=true');
               },
               child: Container(
                 color: Colors.transparent,
@@ -761,20 +763,30 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
             const SizedBox(width: 14),
             _glassStat(
-              'VERIFY PROOFS',
-              '$_pendingProofsCount',
-              AppColors.moltenAmber,
-              isDark,
-              Icons.fact_check_outlined,
-              onTap: () => context.push('/admin/fee-payment'),
-            ),
-            const SizedBox(width: 14),
-            _glassStat(
               'BATCHES',
               '${_stats['batches']}',
               AppColors.elitePrimary,
               isDark,
               Icons.groups_2_rounded,
+              onTap: () => context.push('/admin/batches'),
+            ),
+            const SizedBox(width: 14),
+            _glassStat(
+              'PENDING DUES',
+              _formatCurrency(_toDouble(_stats['pending_fees'])),
+              AppColors.coralRed,
+              isDark,
+              Icons.warning_amber_rounded,
+              onTap: () => context.push('/admin/fees'),
+            ),
+            const SizedBox(width: 14),
+            _glassStat(
+              'VERIFY PROOFS',
+              '${_stats['unverified_payments']}',
+              AppColors.electricBlue,
+              isDark,
+              Icons.fact_check_rounded,
+              onTap: () => context.push('/admin/fees'),
             ),
           ],
         ),

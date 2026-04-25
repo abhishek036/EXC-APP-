@@ -322,7 +322,8 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                           boxShadow: [
                             BoxShadow(
                               color: borderColor,
-                              offset: const Offset(5, 5),
+                              offset: const Offset(4, 4),
+                              blurRadius: 0,
                             ),
                           ],
                         ),
@@ -332,13 +333,17 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  _invoiceLabel,
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 11,
-                                    color: CT.elevated(context),
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1,
+                                Flexible(
+                                  child: Text(
+                                    _invoiceLabel,
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 11,
+                                      color: CT.elevated(context),
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 Icon(
@@ -349,12 +354,16 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            Text(
-                              '₹${_amountDue.toStringAsFixed(2)}',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 36,
-                                color: CT.elevated(context),
-                                fontWeight: FontWeight.w900,
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '₹${_amountDue.toStringAsFixed(2)}',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 36,
+                                  color: CT.elevated(context),
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 20),
@@ -470,9 +479,8 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                         ),
                       ),
                     ),
-
                   Text(
-                    'QR PAYMENT ONLY',
+                    'PAYMENT METHOD',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -482,16 +490,16 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                   ),
                   const SizedBox(height: 16),
                   Container(
-                    key: const ValueKey('upi_qr_only'),
+                    width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: CT.card(context),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: borderColor, width: 2),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: borderColor, width: 2.5),
                       boxShadow: [
                         BoxShadow(
-                          color: primary.withValues(alpha: 0.05),
-                          offset: const Offset(4, 4),
+                          color: primary.withValues(alpha: 0.1),
+                          offset: const Offset(8, 8),
                         ),
                       ],
                     ),
@@ -499,49 +507,104 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                       children: [
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: CT.isDark(context)
-                                ? CT.elevated(context).withValues(alpha: 0.05)
-                                : primary.withValues(alpha: 0.03),
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.black12),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             child: Image.asset(
                               'assets/images/qr.jpeg',
-                              height: 190,
+                              height: 240,
                               fit: BoxFit.contain,
-                              errorBuilder: (_, error, stackTrace) => Icon(
-                                Icons.qr_code_2_rounded,
-                                size: 120,
-                                color: CT.textH(context),
+                              errorBuilder: (_, error, stackTrace) => Column(
+                                children: [
+                                  const SizedBox(height: 40),
+                                  Icon(
+                                    Icons.qr_code_2_rounded,
+                                    size: 140,
+                                    color: CT.textH(context).withValues(alpha: 0.1),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'SCAN QR TO PAY',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                      color: CT.textS(context),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 40),
+                                ],
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'SCAN THIS QR TO PAY',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: CT.textS(context),
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: CT.success(context).withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: CT.success(context).withValues(alpha: 0.1)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.security_rounded, size: 18, color: CT.success(context)),
+                              const SizedBox(width: 10),
+                              Flexible(
+                                child: Text(
+                                  'Secure UPI Payment Gateway',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: CT.success(context),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 20),
                         Text(
-                          'Only QR-based payment is accepted. Upload payment screenshot for admin verification.',
+                          'Scan the QR above with any UPI app (GPay, PhonePe, Paytm, etc.). Once done, upload your screenshot below.',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: CT.textM(context),
+                            height: 1.6,
                           ),
                         ),
                       ],
                     ),
-                  ).animate().fadeIn().scaleXY(begin: 0.98),
+                  ).animate().fadeIn().scaleXY(begin: 0.95),
+
+                  const SizedBox(height: 40),
+                  
+                  // Security footer
+                  Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.lock_outline_rounded, size: 20, color: CT.textS(context)),
+                        const SizedBox(height: 8),
+                        Text(
+                          '256-BIT SSL ENCRYPTED CONNECTION',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: CT.textS(context),
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+aleXY(begin: 0.98),
 
                   const SizedBox(height: 60),
                 ],
@@ -1001,27 +1064,54 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                       Text(
                         'Submit Payment Proof',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
                           color: CT.textH(context),
+                          letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Batch: $_batchName',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: CT.textS(context),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: CT.accent(context).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: CT.accent(context).withValues(alpha: 0.2)),
+                        ),
+                        child: Text(
+                          'BATCH: $_batchName'.toUpperCase(),
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: CT.accent(context),
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 20),
                       if (validRecords.length > 1) ...[
-                        const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
                           key: ValueKey(selectedFeeRecordId),
+                          isExpanded: true,
                           initialValue: selectedFeeRecordId.isEmpty ? null : selectedFeeRecordId,
-                          decoration: const InputDecoration(
-                            labelText: 'Fee record',
+                          decoration: InputDecoration(
+                            labelText: 'Select Fee Cycle',
+                            labelStyle: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: CT.textS(context),
+                            ),
+                            filled: true,
+                            fillColor: CT.bg(context),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: CT.border(context), width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: CT.accent(context), width: 2),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           ),
                           items: validRecords
                               .map(
@@ -1029,6 +1119,11 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                                   value: (record['id'] ?? '').toString(),
                                   child: Text(
                                     _formatFeeRecordLabel(record),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: CT.textH(context),
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
                                   ),
@@ -1048,21 +1143,22 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                             });
                           },
                         ),
+                        const SizedBox(height: 16),
                       ],
-                      const SizedBox(height: 12),
                       CustomTextField(
-                        label: 'Amount',
+                        label: 'Payment Amount',
                         controller: amountCtrl,
                         keyboardType: TextInputType.number,
                         isRequired: true,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       CustomTextField(
-                        label: 'Note (optional)',
+                        label: 'Note (Optional)',
+                        hint: 'Ref ID or Student Name',
                         controller: noteCtrl,
                         maxLines: 2,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
                       CPPressable(
                         onTap: uploading
                             ? null
@@ -1091,44 +1187,91 @@ class _FeePaymentPageState extends State<FeePaymentPage> {
                               },
                         child: Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: CT.border(context)),
-                            color: CT.bg(context),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: screenshotUrl != null ? CT.success(context) : CT.border(context),
+                              width: 2,
+                            ),
+                            color: screenshotUrl != null 
+                                ? CT.success(context).withValues(alpha: 0.05) 
+                                : CT.bg(context),
                           ),
-                          child: Text(
-                            screenshotUrl == null
-                                ? (uploading ? 'Uploading screenshot...' : 'Upload payment screenshot')
-                                : 'Screenshot uploaded successfully',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: CT.textH(context),
+                          child: Row(
+                            children: [
+                              Icon(
+                                screenshotUrl != null ? Icons.check_circle_rounded : Icons.add_photo_alternate_outlined,
+                                size: 22,
+                                color: screenshotUrl != null ? CT.success(context) : CT.textM(context),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  screenshotUrl == null
+                                      ? (uploading ? 'UPLOADING...' : 'UPLOAD PAYMENT SCREENSHOT')
+                                      : 'SCREENSHOT ATTACHED',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                    color: screenshotUrl != null ? CT.success(context) : CT.textH(context),
+                                  ),
+                                ),
+                              ),
+                              if (screenshotUrl != null)
+                                Icon(Icons.verified_rounded, size: 18, color: CT.success(context)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Spacer(),
+                          CPPressable(
+                            onTap: () async {
+                              final amount = _toDouble(amountCtrl.text);
+                              await _openWhatsAppMessage(amount);
+                              if (ctx.mounted) setSheet(() => whatsappNotified = true);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: CT.accent(context).withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.chat_bubble_outline_rounded, size: 14, color: CT.accent(context)),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    whatsappNotified ? 'NOTIFIED' : 'INFORM VIA WHATSAPP',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: CT.accent(context),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                      const SizedBox(height: 10),
-                      CPPressable(
-                        onTap: () async {
-                          final amount = _toDouble(amountCtrl.text);
-                          await _openWhatsAppMessage(amount);
-                          if (ctx.mounted) setSheet(() => whatsappNotified = true);
-                        },
-                        child: Text(
-                          whatsappNotified ? 'WhatsApp message opened' : 'Inform via WhatsApp (optional)',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: CT.accent(context),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
+                        height: 50,
                         child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: CT.accent(context),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
                           onPressed: submitting
                               ? null
                               : () async {

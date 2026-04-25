@@ -227,6 +227,20 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                 SliverAppBar(
                   floating: true,
                   pinned: true,
+                  leading: CPPressable(
+                    onTap: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/admin');
+                      }
+                    },
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 20,
+                      color: isDark ? AppColors.paleSlate1 : AppColors.deepNavy,
+                    ),
+                  ),
                   backgroundColor: Colors.transparent,
                   elevation: 0,
                   scrolledUnderElevation: 0,
@@ -421,9 +435,13 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     }
     return Row(
       children: [
-        _heroStat('Total Revenue', revenue, AppColors.premiumEliteGradient, isDark),
+        Expanded(
+          flex: 4,
+          child: _heroStat('Total Revenue', revenue, AppColors.premiumEliteGradient, isDark),
+        ),
         const SizedBox(width: 12),
         Expanded(
+          flex: 5,
           child: Column(
             children: [
               _miniStat('Pending', pending, AppColors.feePending, isDark),
@@ -438,9 +456,8 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
 
   Widget _heroStat(String label, double val, Gradient grad, bool isDark) {
     return Container(
-      width: 170,
       height: 110,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF354388),
         border: Border.all(color: const Color(0xFF354388), width: 3),

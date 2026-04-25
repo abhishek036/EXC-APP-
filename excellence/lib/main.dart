@@ -14,6 +14,7 @@ import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/widgets/cp_network_activity_overlay.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/notification_route.dart';
 import 'core/utils/webview_platform_initializer.dart';
 import 'core/l10n/app_localizations.dart';
 import 'core/l10n/app_locales.dart';
@@ -27,35 +28,33 @@ Future<void> main() async {
 
   await ensureWebViewPlatformInitialized();
 
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e, st) {
-    debugPrint('[main] Firebase init failed: $e\n$st');
-  }
-
-  // Initialise dependency injection
+  // Initialise dependency injection immediately
   await initDependencies();
 
-  // Initialize Firebase push notifications (best effort)
-  try {
-    await sl<PushNotificationService>().initialize();
-  } catch (e, st) {
-    debugPrint('[main] Push notification init failed: $e\n$st');
-  }
+  // Start concurrent initializations for faster launch
+  await Future.wait([
+    Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    ).then((_) {
+      // Initialize Firebase push notifications after Firebase is ready
+      return sl<PushNotificationService>().initialize().catchError((e, st) {
+        debugPrint('[main] Push notification init failed: $e\n$st');
+      });
+    }).catchError((e, st) {
+      debugPrint('[main] Firebase init failed: $e\n$st');
+    }),
+    
+    // Restore theme preference
+    SharedPreferences.getInstance().then((prefs) {
+      final isDark = prefs.getBool('isDarkMode') ?? false;
+      themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
+    }).catchError((e, st) {
+      debugPrint('[main] Theme preference restore failed: $e\n$st');
+    }),
 
-  // Restore theme preference
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool('isDarkMode') ?? false;
-    themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
-  } catch (e, st) {
-    debugPrint('[main] Theme preference restore failed: $e\n$st');
-  }
-
-  // Restore saved language preference
-  await AppLocalizations.loadSavedLocale();
+    // Restore saved language preference
+    AppLocalizations.loadSavedLocale(),
+  ]);
 
   // Save theme on change
   themeNotifier.addListener(() async {
@@ -138,24 +137,11 @@ class _ExcellenceAcademyAppState extends State<ExcellenceAcademyApp> with Widget
     _router = AppRouter.router(_authBloc);
     _startAuthSyncTimer();
     _notificationTapSub = sl<PushNotificationService>().onNotificationTap.listen((payload) {
-      final route = _normalizeNotificationRoute(payload['route']?.toString());
+      final route = resolveNotificationRoute(payload);
       if (route != null && route.isNotEmpty) {
         _router.go(route);
       }
     });
-  }
-
-  String? _normalizeNotificationRoute(String? route) {
-    if (route == null || route.isEmpty) return null;
-
-    switch (route) {
-      case '/student/quizzes':
-        return '/student/quiz';
-      case '/teacher/quizzes':
-        return '/teacher/batches';
-      default:
-        return route;
-    }
   }
 
   @override
