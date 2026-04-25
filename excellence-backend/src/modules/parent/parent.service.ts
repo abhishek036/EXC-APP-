@@ -1044,20 +1044,13 @@ export class ParentService {
   }
 
   async getChildrenDoubts(userId: string, instituteId: string) {
-    const parent = await prisma.parent.findFirst({
-      where: { user_id: userId, institute_id: instituteId },
-      include: { parent_students: true }
-    });
+    const { parent, students } = await this.resolveParentContext(userId, instituteId);
     
-    if (!parent) {
-      throw new ApiError('Parent not found', 404, 'NOT_FOUND');
-    }
-
-    const childIds = parent.parent_students.map(ps => ps.student_id);
-
-    if (childIds.length === 0) {
+    if (!parent || students.length === 0) {
       return [];
     }
+
+    const childIds = students.map(s => s.id);
 
     const doubts = await prisma.doubt.findMany({
       where: {
