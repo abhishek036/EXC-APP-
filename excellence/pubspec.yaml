@@ -108,13 +108,13 @@ flutter_launcher_icons:
   adaptive_icon_foreground: assets/images/logo.png
 
 flutter_native_splash:
-  color: "#fdd344"
-  image: assets/images/splash.png
-  branding: assets/images/neurovax_branding.png
-  branding_bottom_padding: 24
+  color: "#FF0B66"
+  image: assets/images/splash_logo.png
+  branding: assets/images/splash_tagline.png
+  branding_bottom_padding: 240
   android_12:
-    color: "#fdd344"
-    image: assets/images/logo.png
+    color: "#FF0B66"
+    image: assets/images/splash_logo.png
   web: false
   fullscreen: true
 
