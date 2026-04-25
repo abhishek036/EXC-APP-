@@ -831,8 +831,9 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                   borderRadius: BorderRadius.circular(3),
                   boxShadow: [
                     BoxShadow(
-                      color: color.withValues(alpha: 0.5),
-                      blurRadius: 0,
+                      color: color.withValues(alpha: 0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -909,10 +910,18 @@ class _AdminReportsPageState extends State<AdminReportsPage>
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFF354388), width: 2),
-              boxShadow: const [
-                BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
+              color: isDark ? AppColors.gunmetal : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDark ? AppColors.ironGrey : AppColors.chambrayBlue.withValues(alpha: 0.1),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  offset: const Offset(0, 4),
+                  blurRadius: 10,
+                ),
               ],
             ),
             child: Row(
@@ -1157,8 +1166,9 @@ class _AdminReportsPageState extends State<AdminReportsPage>
                             borderRadius: BorderRadius.circular(3),
                             boxShadow: [
                               BoxShadow(
-                                color: color.withValues(alpha: 0.5),
-                                blurRadius: 0,
+                                color: color.withValues(alpha: 0.2),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),

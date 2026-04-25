@@ -27,24 +27,25 @@ class CPGlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveBorderRadius = BorderRadius.circular(borderRadius);
     return Container(
       margin: margin ?? const EdgeInsets.only(bottom: 8.0),
       child: Container(
         padding: padding,
         decoration: BoxDecoration(
           color: backgroundColor ??
-              (isDark ? AppColors.eliteDarkBg : AppColors.eliteLightBg),
+              (isDark ? AppColors.ironGrey.withValues(alpha: 0.5) : AppColors.eliteLightBg),
           border: border ??
               Border.all(
-                color: isDark ? AppColors.darkBorder : AppColors.elitePrimary,
-                width: isDark ? 1.5 : 3,
+                color: isDark ? AppColors.darkBorder : AppColors.chambrayBlue.withValues(alpha: 0.1),
+                width: 1.5,
               ),
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: effectiveBorderRadius,
           boxShadow: [
             BoxShadow(
-              color: isDark ? Colors.black38 : AppColors.elitePrimary,
-              offset: const Offset(4, 4),
-              blurRadius: 0,
+              color: isDark ? Colors.black.withValues(alpha: 0.5) : AppColors.chambrayBlue.withValues(alpha: 0.05),
+              offset: const Offset(0, 4),
+              blurRadius: 16,
               spreadRadius: 0,
             ),
           ],

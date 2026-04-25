@@ -35,7 +35,12 @@ export class WhatsAppService {
 
       await axios.post(this.baseUrl, payload, { headers: this.headers });
     } catch (error: any) {
-      console.error('WhatsApp API Error:', error.response?.data || error.message);
+      const errorData = error.response?.data;
+      if (errorData?.error?.code === 190) {
+        console.error('WhatsApp API Error: Authentication Failure (Code 190). The access token has expired or been revoked. Please update WHATSAPP_ACCESS_TOKEN in your .env file.');
+      } else {
+        console.error('WhatsApp API Error:', JSON.stringify(errorData || error.message, null, 2));
+      }
     }
   }
 

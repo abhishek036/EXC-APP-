@@ -128,11 +128,15 @@ class _SyllabusTrackerPageState extends State<SyllabusTrackerPage> {
               decoration: BoxDecoration(
                 color: const Color(0xFF354388),
                 borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  width: 1.5,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 0,
-                    offset: const Offset(0, 6),
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),

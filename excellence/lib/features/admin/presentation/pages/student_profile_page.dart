@@ -1466,21 +1466,21 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
               return Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: stColor.withValues(alpha: 0.2),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 0,
-                          offset: const Offset(0, 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: stColor.withValues(alpha: 0.1),
+                          width: 1.5,
                         ),
-                      ],
-                    ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            offset: const Offset(0, 4),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
                     child: Row(
                       children: [
                         Container(
@@ -1803,13 +1803,16 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
   Widget _card({required List<Widget> children}) => Container(
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFF354388), width: 2),
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(
+        color: AppColors.chambrayBlue.withValues(alpha: 0.1),
+        width: 1.5,
+      ),
       boxShadow: [
         BoxShadow(
-          color: const Color(0xFF354388),
-          blurRadius: 0,
-          offset: const Offset(4, 4),
+          color: Colors.black.withValues(alpha: 0.05),
+          offset: const Offset(0, 4),
+          blurRadius: 10,
         ),
       ],
     ),
@@ -1936,13 +1939,16 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF354388), width: 2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.chambrayBlue.withValues(alpha: 0.1),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF354388),
-            blurRadius: 0,
-            offset: const Offset(4, 4),
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, 4),
+            blurRadius: 10,
           ),
         ],
       ),
@@ -1986,13 +1992,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> with SingleTick
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF354388), width: 2.5),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            const BoxShadow(
-              color: Color(0xFF354388),
-              blurRadius: 0,
-              offset: Offset(4, 4),
+            BoxShadow(
+              color: color.withValues(alpha: 0.3),
+              offset: const Offset(0, 4),
+              blurRadius: 10,
             ),
           ],
         ),

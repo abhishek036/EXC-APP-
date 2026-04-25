@@ -153,34 +153,35 @@ export class FeeRepository {
         const currentMonth = now.getMonth() + 1;
         const currentYear = now.getFullYear();
 
+        // 1. Fetch all active recurring discounts once for the student
+        const activeDiscounts = await prisma.feeDiscount.findMany({
+            where: {
+                student_id: studentId,
+                institute_id: instituteId,
+                OR: [{ valid_to: null }, { valid_to: { gte: now } }],
+            },
+        });
+
+        let currentRecurringDiscount = new Prisma.Decimal(0);
+        activeDiscounts.forEach((d) => {
+            currentRecurringDiscount = currentRecurringDiscount.add(d.amount);
+        });
+
         for (const sb of studentBatches) {
             const structure = await prisma.feeStructure.findFirst({
                 where: { batch_id: sb.batch_id, institute_id: instituteId },
             });
             if (!structure) continue;
 
-            const existing = await prisma.feeRecord.findFirst({
+            // 2. Ensure current month record exists
+            const currentMonthRecord = await prisma.feeRecord.findFirst({
                 where: { student_id: studentId, batch_id: sb.batch_id, month: currentMonth, year: currentYear },
-                include: { payments: true },
             });
 
-            if (!existing) {
+            if (!currentMonthRecord) {
                 const defaultDueDate = new Date(now.getFullYear(), now.getMonth(), Number(structure.grace_days) || 10);
-                const discounts = await prisma.feeDiscount.findMany({
-                    where: {
-                        student_id: studentId,
-                        institute_id: instituteId,
-                        OR: [{ valid_to: null }, { valid_to: { gte: now } }],
-                    },
-                });
-
-                let totalDiscount = new Prisma.Decimal(0);
-                discounts.forEach((d) => {
-                    totalDiscount = totalDiscount.add(d.amount);
-                });
-
                 const totalAmount = structure.monthly_fee;
-                const finalAmount = Prisma.Decimal.max(new Prisma.Decimal(0), totalAmount.minus(totalDiscount));
+                const finalAmount = Prisma.Decimal.max(new Prisma.Decimal(0), totalAmount.minus(currentRecurringDiscount));
 
                 await prisma.feeRecord.create({
                     data: {
@@ -191,38 +192,81 @@ export class FeeRepository {
                         year: currentYear,
                         total_amount: totalAmount,
                         paid_amount: new Prisma.Decimal(0),
-                        discount_amount: totalDiscount,
+                        discount_amount: currentRecurringDiscount,
                         late_fee: new Prisma.Decimal(0),
                         final_amount: finalAmount,
                         due_date: defaultDueDate,
                         status: finalAmount.equals(new Prisma.Decimal(0)) ? 'paid' : 'unpaid',
                     },
                 });
-            } else {
-                const paidAmount = Number(existing.paid_amount);
-                if (existing.status === 'unpaid' && paidAmount === 0 && existing.payments.length === 0) {
-                    if (!existing.total_amount.equals(structure.monthly_fee)) {
-                        const totalAmount = structure.monthly_fee;
-                        const finalAmount = Prisma.Decimal.max(
-                            new Prisma.Decimal(0),
-                            totalAmount.minus(existing.discount_amount ?? 0).plus(existing.late_fee ?? 0),
-                        );
-                        await prisma.feeRecord.update({
-                            where: { id: existing.id },
-                            data: {
-                                total_amount: totalAmount,
-                                final_amount: finalAmount,
-                                status: finalAmount.equals(new Prisma.Decimal(0)) ? 'paid' : 'unpaid',
-                            },
-                        });
+            }
+
+            // 3. Sync ALL unpaid/partially paid records that haven't had manual adjustments
+            const syncableRecords = await prisma.feeRecord.findMany({
+                where: {
+                    student_id: studentId,
+                    batch_id: sb.batch_id,
+                    status: { in: ['unpaid', 'partially_paid'] },
+                    // Only sync if no payments have been started/submitted
+                    paid_amount: 0,
+                },
+                include: {
+                    payments: {
+                        where: { status: { not: 'rejected' } }
                     }
                 }
-                if (Number(existing.final_amount) === 0 && existing.status !== 'paid') {
+            });
+
+            for (const record of syncableRecords) {
+                if (record.payments.length > 0) continue; // Skip if there are pending/approved payments
+
+                // Check for manual adjustments in event log
+                const manualEvents = await prisma.feePaymentEvent.findFirst({
+                    where: {
+                        fee_record_id: record.id,
+                        action: 'manual_fee_adjustment'
+                    }
+                });
+
+                const totalAmount = structure.monthly_fee;
+                const discountToApply = manualEvents ? record.discount_amount : currentRecurringDiscount;
+
+                const needsBaseSync = !record.total_amount.equals(totalAmount);
+                const needsDiscountSync = !manualEvents && !record.discount_amount?.equals(currentRecurringDiscount);
+
+                if (needsBaseSync || needsDiscountSync) {
+                    const finalAmount = Prisma.Decimal.max(
+                        new Prisma.Decimal(0),
+                        totalAmount.minus(discountToApply || 0).plus(record.late_fee ?? 0),
+                    );
+
                     await prisma.feeRecord.update({
-                        where: { id: existing.id },
-                        data: { status: 'paid' },
+                        where: { id: record.id },
+                        data: {
+                            total_amount: totalAmount,
+                            discount_amount: discountToApply,
+                            final_amount: finalAmount,
+                            status: (finalAmount.equals(new Prisma.Decimal(0)) && Number(record.paid_amount) === 0) ? 'paid' : record.status,
+                        },
                     });
                 }
+            }
+
+            // 4. Final status cleanup
+            const zeroDueRecords = await prisma.feeRecord.findMany({
+                where: {
+                    student_id: studentId,
+                    batch_id: sb.batch_id,
+                    final_amount: 0,
+                    status: { not: 'paid' }
+                }
+            });
+            
+            for(const r of zeroDueRecords) {
+                await prisma.feeRecord.update({
+                    where: { id: r.id },
+                    data: { status: 'paid' }
+                });
             }
         }
     }

@@ -663,18 +663,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     bool isDark, {
     bool badge = false,
   }) {
-    final iconColor = isDark ? AppColors.paleSlate1 : AppColors.elitePrimary;
+    final iconColor = isDark ? AppColors.paleSlate1 : AppColors.chambrayBlue;
     return CPPressable(
       onTap: onTap,
       child: Container(
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: isDark ? AppColors.elitePrimary : Colors.white,
+          color: isDark ? AppColors.gunmetal : Colors.white,
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.black, width: 2),
-          boxShadow: const [
-            BoxShadow(color: Colors.black, offset: Offset(2, 2)),
+          border: Border.all(
+            color: isDark ? AppColors.ironGrey : AppColors.chambrayBlue.withValues(alpha: 0.1),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              offset: const Offset(0, 4),
+              blurRadius: 10,
+            ),
           ],
         ),
         child: Stack(
@@ -683,8 +690,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Icon(icon, size: 21, color: iconColor),
             if (badge)
               const Positioned(
-                top: 8,
-                right: 8,
+                top: 10,
+                right: 10,
                 child: SizedBox(
                   width: 8,
                   height: 8,
@@ -799,10 +806,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       width: 180,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.elitePrimary,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black, width: 3),
-        boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
+        color: AppColors.chambrayBlue,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.chambrayBlue.withValues(alpha: 0.3),
+            offset: const Offset(0, 8),
+            blurRadius: 20,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -816,9 +828,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   label,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.moltenAmber,
-                    letterSpacing: 0.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.saharaYellow.withValues(alpha: 0.8),
+                    letterSpacing: 1,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -827,18 +839,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               const Icon(
                 Icons.trending_up_rounded,
                 size: 16,
-                color: AppColors.moltenAmber,
+                color: AppColors.saharaYellow,
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             value,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 28,
               fontWeight: FontWeight.w900,
               color: Colors.white,
-              letterSpacing: -1.2,
+              letterSpacing: -1,
             ),
           ),
         ],
@@ -860,14 +872,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         width: 160,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.eliteDarkBg : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black, width: 3),
+          color: isDark ? AppColors.gunmetal : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isDark ? AppColors.ironGrey : AppColors.chambrayBlue.withValues(alpha: 0.1),
+            width: 1.5,
+          ),
           boxShadow: [
-            if (onTap != null)
-              BoxShadow(color: color, offset: const Offset(4, 4))
-            else
-              const BoxShadow(color: Colors.black, offset: Offset(4, 4)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              offset: const Offset(0, 4),
+              blurRadius: 12,
+            ),
           ],
         ),
         child: Column(
@@ -881,10 +897,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   child: Text(
                     label,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.elitePrimary.withValues(alpha: 0.65),
-                      letterSpacing: 0.5,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? AppColors.paleSlate2 : AppColors.chambrayBlue.withValues(alpha: 0.6),
+                      letterSpacing: 0.8,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -897,9 +913,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             Text(
               value,
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                color: AppColors.elitePrimary,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: isDark ? AppColors.paleSlate1 : AppColors.chambrayBlue,
                 letterSpacing: -0.5,
               ),
             ),
@@ -933,11 +949,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   height: 96,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF354388),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black, width: 3),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black, offset: Offset(4, 4)),
+                    color: AppColors.chambrayBlue,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.chambrayBlue.withValues(alpha: 0.3),
+                        offset: const Offset(0, 6),
+                        blurRadius: 15,
+                      ),
                     ],
                   ),
                   child: Row(
@@ -945,7 +964,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
+                          color: Colors.white.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -966,7 +985,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w800,
                                 color: Colors.white,
                               ),
                             ),
@@ -976,9 +995,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.white.withValues(alpha: 0.75),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white.withValues(alpha: 0.7),
                               ),
                             ),
                           ],
@@ -989,20 +1008,27 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               flex: 38,
               child: CPPressable(
                 onTap: () => GoRouter.of(context).push('/admin/fees'),
                 child: Container(
                   height: 96,
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.eliteDarkBg : Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black, width: 3),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black, offset: Offset(4, 4)),
+                    color: isDark ? AppColors.gunmetal : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isDark ? AppColors.ironGrey : AppColors.chambrayBlue.withValues(alpha: 0.1),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        offset: const Offset(0, 4),
+                        blurRadius: 12,
+                      ),
                     ],
                   ),
                   child: Column(
@@ -1012,7 +1038,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       const Icon(
                         Icons.currency_rupee_rounded,
                         size: 22,
-                        color: Color(0xFF354388),
+                        color: AppColors.chambrayBlue,
                       ),
                       const SizedBox(height: 10),
                       Text(
@@ -1021,8 +1047,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.elitePrimary,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? AppColors.paleSlate1 : AppColors.chambrayBlue,
                         ),
                       ),
                     ],
@@ -1032,7 +1058,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -1041,13 +1067,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 onTap: () => GoRouter.of(context).push('/admin/attendance'),
                 child: Container(
                   height: 96,
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.eliteDarkBg : Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black, width: 3),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black, offset: Offset(4, 4)),
+                    color: isDark ? AppColors.gunmetal : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isDark ? AppColors.ironGrey : AppColors.chambrayBlue.withValues(alpha: 0.1),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        offset: const Offset(0, 4),
+                        blurRadius: 12,
+                      ),
                     ],
                   ),
                   child: Column(
@@ -1057,7 +1090,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       const Icon(
                         Icons.fact_check_rounded,
                         size: 22,
-                        color: Color(0xFFB6231B),
+                        color: AppColors.coralRed,
                       ),
                       const SizedBox(height: 10),
                       Text(
@@ -1066,8 +1099,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.elitePrimary,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? AppColors.paleSlate1 : AppColors.chambrayBlue,
                         ),
                       ),
                     ],
@@ -1075,7 +1108,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               flex: 62,
               child: CPPressable(
@@ -1084,24 +1117,31 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   height: 96,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.eliteDarkBg : Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black, width: 3),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black, offset: Offset(4, 4)),
+                    color: isDark ? AppColors.gunmetal : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isDark ? AppColors.ironGrey : AppColors.chambrayBlue.withValues(alpha: 0.1),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        offset: const Offset(0, 4),
+                        blurRadius: 12,
+                      ),
                     ],
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: AppColors.eliteLightBg,
+                        decoration: BoxDecoration(
+                          color: AppColors.saharaYellow.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.campaign_rounded,
-                          color: AppColors.moltenAmber,
+                          color: AppColors.saharaYellow,
                           size: 24,
                         ),
                       ),
@@ -1117,8 +1157,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.elitePrimary,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? AppColors.paleSlate1 : AppColors.chambrayBlue,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -1127,11 +1167,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w400,
-                                color: AppColors.elitePrimary.withValues(
-                                  alpha: 0.6,
-                                ),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: isDark ? AppColors.paleSlate2 : AppColors.chambrayBlue.withValues(alpha: 0.6),
                               ),
                             ),
                           ],
@@ -1216,13 +1254,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         return CPPressable(
           onTap: () => GoRouter.of(context).push(m['route'] as String),
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.eliteDarkBg : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.black, width: 3),
-              boxShadow: const [
-                BoxShadow(color: Colors.black, offset: Offset(4, 4)),
+              color: isDark ? AppColors.gunmetal : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDark ? AppColors.ironGrey : AppColors.chambrayBlue.withValues(alpha: 0.1),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  offset: const Offset(0, 4),
+                  blurRadius: 10,
+                ),
               ],
             ),
             child: Column(
@@ -1493,13 +1538,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFF354388),
+                color: AppColors.chambrayBlue,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.error.withValues(alpha: 0.3),
-                    blurRadius: 0,
+                    color: AppColors.chambrayBlue.withValues(alpha: 0.2),
                     offset: const Offset(0, 4),
+                    blurRadius: 10,
                   ),
                 ],
               ),

@@ -355,13 +355,13 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                   vertical: 16,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF354388),
-                  border: Border.all(color: const Color(0xFF354388), width: 3),
-                  boxShadow: const [
+                  color: AppColors.chambrayBlue,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0xFF354388),
-                      offset: Offset(4, 4),
-                      blurRadius: 0,
+                      color: AppColors.chambrayBlue.withValues(alpha: 0.3),
+                      offset: const Offset(0, 8),
+                      blurRadius: 20,
                     ),
                   ],
                 ),
@@ -405,17 +405,17 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: const Color(0xFFE5A100),
-          border: Border.all(color: const Color(0xFF354388), width: 2),
-          boxShadow: const [
+          color: AppColors.saharaYellow,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
             BoxShadow(
-              color: Color(0xFF354388),
-              offset: Offset(3, 3),
-              blurRadius: 0,
+              color: AppColors.chambrayBlue.withValues(alpha: 0.1),
+              offset: const Offset(0, 4),
+              blurRadius: 10,
             ),
           ],
         ),
-        child: Icon(icon, size: 20, color: const Color(0xFF354388)),
+        child: const Icon(icon, size: 22, color: AppColors.chambrayBlue),
       ),
     );
   }
@@ -457,15 +457,15 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
   Widget _heroStat(String label, double val, Gradient grad, bool isDark) {
     return Container(
       height: 110,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF354388),
-        border: Border.all(color: const Color(0xFF354388), width: 3),
-        boxShadow: const [
+        color: AppColors.chambrayBlue,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
           BoxShadow(
-            color: Color(0xFF354388),
-            offset: Offset(4, 4),
-            blurRadius: 0,
+            color: AppColors.chambrayBlue.withValues(alpha: 0.3),
+            offset: const Offset(0, 8),
+            blurRadius: 20,
           ),
         ],
       ),
@@ -476,21 +476,21 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
           Text(
             label.toUpperCase(),
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 9,
+              fontSize: 10,
               fontWeight: FontWeight.w900,
-              color: const Color(0xFFE5A100),
-              letterSpacing: 0.5,
+              color: AppColors.saharaYellow.withValues(alpha: 0.8),
+              letterSpacing: 1,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           FittedBox(
             child: Text(
               _fmtCur(val),
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 28,
+                fontSize: 32,
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
-                letterSpacing: -1.5,
+                letterSpacing: -1,
               ),
             ),
           ),
@@ -547,15 +547,25 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
           },
           child: AnimatedContainer(
             duration: 250.ms,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             decoration: BoxDecoration(
               color: _selectedStatus == i
-                  ? const Color(0xFFE5A100)
-                  : Colors.white,
-              border: Border.all(color: const Color(0xFF354388), width: 2),
+                  ? AppColors.saharaYellow
+                  : (isDark ? AppColors.gunmetal : Colors.white),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _selectedStatus == i
+                    ? AppColors.saharaYellow
+                    : (isDark ? AppColors.ironGrey : AppColors.chambrayBlue.withValues(alpha: 0.1)),
+                width: 1.5,
+              ),
               boxShadow: _selectedStatus == i
-                  ? const [
-                      BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
+                  ? [
+                      BoxShadow(
+                        color: AppColors.saharaYellow.withValues(alpha: 0.3),
+                        offset: const Offset(0, 4),
+                        blurRadius: 8,
+                      ),
                     ]
                   : [],
             ),
@@ -563,9 +573,9 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
               child: Text(
                 _statuses[i].toUpperCase(),
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: FontWeight.w900,
-                  color: const Color(0xFF354388),
+                  color: AppColors.chambrayBlue,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -580,10 +590,18 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFF354388), width: 2),
-        boxShadow: const [
-          BoxShadow(color: Color(0xFF354388), offset: Offset(3, 3)),
+        color: isDark ? AppColors.gunmetal : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.ironGrey : AppColors.chambrayBlue.withValues(alpha: 0.1),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, 4),
+            blurRadius: 12,
+          ),
         ],
       ),
       child: TextField(
@@ -670,12 +688,13 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
             child: Row(
               children: [
                 Container(
-                  width: 52,
-                  height: 52,
+                  width: 54,
+                  height: 54,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5A100),
+                    color: AppColors.saharaYellow.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF354388),
+                      color: AppColors.saharaYellow,
                       width: 2,
                     ),
                   ),
@@ -683,9 +702,9 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                     child: Text(
                       name.isNotEmpty ? name[0].toUpperCase() : '?',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 18,
+                        fontSize: 20,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF354388),
+                        color: AppColors.chambrayBlue,
                       ),
                     ),
                   ),
@@ -700,7 +719,7 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF354388),
+                          color: isDark ? AppColors.paleSlate1 : AppColors.chambrayBlue,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -710,8 +729,8 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF354388),
-                          letterSpacing: 0.5,
+                          color: isDark ? AppColors.paleSlate2 : AppColors.chambrayBlue.withValues(alpha: 0.6),
+                          letterSpacing: 0.8,
                         ),
                       ),
                     ],
@@ -725,30 +744,27 @@ class _FeeCollectionPageState extends State<FeeCollectionPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF354388),
+                        color: isDark ? AppColors.paleSlate1 : AppColors.chambrayBlue,
                         letterSpacing: -0.8,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
+                        horizontal: 12,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: sColor, width: 2),
-                        boxShadow: [
-                          BoxShadow(color: sColor, offset: const Offset(2, 2)),
-                        ],
+                        color: sColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         status,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF354388),
-                          letterSpacing: 0.5,
+                          color: sColor,
+                          letterSpacing: 1,
                         ),
                       ),
                     ),

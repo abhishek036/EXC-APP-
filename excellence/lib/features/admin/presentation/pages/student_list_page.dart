@@ -428,12 +428,22 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF354388), width: 1.5),
+                border: Border.all(
+                  color: AppColors.chambrayBlue.withValues(alpha: 0.1),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    offset: const Offset(0, 4),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 size: 16,
-                color: Color(0xFF354388),
+                color: AppColors.chambrayBlue,
               ),
             ),
           ),
@@ -470,15 +480,25 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               height: 40,
               decoration: BoxDecoration(
                 color: _selectMode
-                    ? const Color(0xFFE5A100)
+                    ? AppColors.saharaYellow
                     : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF354388), width: 1.5),
+                border: Border.all(
+                  color: AppColors.chambrayBlue.withValues(alpha: 0.1),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    offset: const Offset(0, 4),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
               child: Icon(
                 _selectMode ? Icons.close_rounded : Icons.checklist_rounded,
                 size: 20,
-                color: const Color(0xFF354388),
+                color: AppColors.chambrayBlue,
               ),
             ),
           ),
@@ -495,13 +515,13 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF354388),
-          borderRadius: BorderRadius.circular(16),
+          color: AppColors.chambrayBlue,
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 0,
-              offset: const Offset(0, 5),
+              color: AppColors.chambrayBlue.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -521,16 +541,19 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               onTap: _bulkNotify,
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                  horizontal: 16,
+                  vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE5A100), // Bright Neo-Brutalist Yellow
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: const Color(0xFF354388),
-                    width: 1.5,
-                  ),
+                  color: AppColors.saharaYellow,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.saharaYellow.withValues(alpha: 0.3),
+                      offset: const Offset(0, 4),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -538,15 +561,15 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                     const Icon(
                       Icons.notifications_active_rounded,
                       size: 16,
-                      color: Color(0xFF354388),
+                      color: AppColors.chambrayBlue,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 6),
                     Text(
                       'NOTIFY',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10,
+                        fontSize: 11,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF354388),
+                        color: AppColors.chambrayBlue,
                       ),
                     ),
                   ],
@@ -559,12 +582,12 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
               onTap: _bulkSending ? null : _bulkAssignBatch,
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                  horizontal: 16,
+                  vertical: 10,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: _bulkSending
                     ? const SizedBox(
@@ -572,7 +595,7 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                         height: 14,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Color(0xFF354388),
+                          color: AppColors.chambrayBlue,
                         ),
                       )
                     : Row(
@@ -581,15 +604,15 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
                           const Icon(
                             Icons.group_add_rounded,
                             size: 16,
-                            color: Color(0xFF354388),
+                            color: AppColors.chambrayBlue,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 6),
                           Text(
                             'ASSIGN',
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w900,
-                              color: Color(0xFF354388),
+                              color: AppColors.chambrayBlue,
                             ),
                           ),
                         ],
@@ -645,13 +668,16 @@ class _StudentListPageState extends State<StudentListPage> with ThemeAware<Stude
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: color.withValues(alpha: 0.1),
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 0,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),

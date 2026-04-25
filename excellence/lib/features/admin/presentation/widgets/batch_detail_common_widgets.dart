@@ -19,8 +19,18 @@ Widget sectionCard(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
       color: CT.card(context),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: const Color(0xFF354388), width: 1.6),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(
+        color: const Color(0xFF354388).withValues(alpha: 0.1),
+        width: 1.5,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.05),
+          offset: const Offset(0, 4),
+          blurRadius: 10,
+        ),
+      ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,7 +47,7 @@ Widget sectionCard(
                 ),
               ),
             ),
-            ?trailing,
+            if (trailing != null) trailing,
           ],
         ),
         const SizedBox(height: 10),
@@ -103,12 +113,16 @@ Widget quickStatCard(
     padding: const EdgeInsets.all(10),
     decoration: BoxDecoration(
       color: Colors.white,
-      border: Border.all(color: const Color(0xFF354388), width: 1.5),
-      boxShadow: const [
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: const Color(0xFF354388).withValues(alpha: 0.1),
+        width: 1.5,
+      ),
+      boxShadow: [
         BoxShadow(
-          color: Color(0xFF354388),
-          offset: Offset(2, 2),
-          blurRadius: 0,
+          color: Colors.black.withValues(alpha: 0.05),
+          offset: const Offset(0, 4),
+          blurRadius: 10,
         ),
       ],
     ),

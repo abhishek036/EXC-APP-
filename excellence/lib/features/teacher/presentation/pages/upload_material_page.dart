@@ -539,17 +539,17 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
             _inputLabel('END DATE (OPTIONAL)', primary),
             _buildOptionalDueDate(primary),
           ],
-          const SizedBox(height: 24),
-          _selectedType == 'video'
-              ? _inputLabel('YOUTUBE VIDEO LINK', primary)
-              : _inputLabel('ATTACHMENT LINK', primary),
-          _textField(
-            _linkCtrl,
-            'https://...',
-            primary,
-            obscureText: true,
-            keyboardType: TextInputType.url,
-          ),
+          if (_selectedType == 'video') ...[
+            const SizedBox(height: 24),
+            _inputLabel('YOUTUBE VIDEO LINK', primary),
+            _textField(
+              _linkCtrl,
+              'https://...',
+              primary,
+              obscureText: false,
+              keyboardType: TextInputType.url,
+            ),
+          ],
           if (_selectedType == 'video') ...[
             const SizedBox(height: 24),
             _inputLabel('YOUTUBE VISIBILITY', primary),

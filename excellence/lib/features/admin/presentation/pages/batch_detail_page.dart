@@ -1324,12 +1324,16 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: const Color(0xFF354388), width: 2.5),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: const Color(0xFF354388).withValues(alpha: 0.1),
+          width: 1.5,
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Color(0xFF354388),
-            offset: Offset(4, 4),
-            blurRadius: 0,
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, 4),
+            blurRadius: 10,
           ),
         ],
       ),
@@ -1369,11 +1373,12 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: statusColor, width: 2),
-                  boxShadow: [
-                    BoxShadow(color: statusColor, offset: const Offset(2, 2)),
-                  ],
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: statusColor.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
                 ),
                 child: Text(
                   statusLabel.toUpperCase(),
@@ -1391,13 +1396,13 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFE5A100),
-              border: Border.all(color: const Color(0xFF354388), width: 2),
-              boxShadow: const [
+              color: AppColors.saharaYellow,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
                 BoxShadow(
-                  color: Color(0xFF354388),
-                  offset: Offset(3, 3),
-                  blurRadius: 0,
+                  color: AppColors.saharaYellow.withValues(alpha: 0.3),
+                  offset: const Offset(0, 4),
+                  blurRadius: 10,
                 ),
               ],
             ),

@@ -260,6 +260,18 @@ class _ParentDoubtsPageState extends State<ParentDoubtsPage> {
                   ),
                 ),
               ],
+              if (msg.imageUrl != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    msg.imageUrl!,
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               if (msg.text.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -269,17 +281,6 @@ class _ParentDoubtsPageState extends State<ParentDoubtsPage> {
                     fontWeight: FontWeight.w600,
                     color: textColor,
                     height: 1.35,
-                  ),
-                ),
-              ],
-              if (msg.imageUrl != null && msg.imageUrl!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Attachment: ${msg.imageUrl}',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.electricBlue,
                   ),
                 ),
               ],

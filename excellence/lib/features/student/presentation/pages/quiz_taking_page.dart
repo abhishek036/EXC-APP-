@@ -256,9 +256,16 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
             decoration: BoxDecoration(
               color: CT.bg(context),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.primary, width: 2),
-              boxShadow: const [
-                BoxShadow(color: AppColors.primary, offset: Offset(4, 4)),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  offset: const Offset(0, 8),
+                  blurRadius: 20,
+                ),
               ],
             ),
             child: Column(
@@ -704,23 +711,13 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
                                     : CT.textM(context),
                                 width: selected ? 2 : 1,
                               ),
-                              boxShadow: selected
-                                  ? [
-                                      BoxShadow(
-                                        color: AppColors.primary.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        blurRadius: 0,
-                                      ),
-                                    ]
-                                  : [
-                                      BoxShadow(
-                                        color: CT
-                                            .textH(context)
-                                            .withValues(alpha: 0.03),
-                                        blurRadius: 0,
-                                      ),
-                                    ],
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  offset: const Offset(0, 4),
+                                  blurRadius: 10,
+                                ),
+                              ],
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -807,8 +804,8 @@ class _QuizTakingPageState extends State<QuizTakingPage> {
                   color: CT.card(context),
                   boxShadow: [
                     BoxShadow(
-                      color: CT.textH(context).withValues(alpha: 0.06),
-                      blurRadius: 0,
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 15,
                       offset: const Offset(0, -4),
                     ),
                   ],
