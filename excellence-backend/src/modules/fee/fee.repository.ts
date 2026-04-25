@@ -319,9 +319,6 @@ export class FeeRepository {
 
             return records;
   }
-
-      });
-  }
   
   async findFeeRecordWithUsers(recordId: string, instituteId: string) {
     return prisma.feeRecord.findFirst({
