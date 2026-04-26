@@ -158,10 +158,12 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
     }
 
     // ── Step 2: Tear down any stale controller ─────────────────────────────
-    try { await _controller?.stopPreview(); } catch (_) {}
-    _controller = null;
+    if (_controller != null) {
+      try { await _controller!.dispose(); } catch (_) {}
+      _controller = null;
+    }
 
-    // ── Step 3: Create controller (no startPreview yet) ──────────────────────
+    // ── Step 3: Create controller ──────────────────────────────────────────
     _controller = ApiVideoLiveStreamController(
       initialAudioConfig: AudioConfig(bitrate: 128000),
       initialVideoConfig: VideoConfig.withDefaultBitrate(
@@ -172,15 +174,16 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
       onDisconnection:     _onDisconnected,
     );
 
-    // ── Step 4: Render ApiVideoCameraPreview first ───────────────────────────
-    // The plugin needs the texture surface to exist BEFORE startPreview() is called.
+    // Show preview widget immediately so it can register the widget listener.
     if (mounted) setState(() => _controllerReady = true);
 
-    // ── Step 5: Call startPreview() AFTER the widget tree has fully rendered ────
+    // ── Step 4: Call initialize() AFTER the preview widget is in the tree ──
+    // initialize() registers the platform texture, sets up events, configures
+    // camera/audio, and calls startPreview() internally.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || _controller == null) return;
       try {
-        await _controller!.startPreview();
+        await _controller!.initialize();
         if (mounted) {
           setState(() => _isInit = true);
           _fadeCtrl.forward();
@@ -346,9 +349,11 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
     _fadeCtrl.dispose();
     _titleCtrl.dispose();
     _descCtrl.dispose();
-    if (_isInit && _controller != null) {
-      if (_isStreaming) _controller!.stopStreaming();
-      _controller!.stopPreview();
+    if (_controller != null) {
+      if (_isStreaming) {
+        _controller!.stopStreaming();
+      }
+      _controller!.dispose();
     }
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarIconBrightness: Brightness.dark));
