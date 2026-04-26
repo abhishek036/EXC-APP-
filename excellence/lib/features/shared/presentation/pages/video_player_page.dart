@@ -165,11 +165,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   </style>
                 </head>
                 <body>
-                  <iframe src="https://www.youtube.com/embed/$id?autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=https://www.youtube.com" allow="autoplay; fullscreen" allowfullscreen></iframe>
+                  <iframe src="https://www.youtube.com/embed/$id?autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=https://excellenceacademy.site" allow="autoplay; fullscreen" allowfullscreen></iframe>
                 </body>
                 </html>
               ''',
-              baseUrl: WebUri.uri(Uri.parse("https://www.youtube.com/")),
+              baseUrl: WebUri.uri(Uri.parse("https://excellenceacademy.site/")),
             ),
             initialSettings: InAppWebViewSettings(
               javaScriptEnabled: true,
