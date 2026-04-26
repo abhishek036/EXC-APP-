@@ -95,7 +95,7 @@ export class AttendanceService {
 
   async getStudentReport(studentId: string, instituteId: string, batchId?: string, subject?: string) {
       const records = await this.repo.getStudentAttendance(studentId, instituteId, batchId, subject);
-      const summary = summarizeAttendanceFromStatuses(records.map((record) => record.status));
+      const summary = summarizeAttendanceFromStatuses(records.map((record: any) => record.status));
 
       return {
         total_sessions: summary.total,

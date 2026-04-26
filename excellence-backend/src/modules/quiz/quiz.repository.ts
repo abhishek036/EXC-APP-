@@ -108,19 +108,19 @@ export class QuizRepository {
 
       if (questions.length > 0) {
         try {
-          await tx.quizQuestion.createMany({
+          await (tx.quizQuestion as any).createMany({
             data: questions.map((question) => ({
               quiz_id: id,
               question_text: question.question_text,
               image_url: question.image_url,
               option_a: question.option_a,
-              option_a_image: question.option_a_image,
+              option_a_image: (question as any).option_a_image,
               option_b: question.option_b,
-              option_b_image: question.option_b_image,
+              option_b_image: (question as any).option_b_image,
               option_c: question.option_c,
-              option_c_image: question.option_c_image,
+              option_c_image: (question as any).option_c_image,
               option_d: question.option_d,
-              option_d_image: question.option_d_image,
+              option_d_image: (question as any).option_d_image,
               correct_option: question.correct_option,
               marks: question.marks,
               order_index: question.order_index,

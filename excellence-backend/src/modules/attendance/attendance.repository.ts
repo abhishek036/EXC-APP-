@@ -187,7 +187,7 @@ export class AttendanceRepository {
             // First attempt: Modern approach (requires 'subject' column)
             return await prisma.$transaction(async (tx) => {
                 const sessionDate = new Date(data.session_date);
-                const session = await tx.attendanceSession.upsert({
+                const session = await (tx.attendanceSession as any).upsert({
                     where: {
                         batch_id_session_date_subject: {
                             batch_id: data.batch_id,
@@ -250,7 +250,7 @@ export class AttendanceRepository {
 
   async getBatchAttendanceForMonth(batchId: string, instituteId: string, startDate: Date, endDate: Date, subject?: string) {
         try {
-             return await prisma.attendanceSession.findMany({
+             return await (prisma.attendanceSession as any).findMany({
                  where: {
                      batch_id: batchId,
                      institute_id: instituteId,
@@ -283,7 +283,7 @@ export class AttendanceRepository {
       }
 
       try {
-          return await prisma.attendanceRecord.findMany({
+          return await (prisma.attendanceRecord as any).findMany({
              where,
              include: {
                 session: {
@@ -340,7 +340,7 @@ export class AttendanceRepository {
   async getAggregateStats(instituteId: string, start: Date, end: Date, batchId?: string, subject?: string) {
        // This could be optimized into a single group-by if complex, but simple for now
        try {
-           const records = await prisma.attendanceRecord.findMany({
+           const records = await (prisma.attendanceRecord as any).findMany({
                where: {
                    institute_id: instituteId,
                    ...(batchId || subject ? {

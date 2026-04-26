@@ -780,7 +780,7 @@ export class StudentController {
       });
       if (!student) throw new ApiError('Student not found', 404, 'NOT_FOUND');
 
-      const progress = await prisma.lectureProgress.findMany({
+      const progress = await (prisma as any).lectureProgress.findMany({
         where: { student_id: student.id, institute_id: req.instituteId! },
         orderBy: { updated_at: 'desc' },
       });
@@ -804,7 +804,7 @@ export class StudentController {
       const { lecture_id, watched_sec, total_sec, last_position, is_completed } = req.body;
       if (!lecture_id) throw new ApiError('lecture_id is required', 400, 'MISSING_FIELD');
 
-      const progress = await prisma.lectureProgress.upsert({
+      const progress = await (prisma as any).lectureProgress.upsert({
         where: {
           student_id_lecture_id: {
             student_id: student.id,

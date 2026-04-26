@@ -28,18 +28,12 @@ export class LectureRepository {
           is_active: true,
           ...(subject ? { subject } : {}),
         },
-        select: {
-          id: true,
-          title: true,
-          scheduled_at: true,
-          duration_minutes: true,
-          created_at: true,
-          teacher_id: true,
-          batch_id: true,
-          is_active: true,
-          subject: true,
-          link: true,
-          lecture_type: true,
+        include: {
+          teacher: {
+            select: {
+              name: true,
+            },
+          },
         },
         orderBy: { created_at: 'desc' },
       });

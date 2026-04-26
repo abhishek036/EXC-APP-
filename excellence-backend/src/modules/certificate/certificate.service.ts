@@ -13,13 +13,13 @@ export class CertificateService {
 
     // Generate a unique number: CP-[YEAR]-[TOTAL_COUNT + 1]
     const currentYear = new Date().getFullYear();
-    const count = await prisma.certificate.count({
+    const count = await (prisma as any).certificate.count({
         where: { institute_id: instituteId }
     });
     
     const certNumber = `CP-${currentYear}-${(count + 1).toString().padStart(4, '0')}`;
 
-    const certificate = await prisma.certificate.create({
+    const certificate = await (prisma as any).certificate.create({
       data: {
         cert_number: certNumber,
         institute_id: instituteId,
@@ -37,7 +37,7 @@ export class CertificateService {
   }
 
   async listCertificates(instituteId: string, query: { studentId?: string }) {
-    return prisma.certificate.findMany({
+    return (prisma as any).certificate.findMany({
       where: {
         institute_id: instituteId,
         ...(query.studentId && { student_id: query.studentId })
@@ -50,7 +50,7 @@ export class CertificateService {
   }
 
   async verifyCertificate(certNumber: string) {
-      const cert = await prisma.certificate.findUnique({
+      const cert = await (prisma as any).certificate.findUnique({
           where: { cert_number: certNumber },
           include: {
               student: { select: { name: true } },

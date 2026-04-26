@@ -20,7 +20,11 @@ export class LectureService {
   }
 
   static async listLectures(batchId: string, instituteId: string, subject?: string) {
-    return LectureRepository.listByBatch(batchId, instituteId, subject);
+    const lectures = await LectureRepository.listByBatch(batchId, instituteId, subject);
+    return lectures.map((l: any) => ({
+      ...l,
+      teacher_name: l.teacher?.name || 'Teacher',
+    }));
   }
 
   static async updateLecture(id: string, instituteId: string, data: any) {

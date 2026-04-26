@@ -292,10 +292,9 @@ export class ParentService {
         select: {
           id: true,
           title: true,
-          subject: true,
           due_date: true,
           batch_id: true,
-          batch: { select: { name: true } },
+          batch: { select: { name: true, subject: true } },
           submissions: {
             where: {
               student_id: { in: studentIds },
@@ -326,7 +325,7 @@ export class ParentService {
           assignment: {
             select: {
               title: true,
-              subject: true,
+              batch: { select: { subject: true } },
             },
           },
           student: { select: { name: true } },
@@ -504,7 +503,7 @@ export class ParentService {
         pendingAssignments.push({
           assignment_id: assignment.id,
           title: assignment.title,
-          subject: assignment.subject,
+          subject: assignment.batch?.subject || null,
           due_date: assignment.due_date,
           batch_name: assignment.batch?.name ?? 'Batch',
           student_id: student.id,
@@ -530,7 +529,7 @@ export class ParentService {
       ...recentSubmissions.map((item) => ({
         type: 'assignment',
         title: `${item.student?.name ?? 'Student'} submitted ${item.assignment?.title ?? 'an assignment'}`,
-        subtitle: (item.assignment?.subject ?? 'Assignment').toString(),
+        subtitle: (item.assignment?.batch?.subject ?? 'Assignment').toString(),
         timestamp: item.submitted_at,
       })),
     ]
@@ -778,10 +777,9 @@ export class ParentService {
           select: {
             id: true,
             title: true,
-            subject: true,
             due_date: true,
             max_marks: true,
-            batch: { select: { name: true } },
+            batch: { select: { name: true, subject: true } },
             submissions: {
               where: {
                 student_id: childId,
@@ -815,8 +813,7 @@ export class ParentService {
             assignment: {
               select: {
                 title: true,
-                subject: true,
-                batch: { select: { name: true } },
+                batch: { select: { name: true, subject: true } },
               },
             },
           },
@@ -921,7 +918,7 @@ export class ParentService {
       return {
         id: assignment.id,
         title: assignment.title,
-        subject: assignment.subject,
+        subject: assignment.batch?.subject || null,
         due_date: dueDate,
         max_marks: this.toNumber(assignment.max_marks),
         batch_name: assignment.batch?.name ?? 'Batch',
@@ -946,7 +943,7 @@ export class ParentService {
       submitted_at: item.submitted_at,
       marks_obtained: this.toNumber(item.marks_obtained),
       assignment_title: item.assignment?.title ?? 'Assignment',
-      subject: item.assignment?.subject ?? '',
+      subject: item.assignment?.batch?.subject ?? '',
       batch_name: item.assignment?.batch?.name ?? 'Batch',
     }));
 
