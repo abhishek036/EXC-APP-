@@ -66,7 +66,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   @override
   void initState() {
     super.initState();
-    _init();
+    // Use postFrameCallback to avoid setState-during-build warnings
+    WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
   void _init() {
@@ -126,7 +127,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           _buildTopBar(),
           if (_loading) const LinearProgressIndicator(color: _amber, minHeight: 2),
           if (_error) _buildError() else _buildPlayerArea(),
-          if (!_error && !_loading) Expanded(child: _buildInfo()),
+          // Info panel always shown (even on error) so user sees title and can go back
+          if (!_loading) Expanded(child: _buildInfo()),
         ]),
       ),
     );
@@ -325,10 +327,21 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           const Icon(Icons.broken_image_outlined, color: Colors.white24, size: 48),
           const SizedBox(height: 16),
-          Text(
-            _errorMsg ?? 'Video unavailable',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(color: Colors.white54, fontSize: 13),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              _errorMsg ?? 'Video unavailable',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(color: Colors.white54, fontSize: 13),
+            ),
+          ),
+          const SizedBox(height: 20),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white38, size: 16),
+            label: Text('Go Back',
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white38, fontSize: 13, fontWeight: FontWeight.w600)),
           ),
         ]),
       ),
