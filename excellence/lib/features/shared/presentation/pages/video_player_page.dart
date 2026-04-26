@@ -152,7 +152,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   double _videoDuration = 0.0;
-  bool _isZoomed = false;
+  bool _isZoomed = true;
 
   Widget _buildWebPlayer(String id) {
     if (_ytCtrl == null) return _buildSpinner();
@@ -183,7 +183,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   alignment: Alignment.center,
                   children: [
                     Transform.scale(
-                      scale: _isZoomed ? 1.4 : 1.0,
+                      scale: _isZoomed ? 1.85 : 1.0,
                       child: YoutubePlayer(
                         controller: _ytCtrl!,
                         aspectRatio: aspect,
@@ -238,28 +238,22 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
           final maxDur = _videoDuration > 0 ? _videoDuration : 1.0;
           final validPosition = position.clamp(0.0, maxDur);
+          final isPlaying = _ytCtrl!.value.playerState == PlayerState.playing;
 
           return Row(
             children: [
-              StreamBuilder<YoutubePlayerValue>(
-                initialData: _ytCtrl!.value,
-                stream: _ytCtrl!.stream,
-                builder: (context, valueSnapshot) {
-                  final isPlaying = valueSnapshot.data?.playerState == PlayerState.playing;
-                  return IconButton(
-                    icon: Icon(
-                      isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                      color: Colors.white,
-                    ),
-                    onPressed: () async {
-                      final state = await _ytCtrl!.playerState;
-                      if (state == PlayerState.playing) {
-                        _ytCtrl!.pauseVideo();
-                      } else {
-                        _ytCtrl!.playVideo();
-                      }
-                    },
-                  );
+              IconButton(
+                icon: Icon(
+                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  color: Colors.white,
+                ),
+                onPressed: () async {
+                  final state = await _ytCtrl!.playerState;
+                  if (state == PlayerState.playing) {
+                    _ytCtrl!.pauseVideo();
+                  } else {
+                    _ytCtrl!.playVideo();
+                  }
                 },
               ),
               Expanded(
