@@ -101,10 +101,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       autoPlay: true,
       params: const YoutubePlayerParams(
         showControls: true,
-        showFullscreenButton: false,
+        showFullscreenButton: true,
         loop: false,
         playsInline: true,
         strictRelatedVideos: true,
+        showVideoAnnotations: false,
+        color: 'white',
       ),
     );
 
