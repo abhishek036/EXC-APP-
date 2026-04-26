@@ -138,8 +138,30 @@ export class YoutubeController {
         message: 'Live stream created and persisted successfully.',
       });
     } catch (error: any) {
-      if (error?.response?.data) {
-        console.error('[YoutubeController] YouTube API Error:', JSON.stringify(error.response.data, null, 2));
+      const ytError = error?.response?.data?.error;
+      if (ytError) {
+        console.error('[YoutubeController] YouTube API Error:', JSON.stringify(ytError, null, 2));
+
+        // Return user-friendly messages for common YouTube API errors
+        const reason = ytError.errors?.[0]?.reason;
+        const ytMessages: Record<string, string> = {
+          liveStreamingNotEnabled:
+            'YouTube Live Streaming is not enabled for this channel. Go to youtube.com/features, verify your phone number, and wait 24 hours for activation.',
+          liveBroadcastNotFound: 'The live broadcast was not found on YouTube.',
+          insufficientPermissions:
+            'Insufficient YouTube permissions. Please re-authenticate YouTube from Settings.',
+          forbidden: 'Access to YouTube Live API was denied. Check OAuth scopes.',
+        };
+
+        const friendlyMsg = ytMessages[reason ?? '']
+          ?? ytError.message
+          ?? 'YouTube API error. Please try again later.';
+
+        return res.status(ytError.code || 403).json({
+          success: false,
+          message: friendlyMsg,
+          error: reason ?? 'YOUTUBE_API_ERROR',
+        });
       }
       next(error);
     }

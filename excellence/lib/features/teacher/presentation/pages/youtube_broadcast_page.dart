@@ -731,20 +731,35 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _border),
       ),
-      child: TextField(
-        controller: controller,
-        maxLines:   maxLines,
-        style: GoogleFonts.plusJakartaSans(color: _white, fontSize: 14),
-        decoration: InputDecoration(
-          hintText:        hint,
-          hintStyle:       GoogleFonts.plusJakartaSans(color: _white30, fontSize: 14),
-          prefixIcon:      Icon(icon, color: _white30, size: 20),
-          border:          InputBorder.none,
-          contentPadding:  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Theme(
+        data: ThemeData.dark().copyWith(
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: _gold,
+            selectionColor: _gold.withValues(alpha: 0.3),
+            selectionHandleColor: _gold,
+          ),
+        ),
+        child: TextField(
+          controller: controller,
+          maxLines:   maxLines,
+          cursorColor: _gold,
+          style: GoogleFonts.plusJakartaSans(
+            color: _white,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          decoration: InputDecoration(
+            hintText:        hint,
+            hintStyle:       GoogleFonts.plusJakartaSans(color: _white30, fontSize: 14),
+            prefixIcon:      Icon(icon, color: _white60, size: 20),
+            border:          InputBorder.none,
+            contentPadding:  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
         ),
       ),
     );
   }
+
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
