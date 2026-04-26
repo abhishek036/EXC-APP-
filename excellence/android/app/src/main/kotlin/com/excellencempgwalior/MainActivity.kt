@@ -1,4 +1,4 @@
-package excellence.academy
+package com.excellencempgwalior
 
 import io.flutter.embedding.android.FlutterActivity
 

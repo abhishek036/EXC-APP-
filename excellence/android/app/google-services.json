@@ -7,6 +7,42 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:100598842137:android:662a42999bf0b8ed6a7b88",
+        "android_client_info": {
+          "package_name": "com.excellencempgwalior"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "100598842137-jl0dju99g63i2c11g6mpeis8bkde7sv4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZxE4wPdAG8EMBV3NtC-6J52VVs_k7VpU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "100598842137-jl0dju99g63i2c11g6mpeis8bkde7sv4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "100598842137-cb4j9h11gl6qk7jmgi2lppjho0r3mak3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.coachpro"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:100598842137:android:d272a5520592264c6a7b88",
         "android_client_info": {
           "package_name": "excellence.academy"

@@ -55,7 +55,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDZxE4wPdAG8EMBV3NtC-6J52VVs_k7VpU',
-    appId: '1:100598842137:android:d272a5520592264c6a7b88',
+    appId: '1:100598842137:android:86a3a7825e26f7b66a7b88',
     messagingSenderId: '100598842137',
     projectId: 'excellence-academy-9154a',
     storageBucket: 'excellence-academy-9154a.firebasestorage.app',
@@ -68,7 +68,7 @@ class DefaultFirebaseOptions {
     projectId: 'excellence-academy-9154a',
     storageBucket: 'excellence-academy-9154a.firebasestorage.app',
     iosClientId: '100598842137-cb4j9h11gl6qk7jmgi2lppjho0r3mak3.apps.googleusercontent.com',
-    iosBundleId: 'com.example.excellence',
+    iosBundleId: 'com.excellencempgwalior',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -78,7 +78,7 @@ class DefaultFirebaseOptions {
     projectId: 'excellence-academy-9154a',
     storageBucket: 'excellence-academy-9154a.firebasestorage.app',
     iosClientId: '100598842137-la2huc5edt6lra5go4n34qbvrafh00i4.apps.googleusercontent.com',
-    iosBundleId: 'excellence.academy',
+    iosBundleId: 'com.excellencempgwalior',
   );
 }
 
