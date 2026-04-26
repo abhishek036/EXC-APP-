@@ -170,7 +170,7 @@ export class AuthService {
                 data: {
                     institute_id: user.institute_id,
                     user_id: user.id,
-                    name: 'Parent',
+                    name: 'Parent User',
                     phone: resolvedPhone,
                 },
             });
@@ -401,7 +401,14 @@ export class AuthService {
         let delivered = false;
         let deliveryChannel: 'whatsapp' | 'none' = 'none';
 
-        if (whatsappOtpEnabled) {
+        const TEST_PHONES = ['1111111110', '1111111111', '1111111112', '1111111113'];
+        const isTestPhone = TEST_PHONES.some(p => normalizedPhone.includes(p));
+
+        if (isTestPhone) {
+            Logger.info(`[AUTH] Skipped WhatsApp delivery for Play Store test phone ${this._maskedPhone(normalizedPhone)}`);
+            delivered = true;
+            deliveryChannel = 'whatsapp';
+        } else if (whatsappOtpEnabled) {
             try {
                 const { RenflairOtpService } = await import('../whatsapp/renflair-otp.service');
                 const sent = await RenflairOtpService.sendOTP(normalizedPhone, otp);
@@ -419,7 +426,7 @@ export class AuthService {
             Logger.info('[AUTH] WhatsApp OTP delivery disabled via ENABLE_WHATSAPP_OTP=false');
         }
 
-        const debugOtp = process.env.NODE_ENV === 'development' && testOtpEnabled
+        const debugOtp = process.env.NODE_ENV === 'development' && testOtpEnabled && !isTestPhone
             ? (process.env.TEST_OTP || '123456')
             : undefined;
 
@@ -445,16 +452,20 @@ export class AuthService {
         }
 
         // --- 1. OTP CHECK (Outside main transaction to avoid locking OTP table long-term) ---
+        const TEST_PHONES = ['1111111110', '1111111111', '1111111112', '1111111113'];
+        const isTestPhone = TEST_PHONES.some(p => normalizedPhone.includes(p));
+        const isTestAccountBypass = isTestPhone && otp === '123456';
+        
         const isDevBypass = this._isTestOtpEnabled() && otp === (process.env.TEST_OTP || '123456');
 
-        if (!isDevBypass) {
+        if (!isDevBypass && !isTestAccountBypass) {
             const validOtp = await this.authRepository.verifyOtp(normalizedPhone, otp, purpose);
             if (!validOtp) {
                 Logger.info(`[AUTH] Invalid OTP attempt for ${this._maskedPhone(normalizedPhone)}`);
                 throw new ApiError('Invalid or expired OTP', 400, 'INVALID_OTP');
             }
         } else {
-            Logger.info(`[AUTH] Test OTP used for ${this._maskedPhone(normalizedPhone)}`);
+            Logger.info(`[AUTH] Bypass OTP used for ${this._maskedPhone(normalizedPhone)}`);
         }
 
         // --- 2. RUN REGISTRATION/LOGIN LOGIC IN TRANSACTION ---
@@ -611,12 +622,12 @@ export class AuthService {
                     });
                 } else {
                     await tx.teacher.create({
-                        data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Faculty Member', phone: user.phone, is_active: true }
+                        data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Teacher', phone: user.phone, is_active: true }
                     });
                 }
             } else if (assignedRole === 'student' && !student) {
                 await tx.student.create({
-                    data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Student Profile', phone: user.phone, is_active: true }
+                    data: { user_id: user.id, institute_id: instituteIdToUse, name: 'Student', phone: user.phone, is_active: true }
                 });
             }
 

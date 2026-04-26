@@ -19,67 +19,70 @@ async function main() {
     },
   });
 
-  // 2. Create Admin User
-  const adminUser = await prisma.user.upsert({
-    where: { 
-        institute_id_phone: {
-            institute_id: institute.id,
-            phone: '9876543210'
-        }
-    },
-    update: { password_hash: passwordHash, status: 'ACTIVE' },
-    create: {
-      institute_id: institute.id,
-      phone: '9876543210',
-      role: 'admin',
-      status: 'ACTIVE',
-      password_hash: passwordHash,
-    },
-  });
+  const testUsers = [
+    { phone: '1111111110', role: 'admin', name: 'Abhishek Sharma' },
+    { phone: '1111111111', role: 'student', name: 'Rahul Kumar' },
+    { phone: '1111111112', role: 'teacher', name: 'Amit Patel' },
+    { phone: '1111111113', role: 'parent', name: 'Sanjay Singh' },
+  ];
 
-  // 3. Create Student and Batch
-  const batch = await prisma.batch.upsert({
-      where: { id: '00000000-0000-0000-0000-000000000101' },
-      update: {},
+  for (const tu of testUsers) {
+    const user = await prisma.user.upsert({
+      where: { institute_id_phone: { institute_id: institute.id, phone: tu.phone } },
+      update: { password_hash: passwordHash, status: 'ACTIVE', role: tu.role as any },
       create: {
-          id: '00000000-0000-0000-0000-000000000101',
-          institute_id: institute.id,
-          name: 'Foundation batch 2026',
-      }
-  });
-
-  const studentUser = await prisma.user.upsert({
-      where: { 
-        institute_id_phone: {
-            institute_id: institute.id,
-            phone: '8888888888'
-        }
+        institute_id: institute.id,
+        phone: tu.phone,
+        role: tu.role as any,
+        status: 'ACTIVE',
+        password_hash: passwordHash,
       },
-      update: { password_hash: passwordHash, status: 'ACTIVE' },
-      create: {
-          institute_id: institute.id,
-          phone: '8888888888',
-          role: 'student',
-          status: 'ACTIVE',
-          password_hash: passwordHash,
-      }
-  });
+    });
 
-  const student = await prisma.student.upsert({
-      where: { id: '00000000-0000-0000-0000-000000001001' },
-      update: {},
-      create: {
-          id: '00000000-0000-0000-0000-000000001001',
-          user_id: studentUser.id,
-          institute_id: institute.id,
-          name: 'Demo Student',
-          phone: '8888888888',
-      }
+    if (tu.role === 'student') {
+      await prisma.student.upsert({
+        where: { id: `10000000-0000-0000-0000-${tu.phone.padStart(12, '0')}` },
+        update: { user_id: user.id },
+        create: { id: `10000000-0000-0000-0000-${tu.phone.padStart(12, '0')}`, user_id: user.id, institute_id: institute.id, name: tu.name, phone: tu.phone },
+      });
+    } else if (tu.role === 'teacher') {
+      await prisma.teacher.upsert({
+        where: { id: `20000000-0000-0000-0000-${tu.phone.padStart(12, '0')}` },
+        update: { user_id: user.id, is_active: true },
+        create: { id: `20000000-0000-0000-0000-${tu.phone.padStart(12, '0')}`, user_id: user.id, institute_id: institute.id, name: tu.name, phone: tu.phone, is_active: true },
+      });
+    } else if (tu.role === 'parent') {
+      await prisma.parent.upsert({
+        where: { id: `30000000-0000-0000-0000-${tu.phone.padStart(12, '0')}` },
+        update: { user_id: user.id },
+        create: { id: `30000000-0000-0000-0000-${tu.phone.padStart(12, '0')}`, user_id: user.id, institute_id: institute.id, name: tu.name, phone: tu.phone },
+      });
+    } else if (tu.role === 'admin') {
+      await prisma.staff.upsert({
+        where: { id: `40000000-0000-0000-0000-${tu.phone.padStart(12, '0')}` },
+        update: {},
+        create: { id: `40000000-0000-0000-0000-${tu.phone.padStart(12, '0')}`, institute_id: institute.id, name: tu.name, phone: tu.phone },
+      });
+    }
+  }
+
+  // Also create a test batch
+  await prisma.batch.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000101' },
+    update: {},
+    create: {
+        id: '00000000-0000-0000-0000-000000000101',
+        institute_id: institute.id,
+        name: 'Foundation batch 2026',
+    }
   });
 
   console.log('Seed successful:');
-  console.log('Admin login: 9876543210 / password123');
-  console.log('Student login: 8888888888 / password123');
+  console.log('Play Store Test accounts created:');
+  console.log('Admin login: 1111111110 / password123 / OTP 123456');
+  console.log('Student login: 1111111111 / password123 / OTP 123456');
+  console.log('Teacher login: 1111111112 / password123 / OTP 123456');
+  console.log('Parent login: 1111111113 / password123 / OTP 123456');
 }
 
 main()
