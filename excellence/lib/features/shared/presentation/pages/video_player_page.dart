@@ -100,8 +100,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       videoId: id,
       autoPlay: true,
       params: const YoutubePlayerParams(
-        showControls: true,
-        showFullscreenButton: true,
+        showControls: false,
+        showFullscreenButton: false,
         loop: false,
         playsInline: true,
         strictRelatedVideos: true,
@@ -151,17 +151,21 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   Widget _buildWebPlayer(String id) {
     if (_ytCtrl == null) return _buildSpinner();
-    return AspectRatio(
-      aspectRatio: 16 / 9,
-      child: YoutubePlayer(
-        controller: _ytCtrl!,
+    return Flexible(
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: YoutubePlayer(
+          controller: _ytCtrl!,
+        ),
       ),
     );
   }
 
-  Widget _buildSpinner() => const AspectRatio(
-    aspectRatio: 16 / 9,
-    child: Center(child: CircularProgressIndicator(color: _amber)),
+  Widget _buildSpinner() => Flexible(
+    child: const AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Center(child: CircularProgressIndicator(color: _amber)),
+    ),
   );
 
   // ── Top bar ─────────────────────────────────────────────────────────────
@@ -327,8 +331,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   // ── Error state ─────────────────────────────────────────────────────────
 
   Widget _buildError() {
-    return AspectRatio(
-      aspectRatio: 16 / 9,
+    return Flexible(
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
       child: Container(
         color: const Color(0xFF111118),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -352,6 +357,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           ),
         ]),
       ),
+    ),
     );
   }
 }
