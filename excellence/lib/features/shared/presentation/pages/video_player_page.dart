@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -32,7 +32,7 @@ class VideoPlayerPage extends StatefulWidget {
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  InAppWebViewController? _webCtrl;
+  YoutubePlayerController? _ytCtrl;
   String? _videoId;
   bool _loading = true;
   bool _error = false;
@@ -77,18 +77,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     return null;
   }
 
-  Uri _embedUri(String id) {
-    return Uri.https('www.youtube.com', '/embed/$id', {
-      'autoplay': '1',
-      'playsinline': '1',
-      'rel': '0',
-      'modestbranding': '1',
-      'iv_load_policy': '3',
-      'enablejsapi': '1',
-      'origin': 'https://www.youtube.com',
-    });
-  }
-
   @override
   void initState() {
     super.initState();
@@ -108,18 +96,30 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
     _videoId = id;
 
+    _ytCtrl = YoutubePlayerController.fromVideoId(
+      videoId: id,
+      autoPlay: true,
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: false,
+        loop: false,
+        playsInline: true,
+        strictRelatedVideos: true,
+      ),
+    );
+
     setState(() => _loading = false);
   }
 
   @override
   void deactivate() {
-    _webCtrl?.pause();
+    _ytCtrl?.pauseVideo();
     super.deactivate();
   }
 
   @override
   void dispose() {
-    _webCtrl = null;
+    _ytCtrl?.close();
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
   }
@@ -148,84 +148,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   Widget _buildWebPlayer(String id) {
+    if (_ytCtrl == null) return _buildSpinner();
     return AspectRatio(
       aspectRatio: 16 / 9,
-      child: Stack(
-        children: [
-          InAppWebView(
-            initialData: InAppWebViewInitialData(
-              data: '''
-                <!DOCTYPE html>
-                <html>
-                <head>
-                  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                  <style>
-                    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #0A0A0F; overflow: hidden; }
-                    iframe { width: 100%; height: 100%; border: none; }
-                  </style>
-                </head>
-                <body>
-                  <iframe src="https://www.youtube.com/embed/$id?autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=https://excellenceacademy.site" allow="autoplay; fullscreen" allowfullscreen></iframe>
-                </body>
-                </html>
-              ''',
-              baseUrl: WebUri.uri(Uri.parse("https://excellenceacademy.site/")),
-            ),
-            initialSettings: InAppWebViewSettings(
-              javaScriptEnabled: true,
-              mediaPlaybackRequiresUserGesture: false,
-              allowsInlineMediaPlayback: true,
-              iframeAllowFullscreen: true,
-              supportZoom: false,
-              useShouldOverrideUrlLoading: true,
-            ),
-            onWebViewCreated: (controller) {
-              _webCtrl = controller;
-            },
-            onLoadStart: (controller, uri) {
-              if (!mounted || _error) return;
-              setState(() => _loading = true);
-            },
-            onLoadStop: (controller, uri) {
-              if (!mounted || _error) return;
-              setState(() => _loading = false);
-            },
-            shouldOverrideUrlLoading: (controller, navigationAction) async {
-              final uri = navigationAction.request.url;
-              if (uri != null && !uri.toString().contains('youtube.com/embed')) {
-                // Prevent navigating away from the embed
-                return NavigationActionPolicy.CANCEL;
-              }
-              return NavigationActionPolicy.ALLOW;
-            },
-            onReceivedError: (_, request, error) {
-              if (!mounted || _error || !(request.isForMainFrame ?? false)) return;
-              setState(() {
-                _error = true;
-                _loading = false;
-                _errorMsg = 'Video playback error (${error.type}). Please try again later.';
-              });
-            },
-            onConsoleMessage: (_, message) {
-              if (!mounted || _error) return;
-              final text = message.message.toLowerCase();
-              if (text.contains('error 153') || text.contains('error 150') || text.contains('playback on other websites')) {
-                setState(() {
-                  _error = true;
-                  _loading = false;
-                  _errorMsg = 'This video has embedding disabled.\n\n'
-                      'The teacher must open YouTube Studio → Edit Video → '
-                      'More Options → enable "Allow embedding".';
-                });
-              }
-            },
-          ),
-          if (_loading)
-            const Align(
-              alignment: Alignment.topCenter,
-              child: LinearProgressIndicator(color: _amber, minHeight: 2),
-            ),
-        ],
+      child: YoutubePlayer(
+        controller: _ytCtrl!,
       ),
     );
   }
