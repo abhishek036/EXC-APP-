@@ -106,7 +106,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         playsInline: true,
         strictRelatedVideos: true,
         showVideoAnnotations: false,
-        color: 'white',
+        pointerEvents: PointerEvents.none,
       ),
     );
 
@@ -139,8 +139,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           if (_loading) const LinearProgressIndicator(color: _amber, minHeight: 2),
           if (_error)
             _buildError()
-          else if (_videoId != null)
-            _buildWebPlayer(_videoId!)
+          else if (_videoId != null) ...[
+            _buildWebPlayer(_videoId!),
+            _buildCustomControls(),
+          ]
           else
             _buildSpinner(),
           if (!_loading) Expanded(child: _buildInfo()),
@@ -154,11 +156,103 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     return Flexible(
       child: AspectRatio(
         aspectRatio: 16 / 9,
-        child: YoutubePlayer(
-          controller: _ytCtrl!,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            YoutubePlayer(controller: _ytCtrl!),
+            // Intercept taps to play/pause since PointerEvents.none disables iframe interactions
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () async {
+                  final state = await _ytCtrl!.playerState;
+                  if (state == PlayerState.playing) {
+                    _ytCtrl!.pauseVideo();
+                  } else {
+                    _ytCtrl!.playVideo();
+                  }
+                },
+                behavior: HitTestBehavior.opaque,
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Widget _buildCustomControls() {
+    if (_ytCtrl == null) return const SizedBox.shrink();
+
+    return Container(
+      color: _surface,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: StreamBuilder<YoutubeVideoState>(
+        stream: _ytCtrl!.videoStateStream,
+        builder: (context, snapshot) {
+          final position = snapshot.data?.position.inSeconds.toDouble() ?? 0.0;
+          final duration = _ytCtrl!.metadata.duration.inSeconds.toDouble();
+          final maxDur = duration > 0 ? duration : 1.0;
+          final validPosition = position.clamp(0.0, maxDur);
+
+          return Row(
+            children: [
+              StreamBuilder<YoutubePlayerValue>(
+                stream: _ytCtrl!.stream,
+                builder: (context, valueSnapshot) {
+                  final isPlaying = valueSnapshot.data?.playerState == PlayerState.playing;
+                  return IconButton(
+                    icon: Icon(
+                      isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      if (isPlaying) {
+                        _ytCtrl!.pauseVideo();
+                      } else {
+                        _ytCtrl!.playVideo();
+                      }
+                    },
+                  );
+                },
+              ),
+              Expanded(
+                child: SliderTheme(
+                  data: const SliderThemeData(
+                    thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6),
+                    overlayShape: RoundSliderOverlayShape(overlayRadius: 12),
+                    trackHeight: 2,
+                  ),
+                  child: Slider(
+                    value: validPosition,
+                    max: maxDur,
+                    activeColor: _amber,
+                    inactiveColor: Colors.white24,
+                    onChanged: (val) {
+                      _ytCtrl!.seekTo(seconds: val, allowSeekAhead: true);
+                    },
+                  ),
+                ),
+              ),
+              Text(
+                '${_formatTime(snapshot.data?.position ?? Duration.zero)} / ${_formatTime(_ytCtrl!.metadata.duration)}',
+                style: GoogleFonts.jetBrainsMono(color: Colors.white54, fontSize: 11),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  String _formatTime(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    if (duration.inHours > 0) {
+      return "${duration.inHours}:$twoDigitMinutes:$twoDigitSeconds";
+    }
+    return "$twoDigitMinutes:$twoDigitSeconds";
   }
 
   Widget _buildSpinner() => Flexible(
