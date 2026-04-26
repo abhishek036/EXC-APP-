@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:apivideo_live_stream/apivideo_live_stream.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/teacher_repository.dart';
@@ -85,8 +86,75 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
     _initCamera();
   }
 
+  // ── Permission Check ─────────────────────────────────────────────────────
+  Future<bool> _requestPermissions() async {
+    final camera = await Permission.camera.request();
+    final mic    = await Permission.microphone.request();
+
+    if (camera.isPermanentlyDenied || mic.isPermanentlyDenied) {
+      // User tapped "Never ask again" — send them to system settings
+      if (mounted) {
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: _surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: _border),
+            ),
+            title: Text('Permissions Required',
+              style: GoogleFonts.plusJakartaSans(
+                color: _white, fontWeight: FontWeight.w800)),
+            content: Text(
+              'Camera and Microphone access were denied.\n\n'
+              'Please go to App Settings → Permissions and enable both.',
+              style: GoogleFonts.plusJakartaSans(color: _white60, fontSize: 14)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancel',
+                  style: GoogleFonts.plusJakartaSans(color: _white60)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: _blue),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await openAppSettings();
+                },
+                child: Text('Open Settings',
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        );
+      }
+      return false;
+    }
+
+    return camera.isGranted && mic.isGranted;
+  }
+
   // ── Camera Init ──────────────────────────────────────────────────────────
   Future<void> _initCamera() async {
+    // Reset any previous error
+    if (mounted) setState(() { _initError = null; _isInit = false; });
+
+    // ── Step 1: Request runtime permissions ────────────────────────────────
+    final granted = await _requestPermissions();
+    if (!granted) {
+      if (mounted) {
+        setState(() => _initError =
+          'Camera & Microphone permissions are required to start a live stream.');
+      }
+      return;
+    }
+
+
+    // ── Step 2: Tear down any stale controller ─────────────────────────────
+    try { await _controller?.stopPreview(); } catch (_) {}
+    _controller = null;
+
+    // ── Step 3: Build and start the controller ─────────────────────────────
     try {
       final ctrl = ApiVideoLiveStreamController(
         initialAudioConfig: AudioConfig(bitrate: 128000),
