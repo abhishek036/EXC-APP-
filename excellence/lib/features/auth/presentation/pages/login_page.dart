@@ -126,7 +126,7 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
 
                             // ── Card Title ──────────────────
                             Text(
-                              'Login via WhatsApp OTP',
+                              'Login via OTP',
                               style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF0A0C1E), letterSpacing: -0.5),
                             ),
                             const SizedBox(height: 4),
@@ -147,7 +147,7 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
                             ),
                             const SizedBox(height: 20),
                             _buildPrimaryButton(
-                              label: 'Send WhatsApp OTP',
+                              label: 'Send OTP',
                               icon: Icons.arrow_forward_rounded,
                               isLoading: isLoading,
                               onTap: _handleSendOtp,

@@ -88,6 +88,7 @@ import '../../features/teacher/presentation/pages/teacher_batch_panel_page.dart'
 import '../../features/teacher/presentation/pages/teacher_schedule_page.dart';
 import '../widgets/cp_bottom_nav.dart';
 import '../widgets/cp_role_shell.dart';
+import '../constants/app_colors.dart';
 
 class AppRouter {
   AppRouter._();
@@ -239,10 +240,9 @@ class AppRouter {
       final location = state.matchedLocation;
       final uri = state.uri;
 
-      // 1. Initial/Loading: Save where we wanted to go
+      // 1. Initial/Loading: Wait on Splash
       if (authState is AuthInitial || authState is AuthLoading) {
-        if (_publicPaths.contains(location)) return null;
-        return '/login?from=${Uri.encodeComponent(uri.toString())}';
+        return null;
       }
 
       final isPublic = _publicPaths.contains(location);
@@ -268,9 +268,13 @@ class AppRouter {
           return authState.user.dashboardPath;
         }
 
-        if (_publicPaths.contains(location) ||
+        if ((_publicPaths.contains(location) && location != '/profile-completion') ||
             _authenticatedUtilityPaths.contains(location)) {
           return null;
+        }
+        
+        if (location == '/profile-completion') {
+           return authState.user.dashboardPath;
         }
 
         final allowed = _rolePrefixes[authState.user.role] ?? [];
@@ -287,8 +291,45 @@ class AppRouter {
       return null;
     },
     routes: [
-      // ── Redirect root to login ────────────────────────────────
-      GoRoute(path: '/', redirect: (_, _) => '/login'),
+      // ── Splash/Root Route ────────────────────────────────
+      GoRoute(
+        path: '/',
+        builder: (context, state) => Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Hero(
+                  tag: 'app_logo',
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.saharaSand,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.elitePrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       // ── Public / Auth routes ─────────────────────────────────
       GoRoute(
         path: '/login',

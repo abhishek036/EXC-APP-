@@ -6,7 +6,6 @@ import '../../../../core/theme/theme_aware.dart';
 import '../../../../features/chat/data/repositories/chat_repository.dart';
 import '../../../../core/di/injection_container.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/widgets/cp_toast.dart';
 
 class ChatPage extends StatefulWidget {
   final String batchId;

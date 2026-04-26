@@ -23,13 +23,12 @@ class StudyMaterialsPage extends StatefulWidget {
 
 class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
   int _selectedType = 0;
-  int _selectedSubject = 0;
+
   bool _bookmarksOnly = false;
   final _studentRepo = sl<StudentRepository>();
   late Future<List<_Material>> _materialsFuture;
 
   final _types = ['Notes', 'Videos'];
-  final _subjects = ['Recent', 'Physics', 'Chemistry', 'Mathematics'];
 
   List<Map<String, dynamic>> _batches = [];
   String? _selectedBatchId;
@@ -324,50 +323,7 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
               ),
             ).animate().fadeIn(duration: 400.ms),
           ),
-          SizedBox(
-            height: 38,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.pagePaddingH,
-              ),
-              scrollDirection: Axis.horizontal,
-              itemCount: _subjects.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 10),
-              itemBuilder: (_, i) => CPPressable(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  setState(() => _selectedSubject = i);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: _selectedSubject == i
-                        ? AppColors.primary
-                        : Colors.transparent,
-                    border: Border.all(
-                      color: _selectedSubject == i
-                          ? AppColors.primary
-                          : CT.textM(context),
-                    ),
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Center(
-                    child: Text(
-                      _subjects[i],
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: _selectedSubject == i
-                            ? Colors.white
-                            : CT.textS(context),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
+
           const SizedBox(height: 16),
           Expanded(
             child: FutureBuilder<List<_Material>>(
@@ -391,19 +347,12 @@ class _StudyMaterialsPageState extends State<StudyMaterialsPage> {
                 final materials = snapshot.data ?? const [];
 
                 final selectedType = _types[_selectedType].toLowerCase();
-                final selectedSubject = _selectedSubject == 0
-                    ? null
-                    : _subjects[_selectedSubject].toLowerCase();
-
                 final filtered = materials.where((item) {
                     final typeMatch = selectedType == 'notes'
                       ? item.type != 'assignment' && item.type != 'video' && item.type != 'link'
                       : item.type == 'video' || item.type == 'link';
 
-                  final subjectMatch =
-                      selectedSubject == null ||
-                      item.subject.toLowerCase() == selectedSubject;
-                  return typeMatch && subjectMatch;
+                  return typeMatch;
                 }).toList();
 
                 if (filtered.isEmpty) {

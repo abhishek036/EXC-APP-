@@ -43,14 +43,31 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
 
   String _toIstStr(dynamic raw) {
     if (raw == null) return '--:--';
-    final d = raw is DateTime ? raw : DateTime.tryParse(raw.toString());
+    if (raw is int) {
+      return _toIstStr(DateTime.fromMillisecondsSinceEpoch(raw));
+    }
+    String str = raw.toString();
+    if (int.tryParse(str) != null) {
+      return _toIstStr(int.parse(str));
+    }
+    final d = raw is DateTime ? raw : DateTime.tryParse(str);
     if (d == null) return '--:--';
     final ist = _getIst(d);
     return '${ist.hour.toString().padLeft(2, '0')}:${ist.minute.toString().padLeft(2, '0')}';
   }
 
   bool _matchesSelectedDate(dynamic rawDate) {
-    final parsed = DateTime.tryParse((rawDate ?? '').toString());
+    if (rawDate == null) return false;
+    if (rawDate is int) {
+      final parsed = DateTime.fromMillisecondsSinceEpoch(rawDate);
+      return _dateKey(parsed) == _dateKey(_selectedDate);
+    }
+    String str = rawDate.toString();
+    if (int.tryParse(str) != null) {
+      final parsed = DateTime.fromMillisecondsSinceEpoch(int.parse(str));
+      return _dateKey(parsed) == _dateKey(_selectedDate);
+    }
+    final parsed = DateTime.tryParse(str);
     if (parsed == null) return false;
     return _dateKey(parsed) == _dateKey(_selectedDate);
   }
@@ -460,11 +477,13 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
     Color surface,
     Color yellow,
   ) {
-    final start = _toIstStr(item['scheduled_at']);
-    final scheduled = DateTime.tryParse((item['scheduled_at'] ?? '').toString());
+    final rawDate = item['scheduled_at']?.toString() ?? item['date']?.toString() ?? item['start_time']?.toString() ?? '';
+    final scheduled = DateTime.tryParse(rawDate) ?? DateTime.tryParse(rawDate.split(' ').first);
+    
+    final start = item['start_time']?.toString() ?? _toIstStr(scheduled);
     final duration = (item['duration_minutes'] ?? 60) as num;
     final endTime = scheduled?.add(Duration(minutes: duration.toInt()));
-    final end = _toIstStr(endTime);
+    final end = item['end_time']?.toString() ?? _toIstStr(endTime);
 
     final batch = item['batch'] as Map?;
     final name =
@@ -566,7 +585,10 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
     DateTime scheduledAt;
     List<DateTime> multiDates = [];
     if (item != null) {
-      scheduledAt = DateTime.tryParse(item['scheduled_at']?.toString() ?? '') ?? now;
+      final rawDate = item['scheduled_at']?.toString() ?? item['date']?.toString() ?? '';
+      final parsed = DateTime.tryParse(rawDate) ?? DateTime.tryParse(rawDate.split(' ').first);
+      // Fallback to parsed date. If parsed is UTC, toLocal() gets it correctly to device local timezone
+      scheduledAt = parsed?.toLocal() ?? now;
     } else {
       scheduledAt = DateTime(
         _selectedDate.year,
@@ -1098,12 +1120,10 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
             _entries = [..._entries, entry];
             // Sort by time
             _entries.sort((a, b) {
-              final da =
-                  DateTime.tryParse((a['scheduled_at'] ?? '').toString()) ??
-                  DateTime(2000);
-              final db =
-                  DateTime.tryParse((b['scheduled_at'] ?? '').toString()) ??
-                  DateTime(2000);
+              final rawA = a['scheduled_at']?.toString() ?? a['date']?.toString() ?? a['start_time']?.toString() ?? '';
+              final da = DateTime.tryParse(rawA) ?? DateTime.tryParse(rawA.split(' ').first) ?? DateTime(2000);
+              final rawB = b['scheduled_at']?.toString() ?? b['date']?.toString() ?? b['start_time']?.toString() ?? '';
+              final db = DateTime.tryParse(rawB) ?? DateTime.tryParse(rawB.split(' ').first) ?? DateTime(2000);
               return da.compareTo(db);
             });
           }
@@ -1167,12 +1187,10 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
           );
           // Resort in case time changed
           _entries.sort((a, b) {
-            final da =
-                DateTime.tryParse((a['scheduled_at'] ?? '').toString()) ??
-                DateTime(2000);
-            final db =
-                DateTime.tryParse((b['scheduled_at'] ?? '').toString()) ??
-                DateTime(2000);
+            final rawA = a['scheduled_at']?.toString() ?? a['date']?.toString() ?? a['start_time']?.toString() ?? '';
+            final da = DateTime.tryParse(rawA) ?? DateTime.tryParse(rawA.split(' ').first) ?? DateTime(2000);
+            final rawB = b['scheduled_at']?.toString() ?? b['date']?.toString() ?? b['start_time']?.toString() ?? '';
+            final db = DateTime.tryParse(rawB) ?? DateTime.tryParse(rawB.split(' ').first) ?? DateTime(2000);
             return da.compareTo(db);
           });
         }
