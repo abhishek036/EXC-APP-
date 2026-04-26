@@ -153,11 +153,23 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       child: Stack(
         children: [
           InAppWebView(
-            initialUrlRequest: URLRequest(
-              url: WebUri.uri(_embedUri(id)),
-              headers: const {
-                'Referer': 'https://www.youtube.com/',
-              },
+            initialData: InAppWebViewInitialData(
+              data: '''
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                  <style>
+                    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #0A0A0F; overflow: hidden; }
+                    iframe { width: 100%; height: 100%; border: none; }
+                  </style>
+                </head>
+                <body>
+                  <iframe src="https://www.youtube.com/embed/$id?autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=https://www.youtube.com" allow="autoplay; fullscreen" allowfullscreen></iframe>
+                </body>
+                </html>
+              ''',
+              baseUrl: WebUri.uri(Uri.parse("https://www.youtube.com/")),
             ),
             initialSettings: InAppWebViewSettings(
               javaScriptEnabled: true,
@@ -165,6 +177,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               allowsInlineMediaPlayback: true,
               iframeAllowFullscreen: true,
               supportZoom: false,
+              useShouldOverrideUrlLoading: true,
             ),
             onWebViewCreated: (controller) {
               _webCtrl = controller;
@@ -177,6 +190,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               if (!mounted || _error) return;
               setState(() => _loading = false);
             },
+            shouldOverrideUrlLoading: (controller, navigationAction) async {
+              final uri = navigationAction.request.url;
+              if (uri != null && !uri.toString().contains('youtube.com/embed')) {
+                // Prevent navigating away from the embed
+                return NavigationActionPolicy.CANCEL;
+              }
+              return NavigationActionPolicy.ALLOW;
+            },
             onReceivedError: (_, request, error) {
               if (!mounted || _error || !(request.isForMainFrame ?? false)) return;
               setState(() {
@@ -188,12 +209,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             onConsoleMessage: (_, message) {
               if (!mounted || _error) return;
               final text = message.message.toLowerCase();
-              if (text.contains('error 153') || text.contains('playback on other websites')) {
+              if (text.contains('error 153') || text.contains('error 150') || text.contains('playback on other websites')) {
                 setState(() {
                   _error = true;
                   _loading = false;
-                  _errorMsg = 'Video playback error (153).\n\n'
-                      'This is usually caused by missing embed headers. A Referer header is now sent from the app; if the issue persists, verify the source video allows embedding.';
+                  _errorMsg = 'This video has embedding disabled.\n\n'
+                      'The teacher must open YouTube Studio → Edit Video → '
+                      'More Options → enable "Allow embedding".';
                 });
               }
             },
