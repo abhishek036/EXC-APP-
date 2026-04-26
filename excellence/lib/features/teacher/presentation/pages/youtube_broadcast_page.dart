@@ -1,376 +1,754 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:apivideo_live_stream/apivideo_live_stream.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
-import '../../../../core/widgets/custom_button.dart';
-import '../../../../core/widgets/custom_text_field.dart';
 import '../../data/repositories/teacher_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// YoutubeBroadcastPage — In-App Broadcasting Studio
+// Uses apivideo_live_stream to push RTMP to YouTube Live without OBS.
+// ─────────────────────────────────────────────────────────────────────────────
 class YoutubeBroadcastPage extends StatefulWidget {
   final String batchId;
-
   const YoutubeBroadcastPage({super.key, required this.batchId});
 
   @override
   State<YoutubeBroadcastPage> createState() => _YoutubeBroadcastPageState();
 }
 
-class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage> with ThemeAware<YoutubeBroadcastPage> {
-  final _teacherRepo = sl<TeacherRepository>();
+class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
+    with ThemeAware<YoutubeBroadcastPage>, TickerProviderStateMixin {
+
+  // ── Repo & Controller ────────────────────────────────────────────────────
+  final _repo = sl<TeacherRepository>();
   ApiVideoLiveStreamController? _controller;
 
-  bool _isInit = false;
-  bool _isStreaming = false;
-  bool _isLoading = false;
+  // ── State Flags ──────────────────────────────────────────────────────────
+  bool _isInit       = false;
+  bool _isStreaming   = false;
+  bool _isLoading     = false;
+  bool _isMuted       = false;
+  bool _isFrontCamera = false;
+  String? _initError;
+  String? _watchUrl;
 
-  final _titleController = TextEditingController();
-  final _descController = TextEditingController();
+  // ── Stream Metadata ──────────────────────────────────────────────────────
+  final _titleCtrl = TextEditingController();
+  final _descCtrl  = TextEditingController();
+  Timer? _timeoutTimer;
+  Timer? _liveDurationTimer;
+  Duration _liveDuration = Duration.zero;
 
-  // ignore: unused_field
-  String? _broadcastId;
-  String? _streamKey;
-  String? _streamUrl;
-  bool _isBroadcastPersisted = false;
+  // ── Animations ───────────────────────────────────────────────────────────
+  late AnimationController _pulseCtrl;
+  late AnimationController _fadeCtrl;
+  late Animation<double>   _pulseAnim;
+  late Animation<double>   _fadeAnim;
+
+  // ── Palette (dark studio theme) ──────────────────────────────────────────
+  static const _bg        = Color(0xFF0A0A0A);
+  static const _surface   = Color(0xFF161616);
+  static const _border    = Color(0xFF2A2A2A);
+  static const _liveRed   = Color(0xFFE53935);
+  static const _gold      = AppColors.moltenAmber;
+  static const _blue      = AppColors.elitePrimary;
+  static const _white     = Colors.white;
+  static const _white60   = Colors.white60;
+  static const _white30   = Colors.white30;
 
   @override
   void initState() {
     super.initState();
-    _initController();
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ));
+
+    // Pulse animation for the LIVE badge
+    _pulseCtrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1000))
+      ..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
+
+    // Fade in animation for UI
+    _fadeCtrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 600));
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+
+    _initCamera();
   }
 
-  Future<void> _initController() async {
+  // ── Camera Init ──────────────────────────────────────────────────────────
+  Future<void> _initCamera() async {
     try {
-      final controller = ApiVideoLiveStreamController(
+      final ctrl = ApiVideoLiveStreamController(
         initialAudioConfig: AudioConfig(bitrate: 128000),
         initialVideoConfig: VideoConfig.withDefaultBitrate(
           resolution: Resolution.RESOLUTION_720,
         ),
-        onConnectionSuccess: () {
-          if (mounted) {
-            setState(() {
-              _isStreaming = true;
-              _isLoading = false;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('YouTube Live Stream Started! 🚀'),
-                backgroundColor: AppColors.success,
-              ),
-            );
-          }
-        },
-        onConnectionFailed: (error) {
-          if (mounted) {
-            setState(() {
-              _isStreaming = false;
-              _isLoading = false;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Streaming Failed: $error'),
-                backgroundColor: AppColors.coralRed,
-              ),
-            );
-          }
-        },
-        onDisconnection: () {
-          if (mounted) {
-            setState(() {
-              _isStreaming = false;
-            });
-          }
-        },
+        onConnectionSuccess: _onConnected,
+        onConnectionFailed:  _onConnectionFailed,
+        onDisconnection:     _onDisconnected,
       );
-      _controller = controller;
-      await controller.startPreview();
+      _controller = ctrl;
+      await ctrl.startPreview();
       if (mounted) {
         setState(() => _isInit = true);
+        _fadeCtrl.forward();
       }
     } catch (e) {
-      debugPrint("Camera Error: $e");
+      if (mounted) setState(() => _initError = e.toString());
     }
   }
 
-  @override
-  void dispose() {
-    if (_isInit && _controller != null) {
-      _controller!.stopPreview();
-      if (_isStreaming) _controller!.stopStreaming();
-    }
-    _titleController.dispose();
-    _descController.dispose();
-    super.dispose();
+  // ── RTMP Callbacks ───────────────────────────────────────────────────────
+  void _onConnected() {
+    _timeoutTimer?.cancel();
+    if (!mounted) return;
+    setState(() { _isStreaming = true; _isLoading = false; });
+    _startLiveTimer();
+    _showSnack('🔴 You are LIVE on YouTube!', _liveRed);
   }
 
-  Future<void> _startLiveStream() async {
-    if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a stream title.'),
-          backgroundColor: AppColors.coralRed,
-        ),
-      );
+  void _onConnectionFailed(String err) {
+    _timeoutTimer?.cancel();
+    if (!mounted) return;
+    setState(() { _isStreaming = false; _isLoading = false; });
+    _showSnack('Connection failed: $err', _liveRed, duration: 8);
+  }
+
+  void _onDisconnected() {
+    _timeoutTimer?.cancel();
+    _liveDurationTimer?.cancel();
+    if (!mounted) return;
+    setState(() { _isStreaming = false; _liveDuration = Duration.zero; });
+  }
+
+  // ── Go Live ──────────────────────────────────────────────────────────────
+  Future<void> _goLive() async {
+    final title = _titleCtrl.text.trim();
+    if (title.isEmpty) {
+      _showSnack('Please enter a stream title.', _liveRed);
       return;
     }
-
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
 
     try {
-      // 1. Ask backend to spin up a YouTube Live Stream (30 s timeout)
-      final result = await _teacherRepo.createYoutubeLiveStream(
-        title: _titleController.text.trim(),
-        description: _descController.text.trim(),
+      final result = await _repo.createYoutubeLiveStream(
+        title:         title,
+        description:   _descCtrl.text.trim(),
         privacyStatus: 'unlisted',
       ).timeout(
         const Duration(seconds: 30),
         onTimeout: () => throw Exception(
-          'YouTube API timed out. Check your internet connection and try again.',
-        ),
+          'YouTube API timed out. Check your internet connection.'),
       );
 
-      _broadcastId = result['broadcastId'];
-      _streamKey  = result['streamKey'];
-      _streamUrl  = result['streamUrl'] ?? 'rtmp://a.rtmp.youtube.com/live2';
+      final streamKey = (result['streamKey'] ?? result['stream_key'])?.toString();
+      final rtmpUrl   = (result['streamUrl'] ?? result['rtmpUrl'] ??
+                         'rtmp://a.rtmp.youtube.com/live2').toString();
+      _watchUrl = result['watchUrl']?.toString();
 
-      if (_streamKey == null) {
-        throw Exception('Stream Key was not returned from the YouTube API.');
+      if (streamKey == null || streamKey.isEmpty) {
+        throw Exception('No stream key returned. Re-authenticate YouTube in Settings.');
       }
 
-      await _persistBroadcastForBatch();
+      // 45-second RTMP connection timeout guard
+      _timeoutTimer?.cancel();
+      _timeoutTimer = Timer(const Duration(seconds: 45), () {
+        if (mounted && _isLoading && !_isStreaming) {
+          setState(() => _isLoading = false);
+          _showSnack(
+            'RTMP connection timed out. Verify YouTube OAuth & stable internet.',
+            _liveRed, duration: 10);
+        }
+      });
 
-      // 2. Start pushing the camera feed to the RTMP URL.
-      // NOTE: _isLoading stays true until onConnectionSuccess/onConnectionFailed fires.
-      await _controller!.startStreaming(
-        streamKey: _streamKey!,
-        url: _streamUrl!,
-      );
+      await _controller!.startStreaming(streamKey: streamKey, url: rtmpUrl);
     } catch (e) {
-      // Always reset loading on any failure so the button is usable again.
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString().replaceFirst("Exception: ", "")}'),
-            backgroundColor: AppColors.coralRed,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        _showSnack(e.toString().replaceFirst('Exception: ', ''), _liveRed, duration: 6);
       }
     }
   }
 
-  Future<void> _persistBroadcastForBatch() async {
-    if (_isBroadcastPersisted) return;
-
-    final id = _broadcastId?.trim();
-    if (id == null || id.isEmpty) return;
-
-    final title = _titleController.text.trim();
-    final description = _descController.text.trim();
-    final streamLink = 'https://www.youtube.com/watch?v=$id';
-
-    try {
-      await _teacherRepo.uploadMaterial(
-        title: title,
-        subject: '',
-        type: 'video',
-        batchId: widget.batchId,
-        fileUrl: streamLink,
-        description: description.isEmpty ? 'Live class stream' : description,
-        youtubeVisibility: 'unlisted',
-        isLive: true,
-      );
-      _isBroadcastPersisted = true;
-    } catch (e) {
-      debugPrint('Failed to persist broadcast link for batch: $e');
-    }
+  // ── End Stream ───────────────────────────────────────────────────────────
+  Future<void> _endStream() async {
+    final confirm = await _showConfirmDialog(
+      'End Live Stream?',
+      'This will disconnect the broadcast from YouTube Live.',
+    );
+    if (confirm != true) return;
+    _liveDurationTimer?.cancel();
+    await _controller?.stopStreaming();
+    if (mounted) setState(() { _isStreaming = false; _liveDuration = Duration.zero; });
   }
 
-  Future<void> _stopLiveStream() async {
-    await _controller!.stopStreaming();
-    setState(() => _isStreaming = false);
+  // ── Camera / Mic ─────────────────────────────────────────────────────────
+  Future<void> _flipCamera() async {
+    await _controller?.switchCamera();
+    if (mounted) setState(() => _isFrontCamera = !_isFrontCamera);
   }
 
-  Future<void> _toggleCamera() async {
-    await _controller!.switchCamera();
+  Future<void> _toggleMic() async {
+    await _controller?.toggleMute();
+    if (mounted) setState(() => _isMuted = !_isMuted);
   }
 
-  Future<void> _toggleMicrophone() async {
-    await _controller!.toggleMute();
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  void _startLiveTimer() {
+    _liveDurationTimer?.cancel();
+    _liveDurationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _liveDuration += const Duration(seconds: 1));
+    });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (!_isInit) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.moltenAmber),
+  String _formatDuration(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
+  }
+
+  void _showSnack(String msg, Color bg, {int duration = 4}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg, style: GoogleFonts.plusJakartaSans(color: _white, fontSize: 13)),
+      backgroundColor: bg,
+      duration: Duration(seconds: duration),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    ));
+  }
+
+  Future<bool?> _showConfirmDialog(String title, String body) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: _border),
         ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Camera Preview Full Screen
-          Positioned.fill(
-            child: ApiVideoCameraPreview(controller: _controller!),
+        title: Text(title, style: GoogleFonts.plusJakartaSans(color: _white, fontWeight: FontWeight.w800)),
+        content: Text(body, style: GoogleFonts.plusJakartaSans(color: _white60, fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: _white60)),
           ),
-
-          // Header / Controls Overlay
-          SafeArea(
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () {
-                        if (GoRouter.of(context).canPop()) {
-                          GoRouter.of(context).pop();
-                        } else {
-                          GoRouter.of(context).go('/teacher');
-                        }
-                      },
-                    ),
-                    if (_isStreaming)
-                      Container(
-                        margin: const EdgeInsets.only(right: 16),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.coralRed,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.black, width: 2),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.fiber_manual_record,
-                              color: Colors.white,
-                              size: 12,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'LIVE',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-
-                const Spacer(),
-
-                // Bottom Control Panel
-                Container(
-                  decoration: const BoxDecoration(
-                    color: AppColors.eliteLightBg,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                    border: Border(
-                      top: BorderSide(color: Colors.black, width: 3),
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (!_isStreaming) ...[
-                        CustomTextField(
-                          hint: 'Live Class Topic...',
-                          prefixIcon: Icons.title,
-                          controller: _titleController,
-                        ),
-                        const SizedBox(height: 12),
-                        CustomTextField(
-                          hint: 'Description (Optional)',
-                          prefixIcon: Icons.description,
-                          controller: _descController,
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          IconButton(
-                            style: IconButton.styleFrom(
-                              backgroundColor: AppColors.elitePrimary,
-                            ),
-                            icon: const Icon(
-                              Icons.cameraswitch,
-                              color: Colors.white,
-                            ),
-                            onPressed: _toggleCamera,
-                          ),
-
-                          if (!_isStreaming)
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: CustomButton(
-                                  text: _isLoading
-                                      ? 'CONNECTING...'
-                                      : 'GO LIVE',
-                                  backgroundColor: AppColors.elitePrimary,
-                                  foregroundColor: Colors.white,
-                                  isLoading: _isLoading,
-                                  onPressed: _isLoading
-                                      ? () {}
-                                      : _startLiveStream,
-                                ),
-                              ),
-                            )
-                          else
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: CustomButton(
-                                  text: 'END STREAM',
-                                  backgroundColor: AppColors.coralRed,
-                                  foregroundColor: Colors.white,
-                                  onPressed: _stopLiveStream,
-                                ),
-                              ),
-                            ),
-
-                          IconButton(
-                            style: IconButton.styleFrom(
-                              backgroundColor: AppColors.elitePrimary,
-                            ),
-                            icon: const Icon(Icons.mic, color: Colors.white),
-                            onPressed: _toggleMicrophone,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _liveRed),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('End Stream', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
     );
   }
+
+  @override
+  void dispose() {
+    _timeoutTimer?.cancel();
+    _liveDurationTimer?.cancel();
+    _pulseCtrl.dispose();
+    _fadeCtrl.dispose();
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    if (_isInit && _controller != null) {
+      if (_isStreaming) _controller!.stopStreaming();
+      _controller!.stopPreview();
+    }
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarIconBrightness: Brightness.dark));
+    super.dispose();
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  BUILD
+  // ════════════════════════════════════════════════════════════════════════════
+  @override
+  Widget build(BuildContext context) {
+    if (_initError != null) return _buildErrorScreen();
+    if (!_isInit)           return _buildLoadingScreen();
+    return _buildStudio();
+  }
+
+  // ── Loading ───────────────────────────────────────────────────────────────
+  Widget _buildLoadingScreen() => Scaffold(
+    backgroundColor: _bg,
+    body: Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const SizedBox(
+          width: 52, height: 52,
+          child: CircularProgressIndicator(color: _gold, strokeWidth: 3),
+        ),
+        const SizedBox(height: 20),
+        Text('Initialising Camera…',
+          style: GoogleFonts.plusJakartaSans(color: _white60, fontSize: 14)),
+      ]),
+    ),
+  );
+
+  // ── Error ─────────────────────────────────────────────────────────────────
+  Widget _buildErrorScreen() => Scaffold(
+    backgroundColor: _bg,
+    body: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: _liveRed.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+              border: Border.all(color: _liveRed.withValues(alpha: 0.4)),
+            ),
+            child: const Icon(Icons.videocam_off_rounded, color: _liveRed, size: 48),
+          ),
+          const SizedBox(height: 28),
+          Text('Camera Unavailable',
+            style: GoogleFonts.plusJakartaSans(
+              color: _white, fontSize: 22, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          Text(
+            'Please grant Camera & Microphone permissions, then retry.\n\n${_initError!}',
+            style: GoogleFonts.plusJakartaSans(color: _white60, fontSize: 13),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          _StudioButton(
+            label: 'Retry',
+            icon: Icons.refresh_rounded,
+            color: _gold,
+            onTap: () { setState(() => _initError = null); _initCamera(); },
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () => GoRouter.of(context).canPop()
+                ? GoRouter.of(context).pop()
+                : GoRouter.of(context).go('/teacher'),
+            child: Text('Go Back',
+              style: GoogleFonts.plusJakartaSans(color: _white30, fontSize: 14)),
+          ),
+        ]),
+      ),
+    ),
+  );
+
+  // ── Main Studio ───────────────────────────────────────────────────────────
+  Widget _buildStudio() {
+    return Scaffold(
+      backgroundColor: _bg,
+      body: Stack(children: [
+
+        // ── Camera Preview ────────────────────────────────────────────────
+        Positioned.fill(
+          child: ApiVideoCameraPreview(controller: _controller!)),
+
+        // ── Gradient vignette top ─────────────────────────────────────────
+        Positioned(
+          top: 0, left: 0, right: 0, height: 200,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xCC000000), Colors.transparent],
+              ),
+            ),
+          ),
+        ),
+
+        // ── Gradient vignette bottom ──────────────────────────────────────
+        Positioned(
+          bottom: 0, left: 0, right: 0, height: 320,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [Color(0xF0000000), Colors.transparent],
+              ),
+            ),
+          ),
+        ),
+
+        // ── SafeArea Overlay ──────────────────────────────────────────────
+        SafeArea(
+          child: FadeTransition(
+            opacity: _fadeAnim,
+            child: Column(children: [
+
+              // ── Top Bar ────────────────────────────────────────────────
+              _buildTopBar(),
+
+              const Spacer(),
+
+              // ── Bottom Panel ───────────────────────────────────────────
+              _buildBottomPanel(),
+            ]),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  // ── Top Bar ───────────────────────────────────────────────────────────────
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(children: [
+
+        // Back button
+        _IconCircle(
+          icon: Icons.arrow_back_ios_new_rounded,
+          onTap: () => GoRouter.of(context).canPop()
+              ? GoRouter.of(context).pop()
+              : GoRouter.of(context).go('/teacher'),
+        ),
+
+        const SizedBox(width: 12),
+
+        // Studio label
+        Expanded(
+          child: Text('BROADCASTING STUDIO',
+            style: GoogleFonts.plusJakartaSans(
+              color: _white, fontWeight: FontWeight.w900,
+              fontSize: 14, letterSpacing: 1.5)),
+        ),
+
+        // LIVE badge (visible when streaming)
+        if (_isStreaming) ...[
+          AnimatedBuilder(
+            animation: _pulseAnim,
+            builder: (_, child) => Opacity(opacity: _pulseAnim.value, child: child!),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _liveRed,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  width: 8, height: 8,
+                  decoration: const BoxDecoration(
+                    color: _white, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 6),
+                Text('LIVE',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: _white, fontWeight: FontWeight.w900,
+                    fontSize: 13, letterSpacing: 1)),
+              ]),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Duration counter
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: _border),
+            ),
+            child: Text(
+              _formatDuration(_liveDuration),
+              style: GoogleFonts.plusJakartaSans(
+                color: _white, fontWeight: FontWeight.w700,
+                fontSize: 13, fontFeatures: [const FontFeature.tabularFigures()]),
+            ),
+          ),
+        ],
+
+        // Watch link button (visible when streaming)
+        if (_isStreaming && _watchUrl != null) ...[
+          const SizedBox(width: 8),
+          _IconCircle(
+            icon: Icons.open_in_new_rounded,
+            color: _gold,
+            onTap: () => _showSnack('YouTube link: $_watchUrl', _blue),
+          ),
+        ],
+      ]),
+    );
+  }
+
+  // ── Bottom Panel ──────────────────────────────────────────────────────────
+  Widget _buildBottomPanel() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _surface.withValues(alpha: 0.92),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: const Border(top: BorderSide(color: _border, width: 1)),
+      ),
+      padding: EdgeInsets.only(
+        left: 20, right: 20, top: 20,
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+
+        // Drag handle
+        Container(
+          width: 40, height: 4,
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            color: _border, borderRadius: BorderRadius.circular(2)),
+        ),
+
+        // Pre-stream form (title + description)
+        if (!_isStreaming) ...[
+          _buildTextField(
+            controller: _titleCtrl,
+            hint:       'Stream Title (e.g. Physics Chapter 12)',
+            icon:       Icons.title_rounded,
+          ),
+          const SizedBox(height: 10),
+          _buildTextField(
+            controller:   _descCtrl,
+            hint:         'Description (Optional)',
+            icon:         Icons.description_outlined,
+            maxLines:     2,
+          ),
+          const SizedBox(height: 20),
+        ],
+
+        // Post-stream info row
+        if (_isStreaming) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: _liveRed.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _liveRed.withValues(alpha: 0.3)),
+            ),
+            child: Row(children: [
+              AnimatedBuilder(
+                animation: _pulseAnim,
+                builder: (_, child) => Opacity(opacity: _pulseAnim.value, child: child!),
+                child: Container(
+                  width: 10, height: 10,
+                  decoration: const BoxDecoration(
+                    color: _liveRed, shape: BoxShape.circle),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _titleCtrl.text.isEmpty ? 'Live Session' : _titleCtrl.text,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: _white, fontWeight: FontWeight.w700, fontSize: 14),
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ]),
+          ),
+        ],
+
+        // Controls row
+        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+
+          // Flip camera
+          _ControlChip(
+            icon: _isFrontCamera
+                ? Icons.camera_front_rounded
+                : Icons.camera_rear_rounded,
+            label: 'Flip',
+            onTap: _flipCamera,
+          ),
+
+          const SizedBox(width: 8),
+
+          // Main CTA — GO LIVE / END STREAM
+          Expanded(child: _buildMainCta()),
+
+          const SizedBox(width: 8),
+
+          // Mic toggle
+          _ControlChip(
+            icon: _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+            label: _isMuted ? 'Unmute' : 'Mute',
+            color: _isMuted ? _liveRed : null,
+            onTap: _toggleMic,
+          ),
+        ]),
+      ]),
+    );
+  }
+
+  // ── Main CTA button ───────────────────────────────────────────────────────
+  Widget _buildMainCta() {
+    if (_isStreaming) {
+      return _StudioButton(
+        label: 'End Stream',
+        icon:  Icons.stop_circle_rounded,
+        color: _liveRed,
+        onTap: _endStream,
+      );
+    }
+    return _StudioButton(
+      label:     _isLoading ? 'Connecting…' : 'Go Live',
+      icon:      _isLoading ? null : Icons.play_circle_fill_rounded,
+      color:     _blue,
+      isLoading: _isLoading,
+      onTap:     _isLoading ? null : _goLive,
+    );
+  }
+
+  // ── Text Field ────────────────────────────────────────────────────────────
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: TextField(
+        controller: controller,
+        maxLines:   maxLines,
+        style: GoogleFonts.plusJakartaSans(color: _white, fontSize: 14),
+        decoration: InputDecoration(
+          hintText:        hint,
+          hintStyle:       GoogleFonts.plusJakartaSans(color: _white30, fontSize: 14),
+          prefixIcon:      Icon(icon, color: _white30, size: 20),
+          border:          InputBorder.none,
+          contentPadding:  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
+    );
+  }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-widgets
+// ─────────────────────────────────────────────────────────────────────────────
 
+/// Round icon button for the top bar
+class _IconCircle extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Color? color;
+  const _IconCircle({required this.icon, this.onTap, this.color});
 
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40, height: 40,
+        decoration: BoxDecoration(
+          color: Colors.black45,
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFF2A2A2A)),
+        ),
+        child: Icon(icon, color: color ?? Colors.white, size: 18),
+      ),
+    );
+  }
+}
+
+/// Square control chip (Flip / Mic)
+class _ControlChip extends StatelessWidget {
+  final IconData icon;
+  final String   label;
+  final VoidCallback? onTap;
+  final Color? color;
+  const _ControlChip({
+    required this.icon,
+    required this.label,
+    this.onTap,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 68, height: 68,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: color?.withValues(alpha: 0.6) ?? const Color(0xFF2A2A2A)),
+        ),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, color: color ?? Colors.white, size: 24),
+          const SizedBox(height: 4),
+          Text(label,
+            style: GoogleFonts.plusJakartaSans(
+              color: color ?? Colors.white60, fontSize: 10,
+              fontWeight: FontWeight.w600)),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Full-width studio action button
+class _StudioButton extends StatelessWidget {
+  final String     label;
+  final IconData?  icon;
+  final Color      color;
+  final VoidCallback? onTap;
+  final bool       isLoading;
+
+  const _StudioButton({
+    required this.label,
+    required this.color,
+    this.icon,
+    this.onTap,
+    this.isLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 56,
+        decoration: BoxDecoration(
+          color: onTap == null ? color.withValues(alpha: 0.5) : color,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: onTap == null
+              ? null
+              : [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 4))],
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          if (isLoading) ...[
+            const SizedBox(
+              width: 20, height: 20,
+              child: CircularProgressIndicator(
+                color: Colors.white, strokeWidth: 2.5)),
+            const SizedBox(width: 10),
+          ] else if (icon != null) ...[
+            Icon(icon, color: Colors.white, size: 22),
+            const SizedBox(width: 8),
+          ],
+          Text(label,
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              letterSpacing: 0.5,
+            )),
+        ]),
+      ),
+    );
+  }
+}

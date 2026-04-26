@@ -544,26 +544,27 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
             _inputLabel('YOUTUBE VIDEO LINK', primary),
             _textField(
               _linkCtrl,
-              'https://...',
+              'https://youtube.com/watch?v=...',
               primary,
               obscureText: false,
               keyboardType: TextInputType.url,
             ),
-          ],
-          if (_selectedType == 'video') ...[
-            const SizedBox(height: 24),
-            _inputLabel('YOUTUBE VISIBILITY', primary),
-            _buildYoutubeVisibilitySelector(primary),
             const SizedBox(height: 10),
-            Text(
-              _allowPublicYoutube
-                  ? 'Unlisted is recommended for batch-only lectures. Public can be used for channel content.'
-                  : 'Admin policy: batch lecture videos must stay Unlisted.',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: primary.withValues(alpha: 0.7),
-              ),
+            Row(
+              children: [
+                Icon(Icons.info_outline_rounded, size: 14, color: primary.withValues(alpha: 0.5)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Paste the YouTube link of your recorded lecture. Ensure embedding is enabled in YouTube Studio.',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: primary.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
           if (_selectedType != 'video') ...[
@@ -724,51 +725,6 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     );
   }
 
-  Widget _buildYoutubeVisibilitySelector(Color primary) {
-    final elevated = CT.elevated(context);
-    final options = _allowPublicYoutube
-        ? const <String>['unlisted', 'public']
-        : const <String>['unlisted'];
-    final selected = options.contains(_youtubeVisibility)
-        ? _youtubeVisibility
-        : 'unlisted';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: elevated,
-        border: Border.all(color: primary, width: 2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: selected,
-          isExpanded: true,
-          style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.w800,
-            color: primary,
-          ),
-          onChanged: (val) {
-            if (val == null) return;
-            setState(() => _youtubeVisibility = val);
-          },
-          items: options
-              .map(
-                (option) => DropdownMenuItem<String>(
-                  value: option,
-                  child: Text(
-                    option == 'public'
-                        ? 'PUBLIC (CHANNEL VISIBLE)'
-                        : 'UNLISTED (BATCH RESTRICTED)',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-      ),
-    );
-  }
 
   Future<void> _pickFile() async {
     try {
