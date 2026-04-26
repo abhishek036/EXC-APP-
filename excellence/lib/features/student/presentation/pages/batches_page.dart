@@ -22,15 +22,7 @@ class _BatchesPageState extends State<BatchesPage> {
   bool _isLoading = true;
   String? _error;
 
-  String _selectedCategory = 'All';
-  final _categories = [
-    'All',
-    'My Batches',
-    'JEE',
-    'NEET',
-    'Foundation',
-    'Boards',
-  ];
+
 
   @override
   void initState() {
@@ -82,57 +74,7 @@ class _BatchesPageState extends State<BatchesPage> {
         onRefresh: _loadBatches,
         child: Column(
           children: [
-            // Category chips
-            SizedBox(
-              height: 40,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _categories.length,
-                itemBuilder: (context, i) {
-                  final cat = _categories[i];
-                  final selected = _selectedCategory == cat;
-                  return CPPressable(
-                    onTap: () => setState(() => _selectedCategory = cat),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: selected ? CT.accent(context) : CT.card(context),
-                        borderRadius: BorderRadius.circular(20),
-                        border: selected
-                            ? Border.all(
-                                color: const Color(0xFF354388),
-                                width: 2,
-                              )
-                            : Border.all(color: CT.border(context)),
-                        boxShadow: selected
-                            ? const [
-                                BoxShadow(
-                                  color: Color(0xFF354388),
-                                  offset: Offset(2, 2),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Text(
-                        cat,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: selected ? Colors.white : CT.textS(context),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 12),
+
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -149,55 +91,52 @@ class _BatchesPageState extends State<BatchesPage> {
   Widget _buildContent() {
     List<Widget> children = [];
 
-    // Filtered My Batches
-    if (_selectedCategory == 'All' || _selectedCategory == 'My Batches') {
-      if (_myBatches.isNotEmpty) {
-        children.add(
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: Text(
-              'Active Enrollments',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: CT.textH(context),
+    if (_myBatches.isNotEmpty) {
+      children.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Text(
+            'Active Enrollments',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: CT.textH(context),
+            ),
+          ),
+        ),
+      );
+      children.addAll(_myBatches.map((b) => _myBatchCard(context, b)));
+    } else {
+      children.add(
+        Center(
+          child: Column(
+            children: [
+              const SizedBox(height: 40),
+              Icon(
+                Icons.auto_awesome_motion_rounded,
+                size: 60,
+                color: CT.textM(context).withValues(alpha: 0.3),
               ),
-            ),
+              const SizedBox(height: 16),
+              Text(
+                'No Active Batches',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: CT.textS(context),
+                ),
+              ),
+              Text(
+                'You haven\'t enrolled in any batches yet.',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: CT.textM(context),
+                ),
+              ),
+            ],
           ),
-        );
-        children.addAll(_myBatches.map((b) => _myBatchCard(context, b)));
-      } else {
-        children.add(
-          Center(
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
-                Icon(
-                  Icons.auto_awesome_motion_rounded,
-                  size: 60,
-                  color: CT.textM(context).withValues(alpha: 0.3),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No Active Batches',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: CT.textS(context),
-                  ),
-                ),
-                Text(
-                  'You haven\'t enrolled in any batches yet.',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14,
-                    color: CT.textM(context),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
+        ),
+      );
     }
 
     return ListView(

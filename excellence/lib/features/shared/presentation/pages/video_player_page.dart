@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
@@ -110,6 +111,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       ),
     );
 
+    _playerSub = _ytCtrl!.stream.listen((value) {
+      if (value.playerState == PlayerState.playing) {
+        _isPlayingNotifier.value = true;
+      } else if (value.playerState == PlayerState.paused || value.playerState == PlayerState.ended) {
+        _isPlayingNotifier.value = false;
+      }
+    });
+
     setState(() => _loading = false);
   }
 
@@ -121,6 +130,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   void dispose() {
+    _playerSub?.cancel();
     _ytCtrl?.close();
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
@@ -153,6 +163,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   double _videoDuration = 0.0;
   bool _isZoomed = true;
+  final ValueNotifier<bool> _isPlayingNotifier = ValueNotifier(true);
+  StreamSubscription? _playerSub;
 
   Widget _buildWebPlayer(String id) {
     if (_ytCtrl == null) return _buildSpinner();
@@ -193,11 +205,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                     Positioned.fill(
                       child: GestureDetector(
                         onTap: () async {
-                          final state = await _ytCtrl!.playerState;
-                          if (state == PlayerState.playing) {
+                          if (_isPlayingNotifier.value) {
                             _ytCtrl!.pauseVideo();
+                            _isPlayingNotifier.value = false;
                           } else {
                             _ytCtrl!.playVideo();
+                            _isPlayingNotifier.value = true;
                           }
                         },
                         behavior: HitTestBehavior.opaque,
@@ -238,22 +251,27 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
           final maxDur = _videoDuration > 0 ? _videoDuration : 1.0;
           final validPosition = position.clamp(0.0, maxDur);
-          final isPlaying = _ytCtrl!.value.playerState == PlayerState.playing;
 
           return Row(
             children: [
-              IconButton(
-                icon: Icon(
-                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  color: Colors.white,
-                ),
-                onPressed: () async {
-                  final state = await _ytCtrl!.playerState;
-                  if (state == PlayerState.playing) {
-                    _ytCtrl!.pauseVideo();
-                  } else {
-                    _ytCtrl!.playVideo();
-                  }
+              ValueListenableBuilder<bool>(
+                valueListenable: _isPlayingNotifier,
+                builder: (context, isPlaying, _) {
+                  return IconButton(
+                    icon: Icon(
+                      isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      if (isPlaying) {
+                        _ytCtrl!.pauseVideo();
+                        _isPlayingNotifier.value = false;
+                      } else {
+                        _ytCtrl!.playVideo();
+                        _isPlayingNotifier.value = true;
+                      }
+                    },
+                  );
                 },
               ),
               Expanded(
