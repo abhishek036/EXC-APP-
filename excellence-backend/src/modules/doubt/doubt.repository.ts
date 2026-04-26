@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 
 export class DoubtRepository {
   private static isLegacyDoubtSubjectColumnError(error: unknown): boolean {

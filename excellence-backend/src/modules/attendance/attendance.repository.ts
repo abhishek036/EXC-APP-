@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { MarkAttendanceInput } from './attendance.validator';
 import { Prisma } from '@prisma/client';
 

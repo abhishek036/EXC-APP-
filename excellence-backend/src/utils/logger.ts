@@ -1,4 +1,4 @@
-import { prisma } from '../server';
+import { prisma } from '../config/prisma';
 
 export enum AuditAction {
     LOGIN = 'LOGIN',

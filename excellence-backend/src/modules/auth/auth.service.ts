@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { AuthRepository } from './auth.repository';
 import { generateOTP, generateTokens } from '../../utils/otp';
 import { ApiError } from '../../middleware/error.middleware';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { buildPhoneVariants, normalizeIndianPhone } from '../../utils/phone';
 import { Logger } from '../../utils/logger';
 

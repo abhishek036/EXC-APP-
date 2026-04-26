@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { LectureService } from './lecture.service';
 import { sendResponse } from '../../utils/response';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { emitBatchSync } from '../../config/socket';
 
 export class LectureController {

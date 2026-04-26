@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { CreateTeacherInput, UpdateTeacherInput } from './teacher.validator';
 import { Prisma } from '@prisma/client';
 

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ContentService } from './content.service';
 import { sendResponse } from '../../utils/response';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { emitBatchSync, emitInstituteDashboardSync } from '../../config/socket';
 import { ApiError } from '../../middleware/error.middleware';
 import { createHmac, timingSafeEqual } from 'crypto';

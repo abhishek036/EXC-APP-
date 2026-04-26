@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { TeacherService } from './teacher.service';
 import { sendResponse } from '../../utils/response';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 import { emitBatchSync, emitInstituteDashboardSync } from '../../config/socket';
 import { TimetableService } from '../timetable/timetable.service';

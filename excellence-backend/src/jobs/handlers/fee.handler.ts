@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { FeeRepository } from '../../modules/fee/fee.repository';
 import { WhatsAppService } from '../../modules/whatsapp/whatsapp.service';
 

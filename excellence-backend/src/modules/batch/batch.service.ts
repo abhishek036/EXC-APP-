@@ -1,7 +1,7 @@
 import { BatchRepository } from './batch.repository';
 import { CreateBatchInput, UpdateBatchInput, UpdateBatchMetaInput, MigrateBatchStudentsInput } from './batch.validator';
 import { ApiError } from '../../middleware/error.middleware';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { resolveTeacherScope } from '../../utils/teacher-scope';
 import { resolveBatchTeacherIds } from '../../utils/batch-teacher-assignment';
 

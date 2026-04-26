@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { isLegacyColumnError } from '../../utils/prisma-errors';
 
 export class LectureRepository {

@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { CreateStudentInput, UpdateStudentInput } from './student.validator';
 import { Prisma } from '@prisma/client';
 import { ApiError } from '../../middleware/error.middleware';

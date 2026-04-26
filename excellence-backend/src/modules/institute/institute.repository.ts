@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { UpdateInstituteInput } from './institute.validator';
 
 export class InstituteRepository {

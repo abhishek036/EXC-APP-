@@ -1,6 +1,6 @@
 import { DoubtRepository } from './doubt.repository';
 import { Prisma } from '@prisma/client';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 import { batchHasTeacher } from '../../utils/batch-teacher-assignment';
 import { NotificationService } from '../notification/notification.service';

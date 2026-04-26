@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { buildPhoneVariants } from '../../utils/phone';
 
 export class AuthRepository {

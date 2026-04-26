@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ChatService } from './chat.service';
 import { sendResponse } from '../../utils/response';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 
 export class ChatController {
@@ -68,7 +68,15 @@ export class ChatController {
         });
         senderName = parent?.name || 'Parent';
       } else {
-        senderName = 'Admin';
+        const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+        if (user) {
+          const staff = await prisma.staff.findFirst({
+            where: { institute_id: req.instituteId!, phone: user.phone }
+          });
+          senderName = staff?.name || 'Admin';
+        } else {
+          senderName = 'Admin';
+        }
       }
 
       const message = await ChatService.sendMessage({

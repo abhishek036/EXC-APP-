@@ -1,7 +1,7 @@
 import { TeacherRepository } from './teacher.repository';
 import { CreateTeacherInput, UpdateTeacherInput, UpdateTeacherSettingsInput, AddTeacherFeedbackInput } from './teacher.validator';
 import { ApiError } from '../../middleware/error.middleware';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { batchHasTeacher } from '../../utils/batch-teacher-assignment';
 
 export class TeacherService {

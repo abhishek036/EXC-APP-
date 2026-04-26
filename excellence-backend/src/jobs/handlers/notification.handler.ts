@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { NotificationService } from '../../modules/notification/notification.service';
 
 export class NotificationHandler {

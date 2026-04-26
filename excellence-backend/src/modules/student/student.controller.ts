@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { StudentService } from './student.service';
 import { sendResponse } from '../../utils/response';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 import { isLegacyColumnError } from '../../utils/prisma-errors';
 import { calculateFeeAmounts, summarizeAttendanceFromStatuses } from '../../utils/metrics';

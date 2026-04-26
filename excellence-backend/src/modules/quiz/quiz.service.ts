@@ -1,6 +1,6 @@
 import { QuizRepository } from './quiz.repository';
 import { Prisma } from '@prisma/client';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 import { resolveTeacherScope } from '../../utils/teacher-scope';
 

@@ -1,7 +1,7 @@
 import { AttendanceRepository } from './attendance.repository';
 import { MarkAttendanceInput } from './attendance.validator';
 import { notificationQueue } from '../../jobs/queue';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 import { batchHasTeacher } from '../../utils/batch-teacher-assignment';
 import { ATTENDANCE_PRESENT_STATUSES, normalizeStatus, summarizeAttendanceFromStatuses } from '../../utils/metrics';

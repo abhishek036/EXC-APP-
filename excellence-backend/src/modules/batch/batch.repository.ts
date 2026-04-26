@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { CreateBatchInput, UpdateBatchInput } from './batch.validator';
 
 export class BatchRepository {

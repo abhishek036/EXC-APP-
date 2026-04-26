@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { CreatePayrollInput, CreateStaffInput } from './staff.validator';
 
 export class StaffRepository {

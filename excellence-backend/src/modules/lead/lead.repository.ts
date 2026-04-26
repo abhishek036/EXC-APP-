@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { CreateLeadInput } from './lead.validator';
 
 export class LeadRepository {

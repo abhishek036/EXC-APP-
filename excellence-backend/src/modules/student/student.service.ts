@@ -1,7 +1,7 @@
 import { StudentRepository } from './student.repository';
 import { CreateStudentInput, UpdateStudentInput } from './student.validator';
 import { ApiError } from '../../middleware/error.middleware';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { normalizeIndianPhone } from '../../utils/phone';
 import { resolveTeacherScope } from '../../utils/teacher-scope';
 

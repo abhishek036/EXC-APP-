@@ -1,7 +1,7 @@
 import { ExamRepository } from './exam.repository';
 import { CreateExamInput, SaveExamResultInput } from './exam.validator';
 import { NotificationService } from '../notification/notification.service';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 import { resolveTeacherScope } from '../../utils/teacher-scope';
 

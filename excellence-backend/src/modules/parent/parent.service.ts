@@ -1,5 +1,5 @@
 import { ParentRepository } from './parent.repository';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 import { ATTENDANCE_PRESENT_STATUSES, calculateFeeAmounts, normalizeStatus } from '../../utils/metrics';
 

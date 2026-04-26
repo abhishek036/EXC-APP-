@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { WhatsAppService } from '../../modules/whatsapp/whatsapp.service';
 import { NotificationService } from '../../modules/notification/notification.service';
 

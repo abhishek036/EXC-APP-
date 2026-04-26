@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { CreateAnnouncementInput, UpdateAnnouncementInput } from './announcement.validator';
 
 export class AnnouncementRepository {

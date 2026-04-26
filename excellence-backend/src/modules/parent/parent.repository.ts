@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 import { buildPhoneVariants, normalizeIndianPhone } from '../../utils/phone';
 
 export class ParentRepository {

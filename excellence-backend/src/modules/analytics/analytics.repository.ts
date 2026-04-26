@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 
 export class AnalyticsRepository {
   static async getDashboardStats(instituteId: string) {

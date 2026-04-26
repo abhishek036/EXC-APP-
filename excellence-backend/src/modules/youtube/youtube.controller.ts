@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { YoutubeService } from './youtube.service';
 import { sendResponse } from '../../utils/response';
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 
 export class YoutubeController {
   private service: YoutubeService;

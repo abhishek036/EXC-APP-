@@ -1,4 +1,4 @@
-import { prisma } from '../../server';
+import { prisma } from '../../config/prisma';
 
 export class ChatRepository {
   static async canAccessBatch(userId: string, role: string, instituteId: string, batchId: string): Promise<boolean> {
