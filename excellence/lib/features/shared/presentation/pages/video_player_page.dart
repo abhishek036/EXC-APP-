@@ -181,6 +181,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     );
   }
 
+  double _videoDuration = 0.0;
+
   Widget _buildCustomControls() {
     if (_ytCtrl == null) return const SizedBox.shrink();
 
@@ -191,8 +193,19 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         stream: _ytCtrl!.videoStateStream,
         builder: (context, snapshot) {
           final position = snapshot.data?.position.inSeconds.toDouble() ?? 0.0;
-          final duration = _ytCtrl!.metadata.duration.inSeconds.toDouble();
-          final maxDur = duration > 0 ? duration : 1.0;
+          
+          // Fetch duration asynchronously if it's 0
+          if (_videoDuration == 0.0) {
+            _ytCtrl!.duration.then((dur) {
+              if (dur > 0 && mounted) {
+                setState(() {
+                  _videoDuration = dur;
+                });
+              }
+            });
+          }
+
+          final maxDur = _videoDuration > 0 ? _videoDuration : 1.0;
           final validPosition = position.clamp(0.0, maxDur);
 
           return Row(
@@ -206,8 +219,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                       color: Colors.white,
                     ),
-                    onPressed: () {
-                      if (isPlaying) {
+                    onPressed: () async {
+                      final state = await _ytCtrl!.playerState;
+                      if (state == PlayerState.playing) {
                         _ytCtrl!.pauseVideo();
                       } else {
                         _ytCtrl!.playVideo();
@@ -235,7 +249,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 ),
               ),
               Text(
-                '${_formatTime(snapshot.data?.position ?? Duration.zero)} / ${_formatTime(_ytCtrl!.metadata.duration)}',
+                '${_formatTime(snapshot.data?.position ?? Duration.zero)} / ${_formatTime(Duration(seconds: _videoDuration.toInt()))}',
                 style: GoogleFonts.jetBrainsMono(color: Colors.white54, fontSize: 11),
               ),
             ],
