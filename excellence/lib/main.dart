@@ -17,7 +17,7 @@ import 'core/services/app_permission_service.dart';
 import 'core/widgets/cp_network_activity_overlay.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/notification_route.dart';
-import 'core/utils/webview_platform_initializer.dart';
+
 import 'core/l10n/app_localizations.dart';
 import 'core/l10n/app_locales.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
@@ -28,10 +28,9 @@ final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await ensureWebViewPlatformInitialized();
-
   // Initialise dependency injection immediately
   await initDependencies();
+
 
   // Start concurrent initializations for faster launch
   await Future.wait([

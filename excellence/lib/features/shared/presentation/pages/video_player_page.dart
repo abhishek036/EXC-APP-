@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 
-/// Locked-down YouTube lecture player.
-/// Hides all YouTube branding, share, and related video buttons.
-/// Students stay inside the app ecosystem.
+/// Locked-down YouTube lecture player using youtube_player_flutter.
+/// Hides YouTube branding, share buttons, and related videos.
 class VideoPlayerPage extends StatefulWidget {
   final String? videoUrl;
   final String? title;
@@ -42,31 +41,21 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   static const _surface = Color(0xFF111118);
   static const _amber = AppColors.moltenAmber;
 
-  // ── Extract video ID from any YouTube URL ───────────────────────────────
+  // ── Extract video ID ────────────────────────────────────────────────────
   String? _extractId(String? raw) {
     if (raw == null || raw.trim().isEmpty) return null;
-    final s = raw.trim();
+    // Library helper handles all formats
+    final id = YoutubePlayer.convertUrlToId(raw.trim());
+    if (id != null) return id;
     // Bare 11-char ID
+    final s = raw.trim();
     if (RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(s)) return s;
-    // Library helper
-    final lib = YoutubePlayerController.convertUrlToId(s);
-    if (lib != null) return lib;
-    // Manual extraction
-    final uri = Uri.tryParse(s);
-    if (uri == null) return null;
-    final h = uri.host.toLowerCase();
-    if (h.contains('youtu.be')) return uri.pathSegments.firstOrNull;
-    for (final seg in ['/live/', '/shorts/', '/embed/']) {
-      final m = RegExp('$seg([a-zA-Z0-9_-]{11})').firstMatch(uri.path);
-      if (m != null) return m.group(1);
-    }
-    return uri.queryParameters['v'] ?? uri.queryParameters['vi'];
+    return null;
   }
 
   @override
   void initState() {
     super.initState();
-    // Use postFrameCallback to avoid setState-during-build warnings
     WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
@@ -81,36 +70,67 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       return;
     }
 
-    _ctrl = YoutubePlayerController.fromVideoId(
-      videoId: id,
-      autoPlay: true,
-      params: const YoutubePlayerParams(
-        // ── Lock-down: strip YouTube identity ──────────────────────────
-        showControls: true,
-        showFullscreenButton: true,
-        strictRelatedVideos: true,    // hides related videos after playback
-        showVideoAnnotations: false,  // hides info cards & end screens
-        enableCaption: false,         // hides CC button
-        loop: false,
+    _ctrl = YoutubePlayerController(
+      initialVideoId: id,
+      flags: YoutubePlayerFlags(
+        autoPlay: true,
         mute: false,
-        color: 'white',
-        // playsInline keeps video inside the app on iOS
-        playsInline: true,
+        // ── Lock-down: strip YouTube identity ──────────────────────────
+        hideControls: false,       // keep play/pause/seek controls
+        controlsVisibleAtStart: true,
+        disableDragSeek: false,
+        loop: false,
+        isLive: widget.isLive,
+        forceHD: false,
+        enableCaption: false,      // hide CC button
+        captionLanguage: 'en',
+        hideThumbnail: false,
+        useHybridComposition: true,
       ),
     );
-    _ctrl!.setFullScreenListener((isFullScreen) {
-      SystemChrome.setPreferredOrientations(
-        isFullScreen
-            ? [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]
-            : [DeviceOrientation.portraitUp],
-      );
-    });
+
+    // Error listener
+    _ctrl!.addListener(_onPlayerUpdate);
+
     setState(() => _loading = false);
+  }
+
+  void _onPlayerUpdate() {
+    if (!mounted || _ctrl == null || _error) return;
+    final val = _ctrl!.value;
+    if (val.hasError) {
+      String msg;
+      switch (val.errorCode) {
+        case 101:
+        case 150:
+        case 152:
+          msg = 'This video has embedding disabled.\n\n'
+              'The teacher must open YouTube Studio → Edit Video → '
+              'More Options → enable "Allow embedding".';
+        case 100:
+          msg = 'Video not found. It may have been deleted or made private.';
+        case 2:
+          msg = 'Invalid video link. Please contact your teacher.';
+        default:
+          msg = 'Video playback error (${val.errorCode}). Please try again later.';
+      }
+      setState(() {
+        _error = true;
+        _errorMsg = msg;
+      });
+    }
+  }
+
+  @override
+  void deactivate() {
+    _ctrl?.pause();
+    super.deactivate();
   }
 
   @override
   void dispose() {
-    _ctrl?.close();
+    _ctrl?.removeListener(_onPlayerUpdate);
+    _ctrl?.dispose();
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
   }
@@ -119,20 +139,47 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bg,
-      body: SafeArea(
-        bottom: false,
-        child: Column(children: [
-          _buildTopBar(),
-          if (_loading) const LinearProgressIndicator(color: _amber, minHeight: 2),
-          if (_error) _buildError() else _buildPlayerArea(),
-          // Info panel always shown (even on error) so user sees title and can go back
-          if (!_loading) Expanded(child: _buildInfo()),
-        ]),
+    return YoutubePlayerBuilder(
+      player: YoutubePlayer(
+        controller: _ctrl ?? YoutubePlayerController(initialVideoId: ''),
+        showVideoProgressIndicator: true,
+        progressIndicatorColor: _amber,
+        progressColors: const ProgressBarColors(
+          playedColor: _amber,
+          handleColor: _amber,
+          bufferedColor: Colors.white30,
+          backgroundColor: Colors.white10,
+        ),
+        onReady: () => debugPrint('[YTPlayer] Ready'),
+        bottomActions: const [
+          CurrentPosition(),
+          ProgressBar(isExpanded: true),
+          RemainingDuration(),
+          PlaybackSpeedButton(),
+          // FullScreenButton intentionally omitted to keep user in-app
+        ],
       ),
+      builder: (context, player) {
+        return Scaffold(
+          backgroundColor: _bg,
+          body: SafeArea(
+            bottom: false,
+            child: Column(children: [
+              _buildTopBar(),
+              if (_loading) const LinearProgressIndicator(color: _amber, minHeight: 2),
+              if (_error) _buildError() else ((_ctrl != null) ? player : _buildSpinner()),
+              if (!_loading) Expanded(child: _buildInfo()),
+            ]),
+          ),
+        );
+      },
     );
   }
+
+  Widget _buildSpinner() => const AspectRatio(
+    aspectRatio: 16 / 9,
+    child: Center(child: CircularProgressIndicator(color: _amber)),
+  );
 
   // ── Top bar ─────────────────────────────────────────────────────────────
 
@@ -166,37 +213,21 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           ]),
         ),
         const Spacer(),
-        Text(
-          widget.title ?? 'Lecture',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.plusJakartaSans(
-            color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+        Flexible(
+          child: Text(
+            widget.title ?? 'Lecture',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+          ),
         ),
         const SizedBox(width: 8),
       ]),
     );
   }
 
-  // ── Player area ─────────────────────────────────────────────────────────
-
-  Widget _buildPlayerArea() {
-    if (_loading || _ctrl == null) {
-      return const AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Center(child: CircularProgressIndicator(color: _amber)),
-      );
-    }
-    return AspectRatio(
-      aspectRatio: 16 / 9,
-      child: YoutubePlayer(
-        controller: _ctrl!,
-        aspectRatio: 16 / 9,
-      ),
-    );
-  }
-
-  // ── Info panel below player ─────────────────────────────────────────────
+  // ── Info panel ──────────────────────────────────────────────────────────
 
   Widget _buildInfo() {
     final title = (widget.title ?? '').isNotEmpty ? widget.title! : 'Lecture';
@@ -213,23 +244,19 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Title
           Text(title,
             style: GoogleFonts.plusJakartaSans(
               color: Colors.white, fontSize: 20,
-              fontWeight: FontWeight.w900, height: 1.3),
-          ),
+              fontWeight: FontWeight.w900, height: 1.3)),
 
-          // Teacher / Subject pills
           if (teacher.isNotEmpty || subject.isNotEmpty) ...[
             const SizedBox(height: 14),
-            Wrap(spacing: 10, children: [
+            Wrap(spacing: 10, runSpacing: 8, children: [
               if (subject.isNotEmpty) _pill(Icons.menu_book_rounded, subject),
               if (teacher.isNotEmpty) _pill(Icons.person_rounded, teacher),
             ]),
           ],
 
-          // Summary
           if (summary.isNotEmpty) ...[
             const SizedBox(height: 18),
             Container(
@@ -252,11 +279,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             ),
           ],
 
-          // Lock notice
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          // Live badge in info panel
-          if (widget.isLive) ...[            
+          if (widget.isLive) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
@@ -267,12 +292,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               child: Row(children: [
                 const Icon(Icons.sensors_rounded, color: AppColors.coralRed, size: 16),
                 const SizedBox(width: 8),
-                Text('This is a live lecture. Watch in real-time.',
+                Expanded(child: Text('This is a live lecture. Watch in real-time.',
                   style: GoogleFonts.plusJakartaSans(
-                    color: AppColors.coralRed, fontSize: 12, fontWeight: FontWeight.w600)),
+                    color: AppColors.coralRed, fontSize: 12, fontWeight: FontWeight.w600))),
               ]),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
           ],
 
           Container(
@@ -289,8 +314,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 child: Text(
                   'This lecture is exclusive to your batch. Content is locked within the app.',
                   style: GoogleFonts.plusJakartaSans(
-                    color: Colors.white38, fontSize: 11, height: 1.4),
-                ),
+                    color: Colors.white38, fontSize: 11, height: 1.4)),
               ),
             ]),
           ),
@@ -332,7 +356,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             child: Text(
               _errorMsg ?? 'Video unavailable',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: Colors.white54, fontSize: 13),
+              style: GoogleFonts.plusJakartaSans(color: Colors.white54, fontSize: 13, height: 1.5),
             ),
           ),
           const SizedBox(height: 20),
