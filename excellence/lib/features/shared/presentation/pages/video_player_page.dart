@@ -154,29 +154,56 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   Widget _buildWebPlayer(String id) {
     if (_ytCtrl == null) return _buildSpinner();
     return Flexible(
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            YoutubePlayer(controller: _ytCtrl!),
-            // Intercept taps to play/pause since PointerEvents.none disables iframe interactions
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () async {
-                  final state = await _ytCtrl!.playerState;
-                  if (state == PlayerState.playing) {
-                    _ytCtrl!.pauseVideo();
-                  } else {
-                    _ytCtrl!.playVideo();
-                  }
-                },
-                behavior: HitTestBehavior.opaque,
-                child: const SizedBox.expand(),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth;
+          // Calculate the target height for a 16:9 video
+          final h = w * 9 / 16;
+          // Absolute pixels to crop from top and bottom to hide YouTube's UI overlays
+          const cropSize = 60.0;
+          // The total height of the iframe including the cropped areas
+          final iframeH = h + (cropSize * 2);
+          // The aspect ratio to force the YoutubePlayer to be
+          final aspect = w / iframeH;
+
+          return ClipRect(
+            child: SizedBox(
+              width: w,
+              height: h,
+              child: OverflowBox(
+                minHeight: iframeH,
+                maxHeight: iframeH,
+                minWidth: w,
+                maxWidth: w,
+                alignment: Alignment.center,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    YoutubePlayer(
+                      controller: _ytCtrl!,
+                      aspectRatio: aspect,
+                    ),
+                    // Intercept taps to play/pause since PointerEvents.none disables iframe interactions
+                    Positioned.fill(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final state = await _ytCtrl!.playerState;
+                          if (state == PlayerState.playing) {
+                            _ytCtrl!.pauseVideo();
+                          } else {
+                            _ytCtrl!.playVideo();
+                          }
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
