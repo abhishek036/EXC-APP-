@@ -79,10 +79,7 @@ dependencies:
   provider: ^6.1.5+1
   google_sign_in: ^7.2.0
   firebase_auth: ^6.3.0
-  youtube_player_flutter: 
-    git:
-      url: https://github.com/Dhirenvinay/youtube_player_flutter.git
-      path: packages/youtube_player_flutter
+  flutter_inappwebview: ^6.1.5
   apivideo_live_stream: ^1.2.0
   firebase_storage: ^13.2.0
   path: ^1.9.1

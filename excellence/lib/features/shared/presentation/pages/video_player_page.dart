@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 
-/// Locked-down YouTube lecture player using youtube_player_flutter.
-/// Hides YouTube branding, share buttons, and related videos.
+/// Locked-down YouTube lecture player using an in-app web view.
+/// Hides external navigation and keeps playback inside the app.
 class VideoPlayerPage extends StatefulWidget {
   final String? videoUrl;
   final String? title;
@@ -32,7 +32,8 @@ class VideoPlayerPage extends StatefulWidget {
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  YoutubePlayerController? _ctrl;
+  InAppWebViewController? _webCtrl;
+  String? _videoId;
   bool _loading = true;
   bool _error = false;
   String? _errorMsg;
@@ -44,13 +45,48 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   // ── Extract video ID ────────────────────────────────────────────────────
   String? _extractId(String? raw) {
     if (raw == null || raw.trim().isEmpty) return null;
-    // Library helper handles all formats
-    final id = YoutubePlayer.convertUrlToId(raw.trim());
-    if (id != null) return id;
-    // Bare 11-char ID
     final s = raw.trim();
+
+    final uri = Uri.tryParse(s);
+    if (uri != null) {
+      final host = uri.host.toLowerCase();
+
+      // https://youtu.be/<id>
+      if (host.contains('youtu.be')) {
+        final segment = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
+        if (RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(segment)) return segment;
+      }
+
+      // https://www.youtube.com/watch?v=<id>
+      final qv = uri.queryParameters['v'];
+      if (qv != null && RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(qv)) return qv;
+
+      // https://www.youtube.com/embed/<id> or /shorts/<id>
+      if (uri.pathSegments.length >= 2) {
+        final marker = uri.pathSegments.first.toLowerCase();
+        final segment = uri.pathSegments[1];
+        if ((marker == 'embed' || marker == 'shorts') &&
+            RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(segment)) {
+          return segment;
+        }
+      }
+    }
+
+    // Bare 11-char ID
     if (RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(s)) return s;
     return null;
+  }
+
+  Uri _embedUri(String id) {
+    return Uri.https('www.youtube.com', '/embed/$id', {
+      'autoplay': '1',
+      'playsinline': '1',
+      'rel': '0',
+      'modestbranding': '1',
+      'iv_load_policy': '3',
+      'enablejsapi': '1',
+      'origin': 'https://www.youtube.com',
+    });
   }
 
   @override
@@ -70,67 +106,20 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       return;
     }
 
-    _ctrl = YoutubePlayerController(
-      initialVideoId: id,
-      flags: YoutubePlayerFlags(
-        autoPlay: true,
-        mute: false,
-        // ── Lock-down: strip YouTube identity ──────────────────────────
-        hideControls: false,       // keep play/pause/seek controls
-        controlsVisibleAtStart: true,
-        disableDragSeek: false,
-        loop: false,
-        isLive: widget.isLive,
-        forceHD: false,
-        enableCaption: false,      // hide CC button
-        captionLanguage: 'en',
-        hideThumbnail: false,
-        useHybridComposition: true,
-      ),
-    );
-
-    // Error listener
-    _ctrl!.addListener(_onPlayerUpdate);
+    _videoId = id;
 
     setState(() => _loading = false);
   }
 
-  void _onPlayerUpdate() {
-    if (!mounted || _ctrl == null || _error) return;
-    final val = _ctrl!.value;
-    if (val.hasError) {
-      String msg;
-      switch (val.errorCode) {
-        case 101:
-        case 150:
-        case 152:
-          msg = 'This video has embedding disabled.\n\n'
-              'The teacher must open YouTube Studio → Edit Video → '
-              'More Options → enable "Allow embedding".';
-        case 100:
-          msg = 'Video not found. It may have been deleted or made private.';
-        case 2:
-          msg = 'Invalid video link. Please contact your teacher.';
-        default:
-          msg = 'Video playback error (${val.errorCode}). Please try again later.';
-      }
-      setState(() {
-        _error = true;
-        _errorMsg = msg;
-      });
-    }
-  }
-
   @override
   void deactivate() {
-    _ctrl?.pause();
+    _webCtrl?.pause();
     super.deactivate();
   }
 
   @override
   void dispose() {
-    _ctrl?.removeListener(_onPlayerUpdate);
-    _ctrl?.dispose();
+    _webCtrl = null;
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
   }
@@ -139,40 +128,83 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    return YoutubePlayerBuilder(
-      player: YoutubePlayer(
-        controller: _ctrl ?? YoutubePlayerController(initialVideoId: ''),
-        showVideoProgressIndicator: true,
-        progressIndicatorColor: _amber,
-        progressColors: const ProgressBarColors(
-          playedColor: _amber,
-          handleColor: _amber,
-          bufferedColor: Colors.white30,
-          backgroundColor: Colors.white10,
-        ),
-        onReady: () => debugPrint('[YTPlayer] Ready'),
-        bottomActions: const [
-          CurrentPosition(),
-          ProgressBar(isExpanded: true),
-          RemainingDuration(),
-          PlaybackSpeedButton(),
-          // FullScreenButton intentionally omitted to keep user in-app
+    return Scaffold(
+      backgroundColor: _bg,
+      body: SafeArea(
+        bottom: false,
+        child: Column(children: [
+          _buildTopBar(),
+          if (_loading) const LinearProgressIndicator(color: _amber, minHeight: 2),
+          if (_error)
+            _buildError()
+          else if (_videoId != null)
+            _buildWebPlayer(_videoId!)
+          else
+            _buildSpinner(),
+          if (!_loading) Expanded(child: _buildInfo()),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildWebPlayer(String id) {
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Stack(
+        children: [
+          InAppWebView(
+            initialUrlRequest: URLRequest(
+              url: WebUri.uri(_embedUri(id)),
+              headers: const {
+                'Referer': 'https://www.youtube.com/',
+              },
+            ),
+            initialSettings: InAppWebViewSettings(
+              javaScriptEnabled: true,
+              mediaPlaybackRequiresUserGesture: false,
+              allowsInlineMediaPlayback: true,
+              iframeAllowFullscreen: true,
+              supportZoom: false,
+            ),
+            onWebViewCreated: (controller) {
+              _webCtrl = controller;
+            },
+            onLoadStart: (controller, uri) {
+              if (!mounted || _error) return;
+              setState(() => _loading = true);
+            },
+            onLoadStop: (controller, uri) {
+              if (!mounted || _error) return;
+              setState(() => _loading = false);
+            },
+            onReceivedError: (_, request, error) {
+              if (!mounted || _error || !(request.isForMainFrame ?? false)) return;
+              setState(() {
+                _error = true;
+                _loading = false;
+                _errorMsg = 'Video playback error (${error.type}). Please try again later.';
+              });
+            },
+            onConsoleMessage: (_, message) {
+              if (!mounted || _error) return;
+              final text = message.message.toLowerCase();
+              if (text.contains('error 153') || text.contains('playback on other websites')) {
+                setState(() {
+                  _error = true;
+                  _loading = false;
+                  _errorMsg = 'Video playback error (153).\n\n'
+                      'This is usually caused by missing embed headers. A Referer header is now sent from the app; if the issue persists, verify the source video allows embedding.';
+                });
+              }
+            },
+          ),
+          if (_loading)
+            const Align(
+              alignment: Alignment.topCenter,
+              child: LinearProgressIndicator(color: _amber, minHeight: 2),
+            ),
         ],
       ),
-      builder: (context, player) {
-        return Scaffold(
-          backgroundColor: _bg,
-          body: SafeArea(
-            bottom: false,
-            child: Column(children: [
-              _buildTopBar(),
-              if (_loading) const LinearProgressIndicator(color: _amber, minHeight: 2),
-              if (_error) _buildError() else ((_ctrl != null) ? player : _buildSpinner()),
-              if (!_loading) Expanded(child: _buildInfo()),
-            ]),
-          ),
-        );
-      },
     );
   }
 
