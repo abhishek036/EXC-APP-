@@ -151,6 +151,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     );
   }
 
+  double _videoDuration = 0.0;
+  bool _isZoomed = false;
+
   Widget _buildWebPlayer(String id) {
     if (_ytCtrl == null) return _buildSpinner();
     return Flexible(
@@ -179,9 +182,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    YoutubePlayer(
-                      controller: _ytCtrl!,
-                      aspectRatio: aspect,
+                    Transform.scale(
+                      scale: _isZoomed ? 1.4 : 1.0,
+                      child: YoutubePlayer(
+                        controller: _ytCtrl!,
+                        aspectRatio: aspect,
+                      ),
                     ),
                     // Intercept taps to play/pause since PointerEvents.none disables iframe interactions
                     Positioned.fill(
@@ -207,8 +213,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       ),
     );
   }
-
-  double _videoDuration = 0.0;
 
   Widget _buildCustomControls() {
     if (_ytCtrl == null) return const SizedBox.shrink();
@@ -238,6 +242,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           return Row(
             children: [
               StreamBuilder<YoutubePlayerValue>(
+                initialData: _ytCtrl!.value,
                 stream: _ytCtrl!.stream,
                 builder: (context, valueSnapshot) {
                   final isPlaying = valueSnapshot.data?.playerState == PlayerState.playing;
@@ -278,6 +283,21 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               Text(
                 '${_formatTime(snapshot.data?.position ?? Duration.zero)} / ${_formatTime(Duration(seconds: _videoDuration.toInt()))}',
                 style: GoogleFonts.jetBrainsMono(color: Colors.white54, fontSize: 11),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: Icon(
+                  _isZoomed ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                  color: Colors.white54,
+                  size: 20,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isZoomed = !_isZoomed;
+                  });
+                },
               ),
             ],
           );
