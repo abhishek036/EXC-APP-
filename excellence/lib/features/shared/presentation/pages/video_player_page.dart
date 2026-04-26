@@ -72,24 +72,29 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   void _init() {
     final id = _extractId(widget.videoUrl);
     if (id == null) {
-      setState(() { _loading = false; _error = true; _errorMsg = 'Invalid or missing YouTube link.'; });
+      setState(() {
+        _loading = false;
+        _error = true;
+        _errorMsg = 'Invalid or missing YouTube link.\nPlease check the URL and try again.';
+      });
       return;
     }
+
     _ctrl = YoutubePlayerController.fromVideoId(
       videoId: id,
       autoPlay: true,
       params: const YoutubePlayerParams(
-        // ── Lock-down flags ───────────────────────────────────────────────
-        showControls: true,          // keep native controls (play/pause/seek)
+        // ── Lock-down: strip YouTube identity ──────────────────────────
+        showControls: true,
         showFullscreenButton: true,
-        strictRelatedVideos: true,   // hide related videos
-        showVideoAnnotations: false, // hide annotations
-        enableCaption: false,        // hide cc button
+        strictRelatedVideos: true,    // hides related videos after playback
+        showVideoAnnotations: false,  // hides info cards & end screens
+        enableCaption: false,         // hides CC button
         loop: false,
         mute: false,
-        // interfaceLanguage: 'en',  // locale — optional
-        // These extra params are injected via playerVars to block UI elements
         color: 'white',
+        // playsInline keeps video inside the app on iOS
+        playsInline: true,
       ),
     );
     _ctrl!.setFullScreenListener((isFullScreen) {
@@ -245,8 +250,29 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             ),
           ],
 
-          // Notice — no "Open in YouTube" button intentionally
+          // Lock notice
           const SizedBox(height: 24),
+
+          // Live badge in info panel
+          if (widget.isLive) ...[            
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.coralRed.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.coralRed.withValues(alpha: 0.4)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.sensors_rounded, color: AppColors.coralRed, size: 16),
+                const SizedBox(width: 8),
+                Text('This is a live lecture. Watch in real-time.',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: AppColors.coralRed, fontSize: 12, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
