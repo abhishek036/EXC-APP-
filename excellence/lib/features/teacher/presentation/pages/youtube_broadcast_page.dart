@@ -30,13 +30,15 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
   ApiVideoLiveStreamController? _controller;
 
   // ── State Flags ──────────────────────────────────────────────────────────
-  bool _isInit       = false;
-  bool _isStreaming   = false;
-  bool _isLoading     = false;
-  bool _isMuted       = false;
-  bool _isFrontCamera = false;
+  bool _controllerReady = false; // controller created, preview widget can render
+  bool _isInit          = false; // startPreview() succeeded
+  bool _isStreaming     = false;
+  bool _isLoading       = false;
+  bool _isMuted         = false;
+  bool _isFrontCamera   = false;
   String? _initError;
   String? _watchUrl;
+
 
   // ── Stream Metadata ──────────────────────────────────────────────────────
   final _titleCtrl = TextEditingController();
@@ -136,8 +138,14 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
 
   // ── Camera Init ──────────────────────────────────────────────────────────
   Future<void> _initCamera() async {
-    // Reset any previous error
-    if (mounted) setState(() { _initError = null; _isInit = false; });
+    // Reset state
+    if (mounted) {
+      setState(() {
+        _initError       = null;
+        _isInit          = false;
+        _controllerReady = false;
+      });
+    }
 
     // ── Step 1: Request runtime permissions ────────────────────────────────
     final granted = await _requestPermissions();
@@ -149,31 +157,38 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
       return;
     }
 
-
     // ── Step 2: Tear down any stale controller ─────────────────────────────
     try { await _controller?.stopPreview(); } catch (_) {}
     _controller = null;
 
-    // ── Step 3: Build and start the controller ─────────────────────────────
-    try {
-      final ctrl = ApiVideoLiveStreamController(
-        initialAudioConfig: AudioConfig(bitrate: 128000),
-        initialVideoConfig: VideoConfig.withDefaultBitrate(
-          resolution: Resolution.RESOLUTION_720,
-        ),
-        onConnectionSuccess: _onConnected,
-        onConnectionFailed:  _onConnectionFailed,
-        onDisconnection:     _onDisconnected,
-      );
-      _controller = ctrl;
-      await ctrl.startPreview();
-      if (mounted) {
-        setState(() => _isInit = true);
-        _fadeCtrl.forward();
+    // ── Step 3: Create controller (no startPreview yet) ──────────────────────
+    _controller = ApiVideoLiveStreamController(
+      initialAudioConfig: AudioConfig(bitrate: 128000),
+      initialVideoConfig: VideoConfig.withDefaultBitrate(
+        resolution: Resolution.RESOLUTION_720,
+      ),
+      onConnectionSuccess: _onConnected,
+      onConnectionFailed:  _onConnectionFailed,
+      onDisconnection:     _onDisconnected,
+    );
+
+    // ── Step 4: Render ApiVideoCameraPreview first ───────────────────────────
+    // The plugin needs the texture surface to exist BEFORE startPreview() is called.
+    if (mounted) setState(() => _controllerReady = true);
+
+    // ── Step 5: Call startPreview() AFTER the widget tree has fully rendered ────
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _controller == null) return;
+      try {
+        await _controller!.startPreview();
+        if (mounted) {
+          setState(() => _isInit = true);
+          _fadeCtrl.forward();
+        }
+      } catch (e) {
+        if (mounted) setState(() => _initError = e.toString());
       }
-    } catch (e) {
-      if (mounted) setState(() => _initError = e.toString());
-    }
+    });
   }
 
   // ── RTMP Callbacks ───────────────────────────────────────────────────────
@@ -345,9 +360,11 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
   // ════════════════════════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
-    if (_initError != null) return _buildErrorScreen();
-    if (!_isInit)           return _buildLoadingScreen();
-    return _buildStudio();
+    if (_initError != null)    return _buildErrorScreen();
+    // Controller is ready: render the studio (with loading overlay if preview
+    // hasn't started yet, so ApiVideoCameraPreview can attach to the texture).
+    if (_controllerReady)      return _buildStudio();
+    return _buildLoadingScreen();
   }
 
   // ── Loading ───────────────────────────────────────────────────────────────
@@ -419,8 +436,32 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
       body: Stack(children: [
 
         // ── Camera Preview ────────────────────────────────────────────────
+        // Rendered first so the texture surface exists before startPreview()
         Positioned.fill(
           child: ApiVideoCameraPreview(controller: _controller!)),
+
+        // ── Preview loading overlay ───────────────────────────────────────
+        // Shown while startPreview() is in progress (between _controllerReady
+        // and _isInit). Hides once the camera feed is live.
+        if (!_isInit)
+          Positioned.fill(
+            child: Container(
+              color: _bg,
+              child: Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const SizedBox(
+                    width: 48, height: 48,
+                    child: CircularProgressIndicator(color: _gold, strokeWidth: 2.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Starting camera…',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: _white60, fontSize: 14)),
+                ]),
+              ),
+            ),
+          ),
+
 
         // ── Gradient vignette top ─────────────────────────────────────────
         Positioned(
