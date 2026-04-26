@@ -1815,7 +1815,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.offWhite,
         title: Text(
-          'STUDENT PROFILE',
+          'STUDENT DETAILS',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w900,
             color: blue,

@@ -44,7 +44,7 @@ class _AdminControlCenterPageState extends State<AdminControlCenterPage>
       'icon': Icons.person_add_rounded,
       'color': AppColors.elitePurple,
       'route': '/admin/add-teacher',
-      'description': 'Hire new faculty member',
+      'description': 'Hire new teacher',
     },
     {
       'section': 'USER MANAGEMENT',
@@ -52,7 +52,7 @@ class _AdminControlCenterPageState extends State<AdminControlCenterPage>
       'icon': Icons.psychology_rounded,
       'color': AppColors.elitePurple,
       'route': '/admin/teachers',
-      'description': 'Manage faculty members',
+      'description': 'Manage teachers',
     },
     {
       'section': 'USER MANAGEMENT',

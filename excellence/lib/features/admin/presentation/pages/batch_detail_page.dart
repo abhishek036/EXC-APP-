@@ -2013,7 +2013,6 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
           recordPaidAmount: _recordPaidAmount,
           toDouble: _toDouble,
           dateLabel: _dateLabel,
-          onGenerateFees: _showGenerateFeesDialog,
           onMarkAsPaid: _markAsPaid,
           onSendWhatsAppReminder: () => GoRouter.of(context).push('/admin/whatsapp-broadcast'),
           onSendPushReminder: _sendFeeReminder,
@@ -2189,83 +2188,6 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         child: Center(child: Text(label, style: TextStyle(color: active ? Colors.white : Colors.grey, fontWeight: FontWeight.bold))),
       ),
     );
-  }
-
-  Future<void> _showGenerateFeesDialog() async {
-    int month = DateTime.now().month;
-    int year = DateTime.now().year;
-    DateTime dueDate = DateTime.now().add(const Duration(days: 7));
-
-    final approved = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => AlertDialog(
-          title: const Text('Generate Monthly Fees'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('This will generate fee records for all students in this batch for the selected month.'),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      initialValue: month,
-                      items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(_getMonthName(i + 1)))).toList(),
-                      onChanged: (v) => setS(() => month = v ?? month),
-                      decoration: const InputDecoration(labelText: 'Month'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      initialValue: year,
-                      items: [year - 1, year, year + 1].map((y) => DropdownMenuItem(value: y, child: Text(y.toString()))).toList(),
-                      onChanged: (v) => setS(() => year = v ?? year),
-                      decoration: const InputDecoration(labelText: 'Year'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: () async {
-                  final picked = await showDatePicker(context: context, initialDate: dueDate, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 90)));
-                  if (picked != null) setS(() => dueDate = picked);
-                },
-                child: InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Due Date'),
-                  child: Text(_dateLabel(dueDate)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Generate', style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-        ),
-      ),
-    );
-
-    if (approved != true) return;
-
-    try {
-      await _adminRepo.generateMonthlyFees(
-        batchId: widget.batchId,
-        month: month,
-        year: year,
-        dueDate: dueDate.toIso8601String(),
-      );
-      CPToast.success(context, 'Fees generated successfully');
-      _loadBatch();
-    } catch (e) {
-      CPToast.error(context, e.toString());
-    }
-  }
-
-  String _getMonthName(int m) {
-    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1];
   }
 
 

@@ -11,7 +11,6 @@ class BatchFeesTab extends StatefulWidget {
   final double Function(Map<String, dynamic>) recordPaidAmount;
   final double Function(dynamic) toDouble;
   final String Function(dynamic) dateLabel;
-  final VoidCallback onGenerateFees;
   final Function(Map<String, dynamic>) onMarkAsPaid;
   final VoidCallback onSendWhatsAppReminder;
   final Function(Map<String, dynamic>)? onSendPushReminder;
@@ -25,7 +24,6 @@ class BatchFeesTab extends StatefulWidget {
     required this.recordPaidAmount,
     required this.toDouble,
     required this.dateLabel,
-    required this.onGenerateFees,
     required this.onMarkAsPaid,
     required this.onSendWhatsAppReminder,
     this.onSendPushReminder,
@@ -87,12 +85,6 @@ class _BatchFeesTabState extends State<BatchFeesTab> {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextButton.icon(
-                onPressed: widget.onGenerateFees,
-                icon: const Icon(Icons.auto_awesome_rounded, size: 16),
-                label: const Text('Generate Fees'),
-              ),
-              const SizedBox(width: 8),
               OutlinedButton(
                 onPressed: widget.onSendWhatsAppReminder,
                 child: const Text('WhatsApp Reminder'),

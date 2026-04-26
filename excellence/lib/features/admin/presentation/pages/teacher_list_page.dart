@@ -327,7 +327,7 @@ class _TeacherListPageState extends State<TeacherListPage> {
         ? teacher['user'] as Map<String, dynamic>
         : <String, dynamic>{};
     final teacherId = teacher['id']?.toString() ?? '';
-    final displayName = (teacher['name'] ?? user['name'] ?? 'Faculty Member')
+    final displayName = (teacher['name'] ?? user['name'] ?? 'Teacher')
         .toString();
     final displayPhone = (teacher['phone'] ?? user['phone'] ?? '--').toString();
     final subjects = ((teacher['subjects'] as List?) ?? const [])

@@ -887,7 +887,7 @@ class _AdminReportsPageState extends State<AdminReportsPage>
     },
     {
       'icon': Icons.person_add_rounded,
-      'text': 'Student profile provisioned',
+      'text': 'Student account created',
       'time': 'Live',
       'color': AppColors.electricBlue,
     },

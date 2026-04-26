@@ -1424,26 +1424,7 @@ class AdminRepository {
     );
   }
 
-  Future<Map<String, dynamic>> generateMonthlyFees({
-    required String batchId,
-    required int month,
-    required int year,
-    String? dueDate,
-  }) async {
-    final response = await _api.dio.post(
-      'fees/generate',
-      data: {
-        'batch_id': batchId,
-        'month': month,
-        'year': year,
-        'due_date': dueDate,
-      },
-    );
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return _extractMap(response.data);
-    }
-    throw Exception(response.data['message'] ?? 'Failed to generate fees');
-  }
+
 
   Future<List<Map<String, dynamic>>> getFeeVerificationQueue({
     String? status,

@@ -39,7 +39,7 @@ class _ChatPageState extends State<ChatPage> {
             ? DateFormat('hh:mm a').format(DateTime.parse(m['created_at']).toLocal())
             : '';
           
-          if (role == 'teacher') return _ChatMsg.teacher(text, time);
+          if (role == 'teacher') return _ChatMsg.teacher(senderName, text, time);
           return _ChatMsg.student(senderName, text, time);
         }).toList();
         _isLoading = false;
@@ -54,14 +54,14 @@ class _ChatPageState extends State<ChatPage> {
     if (text.isEmpty) return;
     
     _msgController.clear();
-    // Optimistic UI update
+    // Optimistic UI update - teacher is usually the one sending from here if it's the web/admin or teacher app
+    // But this page might be used by anyone. Let's just use a generic local update and rely on reload for name.
     setState(() {
-       _messages.insert(0, _ChatMsg.teacher(text, DateFormat('hh:mm a').format(DateTime.now())));
+       _messages.insert(0, _ChatMsg.teacher('Me', text, DateFormat('hh:mm a').format(DateTime.now())));
     });
 
     try {
       await _chatRepo.sendMessage(batchId: widget.batchId, text: text);
-      // Optional: reload to get exact server time
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send: $e')));
@@ -80,24 +80,15 @@ class _ChatPageState extends State<ChatPage> {
             child: const Icon(Icons.group, color: Colors.white, size: 18)),
           const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Physics - Batch A', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
+            Text('Batch Discussion', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: CT.textH(context))),
             Row(children: [
               Container(width: 7, height: 7, decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle)),
               const SizedBox(width: 4),
-              Text('24 members', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textM(context))),
+              Text('Active Discussion', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: CT.textM(context))),
             ]),
           ])),
         ]),
-        actions: [
-          IconButton(
-            onPressed: () => CPToast.info(context, 'Live call integration is coming soon.'),
-            icon: const Icon(Icons.videocam_outlined, size: 22),
-          ),
-          IconButton(
-            onPressed: () => CPToast.info(context, 'Batch info panel will be available soon.'),
-            icon: const Icon(Icons.info_outline, size: 22),
-          ),
-        ],
+        actions: [],
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
@@ -119,6 +110,8 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildMessage(_ChatMsg msg, int i) {
     final isTeacher = msg.type == _MsgType.teacher;
+    final displayName = msg.sender ?? 'User';
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -127,7 +120,7 @@ class _ChatPageState extends State<ChatPage> {
         children: [
           if (!isTeacher) ...[
             CircleAvatar(radius: 16, backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: Text(msg.sender![0], style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary))),
+              child: Text(displayName[0].toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary))),
             const SizedBox(width: 8),
           ],
           Flexible(
@@ -145,15 +138,22 @@ class _ChatPageState extends State<ChatPage> {
                 boxShadow: [BoxShadow(color: CT.textH(context).withValues(alpha: 0.04), blurRadius: 6)],
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                if (!isTeacher) Text(msg.sender!, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                if (!isTeacher) Text(displayName, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary)),
                 if (!isTeacher) const SizedBox(height: 4),
                 if (isTeacher) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                    margin: const EdgeInsets.only(bottom: 6),
-                    decoration: BoxDecoration(color: CT.onAccent(context).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-                    child: Text('Teacher', style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(displayName, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
+                        child: Text('Teacher', style: GoogleFonts.plusJakartaSans(fontSize: 8, fontWeight: FontWeight.w800, color: Colors.white)),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 4),
                 ],
                 Text(msg.text, style: GoogleFonts.plusJakartaSans(fontSize: 14, height: 1.4, color: isTeacher ? Colors.white : CT.textH(context))),
                 const SizedBox(height: 4),
@@ -161,6 +161,11 @@ class _ChatPageState extends State<ChatPage> {
               ]),
             ),
           ),
+          if (isTeacher) ...[
+            const SizedBox(width: 8),
+            CircleAvatar(radius: 16, backgroundColor: Colors.white.withValues(alpha: 0.1),
+              child: Text(displayName[0].toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white))),
+          ],
         ],
       ),
     ).animate(delay: Duration(milliseconds: 50 * i)).fadeIn(duration: 300.ms).slideY(begin: 0.05, end: 0);
@@ -171,14 +176,6 @@ class _ChatPageState extends State<ChatPage> {
     decoration: BoxDecoration(color: CT.card(context), boxShadow: [BoxShadow(color: CT.textH(context).withValues(alpha: 0.05), blurRadius: 10, offset: Offset(0, -2))]),
     child: SafeArea(
       child: Row(children: [
-        IconButton(
-          onPressed: () => CPToast.info(context, 'Attachment picker is coming soon.'),
-          icon: Icon(Icons.attach_file, color: CT.textM(context), size: 22),
-        ),
-        IconButton(
-          onPressed: () => CPToast.info(context, 'Camera sharing is coming soon.'),
-          icon: Icon(Icons.camera_alt_outlined, color: CT.textM(context), size: 22),
-        ),
         Expanded(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -212,6 +209,6 @@ class _ChatMsg {
   final String? sender;
 
   _ChatMsg._({required this.type, required this.text, required this.time, this.sender});
-  factory _ChatMsg.teacher(String t, String time) => _ChatMsg._(type: _MsgType.teacher, text: t, time: time);
+  factory _ChatMsg.teacher(String s, String t, String time) => _ChatMsg._(type: _MsgType.teacher, text: t, time: time, sender: s);
   factory _ChatMsg.student(String s, String t, String time) => _ChatMsg._(type: _MsgType.student, text: t, time: time, sender: s);
 }
