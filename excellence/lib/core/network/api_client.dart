@@ -20,6 +20,7 @@ class ApiClient {
 
   ApiClient() {
     const configuredApiUrl = String.fromEnvironment('API_URL', defaultValue: '');
+
     final baseUrl = configuredApiUrl.trim().isNotEmpty
         ? configuredApiUrl.trim()
         : 'https://api.excellenceacademy.site/api/';

@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'cp_bottom_nav.dart';
 
@@ -44,6 +46,12 @@ class _CPRoleShellState extends State<CPRoleShell> {
   // even for "exit" tabs before the push completes.
   late int _displayIndex;
   final List<int> _tabHistory = [];
+
+  bool get _isDesktop =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.macOS);
 
   @override
   void initState() {
@@ -102,6 +110,10 @@ class _CPRoleShellState extends State<CPRoleShell> {
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (_goBackInShell()) return;
+        if (_isDesktop) {
+          windowManager.close();
+          return;
+        }
         SystemNavigator.pop();
       },
       child: Scaffold(

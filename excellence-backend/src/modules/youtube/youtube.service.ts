@@ -64,7 +64,6 @@ export class YoutubeService {
         contentDetails: {
           enableAutoStart: true,
           enableAutoStop: true,
-          enableEmbed: true,
           enableDvr: true,
           closedCaptionsType: 'closedCaptionsDisabled',
         }

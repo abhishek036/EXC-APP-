@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -147,6 +148,18 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
       });
     }
 
+    if (kIsWeb) {
+      if (mounted) {
+        setState(() {
+           _initError = 'Camera broadcasting is not supported on Web/Chrome. You can still test creating a YouTube stream below, but video preview will not work.';
+           _controllerReady = true; // allow rendering the studio without camera
+           _isInit = true;
+        });
+        _fadeCtrl.forward();
+      }
+      return;
+    }
+
     // ── Step 1: Request runtime permissions ────────────────────────────────
     final granted = await _requestPermissions();
     if (!granted) {
@@ -257,7 +270,16 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
         }
       });
 
-      await _controller!.startStreaming(streamKey: streamKey, url: rtmpUrl);
+      if (kIsWeb) {
+        _timeoutTimer?.cancel();
+        if (mounted) {
+          setState(() { _isStreaming = true; _isLoading = false; });
+          _startLiveTimer();
+          _showSnack('🔴 Broadcast created! (Camera mock for Web)', _liveRed);
+        }
+      } else {
+        await _controller!.startStreaming(streamKey: streamKey, url: rtmpUrl);
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -349,7 +371,7 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
     _fadeCtrl.dispose();
     _titleCtrl.dispose();
     _descCtrl.dispose();
-    if (_controller != null) {
+    if (_controller != null && !kIsWeb) {
       if (_isStreaming) {
         _controller!.stopStreaming();
       }
@@ -442,8 +464,12 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
 
         // ── Camera Preview ────────────────────────────────────────────────
         // Rendered first so the texture surface exists before startPreview()
-        Positioned.fill(
-          child: ApiVideoCameraPreview(controller: _controller!)),
+        if (_controller != null)
+          Positioned.fill(
+            child: ApiVideoCameraPreview(controller: _controller!))
+        else
+          Positioned.fill(
+            child: Container(color: _bg)),
 
         // ── Preview loading overlay ───────────────────────────────────────
         // Shown while startPreview() is in progress (between _controllerReady

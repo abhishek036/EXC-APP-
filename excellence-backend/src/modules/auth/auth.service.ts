@@ -335,7 +335,7 @@ export class AuthService {
     }
 
     async sendOtp(phone: string, purpose: string, joinCode?: string) {
-        console.log(`[AUTH] sendOtp requested for phone: "${phone}", purpose: ${purpose}`);
+        Logger.info(`[AUTH] sendOtp requested for ${this._maskedPhone(phone)}, purpose: ${purpose}`);
 
         const normalizedPhone = normalizeIndianPhone(phone);
         if (!normalizedPhone) {
@@ -539,8 +539,8 @@ export class AuthService {
             }
 
             // --- SUPER USER ROLE SWITCHING ---
-            const SUPER_USER_PHONES = (process.env.SUPER_USER_PHONES || '9630457025,8427996261').split(',').map(p => p.trim()).filter(Boolean);
-            const isSuperUser = SUPER_USER_PHONES.some(p => phone.includes(p));
+            const SUPER_USER_PHONES = (process.env.SUPER_USER_PHONES || '').split(',').map(p => p.trim()).filter(Boolean);
+            const isSuperUser = SUPER_USER_PHONES.length > 0 && SUPER_USER_PHONES.some(p => phone.includes(p));
 
             const requestedRole = this._normalizeRole(role);
             const inferredRole = staff ? 'admin' : (teacher ? 'teacher' : (student ? 'student' : (parent ? 'parent' : 'student')));
@@ -758,7 +758,7 @@ export class AuthService {
         try {
             profile = await this.getUserProfile(user.id);
         } catch (_error: any) {
-            console.error('[AUTH] Profile fetch failed after password login:', _error?.message || _error);
+            Logger.error('[AUTH] Profile fetch failed after password login:', _error);
         }
 
         return {
@@ -794,7 +794,6 @@ export class AuthService {
 
             const user = tokenRecord.user;
 
-            const { prisma } = require('../../server');
             const sessionStartedAt = new Date();
             await prisma.user.update({
                 where: { id: user.id },
@@ -837,7 +836,6 @@ export class AuthService {
         role: string,
         payload: { name?: string; email?: string; phone?: string },
     ) {
-        const { prisma } = require('../../server');
 
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) throw new ApiError('User not found', 404, 'NOT_FOUND');
@@ -915,7 +913,6 @@ export class AuthService {
     }
 
     async getUserProfile(userId: string) {
-        const { prisma } = require('../../server');
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: { id: true, role: true, phone: true, email: true, institute_id: true, created_at: true, avatar_url: true }
@@ -1061,7 +1058,6 @@ export class AuthService {
     }
 
     async changePassword(userId: string, oldPass: string, newPass: string) {
-        const { prisma } = require('../../server');
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) throw new ApiError('User not found', 404, 'NOT_FOUND');
 
@@ -1087,7 +1083,6 @@ export class AuthService {
         const validOtp = await this.authRepository.verifyOtp(phone, otp, 'password_reset');
         if (!validOtp) throw new ApiError('Invalid or expired OTP', 400, 'INVALID_OTP');
 
-        const { prisma } = require('../../server');
         const phonesToSearch = this._phoneVariants(phone);
         const joinInstitute = await this._resolveJoinInstitute(prisma, joinCode);
         const users = await this._findActiveUsersByPhone(prisma, phonesToSearch);
