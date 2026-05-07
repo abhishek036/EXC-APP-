@@ -102,6 +102,7 @@ Future<String> downloadAndOpenFromUrl({
       explicitName: fileName,
       url: response.requestOptions.uri.toString(),
       headers: response.headers,
+      mimeType: mimeType,
     );
 
     final savedPath = await platform.saveAndOpenBytes(
@@ -304,27 +305,31 @@ String _resolveFileName({
   required String? explicitName,
   required String url,
   required Headers headers,
+  String? mimeType,
 }) {
+  final headerMime = headers.value('content-type')?.split(';').first.trim().toLowerCase();
+  final finalMime = (headerMime != null && headerMime.isNotEmpty) ? headerMime : (mimeType?.toLowerCase() ?? '');
+  
   final trimmed = explicitName?.trim() ?? '';
   if (trimmed.isNotEmpty) {
-    return _sanitizeFileName(trimmed);
+    return _sanitizeFileName(trimmed, finalMime);
   }
 
   final disposition = headers.value('content-disposition') ?? '';
   final fromHeader = _fileNameFromContentDisposition(disposition);
   if (fromHeader != null && fromHeader.trim().isNotEmpty) {
-    return _sanitizeFileName(fromHeader.trim());
+    return _sanitizeFileName(fromHeader.trim(), finalMime);
   }
 
   final uri = Uri.tryParse(url);
   if (uri != null && uri.pathSegments.isNotEmpty) {
     final segment = uri.pathSegments.last.trim();
     if (segment.isNotEmpty && segment != 'stream') {
-      return _sanitizeFileName(segment);
+      return _sanitizeFileName(segment, finalMime);
     }
   }
 
-  return 'document_${DateTime.now().millisecondsSinceEpoch}.pdf';
+  return 'document_${DateTime.now().millisecondsSinceEpoch}${_extensionForMime(finalMime)}';
 }
 
 String? _fileNameFromContentDisposition(String value) {
@@ -340,15 +345,31 @@ String? _fileNameFromContentDisposition(String value) {
   return simpleMatch?.group(1);
 }
 
-String _sanitizeFileName(String fileName) {
+String _sanitizeFileName(String fileName, String mimeType) {
   final cleaned = fileName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
   if (cleaned.isEmpty) {
-    return 'document_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    return 'document_${DateTime.now().millisecondsSinceEpoch}${_extensionForMime(mimeType)}';
   }
 
   if (!cleaned.contains('.')) {
-    return '${p.basenameWithoutExtension(cleaned)}.pdf';
+    return '${p.basenameWithoutExtension(cleaned)}${_extensionForMime(mimeType)}';
   }
 
   return cleaned;
+}
+
+String _extensionForMime(String mimeType) {
+  if (mimeType.contains('image/jpeg')) return '.jpg';
+  if (mimeType.contains('image/png')) return '.png';
+  if (mimeType.contains('image/gif')) return '.gif';
+  if (mimeType.contains('image/webp')) return '.webp';
+  if (mimeType.contains('application/pdf')) return '.pdf';
+  if (mimeType.contains('text/plain')) return '.txt';
+  if (mimeType.contains('application/msword')) return '.doc';
+  if (mimeType.contains('application/vnd.openxmlformats-officedocument.wordprocessingml.document')) return '.docx';
+  if (mimeType.contains('application/vnd.ms-excel')) return '.xls';
+  if (mimeType.contains('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) return '.xlsx';
+  if (mimeType.contains('video/mp4')) return '.mp4';
+  if (mimeType.contains('audio/mpeg')) return '.mp3';
+  return '.pdf';
 }

@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../data/repositories/teacher_repository.dart';
+import '../../../../core/utils/user_facing_text.dart';
 import '../../../../core/theme/theme_aware.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -202,7 +203,7 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
           _fadeCtrl.forward();
         }
       } catch (e) {
-        if (mounted) setState(() => _initError = e.toString());
+        if (mounted) setState(() => _initError = friendlyErrorMessage(e));
       }
     });
   }
@@ -283,7 +284,7 @@ class _YoutubeBroadcastPageState extends State<YoutubeBroadcastPage>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        _showSnack(e.toString().replaceFirst('Exception: ', ''), _liveRed, duration: 6);
+        _showSnack(friendlyErrorMessage(e), _liveRed, duration: 6);
       }
     }
   }

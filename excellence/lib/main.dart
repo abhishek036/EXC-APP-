@@ -19,7 +19,7 @@ import 'core/services/app_update_service.dart';
 import 'core/services/app_permission_service.dart';
 import 'core/widgets/cp_network_activity_overlay.dart';
 import 'core/theme/app_theme.dart';
-import 'core/utils/notification_route.dart';
+
 
 import 'core/l10n/app_localizations.dart';
 import 'core/l10n/app_locales.dart';
@@ -161,10 +161,7 @@ class _ExcellenceAcademyAppState extends State<ExcellenceAcademyApp> with Widget
     });
     _startAuthSyncTimer();
     _notificationTapSub = sl<PushNotificationService>().onNotificationTap.listen((payload) {
-      final route = resolveNotificationRoute(payload);
-      if (route != null && route.isNotEmpty) {
-        _router.go(route);
-      }
+      _router.go('/');
     });
   }
 

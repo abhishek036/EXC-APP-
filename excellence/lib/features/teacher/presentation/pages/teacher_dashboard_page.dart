@@ -11,6 +11,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/widgets/cp_pressable.dart';
+import '../../../../core/utils/user_facing_text.dart';
 import '../../../../core/theme/theme_aware.dart';
 
 import '../../../../core/widgets/cp_shimmer.dart';
@@ -162,7 +163,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        if (!silent) _error = e.toString();
+        if (!silent) _error = friendlyErrorMessage(e);
         _isLoading = false;
       });
     } finally {

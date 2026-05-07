@@ -7,7 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/theme/theme_aware.dart';
-import '../../../../core/utils/notification_route.dart';
+
 import '../../../../core/utils/role_prefix.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../student/data/repositories/student_repository.dart';
@@ -677,13 +677,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         return CPPressable(
                           onTap: () {
                             _markRead(index, read: true);
-                            final route = resolveNotificationRoute(
-                              notif,
-                              currentRolePrefix: context.rolePrefix,
-                            );
-                            if (route != null && route.isNotEmpty) {
-                              GoRouter.of(context).push(route);
-                            }
+                            GoRouter.of(context).go('/');
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),

@@ -424,10 +424,16 @@ class StudentRepository {
     required String assignmentId,
     String? fileUrl,
     String? submissionText,
+    String? fileName,
+    String? fileMimeType,
+    String? fileExt,
   }) async {
     final payload = <String, dynamic>{
       'file_url': fileUrl?.trim(),
       'submission_text': submissionText?.trim(),
+      'file_name': fileName?.trim(),
+      'file_mime_type': fileMimeType?.trim(),
+      'file_ext': fileExt?.trim().toLowerCase(),
     };
     payload.removeWhere((key, value) => value == null || (value is String && value.isEmpty));
 

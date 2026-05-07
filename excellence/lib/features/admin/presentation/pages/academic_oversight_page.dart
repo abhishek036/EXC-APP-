@@ -6,6 +6,10 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/download_registry.dart';
+import '../../../../core/utils/file_opener.dart';
+import '../../../../core/utils/stable_token.dart';
+import '../../../../core/utils/user_facing_text.dart';
 import '../../data/repositories/admin_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
@@ -333,62 +337,117 @@ class _AcademicOversightPageState extends State<AcademicOversightPage> {
             .toString();
         final batch = (mat['batch_name'] ?? mat['batchName'] ?? 'Academy')
             .toString();
+        final fileUrl = _resolveMaterialFileUrl(mat);
 
-        return CPGlassCard(
-          isDark: isDark,
-          padding: const EdgeInsets.all(16),
-          borderRadius: 20,
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: const Color(0xFF354388), width: 2),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
-                  ],
+        return CPPressable(
+          onTap: () => _openMaterial(mat),
+          child: CPGlassCard(
+            isDark: isDark,
+            padding: const EdgeInsets.all(16),
+            borderRadius: 20,
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFF354388), width: 2),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0xFF354388), offset: Offset(2, 2)),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.article_rounded,
+                    color: Color(0xFF354388),
+                    size: 24,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.article_rounded,
-                  color: Color(0xFF354388),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF354388),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF354388),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'By $teacher • $batch',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF354388),
+                      const SizedBox(height: 4),
+                      Text(
+                        'By $teacher • $batch',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF354388),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: Color(0xFF354388)),
-            ],
+                const Icon(Icons.chevron_right_rounded, color: Color(0xFF354388)),
+              ],
+            ),
           ),
         ).animate(delay: (i * 50).ms).fadeIn().slideX(begin: 0.05);
       },
     );
+  }
+
+  String _resolveMaterialFileUrl(Map<String, dynamic> mat) {
+    final direct = (mat['file_url'] ?? '').toString().trim();
+    if (direct.isNotEmpty) return direct;
+
+    final primary = mat['primary_file'];
+    if (primary is Map) {
+      final nested = (primary['file_url'] ?? '').toString().trim();
+      if (nested.isNotEmpty) return nested;
+    }
+
+    return '';
+  }
+
+  String _resolveMaterialFileName(Map<String, dynamic> mat) {
+    final direct = (mat['file_name'] ?? '').toString().trim();
+    if (direct.isNotEmpty) return direct;
+
+    final title = (mat['title'] ?? 'document').toString().trim();
+    if (title.isNotEmpty) return title;
+
+    return 'document';
+  }
+
+  Future<void> _openMaterial(Map<String, dynamic> mat) async {
+    final url = _resolveMaterialFileUrl(mat);
+    if (url.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This material does not have an openable file attached.')),
+      );
+      return;
+    }
+
+    try {
+      await DownloadRegistry.instance.ensureLoaded();
+      await downloadAndOpenFromUrl(
+        url: url,
+        fileName: _resolveMaterialFileName(mat),
+        mimeType: (mat['mime_type'] ?? '').toString().trim().isEmpty
+            ? null
+            : (mat['mime_type'] ?? '').toString().trim(),
+        downloadKey: 'admin-material:${stableToken(url)}',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to open material: ${friendlyErrorMessage(e)}')),
+      );
+    }
   }
 
   Widget _emptyState(String msg, IconData icon, bool isDark) => Center(

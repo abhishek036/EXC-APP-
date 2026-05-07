@@ -159,7 +159,7 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
       return '$fallbackBase.$inferredExt';
     }
 
-    return '$fallbackBase.pdf';
+    return fallbackBase;
   }
 
   String? _resolveAttachmentMimeType(
@@ -365,6 +365,9 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
         assignmentId: assignmentId,
         fileUrl: effectiveFileUrl,
         submissionText: effectiveText,
+        fileName: _selectedFile?.name,
+        fileMimeType: _selectedFile?.extension,
+        fileExt: _fileExt(_selectedFile?.name),
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

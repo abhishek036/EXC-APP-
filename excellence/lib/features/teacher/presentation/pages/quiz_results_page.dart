@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/utils/user_facing_text.dart';
 import '../../data/repositories/teacher_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 class QuizResultsPage extends StatefulWidget {
@@ -57,7 +58,7 @@ class _QuizResultsPageState extends State<QuizResultsPage> with ThemeAware<QuizR
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = friendlyErrorMessage(e);
         _loading = false;
       });
     }

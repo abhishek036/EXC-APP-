@@ -49,6 +49,7 @@ class ApiClient {
 
     _dio.interceptors.addAll([
       _cacheInterceptor,
+      _RetryInterceptor(this),
       _AuthInterceptor(sl<SecureStorageService>(), this),
       if (kDebugMode) _LoggingInterceptor(),
     ]);
@@ -256,5 +257,59 @@ class _CacheEntry {
   final Response response;
   final DateTime timestamp;
   _CacheEntry(this.response, this.timestamp);
+}
+
+class _RetryInterceptor extends Interceptor {
+  final ApiClient _client;
+  
+  _RetryInterceptor(this._client);
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final extra = err.requestOptions.extra;
+    final int retries = extra['retryCount'] ?? 0;
+    
+    bool isNetworkError = err.type == DioExceptionType.connectionTimeout ||
+                          err.type == DioExceptionType.sendTimeout ||
+                          err.type == DioExceptionType.receiveTimeout ||
+                          err.type == DioExceptionType.connectionError ||
+                          (err.error != null && err.error.toString().contains('SocketException')) ||
+                          (err.error != null && err.error.toString().contains('Software caused connection abort'));
+
+    if (isNetworkError && retries < 2) {
+      extra['retryCount'] = retries + 1;
+      final delay = Duration(milliseconds: 500 * (retries + 1));
+      
+      if (kDebugMode) {
+        debugPrint('[ApiClient] Transient network error. Retrying request ${retries + 1}/2 in ${delay.inMilliseconds}ms...');
+      }
+      
+      await Future.delayed(delay);
+      try {
+        final response = await _client.dio.fetch(err.requestOptions);
+        return handler.resolve(response);
+      } on DioException catch (e) {
+        return handler.next(e);
+      } catch (e) {
+        return handler.next(DioException(
+          requestOptions: err.requestOptions,
+          error: e,
+        ));
+      }
+    }
+    
+    // Provide a friendly error message if retries are exhausted or not applicable
+    if (isNetworkError) {
+      return handler.next(DioException(
+        requestOptions: err.requestOptions,
+        error: 'Unable to connect to the server. Please check your internet connection.',
+        message: 'Unable to connect to the server. Please check your internet connection.',
+        type: DioExceptionType.connectionError,
+        response: err.response,
+      ));
+    }
+
+    handler.next(err);
+  }
 }
 

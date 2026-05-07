@@ -7,6 +7,7 @@ import '../../../../features/teacher/data/repositories/teacher_repository.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/widgets/cp_role_shell.dart';
+import '../../../../core/utils/user_facing_text.dart';
 import '../../../../core/theme/theme_aware.dart';
 class PendingDoubtsPage extends StatefulWidget {
   const PendingDoubtsPage({super.key});
@@ -61,7 +62,7 @@ class _PendingDoubtsPageState extends State<PendingDoubtsPage> with ThemeAware<P
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = friendlyErrorMessage(e);
         _isLoading = false;
       });
     }

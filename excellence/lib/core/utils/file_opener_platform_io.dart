@@ -71,10 +71,10 @@ String _buildFilePath(
   String? storageKey,
   required bool persistToCache,
 }) {
-  final safeName = fileName.trim().isEmpty ? 'document.pdf' : fileName;
+  final safeName = fileName.trim().isEmpty ? 'document' : fileName;
   final sanitizedName = safeName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
   final baseName = p.basenameWithoutExtension(sanitizedName);
-  final extension = p.extension(sanitizedName).isEmpty ? '.pdf' : p.extension(sanitizedName);
+  final extension = p.extension(sanitizedName).isEmpty ? '' : p.extension(sanitizedName);
 
   if (persistToCache && storageKey != null && storageKey.trim().isNotEmpty) {
     final token = stableToken(storageKey.trim());

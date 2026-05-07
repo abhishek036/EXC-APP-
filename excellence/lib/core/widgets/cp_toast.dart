@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_dimensions.dart';
+import '../utils/user_facing_text.dart';
 
 /// Custom toast notification that slides in from the bottom.
 /// Replaces default SnackBar per readme design rules.
@@ -33,19 +34,39 @@ class CPToast {
   }
 
   static void success(BuildContext context, String message) {
-    show(context, message: message, icon: Icons.check_circle, color: AppColors.mintGreen);
+    show(
+      context,
+      message: redactUrls(message),
+      icon: Icons.check_circle,
+      color: AppColors.mintGreen,
+    );
   }
 
   static void error(BuildContext context, String message) {
-    show(context, message: message, icon: Icons.error_outline, color: AppColors.coralRed);
+    show(
+      context,
+      message: redactUrls(message),
+      icon: Icons.error_outline,
+      color: AppColors.coralRed,
+    );
   }
 
   static void warning(BuildContext context, String message) {
-    show(context, message: message, icon: Icons.warning_amber_rounded, color: AppColors.moltenAmber);
+    show(
+      context,
+      message: redactUrls(message),
+      icon: Icons.warning_amber_rounded,
+      color: AppColors.moltenAmber,
+    );
   }
 
   static void info(BuildContext context, String message) {
-    show(context, message: message, icon: Icons.info_outline, color: AppColors.electricBlue);
+    show(
+      context,
+      message: redactUrls(message),
+      icon: Icons.info_outline,
+      color: AppColors.electricBlue,
+    );
   }
 }
 

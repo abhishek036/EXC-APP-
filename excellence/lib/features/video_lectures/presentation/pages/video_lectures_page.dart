@@ -8,6 +8,7 @@ import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/utils/user_facing_text.dart';
 import '../../../parent/data/repositories/parent_repository.dart';
 import '../../../student/data/repositories/student_repository.dart';
 import '../../../teacher/data/repositories/teacher_repository.dart';
@@ -212,7 +213,7 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
     } catch(e) {
       if (!mounted) return;
       setState(() {
-         _error = e.toString();
+         _error = friendlyErrorMessage(e);
          _isLoading = false;
       });
     }

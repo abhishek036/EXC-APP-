@@ -12,6 +12,7 @@ import '../../../../core/widgets/cp_role_shell.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/widgets/cp_toast.dart';
+import '../../../../core/utils/user_facing_text.dart';
 import '../../data/repositories/teacher_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 class TeacherSchedulePage extends StatefulWidget {
@@ -182,7 +183,7 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> with ThemeAwa
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = friendlyErrorMessage(e);
         _isLoading = false;
       });
     }

@@ -8,6 +8,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../../../features/teacher/data/repositories/teacher_repository.dart';
+import '../../../../core/utils/user_facing_text.dart';
 import '../../../../core/theme/theme_aware.dart';
 class AttendanceMarkingPage extends StatefulWidget {
   final String? initialBatchId;
@@ -333,7 +334,7 @@ class _AttendanceMarkingPageState extends State<AttendanceMarkingPage> with Them
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Failed to submit: ${e.toString().split(':').last.trim()}',
+            'Failed to submit: ${friendlyErrorMessage(e)}',
           ),
         ),
       );

@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/download_registry.dart';
 import '../../../../core/utils/file_opener.dart';
 import '../../../../core/utils/stable_token.dart';
+import '../../../../core/utils/user_facing_text.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/download_status_icon.dart';
@@ -96,7 +97,9 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load assignments: $e')));
+      ).showSnackBar(
+        SnackBar(content: Text('Failed to load assignments: ${friendlyErrorMessage(e)}')),
+      );
     }
   }
 
@@ -119,7 +122,9 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load submissions: $e')));
+      ).showSnackBar(
+        SnackBar(content: Text('Failed to load submissions: ${friendlyErrorMessage(e)}')),
+      );
     }
   }
 
@@ -154,8 +159,27 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
       return;
     }
 
-    final fileName = (current['file_name'] ?? 'submission.pdf').toString().trim();
-    final mimeType = (current['file_mime_type'] ?? '').toString().trim();
+    String fileName = (current['file_name'] ?? '').toString().trim();
+    if (fileName.isEmpty || fileName == 'submission.pdf') {
+      final uri = Uri.tryParse(fileUrl);
+      if (uri != null && uri.pathSegments.isNotEmpty) {
+        final lastSegment = uri.pathSegments.last;
+        if (lastSegment.contains('.')) {
+          fileName = Uri.decodeComponent(lastSegment);
+        }
+      }
+      if (fileName == 'submission.pdf') {
+        fileName = '';
+      }
+    }
+    
+    String mimeType = (current['file_mime_type'] ?? '').toString().trim();
+    if (mimeType.isEmpty) {
+      final ext = fileName.split('.').last.toLowerCase();
+      if (ext == 'jpg' || ext == 'jpeg') mimeType = 'image/jpeg';
+      else if (ext == 'png') mimeType = 'image/png';
+      else if (ext == 'pdf') mimeType = 'application/pdf';
+    }
 
     try {
       await downloadAndOpenFromUrl(
@@ -217,7 +241,9 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Review failed: $e')));
+      ).showSnackBar(
+        SnackBar(content: Text('Review failed: ${friendlyErrorMessage(e)}')),
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -354,6 +380,19 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
         .toString();
     final text = (current['submission_text'] ?? '').toString();
     final fileUrl = (current['file_url'] ?? '').toString();
+    String fileName = (current['file_name'] ?? '').toString().trim();
+    if (fileName.isEmpty || fileName == 'submission.pdf') {
+      final uri = Uri.tryParse(fileUrl);
+      if (uri != null && uri.pathSegments.isNotEmpty) {
+        final lastSegment = uri.pathSegments.last;
+        if (lastSegment.contains('.')) {
+          fileName = Uri.decodeComponent(lastSegment);
+        }
+      }
+      if (fileName == 'submission.pdf') {
+        fileName = '';
+      }
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -411,7 +450,7 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
                   onPressed: _openSubmissionFile,
                   icon: DownloadStatusIcon(
                     downloadKey: 'submission:${stableToken(fileUrl)}',
-                    idleIcon: Icons.picture_as_pdf_rounded,
+                    idleIcon: Icons.description_rounded,
                     downloadedIcon: Icons.check_circle_rounded,
                     idleColor: blue,
                     downloadedColor: AppColors.success,
@@ -419,13 +458,14 @@ class _AssignmentReviewPageState extends State<AssignmentReviewPage> with ThemeA
                     spinnerSize: 18,
                     strokeWidth: 2,
                   ),
-                  label: const Text('Open Submitted PDF'),
+                  label: const Text('Open Submitted File'),
                 ),
                 SizedBox(
                   width: 260,
-                  child: SelectableText(
-                    fileUrl,
+                  child: Text(
+                    fileName.isEmpty ? 'Attachment stored securely' : fileName,
                     maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.jetBrainsMono(fontSize: 11, color: blue),
                   ),
                 ),

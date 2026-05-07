@@ -8,6 +8,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/realtime_sync_service.dart';
 import '../../../../core/widgets/cp_role_shell.dart';
+import '../../../../core/utils/user_facing_text.dart';
 import '../../data/repositories/teacher_repository.dart';
 import '../../../../core/theme/theme_aware.dart';
 class TeacherBatchesPage extends StatefulWidget {
@@ -80,7 +81,7 @@ class _TeacherBatchesPageState extends State<TeacherBatchesPage> with ThemeAware
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = friendlyErrorMessage(e);
         _isLoading = false;
       });
     }
