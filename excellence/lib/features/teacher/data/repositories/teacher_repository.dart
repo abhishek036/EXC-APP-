@@ -375,6 +375,7 @@ class TeacherRepository {
     required String type,
     String? batchId,
     String? fileUrl,
+    String? fileName,
     String? description,
     String? youtubeVisibility,
     DateTime? dueDate,
@@ -398,6 +399,8 @@ class TeacherRepository {
                 'description': description.trim(),
               if (trimmedFileUrl != null && trimmedFileUrl.isNotEmpty)
                 'file_url': trimmedFileUrl,
+              if (fileName != null && fileName.trim().isNotEmpty)
+                'file_name': fileName.trim(),
               if (dueDate != null) 'due_date': dueDate.toUtc().toIso8601String(),
             },
           )
@@ -430,6 +433,7 @@ class TeacherRepository {
     required String type,
     String? batchId,
     String? fileUrl,
+    String? fileName,
     String? description,
     String? youtubeVisibility,
     DateTime? dueDate,
@@ -452,6 +456,8 @@ class TeacherRepository {
                 'description': description.trim(),
               if (trimmedFileUrl != null && trimmedFileUrl.isNotEmpty)
                 'file_url': trimmedFileUrl,
+              if (fileName != null && fileName.trim().isNotEmpty)
+                'file_name': fileName.trim(),
               if (dueDate != null) 'due_date': dueDate.toUtc().toIso8601String(),
             },
           )

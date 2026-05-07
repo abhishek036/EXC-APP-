@@ -997,12 +997,17 @@ export class ContentRepository {
 
     // ASSIGNMENTS
     async createAssignment(instituteId: string, teacherId: string | null, data: CreateAssignmentInput) {
+        const assignmentFileUrl = this.trimOrNull((data as any).question_file_url) ?? this.trimOrNull(data.file_url);
+        const assignmentFileName = this.trimOrNull((data as any).file_name)
+            ?? (assignmentFileUrl ? this.fileNameFromUrl(assignmentFileUrl) : null);
+
         const assignmentData: any = {
             title: data.title,
             description: this.trimOrNull(data.description),
             instructions: this.trimOrNull((data as any).instructions),
             batch_id: data.batch_id,
-            file_url: this.trimOrNull((data as any).question_file_url) ?? this.trimOrNull(data.file_url),
+            file_url: assignmentFileUrl,
+            file_name: assignmentFileName,
             max_marks: this.toNumberOrNull((data as any).max_marks),
             due_date: this.toIsoDateOrNull(data.due_date),
             allow_late_submission: (data as any).allow_late_submission ?? false,
@@ -1048,13 +1053,21 @@ export class ContentRepository {
     }
 
     async updateAssignment(instituteId: string, assignmentId: string, data: UpdateAssignmentInput) {
+        const nextAssignmentFileUrl = (data as any).question_file_url !== undefined || data.file_url !== undefined
+            ? this.trimOrNull((data as any).question_file_url) ?? this.trimOrNull(data.file_url)
+            : undefined;
+
         const updateData: any = {
             ...(data.title !== undefined ? { title: data.title } : {}),
             ...(data.description !== undefined ? { description: this.trimOrNull(data.description) } : {}),
             ...((data as any).instructions !== undefined ? { instructions: this.trimOrNull((data as any).instructions) } : {}),
             ...(data.batch_id !== undefined ? { batch_id: data.batch_id } : {}),
-            ...((data as any).question_file_url !== undefined || data.file_url !== undefined
-                ? { file_url: this.trimOrNull((data as any).question_file_url) ?? this.trimOrNull(data.file_url) }
+            ...(nextAssignmentFileUrl !== undefined ? { file_url: nextAssignmentFileUrl } : {}),
+            ...((data as any).file_name !== undefined || nextAssignmentFileUrl !== undefined
+                ? {
+                    file_name: this.trimOrNull((data as any).file_name)
+                        ?? (nextAssignmentFileUrl ? this.fileNameFromUrl(nextAssignmentFileUrl) : null),
+                  }
                 : {}),
             ...((data as any).max_marks !== undefined ? { max_marks: this.toNumberOrNull((data as any).max_marks) } : {}),
             ...(data.due_date !== undefined ? { due_date: this.toIsoDateOrNull(data.due_date) } : {}),

@@ -93,6 +93,110 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
     return raw.split('.').last;
   }
 
+  String _inferFileExtension({String? fileName, String? mimeType, String? url}) {
+    final fromName = _fileExt(fileName);
+    if (fromName.isNotEmpty) return fromName;
+
+    final fromUrl = _fileExt(_fileNameFromUrl(url));
+    if (fromUrl.isNotEmpty) return fromUrl;
+
+    final normalizedMime = (mimeType ?? '').trim().toLowerCase();
+    switch (normalizedMime) {
+      case 'image/jpeg':
+      case 'image/jpg':
+        return 'jpg';
+      case 'image/png':
+        return 'png';
+      case 'image/gif':
+        return 'gif';
+      case 'image/webp':
+        return 'webp';
+      case 'application/pdf':
+        return 'pdf';
+      case 'application/msword':
+        return 'doc';
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        return 'docx';
+      default:
+        return '';
+    }
+  }
+
+  String _fileNameFromUrl(String? url) {
+    final trimmed = (url ?? '').trim();
+    if (trimmed.isEmpty) return '';
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null) return '';
+
+    final segment = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : '';
+    if (segment.isEmpty) return '';
+    return Uri.decodeComponent(segment);
+  }
+
+  String _resolveAttachmentFileName(
+    String url, {
+    String? preferredFileName,
+    String fallbackBase = 'document',
+    String? mimeType,
+  }) {
+    final preferred = (preferredFileName ?? '').trim();
+    if (preferred.isNotEmpty && _fileExt(preferred).isNotEmpty) {
+      return preferred;
+    }
+
+    final inferredName = _fileNameFromUrl(url);
+    if (inferredName.isNotEmpty && _fileExt(inferredName).isNotEmpty) {
+      return inferredName;
+    }
+
+    final inferredExt = _inferFileExtension(
+      fileName: preferred.isNotEmpty ? preferred : null,
+      mimeType: mimeType,
+      url: url,
+    );
+    if (inferredExt.isNotEmpty) {
+      return '$fallbackBase.$inferredExt';
+    }
+
+    return '$fallbackBase.pdf';
+  }
+
+  String? _resolveAttachmentMimeType(
+    String url, {
+    String? preferredFileName,
+    String? mimeType,
+  }) {
+    final normalizedMime = (mimeType ?? '').trim();
+    if (normalizedMime.isNotEmpty) return normalizedMime;
+
+    final ext = _inferFileExtension(
+      fileName: preferredFileName,
+      mimeType: null,
+      url: url,
+    );
+
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      case 'pdf':
+        return 'application/pdf';
+      case 'doc':
+        return 'application/msword';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      default:
+        return null;
+    }
+  }
+
   String _draftSignature() {
     final assignmentId = (_selectedAssignment?['id'] ?? '').toString();
     final text = _submissionTextCtrl.text.trim();
@@ -465,11 +569,20 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                   if (_assignmentFileUrl != null && _assignmentFileUrl!.isNotEmpty) ...[
                     CPPressable(
                       onTap: () async {
+                        final attachmentName = _resolveAttachmentFileName(
+                          _assignmentFileUrl!,
+                          preferredFileName: assignment['file_name']?.toString(),
+                          fallbackBase: title.replaceAll(RegExp(r'\s+'), '_'),
+                          mimeType: assignment['file_mime_type']?.toString(),
+                        );
                         await _downloadAndOpenFile(
                           url: _assignmentFileUrl!,
-                          fallbackFileName:
-                              (assignment['file_name'] ?? '$title.pdf').toString(),
-                          mimeType: (assignment['file_mime_type'] ?? '').toString(),
+                          fallbackFileName: attachmentName,
+                          mimeType: _resolveAttachmentMimeType(
+                            _assignmentFileUrl!,
+                            preferredFileName: assignment['file_name']?.toString(),
+                            mimeType: assignment['file_mime_type']?.toString(),
+                          ),
                         );
                       },
                       child: Container(
@@ -542,15 +655,23 @@ class _AssignmentSubmissionPageState extends State<AssignmentSubmissionPage> {
                             const SizedBox(height: 8),
                             CPPressable(
                               onTap: () async {
+                                final submissionUrl = (_mySubmission?['file_url'] ?? '').toString();
                                 final submissionFileName =
-                                    (_mySubmission?['file_name'] ??
-                                            '${title}_submission.pdf')
-                                        .toString();
+                                    _resolveAttachmentFileName(
+                                  submissionUrl,
+                                  preferredFileName:
+                                      (_mySubmission?['file_name'] ?? '').toString(),
+                                  fallbackBase: '${title.replaceAll(RegExp(r'\s+'), '_')}_submission',
+                                  mimeType: (_mySubmission?['file_mime_type'] ?? '').toString(),
+                                );
                                 await _downloadAndOpenFile(
-                                  url: (_mySubmission?['file_url'] ?? '').toString(),
+                                  url: submissionUrl,
                                   fallbackFileName: submissionFileName,
-                                  mimeType: (_mySubmission?['file_mime_type'] ?? '')
-                                      .toString(),
+                                  mimeType: _resolveAttachmentMimeType(
+                                    submissionUrl,
+                                    preferredFileName: (_mySubmission?['file_name'] ?? '').toString(),
+                                    mimeType: (_mySubmission?['file_mime_type'] ?? '').toString(),
+                                  ),
                                 );
                               },
                               child: Text(

@@ -298,6 +298,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           description: _descCtrl.text.trim(),
           type: _selectedType,
           fileUrl: formattedLink,
+          fileName: _selectedType == 'assignment' ? _selectedFile?.name : null,
           youtubeVisibility: _selectedType == 'video' ? _youtubeVisibility : null,
           dueDate: _selectedType == 'assignment' ? _assignmentDueDate : null,
         );
@@ -309,6 +310,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           description: _descCtrl.text.trim(),
           type: _selectedType,
           fileUrl: formattedLink,
+          fileName: _selectedType == 'assignment' ? _selectedFile?.name : null,
           youtubeVisibility: _selectedType == 'video' ? _youtubeVisibility : null,
           dueDate: _selectedType == 'assignment' ? _assignmentDueDate : null,
         );
