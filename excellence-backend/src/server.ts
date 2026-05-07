@@ -75,7 +75,7 @@ if (require.main === module) {
         }
     };
     
-    startServer().catch(err => {
+    startServer().catch((err: any) => {
         console.error('Fatal error starting server:', err);
         process.exit(1);
     });

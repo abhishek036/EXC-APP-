@@ -69,7 +69,7 @@ export const setupQueues = () => {
     });
 
     // Setup recurring schedules
-    setupSchedules().catch(err => console.error('Failed to setup schedules:', err));
+    setupSchedules().catch((err: any) => console.error('Failed to setup schedules:', err));
 
     // Listen for events
     notificationWorker.on('failed', (job, err) => console.error(`Job ${job?.id} failed:`, err.message));

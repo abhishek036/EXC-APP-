@@ -207,13 +207,17 @@ export const initSocket = (server: http.Server) => {
 
     console.log('📶 Socket.io initialized');
 
-    io.on('connection', (socket) => {
+    io.on('connection', async (socket) => {
         console.log(`🔌 New client connected: ${socket.id}`);
 
         const payload = socket.data.auth as TokenPayload;
-        socket.join(roomInstitute(payload.instituteId)).catch(e => console.error('Socket join error:', e));
-        socket.join(`user_${payload.userId}`).catch(e => console.error('Socket join error:', e));
-        socket.join(roomRole(payload.instituteId, payload.role)).catch(e => console.error('Socket join error:', e));
+        try {
+            await socket.join(roomInstitute(payload.instituteId));
+            await socket.join(`user_${payload.userId}`);
+            await socket.join(roomRole(payload.instituteId, payload.role));
+        } catch (e: any) {
+            console.error('Socket join error:', e);
+        }
 
         socket.on('join_batch', async (batchIdRaw: string) => {
             const batchId = String(batchIdRaw || '').trim();
