@@ -1364,6 +1364,7 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                 ...items.map((item) {
                   final assignmentId = (item['id'] ?? '').toString();
                   final isDeleting = _deletingContentIds.contains(assignmentId);
+                  final attachmentUrl = (item['file_url'] ?? '').toString().trim();
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -1402,6 +1403,11 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (attachmentUrl.isNotEmpty)
+                            IconButton(
+                              icon: Icon(Icons.open_in_new_rounded, color: blue),
+                              onPressed: isDeleting ? null : () => _downloadAndOpenAssignment(item),
+                            ),
                           IconButton(
                             icon: Icon(Icons.rate_review_rounded, color: blue),
                             onPressed: () => _openAssignmentReview(
@@ -1731,6 +1737,32 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Unable to download/open this note right now.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _downloadAndOpenAssignment(Map<String, dynamic> assignment) async {
+    try {
+      final assignmentId = (assignment['id'] ?? '').toString();
+      final targetUrl = (assignment['file_url'] ?? '').toString().trim();
+
+      if (targetUrl.isEmpty) {
+        throw Exception('No file URL available');
+      }
+
+      await downloadAndOpenFromUrl(
+        url: targetUrl,
+        fileName: (assignment['file_name'] ?? assignment['title'] ?? 'assignment').toString(),
+        downloadKey: assignmentId.isNotEmpty
+        ? 'assignment:$assignmentId:${stableToken(targetUrl)}'
+            : 'assignment-url:${stableToken(targetUrl)}',
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to open this assignment file right now.'),
         ),
       );
     }

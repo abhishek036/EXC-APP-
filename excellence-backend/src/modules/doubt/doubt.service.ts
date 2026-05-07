@@ -2,7 +2,7 @@ import { DoubtRepository } from './doubt.repository';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { ApiError } from '../../middleware/error.middleware';
-import { batchHasTeacher } from '../../utils/batch-teacher-assignment';
+import { batchHasTeacher, resolveBatchTeacherIds } from '../../utils/batch-teacher-assignment';
 import { NotificationService } from '../notification/notification.service';
 
 export class DoubtService {
@@ -38,7 +38,59 @@ export class DoubtService {
       institute_id: instituteId,
       status: 'pending',
     };
-    return DoubtRepository.create(doubtData);
+    const created = await DoubtRepository.create(doubtData);
+
+    try {
+      const batch = await prisma.batch.findFirst({
+        where: { id: created.batch_id, institute_id: instituteId },
+        include: { institute: { select: { settings: true } } },
+      });
+
+      if (batch) {
+        const settings = (batch.institute?.settings ?? {}) as Record<string, any>;
+        const batchMetaMap = (settings['batch_meta'] ?? {}) as Record<string, any>;
+        const batchMeta = (batchMetaMap[batch.id] ?? {}) as Record<string, any>;
+        const teacherIds = resolveBatchTeacherIds(batchMeta, batch.teacher_id);
+
+        if (teacherIds.length > 0) {
+          const teachers = await prisma.teacher.findMany({
+            where: {
+              institute_id: instituteId,
+              id: { in: teacherIds },
+              user_id: { not: null },
+            },
+            select: { user_id: true },
+          });
+
+          const questionText = String(data.question_text ?? '').trim().replace(/\s+/g, ' ');
+          const questionPreview = questionText.length > 80
+            ? `${questionText.slice(0, 80)}...`
+            : (questionText || 'a new doubt');
+
+          await Promise.allSettled(
+            teachers
+              .map((teacher) => teacher.user_id)
+              .filter((teacherUserId): teacherUserId is string => Boolean(teacherUserId))
+              .map((teacherUserId) => NotificationService.sendNotificationToUser(teacherUserId, {
+                title: 'New Doubt',
+                body: `A student posted a new doubt in ${batch.name}: "${questionPreview}"`,
+                type: 'doubt',
+                role_target: 'teacher',
+                institute_id: instituteId,
+                meta: {
+                  route: '/teacher/doubts',
+                  batch_id: batch.id,
+                  doubt_id: created.id,
+                },
+              })),
+          );
+        }
+      }
+    } catch (error) {
+      console.error('[DoubtService] New doubt push failed:', error);
+    }
+
+    return created;
   }
 
   static async listDoubts(userId: string, instituteId: string, role: string, status?: string) {

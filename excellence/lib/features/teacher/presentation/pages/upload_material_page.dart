@@ -7,6 +7,9 @@ import 'package:file_picker/file_picker.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/app_permission_service.dart';
 import '../../../../core/services/cloud_storage_service.dart';
+import '../../../../core/utils/file_opener.dart';
+import '../../../../core/utils/stable_token.dart';
+import '../../../../core/utils/user_facing_text.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../data/repositories/teacher_repository.dart';
 
@@ -325,7 +328,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ).showSnackBar(SnackBar(content: Text('Error: ${friendlyErrorMessage(e)}')));
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
@@ -570,6 +573,30 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           if (_selectedType != 'video') ...[
             const SizedBox(height: 24),
             _buildFileDropzone(primary, accent),
+            if (_linkCtrl.text.trim().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _openExistingAttachment,
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: Text(
+                    _isEditMode ? 'Open Current File' : 'Open Attachment',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: primary,
+                    side: BorderSide(color: primary, width: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ],
       ),
@@ -748,8 +775,36 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error picking file: $e')));
+        ).showSnackBar(
+          SnackBar(content: Text('Error picking file: ${friendlyErrorMessage(e)}')),
+        );
       }
+    }
+  }
+
+  Future<void> _openExistingAttachment() async {
+    final url = _linkCtrl.text.trim();
+    if (url.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No attachment is available to open yet.')),
+      );
+      return;
+    }
+
+    try {
+      await downloadAndOpenFromUrl(
+        url: url,
+        fileName: _titleCtrl.text.trim().isNotEmpty ? _titleCtrl.text.trim() : 'attachment',
+        downloadKey: _isEditMode
+            ? 'material:${_editingItemId}:${stableToken(url)}'
+            : 'material-url:${stableToken(url)}',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to open attachment: ${friendlyErrorMessage(e)}')),
+      );
     }
   }
 
