@@ -1,0 +1,20 @@
+# Development Dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies first for better caching
+COPY package*.json ./
+COPY prisma ./prisma/
+
+RUN npm install
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# We don't COPY . . here because we will use volumes in docker-compose
+# to mount our local files into the container for hot-reloading.
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]

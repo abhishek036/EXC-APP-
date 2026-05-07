@@ -1,91 +1,108 @@
 import { prisma } from '../../config/prisma';
+import { Cache, TTL } from '../../utils/cache';
 
 export class AnalyticsRepository {
   static async getDashboardStats(instituteId: string) {
-    const studentCount = await prisma.student.count({ where: { institute_id: instituteId, is_active: true } });
-    const teacherCount = await prisma.teacher.count({ where: { institute_id: instituteId, is_active: true } });
-    const batchCount = await prisma.batch.count({ where: { institute_id: instituteId, is_active: true } });
-    
-    // Revenue logic (current month)
-    const currentMonth = new Date().getMonth() + 1;
-    const currentYear = new Date().getFullYear();
-    
-    const revenueResult = await prisma.feePayment.aggregate({
-      where: {
-        institute_id: instituteId,
-        paid_at: {
-          gte: new Date(currentYear, currentMonth - 1, 1),
-          lt: new Date(currentYear, currentMonth, 1),
-        }
+    return Cache.getOrSet(
+      Cache.key(instituteId, 'dashboard'),
+      TTL.DASHBOARD_STATS,
+      async () => {
+        // Use $transaction to batch all count queries into 1 round trip to Neon
+        const [studentCount, teacherCount, batchCount, revenueResult] = await prisma.$transaction([
+          prisma.student.count({ where: { institute_id: instituteId, is_active: true } }),
+          prisma.teacher.count({ where: { institute_id: instituteId, is_active: true } }),
+          prisma.batch.count({ where: { institute_id: instituteId, is_active: true } }),
+          prisma.feePayment.aggregate({
+            where: {
+              institute_id: instituteId,
+              paid_at: {
+                gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                lt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+              },
+            },
+            _sum: { amount_paid: true },
+          }),
+        ]);
+
+        return {
+          total_students: studentCount,
+          total_teachers: teacherCount,
+          total_batches: batchCount,
+          monthly_revenue: revenueResult._sum.amount_paid || 0,
+        };
       },
-      _sum: {
-        amount_paid: true
-      }
-    });
-    
-    return {
-      total_students: studentCount,
-      total_teachers: teacherCount,
-      total_batches: batchCount,
-      monthly_revenue: revenueResult._sum.amount_paid || 0,
-    };
+    );
   }
 
   static async getAdminReports(instituteId: string) {
-    const studentCount = await prisma.student.count({ where: { institute_id: instituteId } });
-    const activeStudentCount = await prisma.student.count({ where: { institute_id: instituteId, is_active: true } });
-    const teacherCount = await prisma.teacher.count({ where: { institute_id: instituteId, is_active: true } });
-    const batchCount = await prisma.batch.count({ where: { institute_id: instituteId, is_active: true } });
+    return Cache.getOrSet(
+      Cache.key(instituteId, 'admin_reports'),
+      TTL.FEE_SUMMARY,
+      async () => {
+        // Batch all count queries in a single transaction (1 round trip)
+        const [studentCount, activeStudentCount, teacherCount, batchCount] = await prisma.$transaction([
+          prisma.student.count({ where: { institute_id: instituteId } }),
+          prisma.student.count({ where: { institute_id: instituteId, is_active: true } }),
+          prisma.teacher.count({ where: { institute_id: instituteId, is_active: true } }),
+          prisma.batch.count({ where: { institute_id: instituteId, is_active: true } }),
+        ]);
 
-    // Fee logic
-    const fees = await prisma.feeRecord.findMany({
-      where: { institute_id: instituteId },
-      include: { payments: true }
-    });
+        // ✅ Use aggregate instead of loading ALL fee records into RAM
+        const [collectedAgg, totalAgg] = await prisma.$transaction([
+          prisma.feePayment.aggregate({
+            where: { institute_id: instituteId },
+            _sum: { amount_paid: true },
+          }),
+          prisma.feeRecord.aggregate({
+            where: { institute_id: instituteId },
+            _sum: { final_amount: true },
+          }),
+        ]);
 
-    let collectedRevenue = 0;
-    let pendingRevenue = 0;
-    for (const f of fees) {
-      const paid = f.payments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
-      collectedRevenue += paid;
-      const rem = Math.max(0, Number(f.final_amount) - paid);
-      pendingRevenue += rem;
-    }
+        const collectedRevenue = Number(collectedAgg._sum.amount_paid ?? 0);
+        const totalRevenue = Number(totalAgg._sum.final_amount ?? 0);
+        const pendingRevenue = Math.max(0, totalRevenue - collectedRevenue);
 
-    return {
-      overview: {
-        totalStudents: studentCount,
-        activeStudents: activeStudentCount,
-        totalTeachers: teacherCount,
-        activeBatches: batchCount
+        return {
+          overview: {
+            totalStudents: studentCount,
+            activeStudents: activeStudentCount,
+            totalTeachers: teacherCount,
+            activeBatches: batchCount,
+          },
+          revenue: {
+            collected: collectedRevenue,
+            pending: pendingRevenue,
+          },
+          revenueTrend: [120, 180, 240, 200, 250, 310],
+          enrollmentTrend: [10, 15, 25, 40, 50, 60],
+        };
       },
-      revenue: {
-        collected: collectedRevenue,
-        pending: pendingRevenue
-      },
-      // Note: Charting data will be simple arrays for UI consumption
-      revenueTrend: [120, 180, 240, 200, 250, 310], // Mocked array for trend
-      enrollmentTrend: [10, 15, 25, 40, 50, 60]
-    };
+    );
   }
 
   static async getStudentPerformance(studentId: string, instituteId: string) {
-    const exams = await prisma.examResult.findMany({
-      where: { student_id: studentId, institute_id: instituteId },
-      include: { exam: { select: { title: true, total_marks: true, exam_date: true } } },
-      orderBy: { exam: { exam_date: 'desc' } },
-      take: 10
-    });
+    return Cache.getOrSet(
+      Cache.key(instituteId, 'student_perf', studentId),
+      TTL.STUDENT_PERFORMANCE,
+      async () => {
+        const [exams, attendance] = await prisma.$transaction([
+          prisma.examResult.findMany({
+            where: { student_id: studentId, institute_id: instituteId },
+            include: { exam: { select: { title: true, total_marks: true, exam_date: true } } },
+            orderBy: { exam: { exam_date: 'desc' } },
+            take: 10,
+          }),
+          prisma.attendanceRecord.findMany({
+            where: { student_id: studentId, institute_id: instituteId },
+            include: { session: { select: { session_date: true } } },
+            orderBy: { session: { session_date: 'desc' } },
+            take: 90, // last ~3 months of daily attendance, not unlimited
+          }),
+        ]);
 
-    const attendance = await prisma.attendanceRecord.findMany({
-      where: { student_id: studentId, institute_id: instituteId },
-      include: { session: { select: { session_date: true } } },
-      orderBy: { session: { session_date: 'desc' } },
-    });
-
-    return {
-      exams,
-      attendance,
-    };
+        return { exams, attendance };
+      },
+    );
   }
 }

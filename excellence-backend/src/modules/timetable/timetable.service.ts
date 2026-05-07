@@ -556,7 +556,9 @@ export class TimetableService {
                 include: { batch: { select: { name: true } } }
             });
             results.push(lecture);
-            this.notifyNewLecture(lecture, null, scheduledAt, instituteId, data.batch_id, data.title);
+            this.notifyNewLecture(lecture, null, scheduledAt, instituteId, data.batch_id, data.title).catch(err => {
+                this.logger.error('Failed to notify new lecture in schedule creation:', err);
+            });
         } catch (error) {
             if (error instanceof ApiError && error.code === 'CONFLICT') {
               conflictCount += 1;
@@ -688,7 +690,9 @@ export class TimetableService {
         instituteId,
         batch.id,
         data.title || data.subject || batch.name,
-      );
+      ).catch(err => {
+        this.logger.error('Failed to notify new lecture:', err);
+      });
     }
 
     return createdLectures.length > 0 ? createdLectures[0] : null;

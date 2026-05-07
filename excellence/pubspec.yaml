@@ -89,6 +89,7 @@ dependencies:
   webview_flutter_web: ^0.2.3+4
   window_manager: ^0.5.1
 
+  webview_flutter_platform_interface: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

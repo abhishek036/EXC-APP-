@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { QuizService } from './quiz.service';
 import { sendResponse } from '../../utils/response';
 import { isLegacyColumnError } from '../../utils/prisma-errors';
+import { prisma } from '../../config/prisma';
 
 export class QuizController {
   static async listQuizzes(req: Request, res: Response, next: NextFunction) {
@@ -22,7 +23,7 @@ export class QuizController {
 
   static async getAvailableQuizzes(req: Request, res: Response, next: NextFunction) {
       try {
-          const { prisma } = await import('../../server');
+          // prisma imported at top of file from config/prisma
           const user = await prisma.user.findUnique({
             where: { id: req.user!.userId },
             select: { phone: true },

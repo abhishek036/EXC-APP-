@@ -61,6 +61,44 @@ class _LoginPageState extends State<LoginPage> with ThemeAware<LoginPage> {
         }
       },
       builder: (context, state) {
+        if (state is AuthInitial || state is AuthAppInitializing) {
+          return Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Hero(
+                    tag: 'app_logo',
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.saharaSand,
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 64,
+                        height: 64,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.elitePrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         final isLoading = state is AuthLoading;
         return Scaffold(
           backgroundColor: Colors.white,

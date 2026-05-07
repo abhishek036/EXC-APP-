@@ -346,9 +346,41 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Basic Healthcheck Route
-app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ success: true, message: 'Excellence API is running smoothly' });
+// Deep Healthcheck Route — verifies DB + Redis connectivity
+app.get('/health', async (req: Request, res: Response) => {
+  const checks: Record<string, 'ok' | 'error'> = { api: 'ok', database: 'ok', redis: 'ok' };
+  let healthy = true;
+
+  // Check database
+  try {
+    const { prisma } = await import('./config/prisma');
+    await prisma.$queryRaw`SELECT 1`;
+  } catch {
+    checks.database = 'error';
+    healthy = false;
+  }
+
+  // Check Redis
+  try {
+    const { redis } = await import('./config/redis');
+    if (redis) {
+      await redis.ping();
+    } else {
+      checks.redis = 'error';
+    }
+  } catch {
+    checks.redis = 'error';
+    healthy = false;
+  }
+
+  const status = healthy ? 200 : 503;
+  res.status(status).json({
+    success: healthy,
+    status: healthy ? 'healthy' : 'degraded',
+    checks,
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.get('/api/v1', (req: Request, res: Response) => {

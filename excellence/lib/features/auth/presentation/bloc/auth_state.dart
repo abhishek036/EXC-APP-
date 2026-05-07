@@ -13,7 +13,12 @@ class AuthInitial extends AuthState {
   const AuthInitial();
 }
 
-/// Waiting for network / storage response.
+/// App is actively verifying the initial stored session with the backend.
+class AuthAppInitializing extends AuthState {
+  const AuthAppInitializing();
+}
+
+/// Waiting for network / storage response (e.g. sending OTP).
 class AuthLoading extends AuthState {
   const AuthLoading();
 }

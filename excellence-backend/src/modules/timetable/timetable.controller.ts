@@ -3,6 +3,7 @@ import { TimetableService } from './timetable.service';
 import { sendResponse } from '../../utils/response';
 import { emitBatchSync } from '../../config/socket';
 import { ApiError } from '../../middleware/error.middleware';
+import { prisma } from '../../config/prisma';
 
 export class TimetableController {
   private service: TimetableService;
@@ -15,7 +16,7 @@ export class TimetableController {
     const role = (req.user?.role || '').toLowerCase();
     if (role === 'admin') return;
 
-    const { prisma } = await import('../../server');
+    // prisma imported at top of file from config/prisma
 
     if (role === 'teacher') {
       const teacher = await prisma.teacher.findFirst({
@@ -86,7 +87,7 @@ export class TimetableController {
     const role = (req.user?.role || '').toLowerCase();
     if (role === 'admin') return;
 
-    const { prisma } = await import('../../server');
+    // prisma imported at top of file from config/prisma
 
     if (role === 'teacher') {
       const teacher = await prisma.teacher.findFirst({
@@ -245,7 +246,7 @@ export class TimetableController {
 
   deleteMySchedule = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { prisma } = require('../../server');
+      // prisma imported at top of file from config/prisma
       const existing = await prisma.lecture.findUnique({ where: { id: req.params.lectureId } });
       await this.service.deleteTeacherScheduleByUser(req.user!.userId, req.instituteId!, req.params.lectureId);
       if (existing) {

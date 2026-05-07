@@ -9,7 +9,9 @@ services:
     env_file:
       - .env
     environment:
+      # Local dev uses direct Postgres; production uses Neon pooler via .env
       DATABASE_URL: postgresql://excellence_admin:secure_dev_password@postgres:5432/excellence
+      DIRECT_URL: postgresql://excellence_admin:secure_dev_password@postgres:5432/excellence
       REDIS_URL: redis://:secure_redis_password@redis:6379
       PORT: 3000
     depends_on:
@@ -18,6 +20,16 @@ services:
     ports:
       - "3000:3000"
     command: sh -c "npx prisma migrate deploy || npx prisma db push; node dist/server.js"
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8080:80" # Exposed externally
+    depends_on:
+      - backend
 
   postgres:
     image: postgres:16-alpine

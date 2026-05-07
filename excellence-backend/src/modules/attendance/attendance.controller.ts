@@ -3,6 +3,7 @@ import { AttendanceService } from './attendance.service';
 import { sendResponse } from '../../utils/response';
 import { ApiError } from '../../middleware/error.middleware';
 import { emitBatchSync } from '../../config/socket';
+import { prisma } from '../../config/prisma';
 
 export class AttendanceController {
   private service: AttendanceService;
@@ -27,12 +28,16 @@ export class AttendanceController {
     try {
       const { month, year, subject } = req.query;
       if (!month || !year) throw new ApiError('Month and year query params are required', 400, 'BAD_REQUEST');
+      
+      const m = Number(month);
+      const y = Number(year);
+      if (isNaN(m) || isNaN(y)) throw new ApiError('Month and year must be valid numbers', 400, 'BAD_REQUEST');
   
       const data = await this.service.getBatchMonthly(
           req.params.batchId, 
           req.instituteId!, 
-          Number(month), 
-          Number(year),
+          m, 
+          y,
           subject as string
       );
       return sendResponse({ res, data, message: 'Batch attendance fetched' });
@@ -43,7 +48,7 @@ export class AttendanceController {
     try {
       const { studentId } = req.params;
       const { userId, role } = req.user!;
-      const { prisma } = await import('../../server');
+      // prisma imported at top of file from config/prisma
 
       // Security: Students can only view their own attendance
       if (role === 'student') {
@@ -74,7 +79,7 @@ export class AttendanceController {
     try {
        const { studentId } = req.params;
        const { userId, role } = req.user!;
-       const { prisma } = await import('../../server');
+       // prisma imported at top of file from config/prisma
 
        if (role === 'student') {
          const student = await prisma.student.findFirst({ where: { user_id: userId, institute_id: req.instituteId! } });

@@ -137,7 +137,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthCheckRequested event,
     Emitter<AuthState> emit,
   ) async {
-    emit(const AuthLoading());
+    emit(const AuthAppInitializing());
     try {
       // Fall back to secure storage session
       final token = await _storage.getToken().timeout(

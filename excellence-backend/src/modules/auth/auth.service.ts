@@ -1031,8 +1031,6 @@ export class AuthService {
     }
 
     async updateAvatar(userId: string, role: string, avatarUrl: string) {
-        const { prisma } = require('../../server');
-
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: { institute_id: true },

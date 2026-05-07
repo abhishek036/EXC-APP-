@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { BatchService } from './batch.service';
 import { sendResponse } from '../../utils/response';
+import { prisma } from '../../config/prisma';
 
 export class BatchController {
   private batchService: BatchService;
@@ -180,7 +181,7 @@ export class BatchController {
           if (isTeacher) {
             await this.batchService.ensureTeacherBatchAccess(req.instituteId!, req.user!.userId, id);
           }
-          const studentsInBatch = await import('../../server').then(m => m.prisma.studentBatch.findMany({
+          const studentsInBatch = await prisma.studentBatch.findMany({
               where: {
                   batch_id: id,
                   institute_id: req.instituteId!,
@@ -197,7 +198,7 @@ export class BatchController {
                       }
                   }
               }
-          }));
+          });
 
         const students = studentsInBatch.map(sb => {
         if (!isTeacher) return sb.student;

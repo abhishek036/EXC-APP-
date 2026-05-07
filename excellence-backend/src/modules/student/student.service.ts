@@ -42,8 +42,6 @@ export class StudentService {
   }
 
   private async ensureBatchCapacity(instituteId: string, batchId: string, studentId?: string) {
-    const { prisma } = require('../../server');
-
     const batch = await prisma.batch.findUnique({
       where: { id: batchId },
       select: { id: true, name: true, capacity: true, institute_id: true },

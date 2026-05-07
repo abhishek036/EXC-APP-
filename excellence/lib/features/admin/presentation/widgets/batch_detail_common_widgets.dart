@@ -47,7 +47,7 @@ Widget sectionCard(
                 ),
               ),
             ),
-            if (trailing != null) trailing,
+            ?trailing,
           ],
         ),
         const SizedBox(height: 10),

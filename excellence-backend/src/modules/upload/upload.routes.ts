@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { UploadController } from './upload.controller';
 import { generalUpload } from '../../middleware/upload';
 import { authenticateJWT, requireRole } from '../../middleware/auth.middleware';
+import { tenantMiddleware } from '../../middleware/tenant.middleware';
 
 const router = Router();
 const controller = new UploadController();
@@ -10,7 +11,7 @@ const controller = new UploadController();
 router.get('/file/:key(*)', (req, res, next) => controller.downloadFile(req, res).catch(next));
 
 // Protect actual uploads
-router.use(authenticateJWT);
+router.use(authenticateJWT, tenantMiddleware);
 
 // Students need to upload for doubts, Admins/Teachers for materials
 router.post('/', requireRole('admin', 'teacher', 'student', 'parent'), generalUpload.single('file'), (req, res, next) => controller.uploadFile(req, res).catch(next));

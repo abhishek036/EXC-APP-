@@ -174,7 +174,7 @@ class AppRouter {
   // ── Router factory ────────────────────────────────────────────────
   static GoRouter router(AuthBloc authBloc) => GoRouter(
     navigatorKey: _rootKey,
-    initialLocation: '/login',
+    initialLocation: '/',
     refreshListenable: _AuthNotifier(authBloc),
     errorPageBuilder: (context, state) => _page(
       state,
@@ -241,7 +241,7 @@ class AppRouter {
       final uri = state.uri;
 
       // 1. Initial/Loading: Wait on Splash
-      if (authState is AuthInitial || authState is AuthLoading) {
+      if (authState is AuthInitial || authState is AuthAppInitializing) {
         return null;
       }
 

@@ -240,6 +240,7 @@ model Student {
   institute              Institute                 @relation(fields: [institute_id], references: [id])
   user                   User?                     @relation(fields: [user_id], references: [id])
 
+  @@index([institute_id], map: "idx_students_tenant_id")
   @@map("students")
 }
 
@@ -304,6 +305,7 @@ model Batch {
   student_batches     StudentBatch[]
   syllabus_topics     SyllabusTopic[]
 
+  @@index([institute_id], map: "idx_batches_tenant_id")
   @@map("batches")
 }
 
@@ -366,6 +368,8 @@ model FeeRecord {
 
   @@unique([student_id, batch_id, month, year])
   @@index([status], map: "idx_fee_records_status")
+  @@index([institute_id], map: "idx_fee_records_tenant_id")
+  @@index([student_id, status], map: "idx_fee_records_student_status")
   @@map("fee_records")
 }
 
@@ -454,6 +458,7 @@ model AttendanceSession {
   teacher      Teacher?           @relation(fields: [teacher_id], references: [id])
 
   @@unique([batch_id, session_date])
+  @@index([institute_id, session_date], map: "idx_attendance_sessions_tenant_date")
   @@map("attendance_sessions")
 }
 

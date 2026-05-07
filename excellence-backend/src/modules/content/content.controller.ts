@@ -377,7 +377,7 @@ export class ContentController {
           ? (note?.primary_file?.file_url ?? null)
           : (hasId(note?.primary_file?.id) ? null : (note?.primary_file?.file_url ?? null)),
       }
-      : (noteFiles.isNotEmpty ? noteFiles[0] : null);
+      : (noteFiles.length > 0 ? noteFiles[0] : null);
 
     const secureFileAvailable = hasId(primary?.id) || noteFiles.some((item: any) => hasId(item?.id));
     const exposeTopLevelDirectVideo = isDirectVideo(note);

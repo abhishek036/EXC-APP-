@@ -17,6 +17,7 @@ export const setupQueues = () => {
     console.log('✅ BullMQ Queues initialized');
 
     // 1. Notification Worker (for sending individual alerts)
+    // Concurrency 5 — FCM sends are lightweight
     const notificationWorker = new Worker('notifications', async (job: Job) => {
         console.log(`Processing job ${job.id}: ${job.name}`);
 
@@ -33,9 +34,15 @@ export const setupQueues = () => {
                 // Current implementation sends directly from service layer.
                 break;
         }
-    }, { connection: redis as any });
+    }, {
+        connection: redis as any,
+        concurrency: 5,
+        removeOnComplete: { count: 100 },  // keep last 100 completed jobs
+        removeOnFail: { count: 50 },       // keep last 50 failed jobs
+    });
 
     // 2. CRON Worker (for recurring tasks)
+    // Concurrency 2 — fee generation is heavy, keep it low
     const cronWorker = new Worker('cron', async (job: Job) => {
         console.log(`Processing CRON job: ${job.name}`);
 
@@ -54,10 +61,15 @@ export const setupQueues = () => {
                 await NotificationHandler.processDailyRevenueSummary();
                 break;
         }
-    }, { connection: redis as any });
+    }, {
+        connection: redis as any,
+        concurrency: 2,
+        removeOnComplete: { count: 50 },
+        removeOnFail: { count: 30 },
+    });
 
     // Setup recurring schedules
-    setupSchedules();
+    setupSchedules().catch(err => console.error('Failed to setup schedules:', err));
 
     // Listen for events
     notificationWorker.on('failed', (job, err) => console.error(`Job ${job?.id} failed:`, err.message));
