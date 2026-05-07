@@ -50,6 +50,14 @@ class ParentRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch children');
   }
 
+  Future<List<Map<String, dynamic>>> getLecturesByBatch(String batchId) async {
+    final response = await _api.dio.get('lectures/batch/$batchId');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch batch lectures');
+  }
+
   Future<List<Map<String, dynamic>>> getPaymentHistory() async {
     final response = await _api.dio.get('parents/me/payments');
     if (response.statusCode == 200) {

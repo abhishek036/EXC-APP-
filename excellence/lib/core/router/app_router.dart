@@ -879,7 +879,12 @@ class AppRouter {
                   GoRoute(
                     path: 'video-lectures',
                     name: 'teacher-video-lectures',
-                    pageBuilder: (c, s) => _page(s, const VideoLecturesPage()),
+                    pageBuilder: (c, s) => _page(
+                      s,
+                      const VideoLecturesPage(
+                        audience: VideoLecturesAudience.teacher,
+                      ),
+                    ),
                   ),
                   GoRoute(
                     path: 'notification-settings',
@@ -1302,7 +1307,12 @@ class AppRouter {
                   GoRoute(
                     path: 'video-lectures',
                     name: 'student-video-lectures',
-                    pageBuilder: (c, s) => _page(s, const VideoLecturesPage()),
+                    pageBuilder: (c, s) => _page(
+                      s,
+                      const VideoLecturesPage(
+                        audience: VideoLecturesAudience.student,
+                      ),
+                    ),
                   ),
                   GoRoute(
                     path: 'notification-settings',
@@ -1497,7 +1507,12 @@ class AppRouter {
                   GoRoute(
                     path: 'video-lectures',
                     name: 'parent-video-lectures',
-                    pageBuilder: (c, s) => _page(s, const VideoLecturesPage()),
+                    pageBuilder: (c, s) => _page(
+                      s,
+                      const VideoLecturesPage(
+                        audience: VideoLecturesAudience.parent,
+                      ),
+                    ),
                   ),
                   GoRoute(
                     path: 'notification-settings',

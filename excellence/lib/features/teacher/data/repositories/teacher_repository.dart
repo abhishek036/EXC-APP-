@@ -136,6 +136,14 @@ class TeacherRepository {
     throw Exception(response.data['message'] ?? 'Failed to fetch batches');
   }
 
+  Future<List<Map<String, dynamic>>> getLecturesByBatch(String batchId) async {
+    final response = await _api.dio.get('lectures/batch/$batchId');
+    if (response.statusCode == 200) {
+      return _extractList(response.data);
+    }
+    throw Exception(response.data['message'] ?? 'Failed to fetch batch lectures');
+  }
+
   // ── Schedule ─────────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getTodaySchedule() async {
     final response = await _api.dio.get('teachers/me/schedule/today');

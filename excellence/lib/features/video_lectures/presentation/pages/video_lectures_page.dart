@@ -8,10 +8,29 @@ import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/theme_aware.dart';
 import '../../../../core/widgets/cp_pressable.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../parent/data/repositories/parent_repository.dart';
 import '../../../student/data/repositories/student_repository.dart';
+import '../../../teacher/data/repositories/teacher_repository.dart';
+
+enum VideoLecturesAudience { student, teacher, parent }
+
+class _VideoLecturePayload {
+  const _VideoLecturePayload({
+    required this.lectures,
+    required this.progressMap,
+  });
+
+  final List<Map<String, dynamic>> lectures;
+  final Map<String, Map<String, dynamic>> progressMap;
+}
 
 class VideoLecturesPage extends StatefulWidget {
-  const VideoLecturesPage({super.key});
+  const VideoLecturesPage({
+    super.key,
+    this.audience = VideoLecturesAudience.student,
+  });
+
+  final VideoLecturesAudience audience;
 
   @override
   State<VideoLecturesPage> createState() => _VideoLecturesPageState();
@@ -25,6 +44,149 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
   bool _isLoading = true;
   String? _error;
 
+  String _stringValue(dynamic value, [String fallback = '']) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? fallback : text;
+  }
+
+  int _intValue(dynamic value, [int fallback = 0]) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  DateTime? _dateTimeValue(dynamic value) {
+    if (value == null) return null;
+    return DateTime.tryParse(value.toString());
+  }
+
+  Set<String> _batchIdsFromBatches(List<Map<String, dynamic>> batches) {
+    return batches
+        .map((batch) => _stringValue(batch['id']))
+        .where((batchId) => batchId.isNotEmpty)
+        .toSet();
+  }
+
+  Set<String> _batchIdsFromChildren(List<Map<String, dynamic>> children) {
+    final batchIds = <String>{};
+    for (final child in children) {
+      final studentBatches = child['student_batches'];
+      if (studentBatches is! List) continue;
+      for (final studentBatch in studentBatches) {
+        if (studentBatch is! Map) continue;
+        final batchId = _stringValue(studentBatch['batch_id']);
+        if (batchId.isNotEmpty) batchIds.add(batchId);
+      }
+    }
+    return batchIds;
+  }
+
+  Future<List<Map<String, dynamic>>> _loadLecturesForBatches(
+    Iterable<String> batchIds,
+    Future<List<Map<String, dynamic>>> Function(String batchId) fetchLectures,
+  ) async {
+    final uniqueBatchIds = batchIds
+        .map((batchId) => batchId.trim())
+        .where((batchId) => batchId.isNotEmpty)
+        .toSet()
+        .toList();
+
+    if (uniqueBatchIds.isEmpty) {
+      return const [];
+    }
+
+    final batchResults = await Future.wait(
+      uniqueBatchIds.map(
+        (batchId) => fetchLectures(batchId).catchError((_) => <Map<String, dynamic>>[]),
+      ),
+    );
+
+    final lectureMap = <String, Map<String, dynamic>>{};
+    for (final lectures in batchResults) {
+      for (final lecture in lectures) {
+        final lectureId = _stringValue(lecture['id']);
+        if (lectureId.isEmpty) continue;
+        lectureMap[lectureId] = lecture;
+      }
+    }
+
+    final mergedLectures = lectureMap.values.toList();
+    mergedLectures.sort((a, b) {
+      final aCreated = _dateTimeValue(a['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bCreated = _dateTimeValue(b['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bCreated.compareTo(aCreated);
+    });
+    return mergedLectures;
+  }
+
+  Map<String, dynamic> _buildLectureViewModel(
+    Map<String, dynamic> lecture, {
+    Map<String, dynamic>? progress,
+  }) {
+    final durationMinutes = _intValue(lecture['duration_minutes'], 60);
+    final watchedSeconds = _intValue(progress?['watched_sec']);
+    final lastPosition = _intValue(progress?['last_position']);
+    final isCompleted = progress?['is_completed'] == true;
+    final createdAt = _dateTimeValue(lecture['created_at']);
+
+    return {
+      'id': _stringValue(lecture['id']),
+      'title': _stringValue(lecture['title'], 'Recordings'),
+      'subject': _stringValue(lecture['subject'], 'General'),
+      'chapter': _stringValue(lecture['description'], 'Theory Class'),
+      'teacher': _stringValue(lecture['teacher_name'], 'Class Teacher'),
+      'duration': '${durationMinutes}m',
+      'durationSec': durationMinutes * 60,
+      'watchedSec': watchedSeconds,
+      'lastPosition': lastPosition,
+      'uploadDate': createdAt != null ? DateFormat('d MMM yyyy').format(createdAt) : 'Unknown',
+      'views': 0,
+      'isCompleted': isCompleted,
+      'link': lecture['link'],
+    };
+  }
+
+  Future<_VideoLecturePayload> _loadLecturePayload() async {
+    switch (widget.audience) {
+      case VideoLecturesAudience.student:
+        final repo = sl<StudentRepository>();
+        final results = await Future.wait([
+          repo.getLectures(),
+          repo.getLectureProgress().catchError((_) => <Map<String, dynamic>>[]),
+        ]);
+
+        final lectures = List<Map<String, dynamic>>.from(results[0] as List);
+        final progressList = List<Map<String, dynamic>>.from(results[1] as List);
+        final progressMap = <String, Map<String, dynamic>>{};
+        for (final progress in progressList) {
+          final progressEntry = Map<String, dynamic>.from(progress);
+          final lectureId = _stringValue(progressEntry['lecture_id']);
+          if (lectureId.isNotEmpty) {
+            progressMap[lectureId] = progressEntry;
+          }
+        }
+        return _VideoLecturePayload(lectures: lectures, progressMap: progressMap);
+
+      case VideoLecturesAudience.teacher:
+        final repo = sl<TeacherRepository>();
+        final batches = await repo.getMyBatches();
+        final lectures = await _loadLecturesForBatches(
+          _batchIdsFromBatches(batches),
+          repo.getLecturesByBatch,
+        );
+        return _VideoLecturePayload(lectures: lectures, progressMap: const {});
+
+      case VideoLecturesAudience.parent:
+        final repo = sl<ParentRepository>();
+        final children = await repo.getChildren();
+        final lectures = await _loadLecturesForBatches(
+          _batchIdsFromChildren(children),
+          repo.getLecturesByBatch,
+        );
+        return _VideoLecturePayload(lectures: lectures, progressMap: const {});
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -33,48 +195,17 @@ class _VideoLecturesPageState extends State<VideoLecturesPage> {
 
   Future<void> _fetchLectures() async {
     try {
-      final repo = sl<StudentRepository>();
-      // Fetch lectures and progress in parallel
-      final results = await Future.wait([
-        repo.getLectures(),
-        repo.getLectureProgress().catchError((_) => <Map<String, dynamic>>[]),
-      ]);
-
-      final data = results[0];
-      final progressList = results[1];
-
-      // Build a progress lookup map by lecture_id
-      final progressMap = <String, Map<String, dynamic>>{};
-      for (final p in progressList) {
-        final lid = p['lecture_id']?.toString() ?? '';
-        if (lid.isNotEmpty) progressMap[lid] = p;
-      }
+      final payload = await _loadLecturePayload();
 
       if (!mounted) return;
 
       setState(() {
-         _lectures = data.map((e) {
-            final lid = e['id']?.toString() ?? '';
-            final progress = progressMap[lid];
-            final watchedSec = (progress?['watched_sec'] as int?) ?? 0;
-            final isCompleted = (progress?['is_completed'] as bool?) ?? false;
-            final lastPosition = (progress?['last_position'] as int?) ?? 0;
-
-            return {
-               'id': lid,
-               'title': e['title'] ?? 'Recordings',
-               'subject': e['subject'] ?? 'General',
-               'chapter': e['description'] ?? 'Theory Class',
-               'teacher': e['teacher_name'] ?? 'Class Teacher',
-               'duration': '${e['duration_minutes'] ?? 60}m',
-               'durationSec': ((e['duration_minutes'] as int?) ?? 60) * 60,
-               'watchedSec': watchedSec,
-               'lastPosition': lastPosition,
-               'uploadDate': e['created_at'] != null ? DateFormat('d MMM yyyy').format(DateTime.parse(e['created_at'])) : 'Unknown',
-               'views': 0,
-               'isCompleted': isCompleted,
-               'link': e['link']
-            };
+         _lectures = payload.lectures.map((lecture) {
+           final lectureId = _stringValue(lecture['id']);
+           return _buildLectureViewModel(
+             lecture,
+             progress: payload.progressMap[lectureId],
+           );
          }).toList();
          _isLoading = false;
       });
