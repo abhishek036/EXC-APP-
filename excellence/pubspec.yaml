@@ -1,7 +1,7 @@
 name: excellence
 description: "Excellence Academy — Coaching Institute Management App"
 publish_to: 'none'
-version: 1.0.2+7
+version: 1.0.2+8
 
 environment:
   sdk: ^3.11.0
@@ -80,7 +80,6 @@ dependencies:
   google_sign_in: ^7.2.0
   firebase_auth: ^6.3.0
   flutter_inappwebview: ^6.1.5
-  apivideo_live_stream: ^1.2.0
   firebase_storage: ^13.2.0
   path: ^1.9.1
   dio_cache_interceptor: ^3.5.1

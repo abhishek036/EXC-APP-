@@ -810,10 +810,13 @@ class _TeacherBatchPanelPageState extends State<TeacherBatchPanelPage> with Them
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => context.pushNamed(
-                    'teacher-batch-youtube-live',
-                    pathParameters: {'id': widget.batchId},
-                  ),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('YouTube Broadcast is coming soon in a future update!'),
+                      ),
+                    );
+                  },
                   icon: const Icon(Icons.videocam, color: Colors.black),
                   label: Text(
                     'GO LIVE ON YOUTUBE',

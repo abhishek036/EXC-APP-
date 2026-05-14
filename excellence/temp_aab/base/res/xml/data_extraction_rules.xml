@@ -1,0 +1,17 @@
+
+Èdata-extraction-rules*Ô
+Ëcloud-backup*!
+exclude"domainroot	"*!
+exclude"domainfile
+"*%
+exclude"domaindatabase&*'
+exclude"domain
+sharedpref(*%
+exclude"domainexternal&*×
+Îdevice-transfer*!
+exclude"domainroot"*!
+exclude"domainfile"*%
+exclude"domaindatabase&*'
+exclude"domain
+sharedpref(*%
+exclude"domainexternal&
