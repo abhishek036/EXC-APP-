@@ -24,7 +24,7 @@ UninstallDisplayIcon={app}\{#AppExeName}
 SetupIconFile={#AppIcon}
 WizardStyle=modern
 MinVersion=10.0
-PrivilegesRequired=admin
+PrivilegesRequired=adminJL
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a Desktop icon"; GroupDescription: "Additional icons:"; Flags: unchecked

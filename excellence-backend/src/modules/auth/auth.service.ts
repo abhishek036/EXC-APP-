@@ -402,7 +402,8 @@ export class AuthService {
         let deliveryChannel: 'whatsapp' | 'none' = 'none';
 
         const TEST_PHONES = ['1111111110', '1111111111', '1111111112', '1111111113'];
-        const isTestPhone = TEST_PHONES.some(p => normalizedPhone.includes(p));
+        const sendTestPhonesEnabled = (process.env.ENABLE_TEST_PHONES || '').toLowerCase() === 'true';
+        const isTestPhone = sendTestPhonesEnabled && TEST_PHONES.some(p => normalizedPhone.includes(p));
 
         if (isTestPhone) {
             Logger.info(`[AUTH] Skipped WhatsApp delivery for Play Store test phone ${this._maskedPhone(normalizedPhone)}`);
@@ -451,9 +452,40 @@ export class AuthService {
             throw new ApiError('Phone number is required', 400, 'INVALID_PHONE');
         }
 
+        // --- ACCOUNT LOCKOUT CHECK (Redis-based) ---
+        const MAX_OTP_ATTEMPTS = 5;
+        const LOCKOUT_WINDOW_SECONDS = 15 * 60; // 15 minutes
+        let redisClient: any = null;
+        try {
+            const { redis } = await import('../../config/redis');
+            redisClient = redis;
+        } catch {}
+
+        const lockoutKey = `otp_lockout:${normalizedPhone}`;
+        if (redisClient) {
+            try {
+                const failedAttempts = await redisClient.get(lockoutKey);
+                const attemptCount = parseInt(failedAttempts || '0', 10);
+                if (attemptCount >= MAX_OTP_ATTEMPTS) {
+                    const ttl = await redisClient.ttl(lockoutKey);
+                    const remainingMinutes = Math.max(1, Math.ceil(ttl / 60));
+                    throw new ApiError(
+                        `Account temporarily locked due to too many failed attempts. Try again in ${remainingMinutes} minute(s).`,
+                        429,
+                        'ACCOUNT_LOCKED',
+                        { retry_after_seconds: String(ttl > 0 ? ttl : LOCKOUT_WINDOW_SECONDS) },
+                    );
+                }
+            } catch (e: any) {
+                if (e instanceof ApiError) throw e;
+                // Redis failure — proceed without lockout (graceful degradation)
+            }
+        }
+
         // --- 1. OTP CHECK (Outside main transaction to avoid locking OTP table long-term) ---
         const TEST_PHONES = ['1111111110', '1111111111', '1111111112', '1111111113'];
-        const isTestPhone = TEST_PHONES.some(p => normalizedPhone.includes(p));
+        const testPhonesEnabled = (process.env.ENABLE_TEST_PHONES || '').toLowerCase() === 'true';
+        const isTestPhone = testPhonesEnabled && TEST_PHONES.some(p => normalizedPhone.includes(p));
         const isTestAccountBypass = isTestPhone && otp === '123456';
         
         const isDevBypass = this._isTestOtpEnabled() && otp === (process.env.TEST_OTP || '123456');
@@ -461,8 +493,30 @@ export class AuthService {
         if (!isDevBypass && !isTestAccountBypass) {
             const validOtp = await this.authRepository.verifyOtp(normalizedPhone, otp, purpose);
             if (!validOtp) {
+                // Increment failed attempt counter in Redis
+                if (redisClient) {
+                    try {
+                        const newCount = await redisClient.incr(lockoutKey);
+                        if (newCount === 1) {
+                            await redisClient.expire(lockoutKey, LOCKOUT_WINDOW_SECONDS);
+                        }
+                        const remaining = MAX_OTP_ATTEMPTS - newCount;
+                        Logger.info(`[AUTH] Invalid OTP attempt #${newCount} for ${this._maskedPhone(normalizedPhone)} (${remaining} remaining)`);
+                        if (remaining > 0) {
+                            throw new ApiError(`Invalid or expired OTP. ${remaining} attempt(s) remaining.`, 400, 'INVALID_OTP');
+                        }
+                        throw new ApiError('Account temporarily locked due to too many failed attempts. Try again in 15 minutes.', 429, 'ACCOUNT_LOCKED');
+                    } catch (e: any) {
+                        if (e instanceof ApiError) throw e;
+                    }
+                }
                 Logger.info(`[AUTH] Invalid OTP attempt for ${this._maskedPhone(normalizedPhone)}`);
                 throw new ApiError('Invalid or expired OTP', 400, 'INVALID_OTP');
+            }
+
+            // OTP valid — clear lockout counter
+            if (redisClient) {
+                try { await redisClient.del(lockoutKey); } catch {}
             }
         } else {
             Logger.info(`[AUTH] Bypass OTP used for ${this._maskedPhone(normalizedPhone)}`);
@@ -824,10 +878,10 @@ export class AuthService {
     }
 
     async logout(userId: string, refreshTokenString?: string) {
-        if (refreshTokenString) {
-            const hash = crypto.createHash('sha256').update(refreshTokenString).digest('hex');
-            await this.authRepository.revokeRefreshToken(hash);
-        }
+        // Revoke ALL refresh tokens for this user (full session wipe)
+        await prisma.refreshToken.deleteMany({
+            where: { user_id: userId }
+        });
         return true;
     }
 
@@ -1070,6 +1124,11 @@ export class AuthService {
 
         const newHash = await bcrypt.hash(newPass, 12);
         await prisma.user.update({ where: { id: userId }, data: { password_hash: newHash } });
+
+        // Revoke ALL sessions on password change (security requirement)
+        await prisma.refreshToken.deleteMany({ where: { user_id: userId } });
+        Logger.info(`[AUTH] Password changed for user ${userId} — all sessions revoked`);
+
         return true;
     }
 
@@ -1092,6 +1151,11 @@ export class AuthService {
 
         const newHash = await bcrypt.hash(newPass, 12);
         await prisma.user.update({ where: { id: user.id }, data: { password_hash: newHash } });
+
+        // Revoke ALL sessions on password reset (security requirement)
+        await prisma.refreshToken.deleteMany({ where: { user_id: user.id } });
+        Logger.info(`[AUTH] Password reset for user ${user.id} — all sessions revoked`);
+
         return true;
     }
 

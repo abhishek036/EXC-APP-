@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network Security Configuration — Excellence Academy
+  Enforces TLS-only communication. No cleartext traffic allowed.
+  See: https://developer.android.com/training/articles/security-config
+-->
+<network-security-config>
+    <!-- Block all cleartext (HTTP) traffic globally -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

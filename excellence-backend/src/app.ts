@@ -204,6 +204,22 @@ app.use(express.urlencoded({
 app.use(xssMiddleware);
 app.use(morgan(isProduction ? 'combined' : 'dev'));
 
+// Security headers for all API responses
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Prevent caching of sensitive API responses
+  if (req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+  }
+  // Additional security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
+
 app.use((req: Request, _res: Response, next: NextFunction) => {
   if (!mutatingMethods.has(req.method.toUpperCase())) return next();
   if (req.path.startsWith('/api/v1/upload') || req.path.startsWith('/api/upload')) return next();

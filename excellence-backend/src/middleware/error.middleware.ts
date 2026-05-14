@@ -54,7 +54,8 @@ export const errorHandler = (
     // Only set to 400 if not already wrapped in an ApiError with a specific status
     code = 'DATABASE_ERROR';
     statusCode = ('statusCode' in err) ? err.statusCode : 400;
-    message = err.message;
+    // In production, never expose raw DB error messages to clients
+    message = isDevelopment ? err.message : 'A database error occurred. Please try again.';
   } else if ('statusCode' in err) {
     // AppError / ApiError
     statusCode = err.statusCode;

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
 import { sendResponse } from '../../utils/response';
 import { UploadController } from '../upload/upload.controller';
+import { Logger } from '../../utils/logger';
 
 const parseDurationToMs = (value: string, fallbackMs: number): number => {
   const raw = String(value || '').trim();
@@ -73,7 +74,7 @@ export class AuthController {
   }
 
   sendOtp = async (req: Request, res: Response, next: NextFunction) => {
-    console.log(`[AUTH] sendOtp request: ${req.method} ${req.url} phone=${maskPhone(req.body?.phone)}`);
+    Logger.info(`[AUTH] sendOtp request: ${req.method} ${req.url} phone=${maskPhone(req.body?.phone)}`);
     try {
       const { phone, purpose, joinCode } = req.body;
       const data = await this.authService.sendOtp(phone, purpose, joinCode);
@@ -84,7 +85,7 @@ export class AuthController {
   };
 
   verifyOtp = async (req: Request, res: Response, next: NextFunction) => {
-    console.log(`[AUTH] verifyOtp request received for phone: "${maskPhone(req.body?.phone)}"`);
+    Logger.info(`[AUTH] verifyOtp request received for phone: "${maskPhone(req.body?.phone)}"`);
     try {
       const { phone, otp, purpose, joinCode, role } = req.body;
       const data = await this.authService.verifyOtp(phone, otp, purpose, joinCode, role);

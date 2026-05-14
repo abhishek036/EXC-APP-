@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import '../../features/auth/domain/entities/user_entity.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
@@ -244,6 +245,9 @@ class AppRouter {
       if (authState is AuthInitial || authState is AuthAppInitializing) {
         return null;
       }
+
+      // Initialization is complete, remove the native splash screen
+      FlutterNativeSplash.remove();
 
       final isPublic = _publicPaths.contains(location);
 

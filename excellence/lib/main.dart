@@ -25,11 +25,14 @@ import 'core/l10n/app_localizations.dart';
 import 'core/l10n/app_locales.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+
 /// Global notifier for ThemeMode toggling.
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   // Initialize window manager for desktop
   if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
